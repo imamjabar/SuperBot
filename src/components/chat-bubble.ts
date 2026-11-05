@@ -9,9 +9,9 @@ import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
 
 /** Simple mode's message text: 15/22, the size whose cap height matches the design. */
-export const SIMPLE_BUBBLE_TEXT = "text-[15px] leading-[22px]";
+export const SIMPLE_BUBBLE_TEXT = "text-[15px] leading-[22px] max-sm:text-[16px] max-sm:leading-normal";
 
-const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] ${SIMPLE_BUBBLE_TEXT}`;
+const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] max-sm:px-4 max-sm:py-3 ${SIMPLE_BUBBLE_TEXT}`;
 
 /** Simple mode's bot bubble: the one surface tone. */
 export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} bg-card text-ink`;
@@ -19,8 +19,11 @@ export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} bg-card text-ink`;
 /** Simple mode's own bubble; the bot's colour, when on, comes from its inline style. */
 export const SIMPLE_USER_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} bg-bubble-user font-normal`;
 
-/** At most 560 wide, 80% of the column, and always 82px short of it, so a reply never meets the far edge. */
-export const SIMPLE_BUBBLE_MAX = "max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct),calc(100%-82px))]";
+/** At most 560 wide, 80% of the column, and always 82px short of it, so a reply never meets the far edge. A phone gives
+ * a bot bubble 92% of the column and the person's own 85%. */
+const SIMPLE_DESKTOP_MAX = "max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct),calc(100%-82px))]";
+export const SIMPLE_BUBBLE_MAX = `${SIMPLE_DESKTOP_MAX} max-sm:max-w-[92%]`;
+export const SIMPLE_USER_BUBBLE_MAX = `${SIMPLE_DESKTOP_MAX} max-sm:max-w-[85%]`;
 
 /** A plain-text bot bubble drawn outside the transcript's own Bubble: a widget's text fallback or a row that failed. */
 export function plainBotBubble(simple: boolean): string {
@@ -30,7 +33,7 @@ export function plainBotBubble(simple: boolean): string {
 }
 
 /** Simple mode's transcript spaces rows 16px apart (ChatView's data-simple-rows); a row in the same group pulls up 12px, to 4px. */
-export const SIMPLE_STACKED = "-mt-3";
+export const SIMPLE_STACKED = "-mt-3 max-sm:-mt-2";
 
 /** Where a Simple bubble meets its group's neighbours: those corners tighten to 6px on the bubble's own side. */
 export interface BubbleJoin {

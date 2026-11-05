@@ -229,6 +229,15 @@
   --chat-prose-max: 100%;
   --chat-column-max: 100%;
 }
+@media (max-width: 639.98px) {
+  :root,
+  :root[data-chat-width] {
+    --chat-bubble-max: 100%;
+    --chat-bubble-pct: 92%;
+    --chat-card-pct: 100%;
+    --chat-prose-max: 100%;
+  }
+}
 
 :root {
   --code-color-scheme: dark;
@@ -1125,6 +1134,12 @@
 [data-chat-bubble="simple"] :is(.chat-md, .chat-text),
 [data-chat-bubble="simple"].chat-text {
   line-height: 22px;
+}
+@media (max-width: 639.98px) {
+  [data-chat-bubble="simple"] :is(.chat-md, .chat-text),
+  [data-chat-bubble="simple"].chat-text {
+    line-height: 1.5;
+  }
 }
 [data-chat-bubble="simple"] .chat-md > * + * {
   margin-top: 10px;

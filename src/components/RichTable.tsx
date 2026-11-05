@@ -118,7 +118,7 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
         {!large && <button type="button" className="table-action" aria-label={t("table.expand")} title={t("table.expand")} onClick={(event) => { trigger.current = event.currentTarget; setOpen(true); }}><Maximize2 size={14} /></button>}
     </>;
     return (
-    <div className={cn("rich-table w-fit min-w-[min(100%,var(--chat-prose-max))] max-w-full overflow-hidden rounded-xl border border-hairline/50 text-ink", simple ? "bg-composer" : "bg-panel")} dir="ltr">
+    <div className={cn("rich-table w-fit min-w-[min(100%,var(--chat-prose-max))] max-w-full overflow-hidden rounded-xl border border-hairline/50 text-ink max-sm:w-full", simple ? "bg-composer" : "bg-panel")} dir="ltr">
       {!small && <div className="flex flex-wrap items-center gap-1 border-b border-hairline/40 px-2 py-1.5">
         {search("flex min-w-24 flex-1 items-center gap-2 px-1 text-ink-secondary")}
         {actions}
@@ -142,7 +142,7 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
  * card in a Simple reply: header names are the sort buttons, rows are split by hairlines, and nothing else is drawn. */
 type TableLook = "panel" | "quiet" | "card";
 
-const PHONE_SCROLL_COLUMNS = 5;
+const PHONE_STACK_COLUMNS = 4;
 
 function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, direction, headless = false, look = "panel" }: RichTableProps & {
   order: number[]; wrap: boolean; large: boolean; sort: TableSort; onSort: (column: number) => void; look?: TableLook;
@@ -168,7 +168,9 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
     return () => observer.disconnect();
   }, []);
   const belowSm = useMediaQuery(BELOW_SM);
-  const phoneFit = card && belowSm && wrap && !virtual && columns.length < PHONE_SCROLL_COLUMNS;
+  const phoneCard = card && belowSm && !virtual;
+  const stack = phoneCard && columns.length >= PHONE_STACK_COLUMNS;
+  const phoneFit = phoneCard && wrap && !stack;
   const fit = phoneFit || fitsColumns({ wrap, virtual, minimums, available });
   const widths = useMemo(() => columns.map((column, index) => column.width ?? Math.min(320, Math.max(140,
     Math.max(column.text.length, ...rows.slice(0, 100).map((row) => Math.min(40, row[index]?.text.length ?? 0))) * 7 + 40,
@@ -188,6 +190,20 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
   const sortLabel = (column: TableColumn, index: number) => t("table.sort", { column: column.text || index + 1 });
   const header = (column: TableColumn, index: number) => column.content ?? (column.text || t("table.column", { number: index + 1 }));
   const arrow = (index: number, className?: string) => sort?.column === index && sort.descending ? <ArrowDown size={12} className={className} /> : <ArrowUp size={12} className={cn(className, sort?.column !== index && !card && "opacity-35")} />;
+  if (stack) return <div role="list" aria-label={name} dir={direction} className="flex flex-col gap-2 p-2 text-[14px] leading-5" data-stacked="">
+    {order.map((rowIndex) => {
+      const row = rows[rowIndex]!;
+      return <div key={rowIndex} role="listitem" className="min-w-0 rounded-xl bg-ink/[0.04] px-3 py-2.5">
+        <div dir="auto" className="mb-1 font-semibold whitespace-pre-wrap [overflow-wrap:anywhere]">{row[0]?.content ?? row[0]?.text}</div>
+        {columns.slice(1).map((column, offset) => {
+          const cell = row[offset + 1];
+          return <div key={offset} dir="auto" className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+            <span className="text-ink-secondary">{header(column, offset + 1)}: </span>{cell?.content ?? cell?.text}
+          </div>;
+        })}
+      </div>;
+    })}
+  </div>;
   return <div ref={scroll} tabIndex={0} role="region" aria-label={name}
     className={cn("overflow-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60", card && !fit && "[mask-image:linear-gradient(90deg,#000_calc(100%-40px),transparent)]")}
     style={{ maxHeight: large ? "65dvh" : virtual || !wrap ? 400 : undefined }} data-fit={fit || undefined}>
