@@ -209,6 +209,7 @@ function RoomTextMessage({
           data-chat-bubble={simple ? "simple" : ""}
           className={cn(
             tabled ? "w-full" : "w-fit",
+            (tabled || (!simple && !user && isFormattedReply(m.text ?? ""))) && "min-w-0",
             simple ? cn(!tabled && SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT) : "max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-2xl text-[15px] leading-relaxed",
             !user && emerging && "turn-answer",
             tabled || (!user && !m.text?.trim() && !m.replyToId && m.attachments?.length)
