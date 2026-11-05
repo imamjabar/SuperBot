@@ -22,3 +22,6 @@ export const SIDEBAR_INLINE = "(min-width: 768px)";
 
 /** Below Tailwind's md breakpoint: the phone layout, where the sidebar is a full-screen bot list. */
 export const PHONE_LAYOUT = "(max-width: 767.98px)";
+
+/** Below Tailwind's sm breakpoint. */
+export const BELOW_SM = "(max-width: 639.98px)";

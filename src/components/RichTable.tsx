@@ -7,6 +7,7 @@ import { t } from "@/lib/i18n";
 import { copyText } from "@/lib/copy-text";
 import { columnMinimums, fitsColumns } from "@/lib/table-fit";
 import { cn } from "@/lib/cn";
+import { BELOW_SM, useMediaQuery } from "@/lib/use-media-query";
 import { useAdvancedMode } from "@/lib/interface-mode";
 
 export interface TableCell { text: string; content?: ReactNode; align?: TableAlign; vAlign?: "top" | "middle" | "bottom" }
@@ -141,6 +142,8 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
  * card in a Simple reply: header names are the sort buttons, rows are split by hairlines, and nothing else is drawn. */
 type TableLook = "panel" | "quiet" | "card";
 
+const PHONE_SCROLL_COLUMNS = 5;
+
 function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, direction, headless = false, look = "panel" }: RichTableProps & {
   order: number[]; wrap: boolean; large: boolean; sort: TableSort; onSort: (column: number) => void; look?: TableLook;
 }) {
@@ -164,7 +167,9 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const fit = fitsColumns({ wrap, virtual, minimums, available });
+  const belowSm = useMediaQuery(BELOW_SM);
+  const phoneFit = card && belowSm && wrap && !virtual && columns.length < PHONE_SCROLL_COLUMNS;
+  const fit = phoneFit || fitsColumns({ wrap, virtual, minimums, available });
   const widths = useMemo(() => columns.map((column, index) => column.width ?? Math.min(320, Math.max(140,
     Math.max(column.text.length, ...rows.slice(0, 100).map((row) => Math.min(40, row[index]?.text.length ?? 0))) * 7 + 40,
   ))), [columns, rows]);
@@ -191,7 +196,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
       <thead ref={heading} hidden={headless} className={cn("sticky top-0 z-10", look === "panel" ? "bg-raised" : "bg-composer")}><tr aria-rowindex={1}>
         {columns.map((column, index) => <th key={index} scope="col" aria-sort={sort?.column === index ? sort.descending ? "descending" : "ascending" : "none"}
           className={card ? "px-3 py-2.5 align-bottom font-semibold sm:px-4" : "h-10 border-b border-hairline/60 px-3 py-2 font-medium"} style={{ textAlign: alignment(column, index) }}>
-          <div className="break-words [overflow-wrap:anywhere]" style={fit ? { minWidth: minimums[index] } : undefined}>
+          <div className="break-words [overflow-wrap:anywhere]" style={fit && !phoneFit ? { minWidth: minimums[index] } : undefined}>
             {card ? (
               <button type="button" className="group/th inline-flex max-w-full items-center gap-1 text-start font-semibold [text-align:inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60" aria-label={sortLabel(column, index)} title={sortLabel(column, index)} onClick={() => onSort(index)}>
                 <span dir="auto">{header(column, index)}</span>

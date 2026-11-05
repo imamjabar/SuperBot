@@ -16,7 +16,7 @@ export function isFormattedReply(text: string): boolean {
  * and its prose stays at reading width (`.chat-wide` in styles.css). */
 export function formattedReplyWidth(text: string): string {
   return TABLE_DIVIDER.test(text)
-    ? "chat-wide w-full max-w-[var(--chat-card-pct)]"
+    ? "chat-wide w-full sm:max-w-[var(--chat-card-pct)]"
     : "w-full max-w-[min(var(--chat-prose-max),var(--chat-card-pct))]";
 }
 
