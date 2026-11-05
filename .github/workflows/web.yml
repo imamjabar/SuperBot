@@ -1,0 +1,27 @@
+name: Web build
+# Lean: only the web frontend, only when web files change. Publishes dist to the web-dist branch; the VPS pulls it.
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'public/**', 'shared/**', '*.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', '.github/workflows/web.yml']
+  workflow_dispatch:
+concurrency: { group: web-build, cancel-in-progress: true }
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec vite build
+      - name: Publish dist to web-dist branch
+        run: |
+          cd dist
+          git init -q -b web-dist
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "web ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" web-dist
