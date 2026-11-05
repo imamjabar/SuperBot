@@ -190,7 +190,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
       {!fit && <colgroup>{widths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup>}
       <thead ref={heading} hidden={headless} className={cn("sticky top-0 z-10", look === "panel" ? "bg-raised" : "bg-composer")}><tr aria-rowindex={1}>
         {columns.map((column, index) => <th key={index} scope="col" aria-sort={sort?.column === index ? sort.descending ? "descending" : "ascending" : "none"}
-          className={card ? "px-4 py-2.5 align-bottom font-semibold" : "h-10 border-b border-hairline/60 px-3 py-2 font-medium"} style={{ textAlign: alignment(column, index) }}>
+          className={card ? "px-3 py-2.5 align-bottom font-semibold sm:px-4" : "h-10 border-b border-hairline/60 px-3 py-2 font-medium"} style={{ textAlign: alignment(column, index) }}>
           <div className="break-words [overflow-wrap:anywhere]" style={fit ? { minWidth: minimums[index] } : undefined}>
             {card ? (
               <button type="button" className="group/th inline-flex max-w-full items-center gap-1 text-start font-semibold [text-align:inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60" aria-label={sortLabel(column, index)} title={sortLabel(column, index)} onClick={() => onSort(index)}>
@@ -210,7 +210,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
           className={card ? undefined : item.index % 2 ? cn(look === "quiet" ? "bg-ink/[0.03]" : "bg-inset/35", "hover:bg-raised/70") : "hover:bg-raised/70"}>
           {columns.map((column, index) => {
             const cell = rows[order[item.index]!]![index];
-            return <td key={index} className={card ? "border-t-[0.5px] border-ink/[0.07] px-4 py-2.5 align-top tabular-nums" : "border-b border-hairline/20 px-3 py-2.5 align-top tabular-nums"} style={{ textAlign: cell?.align ?? alignment(column, index), verticalAlign: cell?.vAlign }}>
+            return <td key={index} className={card ? "border-t-[0.5px] border-ink/[0.07] px-3 py-2.5 align-top tabular-nums sm:px-4" : "border-b border-hairline/20 px-3 py-2.5 align-top tabular-nums"} style={{ textAlign: cell?.align ?? alignment(column, index), verticalAlign: cell?.vAlign }}>
               <div dir="auto" title={!wrap ? cell?.text : undefined} className={wrap ? "whitespace-pre-wrap break-words [overflow-wrap:anywhere]" : "truncate"}>{cell?.content ?? cell?.text}</div>
             </td>;
           })}
