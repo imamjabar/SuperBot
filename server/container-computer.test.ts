@@ -832,6 +832,9 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain("--permission-mode standard --cursor-reduced-motion on ;;'");
     expect(dockerfile).toContain("prepare-openmausbot-workspace.sh");
     expect(dockerfile).toContain('if ! chmod 0700 "$workspace"');
+    expect(dockerfile).toContain(`'if ! { test -d "$workspace" && test -w "$workspace" && test -x "$workspace"; }; then'`);
+    expect(dockerfile).not.toMatch(/mkdir -p[^'\n]*"\$workspace"[ '"]/);
+    expect(dockerfile).toContain("xdotool");
     expect(dockerfile).toContain('test -r "$directory" && test -w "$directory" && test -x "$directory"');
     expect(dockerfile).toContain('migrate_profile "$HOME/.config/google-chrome" google-chrome');
     expect(dockerfile).toContain('migrate_profile "$HOME/.config/chromium" chromium');

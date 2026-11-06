@@ -139,7 +139,7 @@ RUN set -eux; \\
     apt-get update; \\
     apt-get install -y --no-install-recommends \\
       ca-certificates curl xz-utils procps tini supervisor dbus dbus-x11 \\
-      xvfb x11vnc x11-xserver-utils xdg-utils novnc websockify \\
+      xvfb x11vnc x11-xserver-utils xdotool xdg-utils novnc websockify \\
       xfce4-session xfwm4 xfce4-panel xfdesktop4 xfce4-settings xfce4-terminal exo-utils at-spi2-core \\
       fontconfig fonts-dejavu-core fonts-liberation fonts-noto-color-emoji \\
       python3 python3-venv pulseaudio picom git gh; \\

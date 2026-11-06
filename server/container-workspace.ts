@@ -5,6 +5,10 @@ export function workspacePreparationDockerfile(workspace: string): string {
       'workspace=${workspace}' \\
       'profiles="$workspace/.browser-profiles"' \\
       'apps="$workspace/.desktop-apps"' \\
+      'if ! { test -d "$workspace" && test -w "$workspace" && test -x "$workspace"; }; then' \\
+      '  echo "workspace $workspace is not a mounted directory writable by $(id -u); fix the host bind mount owner" >&2' \\
+      '  exit 1' \\
+      'fi' \\
       'mkdir -p "$profiles/google-chrome" "$profiles/chromium" "$profiles/mozilla" "$apps/local" "$HOME/.config" "$HOME/.cache"' \\
       'if ! chmod 0700 "$workspace" "$profiles" "$profiles/google-chrome" "$profiles/chromium" "$profiles/mozilla" 2>/dev/null; then' \\
       '  for directory in "$workspace" "$profiles" "$profiles/google-chrome" "$profiles/chromium" "$profiles/mozilla"; do' \\
