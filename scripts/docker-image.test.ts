@@ -325,4 +325,14 @@ describe("container images", () => {
       expect(service.shm_size, file).toBe("512m");
     }
   });
+
+  it("forwards the public HTTPS scheme to the app even when Caddy itself is reached over plain HTTP", () => {
+    const caddy = readFileSync(new URL("../deploy/Caddyfile", import.meta.url), "utf8");
+    const app = caddy.match(/reverse_proxy 127\.0\.0\.1:8799 \{[^}]*\}/)?.[0] ?? "";
+    const hooks = caddy.match(/handle \/hooks\/\* \{[^}]*\}/)?.[0] ?? "";
+    expect(app).toMatch(/^\s*header_up X-Forwarded-Proto https$/m);
+    expect(hooks).toContain("reverse_proxy 127.0.0.1:8800");
+    expect(hooks).not.toContain("header_up");
+    expect(caddy).not.toMatch(/trusted_proxies|header_up X-Forwarded-For|header_up Origin/);
+  });
 });

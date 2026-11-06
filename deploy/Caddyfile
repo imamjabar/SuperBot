@@ -4,7 +4,11 @@
 # page, everything else is refused by the server itself, so Caddy adds no
 # password of its own. Caddy forwards the real Host and sets
 # X-Forwarded-For / X-Forwarded-Proto, which the server uses for the
-# same-origin rule, Secure cookies and the pairing lockout.
+# same-origin rule, Secure cookies and the pairing lockout. The app branch
+# always forwards X-Forwarded-Proto https: clients use only the HTTPS
+# address, also when an HTTPS terminator such as Tailscale Serve reaches
+# this Caddy over plain HTTP (DOMAIN=http://:8080), so the server's origin
+# matches the Origin a paired client sends.
 {$DOMAIN} {
 	encode zstd gzip
 
@@ -23,6 +27,7 @@
 		# and set both variables in .env (hash with `caddy hash-password`,
 		# every `$` doubled for Compose).
 		reverse_proxy 127.0.0.1:8799 {
+			header_up X-Forwarded-Proto https
 			# SSE: stream events as they arrive
 			flush_interval -1
 		}
