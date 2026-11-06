@@ -116,7 +116,7 @@ beforeEach(async () => {
               viewer_url: "http://127.0.0.1:1/vnc.html#password=fixture-secret&view_password=fixture-view",
             } as ContainerComputerStatus;
           },
-          seatRunning: async (_runtime, seat) => seat === 2 && seatRunning,
+          seatStatus: async (_runtime, seat) => ({ running: seat === 2 && seatRunning, programs: {}, socketReady: seatRunning }),
           tunnel: () => { tunnels++; return connect(desktopPort, "127.0.0.1"); },
           touch: target => touched.push(`${target.key}#${target.seat}`),
         });

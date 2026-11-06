@@ -132,12 +132,12 @@ describe("ensureContainerSeat", () => {
         managed: true, imageMatches: true, network: "loopback", container: "running", runtime: "docker", viewer_port: 1,
         viewer_url: "http://127.0.0.1:1/vnc.html#password=full&view_password=watch",
       }) as ContainerComputerStatus,
-      seatRunning: async (runtime, n) => (await containerSeatStatus(n, { runtime, runner })).running,
+      seatStatus: (runtime, n) => containerSeatStatus(n, { runtime, runner }),
       tunnel: () => new PassThrough(),
       touch: () => {},
     });
     try {
-      await expect(viewer.resolve()).rejects.toMatchObject({ status: 409 });
+      await expect(viewer.resolve()).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/seat 2 is not running \(xvfb-2 MISSING, .*no Cua socket\)/) });
       await startSeatLifecycle(seat, idle, { runtime: "docker", runner, sleep: async () => {} });
       expect(started).toBe(true);
       expect(idle.alive()).toEqual([2]);

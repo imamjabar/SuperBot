@@ -103,6 +103,7 @@ export function createDesktopViewer(deps: {
     let connection: DesktopConnection;
     try { connection = await target.resolve(); }
     catch (error) {
+      console.warn(`desktop viewer ${match[1]}: ${error instanceof Error ? error.message : String(error)}`);
       const status = error && typeof error === "object" && "status" in error ? error.status : 502;
       return json(res, typeof status === "number" && status >= 400 && status < 600 ? status : 502,
         { error: "The desktop is not available. Open it again from OpenMausBot." });

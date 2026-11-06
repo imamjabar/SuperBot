@@ -4679,7 +4679,7 @@ const desktopViewer = createDesktopViewer({
       if (seat > localVmSeatLeases.capacity && !localVmSeatIdle.alive().includes(seat)) return;
       return seatDesktopTarget({ ...SHARED_LOCAL_VM_TARGET, seat }, {
         status: target => containerComputerStatus(undefined, undefined, target, { probeDesktop: false }),
-        seatRunning: async (runtime, n) => (await containerSeatStatus(n, { runtime })).running,
+        seatStatus: (runtime, n) => containerSeatStatus(n, { runtime }),
         tunnel: (runtime, n) => openSeatViewerTunnel(runtime, n),
         touch: target => { localVmIdleFor(target).touch(); localVmSeatIdle.touch(seat); },
       });
