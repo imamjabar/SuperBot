@@ -1,5 +1,7 @@
 # OpenMausBot agent notes
 
+For SuperBot development with Claude Code, also read [`CLAUDE.md`](CLAUDE.md) and the current [`docs/HANDOFF.md`](docs/HANDOFF.md). These notes add to, rather than replace, the repository instructions below.
+
 Before claiming a server or conversation change works, follow
 [`docs/verification/README.md`](docs/verification/README.md). Always launch an
 isolated fixture; never verify mutations against the user's live app or data.
