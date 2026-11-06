@@ -143,9 +143,6 @@ use their own Boat key, and how many bots run on cloud computers, without sendin
 | `engine_signed_in` | You finish signing in to an engine inside the app | `engine`: `claude`, `codex`, `grok`, `kimi`; `method`: `code`, `device_code`, `browser` |
 | `connector_connect` | A Connect you started in Connected apps ends | `app`: app; `result`: `connected` (the account it added works), `failed` or `expired` (that account failed or expired), `timed_out` (neither within two minutes) |
 | `app_snapshot` | Once a day, as described above | The properties in the snapshot table |
-| `cloud_card_shown` | The MausBot Cloud card is shown | `variant`: `signed_out`, `free` |
-| `cloud_card_action` | You act on the MausBot Cloud card | `action`: `start`, `howto`, `signin`, `not_now`, `close` |
-| `whats_new` | The What's new popup (once per person after an update, on this computer's page): a slide comes on screen, counted once per slide each time the popup is up, or you act on it | `action`: `seen`, `next`, `back` (the slide changed, by its buttons, its dots or the arrow keys), `get_pro` (Get Pro, which opens Add a Cloud), `see_cloud` (See the new Cloud, which opens the Cloud website), `start_team` (Start a Team, which opens the Team plan's checkout on the Cloud website, or Add a Cloud for someone with a plan of their own), `not_now`, `close` (the X, Escape or a click outside); `slide`: the slide it happened on: `pro` (the new MausBot Cloud), `team` (Team); `audience`: `no_plan` (both slides), `own_plan` (a Cloud plan of one's own: the Team slide only); `signed_in`: true/false, signed in to MausBot Cloud in the app; `campaign`: the popup's campaign, `whats-new-2026-11` |
 | `cloud_howto` | The "Show me how" tip ends | `result`: `no_button`, `skipped`, `closed` |
 | `cloud_dialog_shown` | The Add a Cloud dialog opens | `source`: `app_card`, `app_howto`, `app_menu`, `app_settings`, `app_routines`, `app_whats_new_pro` (Get Pro in the What's new popup), `app_whats_new_team` (Start a Team in it, for someone with a plan of their own), `app_onboarding` (Try Cloud under MausBot's first messages); `view`: the dialog's first screen |
 | `cloud_dialog_view` | The Add a Cloud dialog reaches a step | `view`: `received`, `starting`, `ready` |
@@ -159,8 +156,6 @@ use their own Boat key, and how many bots run on cloud computers, without sendin
 | `cloud_intent_skipped` | You skip that question | none |
 | `cloud_welcome_step` | A step of a new Cloud's welcome is shown | `step`: `bring`, `engine`, `files`, `done` |
 | `cloud_welcome_ended` | A new Cloud's welcome ends | `reason`: `done`, `skipped`; `at`: the step it ended on |
-| `product_hunt_card` | You act on the Product Hunt card | `action`: `upvote`, `not_now`, `close` |
-| `boat_offer` | Boat's credit offer: its one-time card is shown or you act on it, or you act on it on the Boat card in Settings → API keys | `action`: `shown` (the card only), `get_boat`, `claim` (the drafted email to Boat opened), `not_now`, `close`; `place`: `card`, `settings` |
 | `simple_mode_prompt` | The Simple mode popup, shown once in each browser after an update when nothing else is on screen, is shown, its Simple mode switch is flipped, or it is closed (Done, the X, Escape or a click outside) | `action`: `shown`, `toggled`, `closed`; `mode`: `simple`, `advanced`, the mode it was shown or closed in, or the one a flip turned on |
 | `grok_move_popup` | The one-time Move from Grok Bot popup is shown or you act on it | `action`: `shown`, `start`, `not_now`, `close` |
 | `two_places_card` | You act on the card that says your bots live in two places (this computer and a server of your own, or My Cloud) | `action`: `bring`, `not_now`; `kind`: `server`, `cloud`, the place it offered |

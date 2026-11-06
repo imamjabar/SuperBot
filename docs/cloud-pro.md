@@ -1897,80 +1897,23 @@ was (**Manage in your browser**). If the routes are missing anyway (its own
 page's billing (`/cloud/personal/billing`) in the browser and the sheet says
 so. Deploy the Admin before the app release that uses it.
 
-`cancel-plan-preview.html` (dev only, `pnpm dev`) shows the real cards with a
-fake bridge: `?view=settings|cloud&plan=trial|paid|team&cancelled=1&admin=old&skin=midnight|daylight&lang=de`.
-
 #### One card at a time: the notice queue
 
-`components/AppNotices.tsx` is the one place for the What's new popup and the
-cards at the bottom left. `lib/notices.ts` keeps them in one ordered list,
-`NOTICES`, and the queue asks it in that order. **One notice a launch:** the
-first one due shows, and it takes the launch (`launchNotice`, kept for the
-window's session, so a reload is the same launch). After it, only the
-product-updates question may follow in that launch; every other notice waits for
-a later launch, in the list's order. A new notice is one entry in `NOTICES` and
-its fact in AppNotices. So What's new and Boat's credit offer never share a
-launch: What's new comes first, and the Boat card waits for a later one.
+`components/AppNotices.tsx` is the one place for the popups and the cards at
+the bottom left. `lib/notices.ts` keeps them in one ordered list, `NOTICES`, and
+the queue asks it in that order. **One notice a launch:** the first one due
+shows, and it takes the launch (`launchNotice`, kept for the window's session,
+so a reload is the same launch). After it, only the product-updates question
+may follow in that launch; every other notice waits for a later launch, in the
+list's order. A new notice is one entry in `NOTICES` and its fact in
+AppNotices.
 
-1. **What's new** (`whats-new/WhatsNewPopup`, campaign id `whats-new-2026-11`):
-   one centered popup with slides, **Next** and **Back**, its dots and the arrow
-   keys, once per person: a close is kept in the workspace record, in the page's
-   storage and in this desktop's own record (`electron/desktop-prefs.mjs`), so
-   every port the app's page is served on agrees. A new campaign id shows it
-   once more. Only on this computer's page of the installed app (never My
-   Cloud's or a saved server's page, a remote client's window, a branded build
-   or a desktop signed in with an organization), never during setup (the welcome,
-   the tour), a call, another dialog, busy work or an update being offered,
-   never in the launch whose welcome finished or before a new install's first
-   reply, and after MausBot's first-launch card. `lib/whats-new.ts` decides the
-   slides from the account the app already holds (its plan, its trial, its
-   teams and its Clouds list):
-   - **No Cloud plan** (signed out, or signed in with none): **Meet the new
-     MausBot Cloud**, the Cloud website's Home pictured in the skin's light or
-     dark, then **Team**.
-   - **A Cloud plan of one's own**, in no team: the Team slide only.
-   - **In a team** (any role, a Team or Business plan, or a team's Cloud in the
-     Clouds list), a payment being linked or needing attention, a checkout or
-     another Cloud being bought, or a sign-in that can't be checked: nothing
-     (the last ones on a later launch).
-
-   A slide shows only while the Admin's offer sells its plan, with that plan's
-   price from the offer (the Team plan's free trial when it has one). Every
-   button carries the slide's tag on the Cloud's funnel (`app_whats_new_pro`,
-   `app_whats_new_team`): **Get Pro** opens the Add a Cloud dialog with
-   `source: app_whats_new_pro`, which its checkout sends; **See the new Cloud**
-   opens `https://cloud.openmausbot.com/cloud?src=app_whats_new_pro` (the plans,
-   for someone without one); **Start a Team** opens
-   `https://cloud.openmausbot.com/pro/buy?plan=team&src=app_whats_new_team`, the
-   website's Get Team with this slide's tag (the staging Admin's site for an app
-   on staging), and for someone with a plan of their own, whom that page would
-   only tell to write in, the Add a Cloud dialog with `source:
-   app_whats_new_team`, which lists the Team plan. A browser that won't open
-   keeps the popup up and says so. Every
-   button, Not now, its X, Escape (while focus is inside) and a click outside
-   end it for good; until then it comes back on a later launch. It takes focus
-   at the slide's title, keeps Tab inside, and gives focus back when it closes
-   unless focus has moved on. `whats_new` ([docs/analytics.md](analytics.md))
-   counts each slide seen and each step.
-2. **The card after the update** (`CloudTrialIntro`, id `cloud-trial-intro-v1`):
-   MausBot Cloud's free trial for someone signed out or with no plan who
-   has used the app before this launch, only while the Admin offers a trial
-   (it waits for one), and never on a desktop whose first-run welcome
-   showed its MausBot Cloud step. Its numbers are the Admin's: the trial's
-   days, the lowest monthly price, the Claude credit and money-back. At most
-   once a calendar day, on at most three days (one for someone who closed the
-   earlier Pro card), kept in browser storage and the workspace's hint record;
-   any button, its X or Escape end it for good. **Start free trial** opens the
-   Add a Cloud dialog, **Show me how** lights the server menu (below), **Sign
-   in to your Cloud plan** (signed out) only hides it for now. Never on a
-   branded build or a desktop signed in with an organization.
-3. **The free trial's notice** (above), on this computer's page and on My
+1. **The free trial's notice** (above), on this computer's page and on My
    Cloud's own page (its only entry there, after its engine sign-in and setup
    checklist).
-4. **This computer's My Cloud card** (`CloudNotice`): a ready My Cloud for
+2. **This computer's My Cloud card** (`CloudNotice`): a ready My Cloud for
    someone with a plan, or **Sign in again** where the sign-in ended (Not now
    kept per card).
-5. **Star us on GitHub**, asked once.
 
 None of them shows over setup (the welcome flow, the tour, and on My Cloud its
 engine sign-in and its setup checklist until that is done or hidden), a dialog,
@@ -1993,8 +1936,6 @@ again** (one step, the plan unaffected) instead of offering a plan. A `401` or
 other refusal, is a failed check like a dropped connection: it never ends the
 sign-in. Nobody signed in with a paid plan, in payment trouble, with a payment
 being linked, or whose state is unknown is offered a plan anywhere in the app.
-What's new offers no plan to any of them; it waits while the sign-in is still
-restoring or connecting.
 
 In the Server menu, **My Cloud** goes through the same connection as
 **Open My Cloud** (no pairing code to type); when it cannot, the app

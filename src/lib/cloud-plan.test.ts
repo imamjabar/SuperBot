@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { CloudAccountState, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import { CHECKOUT_SOURCES } from "../../electron/cloud-account.mjs";
 import type { CloudCredit, CloudOffer, CloudOfferPlan, CloudTeam, CloudTrial } from "../../electron/cloud-home.mjs";
-import { buyOfferAllowed, cardRows, CLOUD_SOURCES, cloudAddView, cloudCreditLine, cloudIntroView, cloudNoticeKind, cloudPlanLine, cloudPlanView, cloudTrialNotice, cloudTrialView,
+import { buyOfferAllowed, cardRows, CLOUD_SOURCES, cloudAddView, cloudCreditLine, cloudNoticeKind, cloudPlanLine, cloudPlanView, cloudTrialNotice, cloudTrialView,
   dueToday, moneyBackLine, moneyBackShort, offerPlan, offerTrialDays, planCardRows, planCards, sameTerms, sharedTrialDays, trialTimeline, usd,
   type CloudSignInPhase } from "./cloud-plan";
 import { setLocale } from "./i18n";
@@ -234,12 +234,8 @@ describe("what is for sale, as the Admin says", () => {
     const terms = (trialDays: number) => planCards({ plans: [{ tier: "team", amount: 16900, trialDays, allowances }], recommended: "team" })[0]!.terms;
     expect(terms(1)).toBe("Free for 1 day, then $169/month + tax");
     expect(terms(3)).toBe("Free for 3 days, then $169/month + tax");
-    const badge = (trialDays: number) => cloudIntroView({ plans: [{ tier: "team", amount: 16900, trialDays }], recommended: "team" })!.badge;
-    expect(badge(1)).toBe("Free for 1 day");
-    expect(badge(3)).toBe("Free for 3 days");
     setLocale("de");
     expect(terms(1)).toBe("1 Tag kostenlos, dann $169/Monat zzgl. Steuern");
-    expect(badge(3)).toBe("3 Tage kostenlos");
     setLocale("en");
   });
 
@@ -295,17 +291,6 @@ describe("what is for sale, as the Admin says", () => {
     expect(trialTimeline(noTrial(OFFER), NOW)).toEqual([]);
   });
 
-  it("the card after the update needs a trial, and says only the Admin's numbers: never a launch price or a later one", () => {
-    expect(cloudIntroView(OFFER)).toEqual({ badge: "Free for 7 days",
-      points: ["Routines run on time, day and night", "Reach your bots from your phone, even with this computer off", "$5 of Claude credit to start"],
-      price: "Then from $15/month + tax. Cancel any time.", moneyBack: "14-day money-back on every plan." });
-    const bare = cloudIntroView({ ...OFFER, creditUsd: undefined, refundDays: undefined })!;
-    expect(bare.points[2]).toBe("Voice and cloud desktops by Boat included"); expect(bare.moneyBack).toBeNull();
-    expect(cloudIntroView(noTrial(OFFER))).toBeNull(); expect(cloudIntroView(null)).toBeNull(); expect(cloudIntroView(undefined)).toBeNull();
-    expect(JSON.stringify(cloudIntroView(OFFER))).not.toMatch(/launch|\$89|first 100/i);
-    const partial: CloudOffer = { ...OFFER, plans: OFFER.plans.map(plan => plan.tier === "starter" ? { ...plan, trialDays: undefined } : plan) };
-    expect(cloudIntroView(partial)!.price).toBe("Then from $49/month + tax. Cancel any time.");
-  });
 });
 
 describe("the buying sheet, one view per state", () => {
