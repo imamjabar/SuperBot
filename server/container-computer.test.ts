@@ -881,7 +881,7 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain("6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2");
     expect(dockerfile).toContain("/usr/local/share/licenses/noto-cjk/OFL.txt");
     expect(dockerfile).toContain("fc-cache -f");
-    expect(IMAGE_LAYER_VERSION).toBe("8");
+    expect(IMAGE_LAYER_VERSION).toBe("9");
   });
 
   it("starts the driver's Chrome without its own sandbox inside the hardened container", () => {
@@ -891,16 +891,13 @@ describe("Cua integration", () => {
     expect(exec).toContain("exec env CUA_DRIVER_BROWSER_NO_SANDBOX=1 ");
   });
 
-  it("rejects a zero-byte OpenSSL base image before the wheel download needs curl", () => {
+  it("installs curl and CA certificates from the pinned Debian 13 base before any download", () => {
     const dockerfile = managedImageDockerfile();
-    expect(dockerfile).toContain('"/lib/$lib_triplet/libssl.so.3"');
-    expect(dockerfile).toContain('"/lib/$lib_triplet/libcrypto.so.3"');
-    expect(dockerfile).toContain("[ ! -s \"$ssl_lib\" ]");
-    expect(dockerfile).toContain("is zero bytes, so curl cannot start");
-    const gate = dockerfile.indexOf('[ ! -s "$ssl_lib" ]');
+    expect(dockerfile.startsWith(`FROM docker.io/library/debian@${BASE_IMAGE_DIGEST}\n`)).toBe(true);
+    const tools = dockerfile.indexOf("ca-certificates curl");
     const fetch = dockerfile.indexOf("curl -fsSL");
-    expect(gate).toBeGreaterThan(-1);
-    expect(fetch).toBeGreaterThan(gate);
+    expect(tools).toBeGreaterThan(-1);
+    expect(fetch).toBeGreaterThan(tools);
   });
 
   it("captures the preview through Cua Driver rather than xdotool or VNC", async () => {
