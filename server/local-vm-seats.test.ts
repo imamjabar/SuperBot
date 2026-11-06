@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { LocalVmLeasePool } from "./local-vm-lease.ts";
-import { MAX_SEATS, SeatLeaseTable, parseSeat, seatCapacity, seatIdentity } from "./local-vm-seats.ts";
+import { MAX_SEATS, SeatLeaseTable, localVmSeatKey, localVmSeatKeys, parseSeat, seatCapacity, seatIdentity } from "./local-vm-seats.ts";
 
 describe("seat identities", () => {
   it("keeps seat 1 on the legacy socket and runtime dir and gives other seats their own", () => {
@@ -121,5 +121,27 @@ describe("SeatLeaseTable", () => {
     expect(pool.forTarget("shared").claim("t1", "bot", () => true, 0)).toBe(true);
     expect(table.acquire({ ownerId: "bot", threadId: "t2" }, 0)).toMatchObject({ ok: true });
     expect(pool.forTarget("shared").claim("t2", "bot", () => true, 0)).toBe(false);
+  });
+
+  it("applies a capacity change to the next acquire without dropping held seats", () => {
+    let configured = 2;
+    const table = new SeatLeaseTable(() => configured, ttl);
+    table.acquire({ ownerId: "bot", threadId: "t1" }, 0);
+    table.acquire({ ownerId: "bot", threadId: "t2" }, 0);
+    configured = 1;
+    expect(table.leasedSeats(0)).toEqual([1, 2]);
+    expect(table.acquire({ ownerId: "bot", threadId: "t2" }, 0)).toMatchObject({ ok: true, lease: { seat: { seat: 2 } } });
+    table.release(1, "bot", "t1", 0);
+    expect(table.acquire({ ownerId: "bot", threadId: "t3" }, 0)).toMatchObject({ ok: true, lease: { seat: { seat: 1 } } });
+    configured = 3;
+    expect(table.acquire({ ownerId: "bot", threadId: "t4" }, 0)).toMatchObject({ ok: true, lease: { seat: { seat: 3 } } });
+  });
+});
+
+describe("seat lock keys", () => {
+  it("keeps seat 1 on the bare target key and gives other seats distinct keys", () => {
+    expect(localVmSeatKey({ key: "shared" })).toBe("shared");
+    expect(localVmSeatKey({ key: "shared", seat: 1 })).toBe("shared");
+    expect(localVmSeatKeys("shared")).toEqual(["shared", "shared#seat:2", "shared#seat:3"]);
   });
 });

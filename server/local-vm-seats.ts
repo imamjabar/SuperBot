@@ -43,6 +43,15 @@ export function seatIdentity(seat: number): SeatIdentity {
   };
 }
 
+/** The turn lock key for one seat of a target. Seat 1 keeps the bare target key, so single-seat locks are unchanged. */
+export function localVmSeatKey(target: { key: string; seat?: number }): string {
+  return target.seat === undefined || target.seat === 1 ? target.key : `${target.key}#seat:${target.seat}`;
+}
+
+export function localVmSeatKeys(targetKey: string): string[] {
+  return Array.from({ length: MAX_SEATS }, (_, index) => localVmSeatKey({ key: targetKey, seat: index + 1 }));
+}
+
 export interface SeatLease {
   seat: SeatIdentity;
   ownerId: string;
@@ -65,12 +74,17 @@ export type SeatLeaseResult =
 export class SeatLeaseTable {
   private readonly leases = new Map<number, SeatLease>();
   private readonly ttlMs: number;
-  readonly capacity: number;
+  private readonly configured: () => number;
 
-  constructor(capacity: number, ttlMs: number) {
+  /** `capacity` may be a function, so a config change applies to the next acquire without dropping held leases. */
+  constructor(capacity: number | (() => number), ttlMs: number) {
     if (!Number.isFinite(ttlMs) || ttlMs <= 0) throw new Error("Seat lease TTL must be positive");
-    this.capacity = seatCapacity(capacity);
+    this.configured = typeof capacity === "function" ? capacity : () => capacity;
     this.ttlMs = ttlMs;
+  }
+
+  get capacity(): number {
+    return seatCapacity(this.configured());
   }
 
   private live(seat: number, now: number): SeatLease | null {
@@ -80,6 +94,12 @@ export class SeatLeaseTable {
       return null;
     }
     return lease ?? null;
+  }
+
+  leasedSeats(now = Date.now()): number[] {
+    const seats: number[] = [];
+    for (let seat = 1; seat <= MAX_SEATS; seat++) if (this.live(seat, now)) seats.push(seat);
+    return seats;
   }
 
   heldBy(threadId: string, now = Date.now()): SeatLease | null {

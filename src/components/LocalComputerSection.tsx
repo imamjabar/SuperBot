@@ -76,6 +76,8 @@ export interface LocalVmInventoryInstance {
 interface LocalVmInventoryPayload {
   instances: LocalVmInventoryInstance[];
   maxInstances: number;
+  /** Shared-desktop seats: how many exist and which are held by a turn. */
+  seats?: { capacity: number; busy: number[] };
   available: boolean;
   problem: string | null;
 }

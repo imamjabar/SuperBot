@@ -58,6 +58,27 @@ Only seat 1's viewer is published, on the host's `:6080`. For other seats,
 `VNC_PW` reaches each seat's x11vnc through supervisord's environment and never appears
 in command arguments.
 
+### Thread binding
+
+`localVm.seats` in `config.json` (1–3, default 1) sets how many threads can use the
+shared desktop at once. Only shared mode reads it. With 1, turns lock the whole desktop,
+as before.
+
+With more than one seat, a turn gets a seat for its thread from a `SeatLeaseTable` (owner
+is the bot, key is the thread). That seat is its target's `seat`, and only the server
+chooses it; no tool argument picks a seat.
+
+- The same thread gets the same seat again; no other thread can take it.
+- A turn that finds no free seat gets a clear error and does not wait in a queue.
+- The turn lock key is `shared` for seat 1 and `shared#seat:N` for other seats. Lifecycle
+  actions on the container treat any held seat as in use.
+- Before Cua is attached, `ensureContainerSeat` starts the seat and waits until it is up.
+- The MCP bridge, preview screenshots and the bot's command route all use the turn's seat.
+- Every event on the thread renews its lease (30 min TTL), and the lease is released when
+  the turn ends. The seat's programs keep running.
+
+The inventory endpoint reports `seats: { capacity, busy }`.
+
 ## Sizing (VPS: 2 vCPU, 8 GB RAM, 77 GB disk)
 
 - Reserve 1.5 GB for the OS, omb and Caddy.

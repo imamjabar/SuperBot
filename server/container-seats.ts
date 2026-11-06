@@ -1,3 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises";
+
 import { SHARED_LOCAL_VM_TARGET, sh, type CommandRunner, type LocalVmTarget, type Runtime } from "./container-computer.ts";
 import { seatIdentity, type SeatIdentity } from "./local-vm-seats.ts";
 
@@ -84,4 +86,25 @@ export async function containerSeatStatus(seat: number, options: SeatRuntimeOpti
   const { runtime, target = SHARED_LOCAL_VM_TARGET, runner = sh } = options;
   const { stdout } = await runner(runtime, containerSeatStatusArgs(seat, target.containerName), 15_000);
   return parseSeatStatus(seat, stdout);
+}
+
+const SEAT_START_SECONDS = 45;
+
+/** Starts the target's seat when it is not fully up and waits until its programs run and its socket exists.
+ * Seat 1 is the container's own desktop and is never touched here. */
+export async function ensureContainerSeat(
+  target: LocalVmTarget,
+  options: { runtime: Runtime; runner?: CommandRunner; sleep?: (ms: number) => Promise<void> },
+): Promise<void> {
+  const { seat } = target;
+  if (seat === undefined || seat === 1) return;
+  const { runtime, runner = sh, sleep = (ms: number) => delay(ms) } = options;
+  const seatOptions = { runtime, target, runner };
+  if ((await containerSeatStatus(seat, seatOptions)).running) return;
+  await containerStartSeat(seat, seatOptions);
+  for (let attempt = 0; attempt < SEAT_START_SECONDS; attempt++) {
+    await sleep(1_000);
+    if ((await containerSeatStatus(seat, seatOptions)).running) return;
+  }
+  throw new Error(`Local VM seat ${seat} did not start within ${SEAT_START_SECONDS} seconds`);
 }

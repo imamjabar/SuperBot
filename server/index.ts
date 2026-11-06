@@ -148,6 +148,7 @@ import {
   engineLaunches,
   localVmIdleTimeoutMinutes,
   localVmMaxInstances,
+  localVmSeats,
   localVmMode,
   localVmPreservesInstalledApps,
   roomTurnTimeoutMinutes,
@@ -420,6 +421,8 @@ import { localVmStopReason, recordLocalVmIdleStop } from "./local-vm-stop-reason
 import { ComputerIdleTimer } from "./computer-idle.ts";
 import { CLOUD_COMPUTER_DID_NOT_START, CLOUD_COMPUTER_START_BUDGET_MS, CLOUD_COMPUTER_STARTING, createCloudComputerPower } from "./host/cloud-computer-power.ts";
 import { LocalVmLease, LocalVmLeasePool } from "./local-vm-lease.ts";
+import { SeatLeaseTable, localVmSeatKey, localVmSeatKeys } from "./local-vm-seats.ts";
+import { ensureContainerSeat } from "./container-seats.ts";
 import { LocalVmSeatPool, type LocalVmSeatHolder } from "./local-vm-seat-pool.ts";
 import { createLoopGuard, loopGuardSettings } from "./host/loop-guard.ts"; import { createPersonFirst } from "./host/person-first.ts";
 import { claudeUserSkillsEnabled, settingsTurnFields } from "./turn-settings.ts";
@@ -5611,6 +5614,7 @@ const localVmSeatPool = new LocalVmSeatPool(() => localVmMaxInstances(cfg));
 const localVmLifecycleBusy = new Set<string>();
 const localVmThreadTargets = new Map<string, LocalVmTarget>();
 const localVmActiveThreads = new Map<string, string>();
+const localVmSeatLeases = new SeatLeaseTable(() => localVmSeats(cfg), 30 * 60_000);
 const autoVmClaims: AutoVmClaimTable = new Map();
 const COMPUTER_CALL_WAIT_MS = Math.min(CONTROL_WAIT_MS, Math.max(500, Number(process.env.OMB_COMPUTER_CALL_WAIT_MS) || CONTROL_WAIT_MS));
 const COMPUTER_CALL_ACT_WITHIN_MS = Math.min(CONTROL_ACT_WITHIN_MS, Math.max(100, Number(process.env.OMB_COMPUTER_CALL_ACT_WITHIN_MS) || CONTROL_ACT_WITHIN_MS));
@@ -5633,7 +5637,7 @@ const localVmUpdates = createLocalVmUpdater({
   imageBusy: { get: () => localVmImageBusy, set: (busy) => { localVmImageBusy = busy; } },
   provisionBusy: { get: () => localVmProvisionBusy, set: (busy) => { localVmProvisionBusy = busy; } },
   lifecycleBusy: localVmLifecycleBusy,
-  inUse: (target) => localVmModeChangeBusy || localVmActiveThreads.has(target.key) || Boolean(localVmLeaseFor(target).current(localVmOwnerBusy)),
+  inUse: (target) => localVmModeChangeBusy || localVmMachineBusy(target),
   updated: (target, status) => { noteLocalVmSeen(target, status); localVmIdleFor(target).touch(); },
   keepApps: async (target, status, stop) => localVmPreservesInstalledApps(cfg)
     ? keepInstalledAppsBeforeRemove(target, status, stop)
@@ -6229,22 +6233,37 @@ function localVmPoolSeatHolder(seat: number): LocalVmSeatHolder | null {
   return localVmLeases.forTarget(poolLocalVmTarget(seat).key).current(localVmOwnerBusy);
 }
 
+/** Throws when every seat of the shared desktop is held by another turn. */
 function localVmTargetForThread(botId: string, threadId: string): LocalVmTarget {
-  if (localVmMode(cfg) !== "pool") return localVmTargetForBot(botId);
-  return poolLocalVmTarget(localVmSeatPool.assign(threadId, localVmPoolSeatHolder));
+  if (localVmMode(cfg) === "pool") return poolLocalVmTarget(localVmSeatPool.assign(threadId, localVmPoolSeatHolder));
+  const target = localVmTargetForBot(botId);
+  const capacity = localVmSeatLeases.capacity;
+  if (capacity === 1) return target;
+  const leased = localVmSeatLeases.acquire({ ownerId: botId, threadId });
+  if (!leased.ok) {
+    throw new Error(leased.reason === "no-free-seat"
+      ? `all ${capacity} Local VM seats are in use by other turns — wait for one to finish`
+      : "this thread's Local VM seat is held by another bot");
+  }
+  return leased.lease.seat.seat === 1 ? target : { ...target, seat: leased.lease.seat.seat };
 }
 
 /** Records no affinity: a status probe must not steer a later turn's seat. */
 function localVmTargetForStatus(botId: string, threadId?: string): LocalVmTarget {
-  if (localVmMode(cfg) !== "pool") return localVmTargetForBot(botId);
   // Prefer the live target: an in-flight turn keeps its seat after its affinity TTL decays.
   const activeTarget = threadId ? localVmThreadTargets.get(threadId) : undefined;
   if (activeTarget) return activeTarget;
+  if (localVmMode(cfg) !== "pool") return localVmTargetForBot(botId);
   return poolLocalVmTarget((threadId ? localVmSeatPool.affinitySeat(threadId) : null) ?? 0);
 }
 
 function localVmLeaseFor(target: LocalVmTarget): LocalVmLease {
-  return localVmLeases.forTarget(target.key);
+  return localVmLeases.forTarget(localVmSeatKey(target));
+}
+
+function localVmMachineBusy(target: LocalVmTarget): boolean {
+  return localVmSeatKeys(target.key).some((key) =>
+    localVmActiveThreads.has(key) || localVmLeases.forTarget(key).current(localVmOwnerBusy) !== null);
 }
 
 function localVmIdleFor(target: LocalVmTarget): ComputerIdleTimer {
@@ -6252,7 +6271,7 @@ function localVmIdleFor(target: LocalVmTarget): ComputerIdleTimer {
   if (idle) return idle;
   idle = new ComputerIdleTimer(
     localVmIdleMs(),
-    () => localVmImageBusy || localVmLifecycleBusy.has(target.key) || localVmActiveThreads.has(target.key),
+    () => localVmImageBusy || localVmLifecycleBusy.has(target.key) || localVmSeatKeys(target.key).some((key) => localVmActiveThreads.has(key)),
     async () => {
       localVmLifecycleBusy.add(target.key);
       try {
@@ -6272,6 +6291,7 @@ function localVmIdleFor(target: LocalVmTarget): ComputerIdleTimer {
 
 function releaseLocalVmThread(threadId: string): void {
   autoVmClaims.delete(threadId);
+  localVmSeatLeases.releaseThread(threadId);
   const target = localVmThreadTargets.get(threadId);
   if (!target) return;
   // Renew affinity at settlement, with the seat the turn ran on, so it leaves the full TTL after it ends.
@@ -6281,7 +6301,7 @@ function releaseLocalVmThread(threadId: string): void {
     else localVmSeatPool.touch(threadId);
   }
   localVmLeaseFor(target).release(threadId);
-  if (localVmActiveThreads.get(target.key) === threadId) localVmActiveThreads.delete(target.key);
+  if (localVmActiveThreads.get(localVmSeatKey(target)) === threadId) localVmActiveThreads.delete(localVmSeatKey(target));
   localVmThreadTargets.delete(threadId);
 }
 
@@ -6297,6 +6317,7 @@ async function localVmInventoryPayload() {
     return {
       instances: [],
       maxInstances: localVmMaxInstances(cfg),
+      seats: localVmSeatSnapshot(),
       available: false,
       problem: runtime.runtime ? `Start ${runtime.runtime} first` : "Install a supported container runtime first",
     };
@@ -6309,12 +6330,15 @@ async function localVmInventoryPayload() {
     const status = statuses[index];
     if (!status) return [];
     noteLocalVmSeen(target, status);
-    const inUse = localVmActiveThreads.has(target.key) ||
-      localVmLeaseFor(target).current(localVmOwnerBusy) !== null;
+    const inUse = localVmMachineBusy(target);
     const entry = localVmInventoryEntry(bot, localVmUpdates.describe(target, status), inUse);
     return entry ? [entry] : [];
   });
-  return { instances, maxInstances: localVmMaxInstances(cfg), available: true, problem: null };
+  return { instances, maxInstances: localVmMaxInstances(cfg), seats: localVmSeatSnapshot(), available: true, problem: null };
+}
+
+function localVmSeatSnapshot(): { capacity: number; busy: number[] } {
+  return { capacity: localVmSeatLeases.capacity, busy: localVmSeatLeases.leasedSeats() };
 }
 
 const usageTrace = createTraceRecorder({ dataDir: DATA_DIR });
@@ -6326,6 +6350,8 @@ bus.subscribe((event: RuntimeEvent) => {
     localVmLeaseFor(localVmTarget).touch(event.threadId);
     localVmIdleFor(localVmTarget).touch();
   }
+  const seatLease = localVmSeatLeases.heldBy(event.threadId);
+  if (seatLease) localVmSeatLeases.heartbeat(seatLease.seat.seat, seatLease.ownerId, event.threadId);
   if (event.type === "turn.completed" && !store.botByThread(event.threadId)) {
     releaseLocalVmThread(event.threadId);
   }
@@ -8015,7 +8041,7 @@ async function beginTurn(
         if (owner && owner.threadId !== claimThreadId) {
           throw new Error("the Local VM moved on to another turn");
         }
-        return containerComputerFrame(undefined, undefined, localVmTarget);
+        return containerComputerFrame(undefined, undefined, localVmTarget, localVmTarget.seat);
       };
       const autoPinAllowed = () => {
         const liveBot = store.bot(bot.id);
@@ -8032,7 +8058,7 @@ async function beginTurn(
       const claimAutoLocalVm = async (claimThreadId: string, pinnedTarget?: LocalVmTarget): Promise<{ target: LocalVmTarget; runtime: Runtime }> => {
         const localVmTarget = pinnedTarget ?? localVmThreadTargets.get(claimThreadId) ?? { ...localVmTargetForThread(bot.id, claimThreadId) };
         await waitForLocalVmUpdate(localVmTarget, claimThreadId, () => directTurnClaimIsCurrent(bot.id, dispatchClaimId, claimThreadId));
-        await bindTurnComputer(resourceOwner, `computer:vm:${localVmTarget.key}`, true);
+        await bindTurnComputer(resourceOwner, `computer:vm:${localVmSeatKey(localVmTarget)}`, true);
         if (localVmImageBusy || localVmModeChangeBusy || localVmLifecycleBusy.has(localVmTarget.key)) {
           throw new Error("this Local VM is being started, stopped, or replaced — wait for setup to finish");
         }
@@ -8042,14 +8068,15 @@ async function beginTurn(
         }
         if (localVmMode(cfg) === "pool") localVmSeatPool.touch(claimThreadId);
         localVmThreadTargets.set(claimThreadId, localVmTarget);
-        localVmActiveThreads.set(localVmTarget.key, claimThreadId);
+        localVmActiveThreads.set(localVmSeatKey(localVmTarget), claimThreadId);
         localVmIdleFor(localVmTarget).touch();
         const dropLease = () => {
           if (localVmThreadTargets.get(claimThreadId) !== localVmTarget) return;
           localVmLeaseFor(localVmTarget).release(claimThreadId);
-          if (localVmActiveThreads.get(localVmTarget.key) === claimThreadId) localVmActiveThreads.delete(localVmTarget.key);
+          localVmSeatLeases.releaseThread(claimThreadId);
+          if (localVmActiveThreads.get(localVmSeatKey(localVmTarget)) === claimThreadId) localVmActiveThreads.delete(localVmSeatKey(localVmTarget));
           localVmThreadTargets.delete(claimThreadId);
-          const resource = `computer:vm:${localVmTarget.key}`;
+          const resource = `computer:vm:${localVmSeatKey(localVmTarget)}`;
           turnResources.releaseOne(resource, resourceOwner);
           if (turnComputerResources.get(resourceOwner.threadId)?.resource === resource) turnComputerResources.delete(resourceOwner.threadId);
         };
@@ -8063,6 +8090,12 @@ async function beginTurn(
         if (!localVm.ready || !localVm.runtime) {
           dropLease();
           throw new Error(`${localVm.problem ?? "the Local VM is not ready"} (App Settings → Computers)`);
+        }
+        try {
+          await ensureContainerSeat(localVmTarget, { runtime: localVm.runtime });
+        } catch (error) {
+          dropLease();
+          throw error;
         }
         // Re-validate after the readiness walk, so a turn never attaches MCP to a desktop another turn now owns.
         const owner = localVmLeaseFor(localVmTarget).current(localVmOwnerBusy);
@@ -8124,7 +8157,14 @@ async function beginTurn(
           const poolCandidate = poolLocalVmTarget(localVmSeatPool.candidate(threadId, localVmPoolSeatHolder));
           if (!localVmSeen.has(poolCandidate.key) && !opts?.automationSource) return false;
         }
-        const localVmTarget = { ...localVmTargetForThread(bot.id, threadId) };
+        let localVmTarget: LocalVmTarget;
+        try {
+          localVmTarget = { ...localVmTargetForThread(bot.id, threadId) };
+        } catch (error) {
+          if (strict) throw error;
+          skipComputer(error);
+          return false;
+        }
         let lazyReadyVm: { runtime: Runtime } | null = null;
         if (strict) {
           const seen = await containerComputerStatus(undefined, undefined, localVmTarget).catch(() => null);
@@ -8145,10 +8185,12 @@ async function beginTurn(
         }
         try {
           if (lazyReadyVm) {
+            await ensureContainerSeat(localVmTarget, { runtime: lazyReadyVm.runtime });
             integrations.localComputer = containerComputerMcp(
               lazyReadyVm.runtime,
               controlIntegration(bot.id, threadId, dispatchClaimId),
               localVmTarget,
+              localVmTarget.seat,
             );
             autoVmClaims.set(threadId, {
               owner: resourceOwner,
@@ -8178,6 +8220,7 @@ async function beginTurn(
             claimed.runtime,
             controlIntegration(bot.id, threadId, dispatchClaimId),
             claimed.target,
+            claimed.target.seat,
           );
           autoVmClaims.set(threadId, {
             owner: resourceOwner,
@@ -9158,7 +9201,7 @@ async function deleteBotWithLifecycle(botId: string, revalidate: () => void = ()
             localVmSeen.delete(localVmCleanup.target.key);
             localVmIdles.get(localVmCleanup.target.key)?.cancel();
             localVmIdles.delete(localVmCleanup.target.key);
-            localVmLeases.forget(localVmCleanup.target.key);
+            for (const key of localVmSeatKeys(localVmCleanup.target.key)) localVmLeases.forget(key);
           }
           // Invalidate every bot-callable bearer before the first asynchronous teardown step.
           for (const task of store.tasks(bot.id)) revokeInternalCapabilitiesForThread(task.threadId);
@@ -10099,7 +10142,7 @@ async function runClaimedGroupMemberTurn(
       }
       const target = { ...localVmTargetForThread(readyBot.id, threadId) };
       await waitForLocalVmUpdate(target, threadId, roomSetupIsCurrent, { botId: readyBot.id, name: readyBot.name, color: readyBot.color });
-      await bindTurnComputer(resourceOwner, `computer:vm:${target.key}`, true);
+      await bindTurnComputer(resourceOwner, `computer:vm:${localVmSeatKey(target)}`, true);
       if (localVmImageBusy || localVmModeChangeBusy || localVmLifecycleBusy.has(target.key)) {
         throw new Error("this Local VM is being started, stopped, or replaced");
       }
@@ -10109,7 +10152,7 @@ async function runClaimedGroupMemberTurn(
       if (localVmMode(cfg) === "pool") localVmSeatPool.touch(threadId);
       roomVmTarget = target;
       localVmThreadTargets.set(threadId, target);
-      localVmActiveThreads.set(target.key, threadId);
+      localVmActiveThreads.set(localVmSeatKey(target), threadId);
       localVmIdleFor(target).touch();
       const setupIsCurrent = () => !isCancelled?.() &&
         groupSpeakers.get(threadId) === roomSpeaker &&
@@ -10121,6 +10164,7 @@ async function runClaimedGroupMemberTurn(
         return false;
       }
       if (!vm.ready || !vm.runtime) throw new Error(vm.problem ?? "the Local VM is not ready");
+      await ensureContainerSeat(target, { runtime: vm.runtime });
       const owner = localVmLeaseFor(target).current(localVmOwnerBusy);
       if (owner?.threadId !== threadId || owner.botId !== readyBot.id) {
         throw new Error("the Local VM lease expired while preparing the turn");
@@ -10129,6 +10173,7 @@ async function runClaimedGroupMemberTurn(
         vm.runtime,
         controlIntegration(readyBot.id, threadId, internalGeneration, { localVmTarget: target }),
         target,
+        target.seat,
       );
     }
   } catch (error) {
@@ -13390,6 +13435,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           const result = await containerExec(vm, typeof body.command === "string" ? body.command : "", {
             runtime,
             timeoutSeconds: typeof body.timeout_seconds === "number" ? body.timeout_seconds : undefined,
+            ...(vm.seat === undefined ? {} : { seat: vm.seat }),
           });
           localVmIdleFor(vm).touch();
           return json(res, 200, result);

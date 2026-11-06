@@ -64,6 +64,8 @@ export interface LocalVmTarget {
   workspaceDir: string;
   viewerPort: number | null;
   label: string;
+  /** A display inside this target's container; absent means seat 1. */
+  seat?: number;
 }
 
 export const SHARED_LOCAL_VM_TARGET: LocalVmTarget = {

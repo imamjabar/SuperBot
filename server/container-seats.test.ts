@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { CONTAINER, containerComputerMcp, containerExec, cuaExecArgs, type CommandRunner } from "./container-computer.ts";
-import { containerSeatStatus, containerStartSeat, containerStopSeat, parseSeatStatus, seatPrograms } from "./container-seats.ts";
+import { CONTAINER, SHARED_LOCAL_VM_TARGET, containerComputerMcp, containerExec, cuaExecArgs, type CommandRunner } from "./container-computer.ts";
+import { containerSeatStatus, containerStartSeat, containerStopSeat, ensureContainerSeat, parseSeatStatus, seatPrograms } from "./container-seats.ts";
+import { SeatLeaseTable, localVmSeatKey } from "./local-vm-seats.ts";
 
 function recorder(stdout = ""): { runner: CommandRunner; calls: { command: string; args: string[] }[] } {
   const calls: { command: string; args: string[] }[] = [];
@@ -74,5 +75,61 @@ describe("seat selection in exec helpers", () => {
     });
     expect(seen[0]).toContain("DISPLAY=:2");
     expect(seen[0]).toContain("XDG_RUNTIME_DIR=/run/user/1000/seat-2");
+  });
+});
+
+describe("ensureContainerSeat", () => {
+  const running = (seat: number) =>
+    `${seatPrograms(seat).map((name) => `${name} RUNNING`).join("\n")}\nopenmausbot-seat-socket-ready`;
+
+  it("never touches seat 1", async () => {
+    const { runner, calls } = recorder();
+    await ensureContainerSeat(SHARED_LOCAL_VM_TARGET, { runtime: "docker", runner });
+    await ensureContainerSeat({ ...SHARED_LOCAL_VM_TARGET, seat: 1 }, { runtime: "docker", runner });
+    expect(calls).toEqual([]);
+  });
+
+  it("leaves a running seat alone", async () => {
+    const { runner, calls } = recorder(running(2));
+    await ensureContainerSeat({ ...SHARED_LOCAL_VM_TARGET, seat: 2 }, { runtime: "docker", runner });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.args).not.toContain("/usr/local/bin/openmausbot-start-seat");
+  });
+
+  it("starts a stopped seat and waits for it", async () => {
+    const outputs = ["", "", running(3)];
+    const calls: string[][] = [];
+    const runner: CommandRunner = async (_command, args) => { calls.push(args); return { stdout: args.includes("/usr/local/bin/openmausbot-start-seat") ? "" : outputs.shift() ?? "" }; };
+    await ensureContainerSeat({ ...SHARED_LOCAL_VM_TARGET, seat: 3 }, { runtime: "docker", runner, sleep: async () => {} });
+    expect(calls.filter((args) => args.includes("/usr/local/bin/openmausbot-start-seat"))).toEqual([
+      ["exec", "-u", "root", CONTAINER, "/usr/local/bin/openmausbot-start-seat", "3"],
+    ]);
+  });
+
+  it("gives up when the seat never comes up", async () => {
+    const { runner } = recorder();
+    await expect(ensureContainerSeat({ ...SHARED_LOCAL_VM_TARGET, seat: 2 }, { runtime: "docker", runner, sleep: async () => {} }))
+      .rejects.toThrow(/seat 2 did not start/);
+  });
+});
+
+describe("two bots on the shared desktop", () => {
+  it("get separate seats, displays, sockets and turn locks", () => {
+    const table = new SeatLeaseTable(() => 2, 60_000);
+    const targets = [["bot-a", "t1"], ["bot-b", "t2"]].map(([ownerId, threadId]) => {
+      const leased = table.acquire({ ownerId: ownerId!, threadId: threadId! }, 0);
+      if (!leased.ok) throw new Error(leased.reason);
+      return leased.lease.seat.seat === 1 ? SHARED_LOCAL_VM_TARGET : { ...SHARED_LOCAL_VM_TARGET, seat: leased.lease.seat.seat };
+    });
+    const [first, second] = targets as [typeof SHARED_LOCAL_VM_TARGET, typeof SHARED_LOCAL_VM_TARGET];
+    expect(first.containerName).toBe(second.containerName);
+    expect(localVmSeatKey(first)).toBe("shared");
+    expect(localVmSeatKey(second)).toBe("shared#seat:2");
+    expect(cuaExecArgs(["mcp"], { seat: first.seat })).toContain("DISPLAY=:1");
+    expect(cuaExecArgs(["mcp"], { seat: second.seat })).toContain("DISPLAY=:2");
+    expect(containerComputerMcp("docker", undefined, first, first.seat).args[3]).toBe("/run/user/1000/openmausbot-cua.sock");
+    expect(containerComputerMcp("docker", undefined, second, second.seat).args[3]).toBe("/run/user/1000/openmausbot-cua-2.sock");
+    expect(table.acquire({ ownerId: "bot-c", threadId: "t3" }, 0)).toEqual({ ok: false, reason: "no-free-seat" });
+    expect(table.acquire({ ownerId: "bot-a", threadId: "t1" }, 0)).toMatchObject({ ok: true, lease: { seat: { seat: 1 } } });
   });
 });
