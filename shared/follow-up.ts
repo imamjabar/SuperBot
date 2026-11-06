@@ -6,7 +6,7 @@ export type FollowUp = (typeof FOLLOW_UPS)[number];
 /** What Enter does while a turn runs (the person's setting); Ctrl/⌘+Enter does the other one. */
 export type FollowUpDefault = Exclude<FollowUp, "restart">;
 
-export const DEFAULT_FOLLOW_UP: FollowUpDefault = "steer";
+export const DEFAULT_FOLLOW_UP: FollowUpDefault = "queue";
 
 /** undefined when absent, null when present but not a follow-up. */
 export function parseFollowUp(value: unknown): FollowUp | null | undefined {

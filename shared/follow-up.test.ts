@@ -12,9 +12,9 @@ describe("a message sent while a bot works", () => {
     }
   });
 
-  it("does the setting on Enter and the other one with Ctrl/⌘, steering by default", () => {
-    expect(resolveFollowUp({ running: true, alternate: false, canSteer: true })).toBe("steer");
-    expect(resolveFollowUp({ running: true, alternate: true, canSteer: true })).toBe("queue");
+  it("does the setting on Enter and the other one with Ctrl/⌘, queueing by default", () => {
+    expect(resolveFollowUp({ running: true, alternate: false, canSteer: true })).toBe("queue");
+    expect(resolveFollowUp({ running: true, alternate: true, canSteer: true })).toBe("steer");
     expect(resolveFollowUp({ running: true, alternate: false, preferred: "steer", canSteer: true })).toBe("steer");
     expect(resolveFollowUp({ running: true, alternate: true, preferred: "steer", canSteer: true })).toBe("queue");
     expect(resolveFollowUp({ running: true, alternate: false, preferred: "queue", canSteer: true })).toBe("queue");
