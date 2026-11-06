@@ -40,15 +40,22 @@ describe("seat runtime commands", () => {
     expect(calls).toEqual([]);
   });
 
-  it("reports a seat running only when every program runs and its socket exists", async () => {
+  it("reports a seat running only when every program runs and cua sees its socket", async () => {
     const programs = seatPrograms(2);
     expect(programs).toEqual(["xvfb-2", "xfce-2", "vncserver-2", "novnc-2", "openmausbot-cua-driver-2"]);
     const running = programs.map((name) => `${name}   RUNNING   pid 1, uptime 0:00:05`).join("\n");
-    const { runner, calls } = recorder(`${running}\nopenmausbot-seat-socket-ready\n`);
-    const status = await containerSeatStatus(2, { runtime: "docker", runner });
-    expect(calls[0]!.args.slice(-6)).toEqual(["/run/user/1000/openmausbot-cua-2.sock", ...programs]);
+    const calls: string[][] = [];
+    const runner = (socket: string): CommandRunner => async (_command, args) => {
+      calls.push(args);
+      return { stdout: args[2] === "cua" ? socket : running };
+    };
+    const status = await containerSeatStatus(2, { runtime: "docker", runner: runner("openmausbot-seat-socket-ready\n") });
+    expect(calls[0]!.slice(0, 4)).toEqual(["exec", "-u", "root", CONTAINER]);
+    expect(calls[0]!.slice(-5)).toEqual(programs);
+    expect(calls[1]!.slice(0, 4)).toEqual(["exec", "-u", "cua", CONTAINER]);
+    expect(calls[1]!.at(-1)).toBe("/run/user/1000/openmausbot-cua-2.sock");
     expect(status).toMatchObject({ running: true, socketReady: true, viewerUrl: null, seat: { viewerPort: 6902 } });
-    expect(parseSeatStatus(2, running).running).toBe(false);
+    expect(await containerSeatStatus(2, { runtime: "docker", runner: runner("") })).toMatchObject({ running: false, socketReady: false });
     expect(parseSeatStatus(2, "xvfb-2 FATAL\nopenmausbot-seat-socket-ready").programs).toMatchObject({ "xvfb-2": "FATAL", "xfce-2": "MISSING" });
   });
 });
@@ -99,7 +106,7 @@ describe("ensureContainerSeat", () => {
   it("leaves a running seat alone", async () => {
     const { runner, calls } = recorder(running(2));
     await ensureContainerSeat({ ...SHARED_LOCAL_VM_TARGET, seat: 2 }, { runtime: "docker", runner });
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
     expect(calls[0]!.args).not.toContain("/usr/local/bin/openmausbot-start-seat");
   });
 

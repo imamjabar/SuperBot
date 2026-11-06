@@ -115,11 +115,13 @@ export function containerStopSeatArgs(seat: number, container = SHARED_LOCAL_VM_
 }
 
 export function containerSeatStatusArgs(seat: number, container = SHARED_LOCAL_VM_TARGET.containerName): string[] {
-  return rootExec(container, [
-    "sh", "-c",
-    `socket="$1"; shift; supervisorctl -c ${SUPERVISOR_CONF} status "$@" || true; if test -S "$socket"; then echo ${SOCKET_READY}; fi`,
-    "sh", seatIdentity(seat).cuaSocket, ...seatPrograms(seat),
-  ]);
+  return rootExec(container, ["sh", "-c", `supervisorctl -c ${SUPERVISOR_CONF} status "$@" || true`, "sh", ...seatPrograms(seat)]);
+}
+
+/** The container drops root's DAC override, so root cannot stat inside cua's 0700 runtime dir: the driver's
+ * socket is checked as cua, the user that owns it and that every client connects as. */
+export function containerSeatSocketArgs(seat: number, container = SHARED_LOCAL_VM_TARGET.containerName): string[] {
+  return ["exec", "-u", "cua", container, "sh", "-c", `if test -S "$1"; then echo ${SOCKET_READY}; fi`, "sh", seatIdentity(seat).cuaSocket];
 }
 
 export function parseSeatStatus(seat: number, stdout: string): ContainerSeatStatus {
@@ -154,8 +156,11 @@ export async function containerStopSeat(seat: number, options: SeatRuntimeOption
 
 export async function containerSeatStatus(seat: number, options: SeatRuntimeOptions): Promise<ContainerSeatStatus> {
   const { runtime, target = SHARED_LOCAL_VM_TARGET, runner = sh } = options;
-  const { stdout } = await runner(runtime, containerSeatStatusArgs(seat, target.containerName), 15_000);
-  return parseSeatStatus(seat, stdout);
+  const [programs, socket] = await Promise.all([
+    runner(runtime, containerSeatStatusArgs(seat, target.containerName), 15_000),
+    runner(runtime, containerSeatSocketArgs(seat, target.containerName), 15_000),
+  ]);
+  return parseSeatStatus(seat, `${programs.stdout}\n${socket.stdout}`);
 }
 
 const SEAT_START_SECONDS = 45;

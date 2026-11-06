@@ -40,14 +40,15 @@ does not, x11vnc uses `VNC_PW` from the environment. With neither, it runs `-nop
 is safe only on loopback behind the app's authenticated viewer proxy.
 
 The server drives seats in the one shared container with `server/container-seats.ts`;
-it never creates a container per bot. All three helpers run `docker exec -u root`:
+it never creates a container per bot. The helpers run `docker exec -u root`, except the socket check:
 
 - `containerStartSeat(N)` runs `openmausbot-start-seat N`. Running it again is a no-op,
   because supervisor applies only changed config.
 - `containerStopSeat(N)` deletes `seat-N.conf` and runs `supervisorctl update`. Seat 1
   is refused.
-- `containerSeatStatus(N)` reports the supervisor state of the seat's five programs and
-  whether its Cua socket exists.
+- `containerSeatStatus(N)` reports the supervisor state of the seat's five programs, and,
+  through `docker exec -u cua`, whether its Cua socket exists: root has no DAC override in
+  the container and cannot look inside cua's 0700 `/run/user/1000`.
 
 `cuaExecArgs`, `containerExec`, `containerComputerFrame` and `containerComputerMcp` take an
 optional seat. A seat sets `DISPLAY=:N`, the seat's `XDG_RUNTIME_DIR` and its socket, so a
