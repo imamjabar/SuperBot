@@ -13,7 +13,10 @@
   `/data/.openmausbot`, so no data moves. The host Docker daemon resolves the
   desktop's bind mount of `vm-home` from that path, and the path exists on
   the host as well as in the container;
-- pins `OMB_LOCAL_VM_IMAGE` to the desktop image that CI built.
+- pins `OMB_LOCAL_VM_IMAGE` to the desktop image that CI built;
+- mounts `./server-dist` (the CI-built server bundle from the `server-dist`
+  branch) read-only over `/app/dist-server`, so the VPS runs the current server
+  without building an image. The web build still comes from `web-dist`.
 
 It publishes no ports, mounts no Caddy socket, carries no secrets and builds nothing.
 
@@ -46,17 +49,27 @@ H=/var/lib/docker/volumes/superbot_data/_data/.openmausbot
    mkdir -p $H/vm-home && chown 1000:1000 $H/vm-home
    ```
 
-4. Pull the image on the host, then recreate `omb` and Caddy:
+   The app (uid 1001) leaves a `vm-home` owned by uid 1000 as it is: it never
+   chmods or chowns it, and it refuses a `vm-home` that is a symlink or that
+   leaves `$H`. `/host-data` is the external `superbot_data` volume's own host
+   path, so the app and the host Docker daemon see the same directory and no
+   copy or sync can race.
+
+4. Fetch the server and web builds, pull the image on the host, then
+   recreate `omb` and Caddy. `deploy/superbot-web-pull.sh` (copy it to the
+   VPS) fetches `web-dist` and `server-dist` into `~/SuperBot`. It recreates
+   `omb` only when one of them changed and the server bundle is present.
 
    ```sh
-   docker pull ghcr.io/imamjabar/superbot-computer@sha256:d7894c2788e22312a6ab443a09ad7cce700748c8e9a57a7c53a9b6cc6d625b77
+   sh superbot-web-pull.sh
+   docker pull ghcr.io/imamjabar/superbot-computer@sha256:fe305fe15159dc0defd168142b02c531f4758f488f3de2d01e2e03e132a710dc
    $C up -d --no-build omb
    $C up -d --no-build --force-recreate caddy
    ```
 
 5. Every script that recreates `omb`, including `web-pull.sh`, must pass all
    three `-f` files as in `$C`. If it does not, `omb` loses access to Docker and
-   the desktop.
+   the desktop. `superbot-web-pull.sh` already does.
 
 Let the app start the desktop (from the UI or API). If you create
 `openmausbot-computer` by hand, restart `omb` so that it finds the container.
@@ -88,3 +101,8 @@ $C up -d --no-build --force-recreate caddy
 
 Remove only `openmausbot-computer`. Do not remove volumes or `/data`, so
 `vm-home` and all other data stay.
+
+To return to the previous desktop image without the rest of the rollback, set
+`OMB_LOCAL_VM_IMAGE` in `docker-compose.computer.yml` back to
+`ghcr.io/imamjabar/superbot-computer@sha256:d7894c2788e22312a6ab443a09ad7cce700748c8e9a57a7c53a9b6cc6d625b77`,
+remove `openmausbot-computer`, and run `$C up -d --no-build omb`.

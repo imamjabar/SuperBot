@@ -7,9 +7,10 @@ services:
       - /var/lib/docker/volumes/superbot_data/_data:/host-data:rw
       - /usr/bin/docker:/usr/local/bin/docker:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./server-dist:/app/dist-server:ro
     environment:
       OMB_DATA_DIR: /host-data/.openmausbot
-      OMB_LOCAL_VM_IMAGE: ghcr.io/imamjabar/superbot-computer@sha256:d7894c2788e22312a6ab443a09ad7cce700748c8e9a57a7c53a9b6cc6d625b77
+      OMB_LOCAL_VM_IMAGE: ghcr.io/imamjabar/superbot-computer@sha256:fe305fe15159dc0defd168142b02c531f4758f488f3de2d01e2e03e132a710dc
 
 volumes:
   superbot_data:

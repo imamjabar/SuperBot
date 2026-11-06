@@ -1,16 +1,16 @@
 name: Web build
-# Lean: only the web frontend, only when web files change. Publishes dist to the web-dist branch; the VPS pulls it.
+# Publishes the web frontend to the web-dist branch and the bundled server to the server-dist branch; the VPS pulls both.
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'public/**', 'shared/**', '*.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', '.github/workflows/web.yml']
+    paths: ['src/**', 'public/**', 'shared/**', 'server/**', 'scripts/bundle-server.mjs', 'scripts/server-locale-plugin.mjs', 'tsconfig*.json', '*.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', '.github/workflows/web.yml']
   workflow_dispatch:
 concurrency: { group: web-build, cancel-in-progress: true }
 permissions: { contents: write }
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -19,6 +19,8 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm exec vite build
         env: { NODE_OPTIONS: --max-old-space-size=8192 }
+      # The server image ships no node_modules, so dist-server must be the esbuild bundle that build:server makes after tsc.
+      - run: pnpm build:server
       - name: Publish dist to web-dist branch
         run: |
           cd dist
@@ -26,3 +28,14 @@ jobs:
           git -c user.name=ci -c user.email=ci@users.noreply.github.com add -A
           git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "web ${GITHUB_SHA::7}"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" web-dist
+      - name: Publish dist-server to server-dist branch
+        run: |
+          test -f dist-server/index.js
+          test -f dist-server/cloud-home-start.js
+          find dist-server \( -name '.env*' -o -name '*.env' -o -name '*.pem' -o -name '*.key' \) -delete
+          printf '{"sha":"%s","ref":"%s","run":"%s"}\n' "$GITHUB_SHA" "$GITHUB_REF" "$GITHUB_RUN_ID" > dist-server/server-dist-manifest.json
+          cd dist-server
+          git init -q -b server-dist
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "server ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" server-dist
