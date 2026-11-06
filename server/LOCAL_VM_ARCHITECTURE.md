@@ -39,6 +39,25 @@ x11vnc uses a read-only `~/.vnc/passwd` with `-rfbauth` when that file exists. I
 does not, x11vnc uses `VNC_PW` from the environment. With neither, it runs `-nopw`, which
 is safe only on loopback behind the app's authenticated viewer proxy.
 
+The server drives seats in the one shared container with `server/container-seats.ts`;
+it never creates a container per bot. All three helpers run `docker exec -u root`:
+
+- `containerStartSeat(N)` runs `openmausbot-start-seat N`. Running it again is a no-op,
+  because supervisor applies only changed config.
+- `containerStopSeat(N)` deletes `seat-N.conf` and runs `supervisorctl update`. Seat 1
+  is refused.
+- `containerSeatStatus(N)` reports the supervisor state of the seat's five programs and
+  whether its Cua socket exists.
+
+`cuaExecArgs`, `containerExec`, `containerComputerFrame` and `containerComputerMcp` take an
+optional seat. A seat sets `DISPLAY=:N`, the seat's `XDG_RUNTIME_DIR` and its socket, so a
+bridge only ever gets its own seat's socket. With no seat, they keep the seat-1 behavior.
+
+Only seat 1's viewer is published, on the host's `:6080`. For other seats,
+`containerSeatStatus` returns `viewerUrl: null` until the app proxy (task 7) serves them.
+`VNC_PW` reaches each seat's x11vnc through supervisord's environment and never appears
+in command arguments.
+
 ## Sizing (VPS: 2 vCPU, 8 GB RAM, 77 GB disk)
 
 - Reserve 1.5 GB for the OS, omb and Caddy.

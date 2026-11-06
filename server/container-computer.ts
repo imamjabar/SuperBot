@@ -11,6 +11,7 @@ import { augmentedPath, resolveCliSpawn } from "./env-path.ts";
 import { workspacePreparationDockerfile } from "./container-workspace.ts";
 import { DATA_DIR } from "./config.ts";
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
+import { seatIdentity } from "./local-vm-seats.ts";
 import { SPAWNED_PROXIES } from "./proxy-paths.ts";
 
 const run = promisify(execFile);
@@ -559,9 +560,20 @@ function viewerUrl(password: string | null, port: number | null): string {
   return `${base}#${fragment.toString()}`;
 }
 
+/** `-e` pairs for one seat's display and runtime dir; no seat keeps the original seat-1 environment. */
+function seatDisplayEnv(seat: number | undefined): string[] {
+  if (seat === undefined) return ["-e", `DISPLAY=${DISPLAY}`];
+  const identity = seatIdentity(seat);
+  return ["-e", `DISPLAY=${identity.display}`, "-e", `XDG_RUNTIME_DIR=${identity.xdgRuntimeDir}`];
+}
+
+export function seatCuaSocket(seat: number | undefined): string {
+  return seat === undefined ? CUA_SOCKET : seatIdentity(seat).cuaSocket;
+}
+
 export function cuaExecArgs(
   args: string[],
-  options: { container?: string; interactive?: boolean } = {},
+  options: { container?: string; interactive?: boolean; seat?: number } = {},
 ): string[] {
   return [
     "exec",
@@ -570,8 +582,7 @@ export function cuaExecArgs(
     "cua",
     "-e",
     "HOME=/home/cua",
-    "-e",
-    `DISPLAY=${DISPLAY}`,
+    ...seatDisplayEnv(options.seat),
     "-e",
     "CUA_DRIVER_INSTALL_CHANNEL=python_package",
     "-e",
@@ -1152,6 +1163,7 @@ export async function containerComputerFrame(
   runner: CommandRunner = sh,
   platform: NodeJS.Platform = process.platform,
   target: LocalVmTarget = SHARED_LOCAL_VM_TARGET,
+  seat?: number,
 ): Promise<{ png: string; format: "png" | "jpeg" }> {
   const cacheable = runner === sh && platform === process.platform;
   const now = Date.now();
@@ -1166,7 +1178,7 @@ export async function containerComputerFrame(
   }
   if (cacheable) screenshotStatusCache.set(target.key, { status, expiresAt: now + SCREENSHOT_STATUS_TTL_MS });
   try {
-    const screenshot = "/tmp/openmausbot-preview.png";
+    const screenshot = seat === undefined || seat === 1 ? "/tmp/openmausbot-preview.png" : `/tmp/openmausbot-preview-${seat}.png`;
     await runner(
       status.runtime,
       cuaExecArgs([
@@ -1174,10 +1186,10 @@ export async function containerComputerFrame(
         "get_desktop_state",
         "{}",
         "--socket",
-        CUA_SOCKET,
+        seatCuaSocket(seat),
         "--screenshot-out-file",
         screenshot,
-      ], { container: target.containerName }),
+      ], { container: target.containerName, seat }),
       30_000,
     );
     const { stdout } = await runner(
@@ -1259,7 +1271,7 @@ const defaultExecRunner: ContainerExecRunner = async (command, args, options) =>
 export async function containerExec(
   target: LocalVmTarget,
   command: string,
-  options: { timeoutSeconds?: number; runtime?: Runtime; exec?: ContainerExecRunner } = {},
+  options: { timeoutSeconds?: number; runtime?: Runtime; exec?: ContainerExecRunner; seat?: number } = {},
 ): Promise<ContainerExecResult> {
   if (!command.trim()) throw Object.assign(new Error("command is required"), { status: 400 });
   if (command.length > 20_000) throw Object.assign(new Error("command is too long"), { status: 400 });
@@ -1276,7 +1288,7 @@ export async function containerExec(
       "-u", "cua",
       "-w", VM_WORKSPACE_GUEST,
       "-e", "HOME=/home/cua",
-      "-e", `DISPLAY=${DISPLAY}`,
+      ...seatDisplayEnv(options.seat),
       target.containerName,
       "timeout", "-k", "5", String(seconds),
       "sh", "-lc", command,
@@ -1297,10 +1309,11 @@ export function containerComputerMcp(
   runtime: Runtime,
   control?: { url: string; token: string },
   target: LocalVmTarget = SHARED_LOCAL_VM_TARGET,
+  seat?: number,
 ): ContainerMcpLaunch {
   return {
     command: process.execPath,
-    args: [containerMcpPath, runtime, target.containerName, CUA_SOCKET],
+    args: [containerMcpPath, runtime, target.containerName, seatCuaSocket(seat), ...(seat === undefined ? [] : [String(seat)])],
     // The control pair rides in env, not argv, which `ps` shows for the bridge's whole life.
     env: {
       ELECTRON_RUN_AS_NODE: "1",
