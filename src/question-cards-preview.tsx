@@ -1,4 +1,4 @@
-// Dev-only gallery of the question and approval cards on a Team Cloud, served at /question-cards-preview.html; not in
+// Dev-only gallery of the question and approval cards on a Team Cloud, served at /dev/previews/question-cards-preview.html; not in
 // the packaged app. It mounts the real chat and inbox components over a fixed store, with no server behind it.
 // ?state=question|approval|open|answered|others&surface=chat|inbox|panel&skin=midnight|daylight&mode=simple|advanced&lang=de
 import { StrictMode, useMemo, type ReactNode } from "react";

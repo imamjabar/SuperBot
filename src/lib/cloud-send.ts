@@ -44,7 +44,7 @@ export function arrivedList(counts: OneHomeCounts): string[] {
 /** How long after the move is done the corner cards that sell or ask for something still wait. */
 export const MOVE_QUIET_MS = 5 * 60_000;
 
-/** Until when the corner cards that sell or ask for something (Product Hunt, the star, Cloud offers) wait for the
+/** Until when the corner cards that sell or ask for something (Cloud offers) wait for the
  * one-time move: for good while it goes or brings things home (Infinity), and MOVE_QUIET_MS after it is done. */
 export function moveQuietUntil(move: OneHomeView | null | undefined): number {
   if (!move) return 0;

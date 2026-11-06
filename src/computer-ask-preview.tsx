@@ -1,4 +1,4 @@
-// Dev-only gallery of what the person sees when their own Cloud can't use their PC, served at /computer-ask-preview.html;
+// Dev-only gallery of what the person sees when their own Cloud can't use their PC, served at /dev/previews/computer-ask-preview.html;
 // not in the packaged app. It mounts the real chat over a fixed store with no server behind it, and this PC's own
 // screen-control status over fixed desktop capabilities.
 // ?view=asking|closed|failed|on|pc&skin=midnight|daylight

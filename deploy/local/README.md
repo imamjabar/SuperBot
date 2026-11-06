@@ -34,7 +34,7 @@ docker compose exec omb codex login --device-auth
 docker compose exec omb node dist-server/openmausbot.js pair
 ```
 
-On Windows, `./maus.ps1` forwards arguments to Compose using the repository
+On Windows, `./scripts/maus.ps1` forwards arguments to Compose using the repository
 directory. It respects Docker's selected context and `DOCKER_CONTEXT`.
 
 Data and engine credentials persist in the named data volume. For an existing

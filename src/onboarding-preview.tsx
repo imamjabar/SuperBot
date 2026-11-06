@@ -1,4 +1,4 @@
-// Dev-only gallery of the first run's two screens, served at /onboarding-preview.html; not in the packaged app.
+// Dev-only gallery of the first run's two screens, served at /dev/previews/onboarding-preview.html; not in the packaged app.
 // It answers the app's own requests from a fixture, so it needs no server and never touches one.
 import { Component, StrictMode, useEffect, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
