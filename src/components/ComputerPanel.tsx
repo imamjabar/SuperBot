@@ -654,9 +654,10 @@ export function ComputerPanel({
   const liveTarget = !computerStatusCurrent ? null
     : phase === "vm" && vmStatus?.viewer_url && vmStatus.target_key ? viewerTargetId({ key: vmStatus.target_key, seat: vmStatus.seat })
       : cloudPreviewReady && cloudBackend === "vps" ? `vps/${bot.id}` : null;
+  const seatTarget = liveTarget?.startsWith("local/shared-seat-") === true;
   const takeover = useComputerTakeover({
     botId: bot.id, session: `${viewerConnectionKey}:${panelView}`, held: control.held, request: requestControl,
-    viewerClose: liveTarget?.startsWith("vps/") ? threadPath("computer/viewer-close") : null,
+    viewerClose: liveTarget?.startsWith("vps/") ? threadPath("computer/viewer-close") : null, exclusive: seatTarget,
   });
   const liveHere = takeover.here && Boolean(liveTarget);
   useEffect(() => { if (liveTarget) void loadLiveDesktop(); }, [liveTarget]);
@@ -1324,6 +1325,7 @@ export function ComputerPanel({
             <Suspense fallback={<Loader2 size={18} className="animate-spin text-ink-secondary" />}>
               <LiveDesktop
                 target={liveTarget} threadId={bot.threadId} name={bot.name} poster={frameSrc}
+                lease={seatTarget && takeover.leaseId ? { botId: bot.id, controlLeaseId: takeover.leaseId } : null}
                 expanded={takeover.expanded} onExpandedChange={takeover.setExpanded}
                 onHandBack={() => void handBack()} handingBack={takeover.handingBack}
                 onUnreachable={() => { takeover.leave(); setError(new LocalizedPanelError("computer.err.openDesktop")); }}

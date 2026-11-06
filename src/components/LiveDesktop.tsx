@@ -9,9 +9,11 @@ import { useCaptionChrome, useDesktopCapabilities } from "./DesktopCapabilities"
 type Connection = "connecting" | "connected" | "disconnected";
 
 /** The computer the person took control of, live and drivable where they were watching it. */
-export function LiveDesktop({ target, threadId, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable }: {
+export function LiveDesktop({ target, threadId, lease, name, poster, expanded, onExpandedChange, onHandBack, handingBack, onUnreachable }: {
   target: string;
   threadId: string;
+  /** This view's control lease; a new one reconnects with full input. */
+  lease?: { botId: string; controlLeaseId: string } | null;
   name: string;
   /** The last watched frame, shown until the first live one arrives. */
   poster: string | null;
@@ -33,6 +35,8 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
   const unreachable = useRef(onUnreachable);
   unreachable.current = onUnreachable;
 
+  const leaseBot = lease?.botId;
+  const leaseId = lease?.controlLeaseId;
   useEffect(() => {
     const controller = new AbortController();
     let client: RFB | undefined;
@@ -45,6 +49,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
     setConnection("connecting");
     void connectDesktop(screen.current!, target, {
       threadId,
+      lease: leaseBot && leaseId ? { botId: leaseBot, controlLeaseId: leaseId } : null,
       signal: controller.signal,
       events: {
         connected: () => {
@@ -64,7 +69,7 @@ export function LiveDesktop({ target, threadId, name, poster, expanded, onExpand
       client?.disconnect();
       if (rfb.current === client) rfb.current = null;
     };
-  }, [target, threadId, attempt]);
+  }, [target, threadId, leaseBot, leaseId, attempt]);
 
   useEffect(() => {
     if (connection === "connected") rfb.current?.focus({ preventScroll: true });

@@ -62,7 +62,7 @@ H=/var/lib/docker/volumes/superbot_data/_data/.openmausbot
 
    ```sh
    sh superbot-web-pull.sh
-   docker pull ghcr.io/imamjabar/superbot-computer@sha256:6ee7b89c24cd771807fb7ad473aa8164aa14eca85c6ada70c1f58994362de505
+   docker pull ghcr.io/imamjabar/superbot-computer@sha256:5ef8951515a5093cc7e8ab20322069b666512f1e2d15637860135fcad4af1640
    $C up -d --no-build omb
    $C up -d --no-build --force-recreate caddy
    ```

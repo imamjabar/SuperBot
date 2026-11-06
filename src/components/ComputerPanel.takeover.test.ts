@@ -13,7 +13,9 @@ const fixture = vi.hoisted(() => ({
   controls: [] as Array<{ action?: string; controlLeaseId?: string }>,
   posts: [] as string[],
   beacons: [] as Array<{ url: string; body: Record<string, unknown>; keepalive: boolean }>,
-  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void },
+  live: null as null | { target: string; expanded: boolean; onUnreachable: () => void; lease?: { botId: string; controlLeaseId: string } | null },
+  /** An extra seat of the shared Local VM instead of the bot's own VM. */
+  seat: null as number | null,
 }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
@@ -34,7 +36,7 @@ vi.mock("./CloudScreenPreview", () => ({
   CloudScreenPreview: ({ onOpen }: { onOpen: () => void }) => createElement("button", { "data-preview": "", onClick: onOpen }, "preview"),
 }));
 vi.mock("./LiveDesktop", () => ({
-  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void }) => {
+  LiveDesktop: (props: { target: string; expanded: boolean; onUnreachable: () => void; lease?: { botId: string; controlLeaseId: string } | null }) => {
     fixture.live = props;
     return createElement("div", { "data-live-desktop": "", "data-target": props.target, "data-expanded": String(props.expanded) });
   },
@@ -64,7 +66,8 @@ vi.mock("@/state/store", async (importOriginal) => ({
       return {
         mode: "per-bot", max_instances: 2, image: true, create_supported: true, container: "running", imageMatches: true,
         managed: true, network: "loopback", security: "hardened", persistence: "durable", desktopReady: true, ready: true,
-        problem: null, viewer_url: "http://127.0.0.1:49152/vnc.html#password=fixture", target_key: `bot:${"a".repeat(64)}`,
+        problem: null, viewer_url: "http://127.0.0.1:49152/vnc.html#password=fixture",
+        ...(fixture.seat ? { target_key: "shared", seat: fixture.seat } : { target_key: `bot:${"a".repeat(64)}` }),
       };
     }
     if (route === "/api/bots/scout/local-computer/screenshot") return { image: "data:image/png;base64,FRAME" };
@@ -152,6 +155,7 @@ beforeEach(() => {
   fixture.posts = [];
   fixture.beacons = [];
   fixture.live = null;
+  fixture.seat = null;
   state = { ...initialState, instances: [engine], config: { box: { configured: true } } as AppState["config"], computerControl: {} } as AppState;
   vi.stubGlobal("ogb", {
     desktopViewer: { open: vi.fn(async () => true), close: vi.fn(async () => true), onState: () => () => {}, currentState: async () => ({ open: false, contextId: null }) },
@@ -267,6 +271,38 @@ describe("taking control of a Local VM", () => {
     expect(releases()).toHaveLength(1);
     expect(liveDesktop()).toBeNull();
     expect(document.body.textContent).toContain("MausBot couldn't open the live desktop. Try again.");
+  });
+});
+
+describe("taking control of an extra seat of the shared Local VM", () => {
+  it("drives it with this view's own lease, so the viewer gets full input instead of the watch-only password", async () => {
+    fixture.seat = 2;
+    await open(makeBot({ computer: "vm" }));
+    await press("Take control");
+    await shownLive();
+    expect(liveDesktop()!.dataset.target).toBe("local/shared-seat-2");
+    const lease = fixture.controls[0]!.controlLeaseId;
+    expect(lease).toMatch(/^[0-9a-f]{36}$/);
+    expect(fixture.live!.lease).toEqual({ botId: "scout", controlLeaseId: lease });
+  });
+
+  it("refuses to show a drivable seat while another device holds it", async () => {
+    fixture.seat = 2;
+    fixture.held = true;
+    fixture.owned = false;
+    heldElsewhere(true);
+    await open(makeBot({ computer: "vm" }));
+    await press("Full screen");
+    expect(liveDesktop()).toBeNull();
+    expect(document.body.textContent).toContain("Another viewer has paused bot control on this desktop");
+    expect(releases()).toEqual([]);
+  });
+
+  it("the bot's own VM keeps its lease-free viewer", async () => {
+    await open(makeBot({ computer: "vm" }));
+    await press("Take control");
+    await shownLive();
+    expect(fixture.live!.lease).toBeNull();
   });
 });
 

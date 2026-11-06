@@ -83,7 +83,7 @@ function post(path: string, body: unknown): void {
  * bot's computer calls wait. Leaving it in any way (Hand back, closing the panel or the page, another conversation)
  * gives the computer back, but only a hold this view took: another device's stays.
  */
-export function useComputerTakeover({ botId, session, held, request, viewerClose }: {
+export function useComputerTakeover({ botId, session, held, request, viewerClose, exclusive = false }: {
   botId: string;
   /** The bot, conversation and computer being watched; a new one ends a session started on the old. */
   session: string;
@@ -91,10 +91,13 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
   request: Request;
   /** A VPS keeps its viewer tunnel until told; the Local VM's viewer runs with the VM. */
   viewerClose: string | null;
+  /** The desktop drives only with this view's own lease (an extra Local VM seat): another device's hold fails the take. */
+  exclusive?: boolean;
 }) {
   const [here, setHere] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [handingBack, setHandingBack] = useState(false);
+  const [leaseId, setLeaseId] = useState<string | null>(null);
   const lease = useRef<{ id: string; viewerClose: string | null } | null>(null);
   const closeRef = useRef(viewerClose);
   closeRef.current = viewerClose;
@@ -102,6 +105,7 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
   const end = useCallback(() => {
     setHere(false);
     setExpanded(false);
+    setLeaseId(null);
   }, []);
 
   const leave = useCallback(() => {
@@ -117,10 +121,12 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
     const id = newLeaseId();
     const snap = await request("take", id);
     if (!snap.held) throw new Error(`${productName()} could not confirm computer control`);
+    if (exclusive && !snap.owned) throw new LocalizedPanelError("canvasComputers.inUseTitle");
     lease.current = snap.owned ? { id, viewerClose: closeRef.current } : null;
+    setLeaseId(snap.owned ? id : null);
     setHere(true);
     setExpanded(expand);
-  }, [request]);
+  }, [request, exclusive]);
 
   const handBack = useCallback(async () => {
     const close = lease.current?.viewerClose ?? closeRef.current;
@@ -149,5 +155,5 @@ export function useComputerTakeover({ botId, session, held, request, viewerClose
     return () => clearTimeout(timer);
   }, [here, held, end]);
 
-  return { here, expanded, setExpanded, handingBack, take, handBack, leave };
+  return { here, expanded, setExpanded, handingBack, take, handBack, leave, leaseId };
 }

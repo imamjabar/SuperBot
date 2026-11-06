@@ -20,6 +20,9 @@ export class DesktopUnreachable extends Error {
  * desktop proxy; the VM never supplies page code. A VPS opens its tunnel first; a Local VM's viewer runs with it. */
 export async function connectDesktop(screen: HTMLElement, target: string, options: {
   threadId?: string | null;
+  /** This view's control lease on `botId`'s computer: the server then answers with the full password instead of a
+   * watch-only one, and only while the lease holds. */
+  lease?: { botId: string; controlLeaseId: string } | null;
   signal: AbortSignal;
   events: DesktopConnectionEvents;
 }): Promise<RFB> {
@@ -34,11 +37,15 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
     if (!joined.ok) throw new DesktopUnreachable();
   }
   const path = `/api/desktop-viewer/${target}`;
-  const response = await fetch(path, { signal, credentials: "same-origin", cache: "no-store" });
+  const { lease } = options;
+  const query = lease
+    ? `?${new URLSearchParams({ botId: lease.botId, ...(options.threadId ? { threadId: options.threadId } : {}), controlLeaseId: lease.controlLeaseId })}`
+    : "";
+  const response = await fetch(`${path}${query}`, { signal, credentials: "same-origin", cache: "no-store" });
   if (!response.ok) throw new DesktopUnreachable();
   const config = await response.json();
   cancelled.throwIfAborted();
-  const websocket = new URL(`${path}/websockify`, location.href);
+  const websocket = new URL(`${path}/websockify${query}`, location.href);
   websocket.protocol = location.protocol === "https:" ? "wss:" : "ws:";
   const client = new RFB(screen, websocket.href, {
     credentials: { password: config.password ?? "", username: "", target: "" },

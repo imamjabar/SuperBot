@@ -70,6 +70,14 @@ describe("connecting to a desktop", () => {
     expect(asked).toEqual(["POST /api/bots/scout/computer/join?threadId=thread", "GET /api/desktop-viewer/vps/scout"]);
   });
 
+  it("binds a taken seat's password request and socket to this view's control lease", async () => {
+    const lease = { botId: "scout", controlLeaseId: "f".repeat(36) };
+    await connectDesktop(document.createElement("div"), "local/shared-seat-2", { threadId: "thread", lease, signal: new AbortController().signal, events: events() });
+    const query = `?botId=scout&threadId=thread&controlLeaseId=${"f".repeat(36)}`;
+    expect(asked).toEqual([`GET /api/desktop-viewer/local/shared-seat-2${query}`]);
+    expect(clients[0]!.url).toBe(`ws://${location.host}/api/desktop-viewer/local/shared-seat-2/websockify${query}`);
+  });
+
   it("refuses a target the proxy does not serve, before any request", async () => {
     await expect(connectDesktop(document.createElement("div"), "../api/secret", { signal: new AbortController().signal, events: events() }))
       .rejects.toMatchObject({ invalid: true });
