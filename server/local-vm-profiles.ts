@@ -7,7 +7,7 @@ import { lstat, mkdir, readdir, rename, rm, rmdir } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import type { ContainerComputerStatus, LocalVmTarget } from "./container-computer.ts";
+import { IMAGE_LAYER_LABEL, type ContainerComputerStatus, type LocalVmTarget } from "./container-computer.ts";
 import { augmentedPath, resolveCliSpawn } from "./env-path.ts";
 
 const run = promisify(execFile);
@@ -61,8 +61,23 @@ export async function keepFirefoxProfileBeforeRemove(
   stop: () => Promise<unknown>,
 ): Promise<"rescued" | "kept" | "none"> {
   if (!status.runtime || status.container === "missing" || !status.managed || status.imageMatches) return "none";
+  if (await keepsHomeInWorkspace(status.runtime, target)) return "kept";
   if (status.container === "running") await stop();
   return rescueFirefoxProfile(status.runtime, target);
+}
+
+/** From image layer 8 the desktop itself links its browser profiles and ~/.local into the workspace at every start, so there
+ * is nothing to copy out; the server may not even be able to enter the workspace, which the desktop's own user owns. */
+const WORKSPACE_HOME_LAYER = 8;
+
+export async function keepsHomeInWorkspace(runtime: string, target: LocalVmTarget): Promise<boolean> {
+  const { command, args } = resolveCliSpawn(runtime, ["inspect", "--format", `{{index .Config.Labels "${IMAGE_LAYER_LABEL}"}}`, target.containerName]);
+  try {
+    const { stdout } = await run(command, args, { timeout: 30_000, env: { ...process.env, PATH: augmentedPath() } });
+    return Number(stdout.trim()) >= WORKSPACE_HOME_LAYER;
+  } catch {
+    return false;
+  }
 }
 
 /** User-installed desktop applications conventionally live in ~/.local. Rescue that directory before replacing a legacy
@@ -106,6 +121,7 @@ export async function keepInstalledAppsBeforeRemove(
   stop: () => Promise<unknown>,
 ): Promise<"rescued" | "kept" | "none"> {
   if (!status.runtime || status.container === "missing" || !status.managed || status.imageMatches) return "none";
+  if (await keepsHomeInWorkspace(status.runtime, target)) return "kept";
   if (status.container === "running") await stop();
   return rescueInstalledApps(status.runtime, target);
 }

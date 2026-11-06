@@ -72,7 +72,7 @@ createInterface({ input: process.stdin }).on("line", async (line) => {
   if (request.method === "initialize") {
     reply(request.id, { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "fixture", version: "1" } });
   } else if (request.method === "tools/list") {
-    reply(request.id, { tools: ["write", "wait", "fail"].map((name) => ({ name, description: "Synthetic fixture operation", inputSchema: schema })) });
+    reply(request.id, { tools: ["write", "wait", "fail", "start_thread"].map((name) => ({ name, description: "Synthetic fixture operation", inputSchema: schema })) });
   } else if (request.method === "tools/call") {
     const { name, arguments: args } = request.params;
     await fetch(callback + "/mcp-start", { method: "POST", body: JSON.stringify({ name, args }) });
@@ -177,6 +177,24 @@ describe("bounded action announcement recovery", () => {
     expect(f.effects().map(effect => effect.name)).toEqual(["step-2", "step-4"]);
     expect(f.requests[3].messages).toContainEqual(expect.objectContaining({ role: "tool", tool_call_id: "call-2" }));
     expect(f.requests[3].messages.at(-1)).toMatchObject({ content: expect.stringContaining("Never repeat") });
+  });
+
+  it("ends the turn without another model call once it told the person and only started a job", async () => {
+    const job = JSON.stringify({ name: "job", value: "brief" });
+    const spoken = await fixture((_body, response, round) => round === 1
+      ? sse(response, [chunk({ content: "Starting that research now." }), chunk({ tool_calls: [toolCall("agents_start_thread", job, "call-job")] }, "tool_calls")])
+      : answer(response, "Started it."));
+    await spoken.start({ approvalMode: "full", integrations: { custom: { agents: spoken.integrations!.custom!.audit! } } });
+    expect(await spoken.completed()).toMatchObject({ ok: true });
+    expect(spoken.requests).toHaveLength(1);
+    expect(spoken.effects()).toEqual([{ name: "job", value: "brief" }]);
+
+    const silent = await fixture((_body, response, round) => round === 1
+      ? sse(response, [chunk({ tool_calls: [toolCall("agents_start_thread", job, "call-job")] }, "tool_calls")])
+      : answer(response, "Started it."));
+    await silent.start({ approvalMode: "full", integrations: { custom: { agents: silent.integrations!.custom!.audit! } } });
+    expect(await silent.completed()).toMatchObject({ ok: true });
+    expect(silent.requests, "with nothing said yet, the model still writes the acknowledgement").toHaveLength(2);
   });
 
   it("fails after three nudges even when each recovery makes tool progress", async () => {

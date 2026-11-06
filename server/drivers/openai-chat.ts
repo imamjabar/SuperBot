@@ -142,6 +142,7 @@ const asError = (value: unknown): Error =>
   value instanceof Error ? value : new Error(String(value));
 
 const MAX_CHAT_ROUNDS = 64;
+const HANDOFF_TOOL = "agents_start_thread"; // A response that told the person and only starts jobs ends the turn: the job resumes the chat.
 const MAX_TURN_TOOL_CALLS = 200;
 const MAX_ANNOUNCEMENT_NUDGES = 3;
 const stoppedAfter = (count: string) =>
@@ -879,6 +880,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             if (repeats?.stopped) { stopReason = "incomplete_action"; throw new ChatProtocolError(repeats.stopped); }
           }
           if (screenshotParts.length) messages.push({ role: "user", content: screenshotParts });
+          if (completion.text.trim() && !toolFailed && !turnEntry.asides.length && completion.toolCalls.every((call) => call.function.name === HANDOFF_TOOL)) { ok = true; break; }
         }
         if (!ok) throw new ChatProtocolError(stoppedAfter(`${MAX_CHAT_ROUNDS} steps`));
       } catch (value) {

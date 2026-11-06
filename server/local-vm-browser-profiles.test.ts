@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { VM_WORKSPACE_GUEST, managedImageDockerfile, type LocalVmTarget } from "./container-computer.ts";
-import { rescueFirefoxProfile, rescueInstalledApps } from "./local-vm-profiles.ts";
+import { keepFirefoxProfileBeforeRemove, keepInstalledAppsBeforeRemove, rescueFirefoxProfile, rescueInstalledApps } from "./local-vm-profiles.ts";
 
 const temporary: string[] = [];
 afterEach(() => {
@@ -125,13 +125,14 @@ describe.skipIf(process.platform === "win32")("the image's start-up script keeps
 });
 
 /** A container runtime whose `cp` copies out of a fixture "container" tree, as docker cp does for a stopped container. */
-function fakeRuntime(dir: string, container: string, opts: { fail?: string } = {}) {
+function fakeRuntime(dir: string, container: string, opts: { fail?: string; layer?: string } = {}) {
   const bin = join(dir, "bin");
   mkdirSync(bin, { recursive: true });
   const log = join(dir, "runtime.log");
   const runtime = join(bin, "docker");
   writeFileSync(runtime, `#!/bin/sh
 printf '%s\\n' "$*" >> '${log}'
+${opts.layer ? `[ "$1" = inspect ] && { echo '${opts.layer}'; exit 0; }` : ""}
 [ "$1" = cp ] || { echo "unexpected: $*" >&2; exit 64; }
 ${opts.fail ? `echo '${opts.fail}' >&2; exit 1` : ""}
 src="\${2#*:}"
@@ -215,5 +216,25 @@ describe.skipIf(process.platform === "win32")("rescueFirefoxProfile", () => {
     await expect(rescueFirefoxProfile(fakeRuntime(broken, container, { fail: "permission denied" }).runtime, target(workspace)))
       .rejects.toThrow(/permission denied/);
     expect(readdirSync(join(workspace, ".browser-profiles"))).toEqual([]);
+  });
+
+  it("leaves a desktop that already keeps its home in the workspace alone, even when the server cannot enter that workspace", async () => {
+    const dir = scratch();
+    const container = join(dir, "container");
+    mkdirSync(join(container, "home", "cua"), { recursive: true });
+    const workspace = join(dir, "workspace");
+    mkdirSync(workspace, { mode: 0o000 });
+    const { runtime, log } = fakeRuntime(dir, container, { layer: "12" });
+    const old = { runtime, container: "running", managed: true, imageMatches: false } as const;
+    let stopped = false;
+    const stop = async () => { stopped = true; };
+    try {
+      expect(await keepFirefoxProfileBeforeRemove(target(workspace), old, stop)).toBe("kept");
+      expect(await keepInstalledAppsBeforeRemove(target(workspace), old, stop)).toBe("kept");
+    } finally {
+      chmodSync(workspace, 0o700);
+    }
+    expect(stopped).toBe(false);
+    expect(readFileSync(log, "utf8").trim().split("\n").every((line) => line.startsWith("inspect "))).toBe(true);
   });
 });
