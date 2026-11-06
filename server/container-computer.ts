@@ -32,7 +32,11 @@ export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 export const IMAGE_REPOSITORY = "localhost/openmausbot/cua-local-vm";
 export const IMAGE_LAYER_VERSION = "8";
 export const IMAGE_LAYER_LABEL = "com.openmausbot.image-layer";
-export const IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
+const BUILT_IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
+const DIGEST_PINNED_IMAGE = /^[a-z0-9./_-]+(:[\w.-]+)?@sha256:[a-f0-9]{64}$/;
+const PREBUILT_IMAGE = process.env.OMB_LOCAL_VM_IMAGE?.trim();
+export const IMAGE =
+  PREBUILT_IMAGE && DIGEST_PINNED_IMAGE.test(PREBUILT_IMAGE) ? PREBUILT_IMAGE : BUILT_IMAGE;
 export const CONTAINER = "openmausbot-computer";
 export const MANAGED_LABEL = "com.openmausbot.local-vm";
 export const DRIVER_LABEL = "com.openmausbot.cua-driver";
@@ -914,12 +918,14 @@ async function ensureVmWorkspace(platform: NodeJS.Platform, target: LocalVmTarge
   if (platform !== "win32") await chmod(target.workspaceDir, 0o700);
 }
 
-function baseImagePullArgs(runtime: Runtime): string[] {
-  return runtime === "container" ? ["image", "pull", BASE_IMAGE] : ["pull", BASE_IMAGE];
+function imagePullArgs(runtime: Runtime): string[] {
+  const ref = IMAGE === BUILT_IMAGE ? BASE_IMAGE : IMAGE;
+  return runtime === "container" ? ["image", "pull", ref] : ["pull", ref];
 }
 
 async function prepareManagedImage(runtime: Runtime, runner: CommandRunner): Promise<void> {
-  await runner(runtime, baseImagePullArgs(runtime), 10 * 60_000);
+  await runner(runtime, imagePullArgs(runtime), 10 * 60_000);
+  if (IMAGE !== BUILT_IMAGE) return;
   const context = await mkdtemp(join(tmpdir(), "openmausbot-cua-image-"));
   try {
     await writeFile(join(context, "Dockerfile"), managedImageDockerfile(), { mode: 0o600 });
@@ -1212,7 +1218,7 @@ export function setupCommands(
   return {
     install,
     runtimeStart,
-    pull: command(baseImagePullArgs(runtime)),
+    pull: command(imagePullArgs(runtime)),
     run:
       runtime === "container" && target.key !== SHARED_LOCAL_VM_TARGET.key
         ? null
