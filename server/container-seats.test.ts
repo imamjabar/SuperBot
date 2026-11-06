@@ -20,7 +20,11 @@ describe("seat runtime commands", () => {
     const { runner, calls } = recorder();
     await containerStopSeat(3, { runtime: "docker", runner });
     expect(calls[0]!.args.slice(0, 6)).toEqual(["exec", "-u", "root", CONTAINER, "sh", "-c"]);
-    expect(calls[0]!.args[6]).toContain('rm -f "/etc/supervisor/conf.d/seat-$1.conf"');
+    const script = calls[0]!.args[6]!;
+    expect(script).toContain('rm -f "/etc/supervisor/conf.d/seat-$1.conf"');
+    expect(script.indexOf('grep -qx "DISPLAY=:$1"')).toBeGreaterThan(-1);
+    expect(script.indexOf("kill -TERM")).toBeLessThan(script.indexOf("rm -f"));
+    expect(script).not.toMatch(/pkill|killall|rm -rf/);
     expect(calls[0]!.args.slice(7)).toEqual(["sh", "3"]);
     await expect(containerStopSeat(1, { runtime: "docker", runner })).rejects.toThrow(/Seat 1/);
     expect(calls).toHaveLength(1);

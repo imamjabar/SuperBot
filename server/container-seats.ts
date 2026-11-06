@@ -35,13 +35,30 @@ export function containerStartSeatArgs(seat: number, container = SHARED_LOCAL_VM
   return rootExec(container, ["/usr/local/bin/openmausbot-start-seat", String(seatIdentity(seat).seat)]);
 }
 
+const CHROME_QUIT_SECONDS = 10;
+
+/** Chrome writes its profile on SIGTERM, so only Chrome processes whose environment names this seat's display get
+ * one, with a bounded wait, before supervisor stops the seat's programs. */
+const STOP_SEAT_SCRIPT = [
+  'pids=""',
+  "for dir in /proc/[0-9]*; do",
+  '  case "$(cat "$dir/comm" 2>/dev/null)" in chrome|chromium) ;; *) continue ;; esac',
+  '  tr "\\0" "\\n" < "$dir/environ" 2>/dev/null | grep -qx "DISPLAY=:$1" && pids="$pids ${dir#/proc/}"',
+  "done",
+  '[ -z "$pids" ] || kill -TERM $pids 2>/dev/null || true',
+  `waited=0`,
+  `while [ -n "$pids" ] && [ "$waited" -lt ${CHROME_QUIT_SECONDS} ]; do`,
+  '  alive=""',
+  '  for pid in $pids; do kill -0 "$pid" 2>/dev/null && alive="$alive $pid"; done',
+  '  pids=$alive',
+  '  [ -z "$pids" ] || { sleep 1; waited=$((waited + 1)); }',
+  "done",
+  `rm -f "/etc/supervisor/conf.d/seat-$1.conf" && exec supervisorctl -c ${SUPERVISOR_CONF} update`,
+].join("\n");
+
 export function containerStopSeatArgs(seat: number, container = SHARED_LOCAL_VM_TARGET.containerName): string[] {
   if (seatIdentity(seat).seat === 1) throw new Error("Seat 1 is the shared desktop and cannot be stopped on its own");
-  return rootExec(container, [
-    "sh", "-c",
-    `rm -f "/etc/supervisor/conf.d/seat-$1.conf" && exec supervisorctl -c ${SUPERVISOR_CONF} update`,
-    "sh", String(seat),
-  ]);
+  return rootExec(container, ["sh", "-c", STOP_SEAT_SCRIPT, "sh", String(seat)]);
 }
 
 export function containerSeatStatusArgs(seat: number, container = SHARED_LOCAL_VM_TARGET.containerName): string[] {

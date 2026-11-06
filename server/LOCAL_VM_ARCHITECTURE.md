@@ -77,7 +77,25 @@ chooses it; no tool argument picks a seat.
 - Every event on the thread renews its lease (30 min TTL), and the lease is released when
   the turn ends. The seat's programs keep running.
 
-The inventory endpoint reports `seats: { capacity, busy }`.
+The inventory endpoint reports `seats: { capacity, busy, running }`.
+
+### Seat idle shutdown
+
+Each extra seat has its own idle window (`localVm.idleTimeoutMinutes`), run by
+`SeatIdleRegistry`. Thread events, seat starts and the bot's commands on that seat renew
+it.
+
+- **When the window ends:** a seat held by a turn is checked again every tenth of a
+  window. Once it is free, it gets a full quiet window before it stops. To stop it, the
+  server sends SIGTERM only to Chrome processes on that seat's display, waits at most
+  10 seconds, then deletes `seat-N.conf` and runs `supervisorctl update`. The workspace
+  and profiles are not touched.
+- **A turn takes the seat during the stop:** the turn waits for the stop to finish, then
+  starts the seat again, and the seat's idle window keeps running.
+- **Seat 1 and the container:** seat 1 is the container itself. The machine's idle timer
+  treats the container as busy while any seat is leased or any extra seat is running. So
+  the container stops (and keeps its workspace) only after every seat is idle. Its stop
+  clears all seat windows.
 
 ## Sizing (VPS: 2 vCPU, 8 GB RAM, 77 GB disk)
 
