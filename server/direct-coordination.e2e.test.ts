@@ -424,6 +424,23 @@ it("runs two of its own jobs at once, keeps the chat answering, and Stop in the 
   expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Both jobs reported back")).toBe(false);
 }), 60_000);
 
+it("answers a message sent while the bot works at once in the same chat, and the work goes on and posts its result", () => fixture(async f => {
+  const gate = join(f.session.info.dataDir, "long-work-gate");
+  f.plan[f.chief.id] = { gateFile: gate, reply: "LONG_WORK_RESULT ready", byPrompt: [{ promptIncludes: "TIME_PING", plan: { reply: "It is 21:15" } }] };
+  await f.start();
+  const chat = () => f.messages(f.chief.activeTaskId);
+  await expect.poll(async () => (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id).busy, { timeout: 15_000 }).toBe(true);
+  await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "TIME_PING what time is it?");
+  await expect.poll(async () => (await chat()).some((message: any) => message.role === "bot" && message.text === "It is 21:15"), { timeout: 15_000 }).toBe(true);
+  const asked = (await chat()).find((message: any) => message.role === "user" && message.text?.startsWith("TIME_PING"));
+  expect(asked.steered).toBeUndefined();
+  expect((await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready")).toBe(false);
+  writeFileSync(gate, "release");
+  await expect.poll(async () => (await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready"), { timeout: 15_000 }).toBe(true);
+  const chief = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id);
+  expect(chief.mainThreadId).toBe(f.chief.activeTaskId);
+}), 60_000);
+
 it("lets the opener find and close the completed task", () => fixture(async f => {
   await f.start();
   expect((await f.wait()).status).toBe("settled");

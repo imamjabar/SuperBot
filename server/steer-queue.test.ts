@@ -870,7 +870,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
     const bot = await newBot("steerEarly", "Early completion");
     expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "first before acknowledgment" })).status).toBe(202);
     await until(async () => existsSync(`${dispatchGate}.entered`), "the pending dispatch acknowledgment");
-    expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "queued after acknowledgment" })).body.queued).toBe(true);
+    expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "queued after acknowledgment", followUp: "queue" })).body.queued).toBe(true);
     writeFileSync(earlyGate, "complete provider turn");
     await until(async () => echoes(await botById(bot.id)).length === 1, "completion before acknowledgment");
     const pending = await botById(bot.id);
@@ -890,7 +890,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
   it("retains a replacement receipt through stale completion and settles its own completion before ACK", async () => {
     const bot = await newBot("steerReceipt", "Receipt generation");
     expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "first receipt turn" })).status).toBe(202);
-    const body = { threadId: bot.threadId, text: "queued replacement", sendId: "replacement_receipt_123456" };
+    const body = { threadId: bot.threadId, text: "queued replacement", sendId: "replacement_receipt_123456", followUp: "queue" };
     const queued = await api("POST", `/api/bots/${bot.id}/messages`, body);
     expect(queued.body).toMatchObject({ queued: true, queueId: expect.any(String) });
     const receipt = () => {
@@ -922,10 +922,10 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
       expect(first.body.queued).toBeUndefined();
       expect((await botById(bot.id)).busy).toBe(true);
 
-      const second = await api("POST", `/api/bots/${bot.id}/messages`, { text: "steer two" });
+      const second = await api("POST", `/api/bots/${bot.id}/messages`, { text: "steer two", followUp: "queue" });
       expect(second.status).toBe(202);
       expect(second.body).toMatchObject({ ok: true, queued: true });
-      const third = await api("POST", `/api/bots/${bot.id}/messages`, { text: "steer three" });
+      const third = await api("POST", `/api/bots/${bot.id}/messages`, { text: "steer three", followUp: "queue" });
       expect(third.body.queued).toBe(true);
 
       let snapshot = await botById(bot.id);
@@ -971,7 +971,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
       expect(first.status).toBe(202);
       expect((await botById(bot.id)).busy).toBe(true);
 
-      const queued = await api("POST", `/api/bots/${bot.id}/messages`, { text: "after stop please" });
+      const queued = await api("POST", `/api/bots/${bot.id}/messages`, { text: "after stop please", followUp: "queue" });
       expect(queued.body.queued).toBe(true);
 
       await until(async () => {
