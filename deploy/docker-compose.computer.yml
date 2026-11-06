@@ -1,0 +1,8 @@
+# Shared desktop on the VPS; operator steps in docker-compose.computer.md.
+services:
+  omb:
+    volumes:
+      - /usr/bin/docker:/usr/local/bin/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      OMB_LOCAL_VM_IMAGE: ghcr.io/imamjabar/superbot-computer@sha256:d7894c2788e22312a6ab443a09ad7cce700748c8e9a57a7c53a9b6cc6d625b77
