@@ -72,10 +72,11 @@ describe("parseWidgetInput", () => {
     expect(widgetToText({ ...root, children: root.children!.slice(0, 1) })).toBe("[Go]");
   });
 
-  it("answers with a send_message choice, so the choice settles and a second one is refused", () => {
+  it("treats a button that sends its own label as an answer, whatever the action is named, so the choice settles", () => {
     const choice = (city: string) => ({ type: "Button", label: city, onClickAction: { type: "send_message", payload: { text: city } } });
-    const root = parsed({ type: "Card", title: "Which city?", children: [{ type: "Row", children: [choice("Jakarta"), choice("Singapore")] }, { type: "Button", label: "Refresh", onClickAction: { type: "weather.refresh" } }] });
-    expect(widgetActions(root).map((entry) => [entry.label, entry.tone])).toEqual([["Jakarta", "submit"], ["Singapore", "submit"], ["Refresh", undefined]]);
+    const named = (city: string) => ({ type: "Button", label: city, onClickAction: { type: "send", payload: city } });
+    const root = parsed({ type: "Card", title: "Which city?", children: [{ type: "Row", children: [choice("Jakarta"), choice("Singapore"), named("Sydney")] }, { type: "Button", label: "Refresh", onClickAction: { type: "weather.refresh" } }] });
+    expect(widgetActions(root).map((entry) => [entry.label, entry.tone])).toEqual([["Jakarta", "submit"], ["Singapore", "submit"], ["Sydney", "submit"], ["Refresh", undefined]]);
     const jakarta = widgetActions(root)[0]!;
     expect(resolveWidgetAction({ v: 1, root }, jakarta.ref, {})).toMatchObject({ ok: true, text: "Jakarta", tone: "submit" });
     const settled: WidgetPayload = { v: 1, root, settled: { ref: jakarta.ref, label: "Jakarta", tone: "submit", at: 1 } };
