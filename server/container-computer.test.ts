@@ -885,14 +885,22 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain("6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2");
     expect(dockerfile).toContain("/usr/local/share/licenses/noto-cjk/OFL.txt");
     expect(dockerfile).toContain("fc-cache -f");
-    expect(IMAGE_LAYER_VERSION).toBe("12");
+    expect(IMAGE_LAYER_VERSION).toBe("13");
   });
 
   it("starts the driver's Chrome without its own sandbox inside the hardened container", () => {
     // Without it Chrome exits with code 21 ("Failed to move to new namespace"): see the start-script comment.
     const dockerfile = managedImageDockerfile();
     const exec = dockerfile.split("\n").find((line) => line.includes(`${CUA_EXECUTABLE} serve`));
-    expect(exec).toContain("exec env CUA_DRIVER_BROWSER_NO_SANDBOX=1 ");
+    expect(exec).toContain(" CUA_DRIVER_BROWSER_NO_SANDBOX=1 ");
+  });
+
+  it("gives Cua the desktop session's bus, so it can reach the accessibility tree that existing-profile attachment needs", () => {
+    const dockerfile = managedImageDockerfile();
+    const lines = dockerfile.split("\n");
+    expect(lines.find((line) => line.includes("startxfce4"))).toContain('exec env DBUS_SESSION_BUS_ADDRESS="$bus" startxfce4');
+    expect(lines.find((line) => line.includes(`${CUA_EXECUTABLE} serve`))).toContain('exec env DBUS_SESSION_BUS_ADDRESS="$bus" ');
+    expect(dockerfile.match(/bus="unix:path=\/run\/user\/1000\/openmausbot-bus-\$seat"/g)).toHaveLength(2);
   });
 
   it("installs curl and CA certificates from the pinned Debian 13 base before any download", () => {
