@@ -386,6 +386,44 @@ it("names a fresh teammate thread with coordinate_bots title", () => fixture(asy
   expect(lead.tasks.find((task: any) => task.threadId === child.threadId)).toMatchObject({ title: "CSV export: verify", openedBy: { botId: f.chief.id, name: "Clive" } });
 }), 45_000);
 
+it("runs a report-back job on the bot itself in a fresh thread and resumes the chat with its result", () => fixture(async f => {
+  const job = { promptIncludes: "OWN_JOB_BRIEF", plan: { reply: "OWN_JOB_RESULT ready", resumeReply: "The job reported back" } };
+  f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Long check", message: "OWN_JOB_BRIEF check the CSV export end to end", report_back: true } }],
+    reply: "Started #Long check", resumeReply: "The job reported back", byPrompt: [job] };
+  await f.start();
+  expect((await f.wait()).status).toBe("settled");
+  const started = f.evidence()[0].evidence.find((entry: any) => entry.step?.tool === "start_thread").response.result;
+  expect(started.isError, JSON.stringify(started)).toBeFalsy();
+  expect(started.content[0].text).toContain("delivered to this conversation automatically");
+  const child = f.nodes().find((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  expect(child).toMatchObject({ mode: "work", reply: "resume", status: "completed" });
+  expect(f.evidence().map((turn: any) => turn.botId)).toEqual([f.chief.id, f.chief.id, f.chief.id]);
+  const chat = await f.messages(f.chief.activeTaskId);
+  expect(chat.some((message: any) => message.tool?.output === "OWN_JOB_RESULT ready")).toBe(true);
+  expect(chat.filter((message: any) => message.role === "bot" && message.kind === "text" && message.turnTerminal).map((message: any) => message.text))
+    .toEqual(["Started #Long check", "The job reported back"]);
+}), 45_000);
+
+it("runs two of its own jobs at once, keeps the chat answering, and Stop in the chat ends both", () => fixture(async f => {
+  const gate = join(f.session.info.dataDir, "own-jobs-gate");
+  const job = (name: string) => ({ promptIncludes: `${name}_BRIEF`, plan: { gateFile: gate, reply: `${name} done`, resumeReply: "Both jobs reported back" } });
+  const start = (name: string) => ({ tool: "start_thread", arguments: { title: `Job ${name}`, message: `${name}_BRIEF do the long part`, report_back: true } });
+  f.plan[f.chief.id] = { steps: [start("JOB_A"), start("JOB_B")], reply: "Started two jobs", resumeReply: "Both jobs reported back",
+    byPrompt: [{ promptIncludes: "STATUS_PING", plan: { reply: "Both are still running" } }, job("JOB_A"), job("JOB_B")] };
+  await f.start();
+  const jobs = () => f.nodes().filter((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  await expect.poll(() => jobs().map((node: any) => node.status), { timeout: 15_000 }).toEqual(["running", "running"]);
+  await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "STATUS_PING how is it going?");
+  await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Both are still running"), { timeout: 15_000 }).toBe(true);
+  expect(jobs().map((node: any) => node.status)).toEqual(["running", "running"]);
+  await f.api(`/api/bots/${f.chief.id}/interrupt`, { threadId: f.chief.activeTaskId });
+  await expect.poll(() => jobs().map((node: any) => node.status), { timeout: 15_000 }).toEqual(["cancelled", "cancelled"]);
+  writeFileSync(gate, "release");
+  for (const node of jobs()) expect((await f.cli("wait", "--bot", f.chief.id, "--task", node.threadId, "--timeout", "20")).status).toBe("settled");
+  expect((await f.wait()).status).toBe("settled");
+  expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Both jobs reported back")).toBe(false);
+}), 60_000);
+
 it("lets the opener find and close the completed task", () => fixture(async f => {
   await f.start();
   expect((await f.wait()).status).toBe("settled");

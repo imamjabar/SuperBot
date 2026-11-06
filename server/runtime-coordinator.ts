@@ -236,15 +236,16 @@ export class RuntimeCoordinator implements Coordinator {
     const kind: HandoffView["kind"] = target.groupId !== undefined && target.groupId === source.groupId ? "assignment" : "work";
     const lineage = path(this.store, parent);
     const root = lineage[0]!;
-    if (!answersSender(parent, mode, target) && lineage.some(n => ancestorOf(address(n), target))) throw new Error(ANCESTOR);
+    const ownJob = target.botId === source.botId && target.groupId === undefined && thread === "new" && parent.parentId === undefined;
+    if (!ownJob && !answersSender(parent, mode, target) && lineage.some(n => ancestorOf(address(n), target))) throw new Error(ANCESTOR);
     if (this.stoppedFor(root, target.botId)) throw new Error(STOPPED_AGAIN);
     const siblings = this.store.children(parent.id);
     const existing = siblings.findLast(c => c.assignee.botId === target.botId && c.assignee.destination.groupId === target.groupId && c.brief === brief && c.mode === mode);
     if (existing && !(rework && isTerminal(existing))) return { node: view(existing, parent), duplicate: true };
-    if (mode === "work" && !rework && siblings.some(c => c.mode === "work" && kindOf(c.assignee.destination.groupId, parent) === kind &&
+    if (mode === "work" && !rework && !ownJob && siblings.some(c => c.mode === "work" && kindOf(c.assignee.destination.groupId, parent) === kind &&
       c.assignee.destination.groupId === target.groupId && c.assignee.botId === target.botId && c.status === "completed")) throw new Error(ALREADY_COMPLETED);
     if (kind === "work" && target.groupId && lineage.some(n => n.assignee.destination.groupId === target.groupId)) throw new Error(ROOM_ANCESTOR);
-    const waiting = mode === "notify" || target.groupId !== undefined ? undefined : this.waitingOn(source.botId, target.botId);
+    const waiting = mode === "notify" || target.groupId !== undefined || ownJob ? undefined : this.waitingOn(source.botId, target.botId);
     if (waiting) throw new Error(crossed(this.host.names(this.project(waiting.request), this.project(waiting.parent)).requester, waiting.request));
     const wanted: Reply = mode === "notify" ? "none" : options.reply ?? "resume";
     const reply: Reply = wanted === "none" ? "none" : root.reply === "poll" ? "poll" : wanted;

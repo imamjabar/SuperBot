@@ -47,14 +47,16 @@ afterEach(() => {
 });
 
 describe("local thread visibility", () => {
-  it("defaults on and ignores malformed values without writing anything", async () => {
+  it("defaults to one chat per bot and shows threads only for a stored yes, without writing anything", async () => {
     const preference = await import("./thread-preferences");
-    expect(preference.useShowThreadsChoice()).toBe(true);
-    expect(hook.serverSnapshot!()).toBe(true);
-    for (const value of ["", "false", "broken", "1"]) {
+    expect(preference.useShowThreadsChoice()).toBe(false);
+    expect(hook.serverSnapshot!()).toBe(false);
+    for (const value of ["", "false", "broken", "0"]) {
       local.setItem(preference.SHOW_THREADS_KEY, value);
-      expect(preference.useShowThreadsChoice()).toBe(true);
+      expect(preference.useShowThreadsChoice()).toBe(false);
     }
+    local.setItem(preference.SHOW_THREADS_KEY, "1");
+    expect(preference.useShowThreadsChoice()).toBe(true);
     local.setItem.mockClear();
     preference.useShowThreadsChoice();
     expect(local.setItem).not.toHaveBeenCalled();
@@ -102,10 +104,10 @@ describe("local thread visibility", () => {
     preference.useShowThreadsChoice();
     const listener = vi.fn();
     const unsubscribe = hook.subscribe!(listener);
-    local.setItem(preference.SHOW_THREADS_KEY, "0");
+    local.setItem(preference.SHOW_THREADS_KEY, "1");
     storageEvent(preference.SHOW_THREADS_KEY);
     expect(listener).toHaveBeenCalledOnce();
-    expect(hook.snapshot!()).toBe(false);
+    expect(hook.snapshot!()).toBe(true);
 
     storageEvent("other-key");
     storageEvent(preference.SHOW_THREADS_KEY, memoryStorage());
@@ -114,7 +116,7 @@ describe("local thread visibility", () => {
     local.clear();
     storageEvent(null);
     expect(listener).toHaveBeenCalledTimes(2);
-    expect(hook.snapshot!()).toBe(true);
+    expect(hook.snapshot!()).toBe(false);
     unsubscribe();
     storageEvent(null);
     expect(listener).toHaveBeenCalledTimes(2);
@@ -130,11 +132,11 @@ describe("local thread visibility", () => {
       if (failure === "read") local.getItem.mockImplementation(() => { throw new Error("blocked"); });
     }
     const preference = await import("./thread-preferences");
-    expect(preference.useShowThreadsChoice()).toBe(true);
-    preference.setShowThreads(false);
     expect(preference.useShowThreadsChoice()).toBe(false);
     preference.setShowThreads(true);
     expect(preference.useShowThreadsChoice()).toBe(true);
+    preference.setShowThreads(false);
+    expect(preference.useShowThreadsChoice()).toBe(false);
   });
 });
 

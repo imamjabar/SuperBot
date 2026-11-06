@@ -330,7 +330,7 @@
     },
     {
       "name": "start_thread",
-      "description": "Open a separate job on yourself: one conversation with its own history and its own run, shown to the person as a row under you, without switching the person's selected conversation. Use it only when the user requests independent jobs (for example one review per pull request, \"review each pull request\" — one thread per pull request) instead of doing them inside this conversation. The title becomes the row's name, so make it short and specific, and write it as #Title when you mention it to the person; give complete instructions, since the run will not see this conversation. You can open at most five per turn; a self-opened job cannot open more jobs. This is not a teammate handoff: use coordinate_bots for teammates (thread \"new\" opens a fresh thread on them) and their automatic replies. If a call is refused, do not retry it: say what you still wanted opened.",
+      "description": "Open a separate job on yourself: its own conversation and run, shown as a row under you, without switching the person's selected conversation. For long work (research, browsing, building: over a minute) set report_back so this chat stays free: say in one short line that you started it, then end your turn; the result resumes you here. Also for independent jobs the user asks for (one review per pull request). The title names the row: short and specific, written #Title to the person. Give complete instructions; the run will not see this conversation. At most five per turn; a self-opened job cannot open more. Not a handoff: use coordinate_bots for teammates (thread \"new\" opens a fresh thread on them). If a call is refused, do not retry it: say what you still wanted opened.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -346,6 +346,10 @@
           "folder": {
             "type": "string",
             "description": "Optional: the name of one of your existing folders to file the thread under. Leave out unless the person named one."
+          },
+          "report_back": {
+            "type": "boolean",
+            "description": "true: the result comes back here and resumes you. Leave out to keep it in its own thread."
           },
           "model_selection": {
             "type": "object",

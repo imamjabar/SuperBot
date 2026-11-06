@@ -13915,7 +13915,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             // Echo only the id the caller sent, never a bot's name.
           const addressed = store.bot(target.botId);
           const eligibility =
-            target.botId === internalSender.id ? "Choose a teammate, not yourself"
+            target.botId === internalSender.id && !fresh ? "Choose a teammate, not yourself"
             : !addressed ? `No bot with id "${target.botId}" — call list_bots and copy the exact id from the result`
             : addressed.hidden ? `The bot with id "${target.botId}" is no longer available — call list_bots for the ones you can reach`
             : roomHandoffProblem(target, address);
@@ -14324,7 +14324,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         }
         const sourceTitle = owner.group ? owner.group.name : (store.taskByThread(from.id, fromThreadId)?.title ?? "");
         const picked = body.modelSelection === undefined ? null : checkedModelSelection(body.modelSelection, undefined, true); const refused = !picked ? null : target.id !== from.id ? "model_selection is only for threads on yourself" : !picked.ok ? picked.error : validateModelProposal(picked.selection, from); if (refused) return json(res, 400, { error: refused });
-        if (target.id === from.id) { const selfRefused = selfThreadRefusal({ handoff: Boolean(internalCapability.roomHandoffId), requestLine: store.activePath(fromThreadId).findLast((line) => line.role === "user" && line.kind === "text") }); if (selfRefused) return json(res, 409, { error: selfRefused });
+        const selfRefused = target.id !== from.id ? null : selfThreadRefusal({ handoff: Boolean(internalCapability.roomHandoffId), requestLine: store.activePath(fromThreadId).findLast((line) => line.role === "user" && line.kind === "text") }); if (selfRefused) return json(res, 409, { error: selfRefused }); if (target.id === from.id && body.reportBack !== true) {
           const inherited = picked?.ok ? { modelSelection: picked.selection, approvalMode: undefined } : parentThreadModel(from.id, fromThreadId);
           const task = store.createTask(from.id, title, false, projectId, { botId: from.id, name: from.name, at: Date.now() }, inherited.approvalMode, inherited.modelSelection);
           if (!task) return json(res, 500, { error: "couldn't create that thread" });

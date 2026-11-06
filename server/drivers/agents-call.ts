@@ -408,6 +408,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     const body: Record<string, unknown> = { fromBotId: BOT_ID, fromThreadId: THREAD_ID, title, message, depth: DEPTH };
     if (toBotId) body.toBotId = toBotId;
     if (folder) body.folder = folder;
+    if (args.report_back === true) body.reportBack = true;
     if (args.model_selection !== undefined) {
       const fields = jsonRecord(args.model_selection) ? args.model_selection : null;
       if (!fields || typeof fields.instanceId !== "string" || !fields.instanceId.trim() || typeof fields.model !== "string" || !fields.model.trim()) {

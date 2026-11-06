@@ -179,7 +179,7 @@ describe("Runtime: one tree, one lane", () => {
     const w = world(undefined, { depth: 2, requests: 3 });
     const root = w.runtime.begin(beginReq());
     expect(w.runtime.enqueue(toBot("builder", "nope"))).toMatchObject({ ok: false, outcome: "refused", reason: /no longer exists/ });
-    expect(w.runtime.enqueue(toBot("chief", root.id))).toMatchObject({ ok: false, outcome: "refused", reason: /ancestor/ });
+    expect(w.runtime.enqueue({ ...toBot("chief", root.id), assignee: chief })).toMatchObject({ ok: false, outcome: "refused", reason: /ancestor/ });
     const lead = ok(w.runtime.enqueue(toBot("lead", root.id)));
     expect(w.runtime.enqueue(toBot("builder", lead.id))).toMatchObject({ ok: false, outcome: "refused", reason: /not running/ });
     w.runtime.tick();
@@ -198,6 +198,18 @@ describe("Runtime: one tree, one lane", () => {
     expect(w.runtime.enqueue(toBot("writer", root.id))).toMatchObject({ ok: false, outcome: "budget", reason: /Request budget/ });
     expect(w.store.events(root.id).some(e => e.kind === "budget")).toBe(true);
     expect(w.store.all()).toHaveLength(4);
+  });
+
+  it("lets a person's turn open a job on its own bot in another thread, but never lets that job open another", () => {
+    const w = world();
+    const root = w.runtime.begin(beginReq());
+    const job = ok(w.runtime.enqueue(toBot("chief", root.id)));
+    expect(job).toMatchObject({ depth: 1, assignee: { botId: "chief", destination: { threadId: "chief-work" } } });
+    w.runtime.tick();
+    expect(w.store.get(job.id)?.status).toBe("running");
+    const nested = { ...toBot("chief", job.id), requester: { kind: "bot_turn" as const, botId: "chief", threadId: "chief-work" },
+      assignee: { botId: "chief", destination: { kind: "work_thread" as const, threadId: "chief-other" } } };
+    expect(w.runtime.enqueue(nested)).toMatchObject({ ok: false, outcome: "refused", reason: /ancestor/ });
   });
 
   it("renews the root's budgets on progress, and never refuses the owed resume turn", async () => {

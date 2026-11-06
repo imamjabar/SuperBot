@@ -192,7 +192,9 @@ export class Runtime {
     const lineage = parent ? path(this.store, parent) : [];
     const root = lineage[0];
     const target = req.assignee;
-    if (!answersSender(parent, mode, { botId: target.botId, ...target.destination }) && lineage.some(a => a.assignee.botId === target.botId &&
+    const ownJob = parent !== undefined && lineage.length === 1 && parent.assignee.botId === target.botId && !target.destination.groupId && !parent.assignee.destination.groupId
+      && target.destination.threadId !== parent.assignee.destination.threadId;
+    if (!ownJob && !answersSender(parent, mode, { botId: target.botId, ...target.destination }) && lineage.some(a => a.assignee.botId === target.botId &&
       (!a.assignee.destination.groupId || !target.destination.groupId || a.assignee.destination.groupId === target.destination.groupId))) {
       return refuse("Cannot assign work back to an ancestor; results return automatically");
     }
