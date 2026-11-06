@@ -424,6 +424,28 @@ it("runs two of its own jobs at once, keeps the chat answering, and Stop in the 
   expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Both jobs reported back")).toBe(false);
 }), 60_000);
 
+it("sends a correction from the chat into the bot's own running job, which carries on and reports once", () => fixture(async f => {
+  const gate = join(f.session.info.dataDir, "steer-job-gate");
+  f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Long job", message: "STEER_JOB_BRIEF do the long part", report_back: true } }],
+    reply: "Started the job", resumeReply: "The job reported back", byPrompt: [{ promptIncludes: "STEER_JOB_BRIEF", plan: { gateFile: gate, reply: "STEER_JOB_RESULT" } }] };
+  await f.start();
+  const job = () => f.nodes().find((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  await expect.poll(() => job()?.status, { timeout: 15_000 }).toBe("running");
+  f.plan[f.chief.id].byPrompt.unshift({ promptIncludes: "CHANGE_PING", plan: { steps: [{ tool: "start_thread", arguments: { title: "Long job", message: "Also include Vultr", job: job().threadId } }], reply: "Added Vultr to the job" } });
+  f.save();
+  await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "CHANGE_PING add Vultr too");
+  await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Added Vultr to the job"), { timeout: 15_000 }).toBe(true);
+  const steerTurn = f.evidence().find((turn: any) => turn.evidence.some((entry: any) => entry.step?.arguments?.job));
+  const sent = steerTurn.evidence.find((entry: any) => entry.step?.arguments?.job).response.result;
+  expect(sent.isError, JSON.stringify(sent)).toBeFalsy();
+  expect(sent.content[0].text).toContain("Sent to your running job #Long job");
+  expect((await f.messages(job().threadId)).some((message: any) => message.text === "Also include Vultr" && message.steered)).toBe(true);
+  writeFileSync(gate, "release");
+  await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).filter((message: any) => message.tool?.output === "STEER_JOB_RESULT").length, { timeout: 20_000 }).toBe(1);
+  expect((await f.wait()).status).toBe("settled");
+  expect((await f.messages(f.chief.activeTaskId)).filter((message: any) => message.tool?.output === "STEER_JOB_RESULT")).toHaveLength(1);
+}), 60_000);
+
 it("answers a message sent while the bot works at once in the same chat, and the work goes on and posts its result", () => fixture(async f => {
   const gate = join(f.session.info.dataDir, "long-work-gate");
   f.plan[f.chief.id] = { gateFile: gate, reply: "LONG_WORK_RESULT ready", byPrompt: [{ promptIncludes: "TIME_PING", plan: { reply: "It is 21:15" } }] };

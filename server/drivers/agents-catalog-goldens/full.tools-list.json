@@ -330,22 +330,26 @@
     },
     {
       "name": "start_thread",
-      "description": "Open a separate job on yourself: its own conversation and run, shown as a row under you, without switching the person's selected conversation. For long work (research, browsing, building: over a minute) set report_back so this chat stays free: say in one short line that you started it, then end your turn; the result resumes you here. Also for independent jobs the user asks for (one review per pull request). The title names the row: short and specific, written #Title to the person. Give complete instructions; the run will not see this conversation. At most five per turn; a self-opened job cannot open more. Not a handoff: use coordinate_bots for teammates (thread \"new\" opens a fresh thread on them). If a call is refused, do not retry it: say what you still wanted opened.",
+      "description": "Open a separate job on yourself: its own conversation and run, shown as a row under you, without switching the person's selected conversation. For long work (research, browsing, building: over a minute) set report_back so this chat stays free: say in one short line that you started it, then end your turn; the result resumes you here. Also for independent jobs the user asks for (one review per pull request). The title names the row, written #Title to the person. Give complete instructions; the run will not see this conversation. At most five per turn; a self-opened job cannot open more. Not a handoff: use coordinate_bots for teammates. If a call is refused, do not retry it: say what you still wanted opened.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
           "title": {
             "type": "string",
-            "description": "The thread's name: one short line, at most 80 characters, specific enough to tell it apart from the others (for example \"QA: PR #412 login fix\")."
+            "description": "The thread's name: one short, specific line, at most 80 characters."
           },
           "message": {
             "type": "string",
-            "description": "The complete first message of the thread — everything the run needs, since it will not see this conversation."
+            "description": "The complete first message: everything the run needs, since it will not see this conversation."
           },
           "folder": {
             "type": "string",
-            "description": "Optional: the name of one of your existing folders to file the thread under. Leave out unless the person named one."
+            "description": "Optional: one of your folders to file it under, only if the person named one."
+          },
+          "job": {
+            "type": "string",
+            "description": "A running job's thread id: send message into that job instead of opening one."
           },
           "report_back": {
             "type": "boolean",

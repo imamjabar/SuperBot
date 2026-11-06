@@ -409,6 +409,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (toBotId) body.toBotId = toBotId;
     if (folder) body.folder = folder;
     if (args.report_back === true) body.reportBack = true;
+    if (typeof args.job === "string" && args.job.trim()) body.job = args.job.trim();
     if (args.model_selection !== undefined) {
       const fields = jsonRecord(args.model_selection) ? args.model_selection : null;
       if (!fields || typeof fields.instanceId !== "string" || !fields.instanceId.trim() || typeof fields.model !== "string" || !fields.model.trim()) {
@@ -418,6 +419,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     }
     const r = await api("/api/internal/threads", { method: "POST", body: JSON.stringify(body) });
     if (r.error && r.state !== "failed") return { text: `Couldn't open that thread: ${String(r.error)}`, isError: true };
+    if (r.steered === true) return { text: `Sent to your running job #${String(r.title)}; it reads this at its next step and its one result still comes back here. Tell the person in one short line, then end your turn.` };
     const receipt = r.self !== true && Array.isArray(r.receipts) && jsonRecord(r.receipts[0]) ? r.receipts[0] : undefined;
     const threadTitle = String(r.title ?? receipt?.title ?? title);
     const threadId = String(r.threadId ?? receipt?.threadId ?? "");

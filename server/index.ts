@@ -631,7 +631,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
-import { createPersonReplies } from "./person-replies.ts"; import { createSideReplies, SIDE_LANE_TITLE } from "./side-replies.ts"; import { FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts";
+import { createPersonReplies } from "./person-replies.ts"; import { createSideReplies, SIDE_LANE_TITLE } from "./side-replies.ts"; import { FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
@@ -14323,7 +14323,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           projectId = project.id;
         }
         const sourceTitle = owner.group ? owner.group.name : (store.taskByThread(from.id, fromThreadId)?.title ?? "");
-        const picked = body.modelSelection === undefined ? null : checkedModelSelection(body.modelSelection, undefined, true); const refused = !picked ? null : target.id !== from.id ? "model_selection is only for threads on yourself" : !picked.ok ? picked.error : validateModelProposal(picked.selection, from); if (refused) return json(res, 400, { error: refused });
+        const picked = body.modelSelection === undefined ? null : checkedModelSelection(body.modelSelection, undefined, true); const refused = !picked ? null : target.id !== from.id ? "model_selection is only for threads on yourself" : !picked.ok ? picked.error : validateModelProposal(picked.selection, from); if (refused) return json(res, 400, { error: refused }); if (typeof body.job === "string" && body.job.trim() && target.id === from.id) { const steered = await steerOwnJob({ store, canSteer: canSteerThread, steer: steerThread }, from, body.job.trim(), message); return json(res, steered.status, steered.body); }
         const selfRefused = target.id !== from.id ? null : selfThreadRefusal({ handoff: Boolean(internalCapability.roomHandoffId), requestLine: store.activePath(fromThreadId).findLast((line) => line.role === "user" && line.kind === "text") }); if (selfRefused) return json(res, 409, { error: selfRefused }); if (target.id === from.id && body.reportBack !== true) {
           const inherited = picked?.ok ? { modelSelection: picked.selection, approvalMode: undefined } : parentThreadModel(from.id, fromThreadId);
           const task = store.createTask(from.id, title, false, projectId, { botId: from.id, name: from.name, at: Date.now() }, inherited.approvalMode, inherited.modelSelection);
