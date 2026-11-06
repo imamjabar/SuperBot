@@ -336,3 +336,80 @@ describe("container images", () => {
     expect(caddy).not.toMatch(/trusted_proxies|header_up X-Forwarded-For|header_up Origin/);
   });
 });
+
+describe.skipIf(process.platform === "win32")("superbot-web-pull.sh", () => {
+  const OLD = "a".repeat(64);
+  const NEW = "b".repeat(64);
+  /** Runs the updater against stub git, docker and curl; `replaces` makes `up omb` start a new container. */
+  function update({ serverChanged = true, replaces = false, caddyIn = OLD, health = '{"app":"openmausbot"}' }: { serverChanged?: boolean; replaces?: boolean; caddyIn?: string; health?: string } = {}) {
+    const home = mkdtempSync(join(tmpdir(), "omb-web-pull-"));
+    temporaryDirectories.push(home);
+    const bin = join(home, "bin");
+    const log = join(home, "calls.log");
+    const state = join(home, "omb.id");
+    mkdirSync(bin);
+    mkdirSync(join(home, "SuperBot", "server-dist"), { recursive: true });
+    writeFileSync(join(home, "SuperBot", "server-dist", "index.js"), "");
+    writeFileSync(join(home, "SuperBot", "server-dist", "cloud-home-start.js"), "");
+    writeFileSync(state, OLD);
+    const stub = (name: string, body: string) => writeFileSync(join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\n${body}\n`, { mode: 0o755 });
+    stub("git", [
+      'case "$*" in',
+      '  *"rev-parse FETCH_HEAD"*) echo new ;;',
+      `  *"--verify HEAD"*) case "$*" in *server-dist*) echo ${serverChanged ? "old" : "new"} ;; *) echo new ;; esac ;;`,
+      "esac",
+    ].join("\n"));
+    stub("docker", [
+      'case "$*" in',
+      `  *"up -d --no-deps --no-build omb"*) ${replaces ? `echo ${NEW} > "${state}"` : ":"} ;;`,
+      `  *"ps -q omb"*) cut -c1-12 "${state}" ;;`,
+      "  *\"ps -q caddy\"*) echo caddy0000000 ;;",
+      `  *"{{.Id}}"*) cat "${state}" ;;`,
+      `  *"{{.HostConfig.NetworkMode}}"*) echo "container:${caddyIn}" ;;`,
+      "esac",
+    ].join("\n"));
+    stub("curl", `echo '${health}'`);
+    stub("timeout", 'shift; exec "$@"');
+    const run = spawnSync("sh", [new URL("../deploy/superbot-web-pull.sh", import.meta.url).pathname], {
+      encoding: "utf8", env: { PATH: `${bin}:/usr/bin:/bin`, HOME: home },
+    });
+    spawnSync("chmod", ["-R", "u+w", home]);
+    const calls = readFileSync(log, "utf8").trim().split("\n");
+    return { status: run.status, stderr: run.stderr, calls, docker: calls.filter(call => call.startsWith("docker ")) };
+  }
+  const recreated = (docker: string[]) => docker.filter(call => call.includes("--force-recreate caddy"));
+  const reloaded = (docker: string[]) => docker.filter(call => call.includes("caddy reload"));
+
+  it("never touches omb or caddy when the server bundle did not change", () => {
+    const { status, docker } = update({ serverChanged: false });
+    expect(status).toBe(0);
+    expect(docker).toEqual([]);
+  });
+
+  it("keeps the same omb container's caddy and only reloads its config", () => {
+    const { status, stderr, docker } = update();
+    expect(status, stderr).toBe(0);
+    expect(docker.filter(call => call.includes(" up "))).toEqual([expect.stringContaining("up -d --no-deps --no-build omb")]);
+    expect(reloaded(docker)).toHaveLength(1);
+    expect(recreated(docker)).toEqual([]);
+  });
+
+  it("reattaches caddy exactly once when omb was replaced", () => {
+    const { status, stderr, docker } = update({ replaces: true });
+    expect(status, stderr).toBe(0);
+    expect(recreated(docker)).toEqual([expect.stringContaining("up -d --no-deps --no-build --force-recreate caddy")]);
+    expect(reloaded(docker)).toEqual([]);
+  });
+
+  it("reattaches a caddy left in another namespace even when omb kept its id", () => {
+    const { status, docker } = update({ caddyIn: "c".repeat(64) });
+    expect(status).toBe(0);
+    expect(recreated(docker)).toHaveLength(1);
+  });
+
+  it("fails when the health check does not answer as the app", () => {
+    const { status, stderr } = update({ health: "<html>502</html>" });
+    expect(status).toBe(1);
+    expect(stderr).toContain("does not answer its health check");
+  });
+});

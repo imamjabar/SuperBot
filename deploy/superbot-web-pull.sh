@@ -42,10 +42,19 @@ chmod -R a-w "$HOME/SuperBot/server-dist"
 # Never switch the app to a bundle that fails its compiled self-check. index.js boots the whole server on import, so it is only syntax-checked.
 $C run -T --rm --no-deps --entrypoint sh omb -c 'test ! -w /app/dist-server && timeout 60 node --check /app/dist-server/index.js && timeout 60 node -e "import(\"/app/dist-server/cloud-home-start.js\").catch((e) => { console.error(e); process.exit(3); })" || exit 3' || rc=$?
 if [ "${rc:-0}" -ne 0 ]; then echo "Compiled server validation failed ${rc}" >&2; chmod -R u+w "$HOME/SuperBot/server-dist"; exit "$rc"; fi
-$C up -d --no-build omb
-# Recreating caddy drops live connections, such as a phone pairing session, so reload its config in place instead.
-if ! $C exec -T caddy caddy reload --config /etc/caddy/Caddyfile; then
-  echo "caddy reload failed; bringing caddy up to date without a forced recreate" >&2
-  timeout 120 $C up -d --no-build caddy
+# Caddy joins omb's network namespace (network_mode: service:omb), so a replaced omb leaves the running Caddy in the
+# old, dead namespace: Caddy is recreated exactly then, and otherwise only reloads its config, keeping live connections.
+omb_id() { id=$($C ps -q omb) && [ -n "$id" ] && docker inspect --format '{{.Id}}' "$id"; }
+before=$(omb_id || true)
+$C up -d --no-deps --no-build omb
+after=$(omb_id) || { echo "omb is not running after the update" >&2; exit 1; }
+caddy=$($C ps -q caddy || true)
+if [ -n "$caddy" ] && [ "$before" = "$after" ] && [ "$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$caddy")" = "container:$after" ]; then
+  $C exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+else
+  echo "omb was replaced; reattaching caddy to its network namespace"
+  timeout 120 $C up -d --no-deps --no-build --force-recreate caddy
 fi
-curl -fsS --retry 5 --retry-delay 3 http://127.0.0.1:8080/api/health
+curl -fsS --retry 5 --retry-delay 3 --retry-connrefused http://127.0.0.1:8080/api/health | grep -q '"openmausbot"' \
+  || { echo "the app does not answer its health check on 127.0.0.1:8080" >&2; exit 1; }
+echo "omb and caddy are up"
