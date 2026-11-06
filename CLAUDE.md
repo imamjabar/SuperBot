@@ -2,7 +2,7 @@
 
 SuperBot is a public fork of OpenMausBot: a self-hosted team of private AI bots on one VPS, with leased visible browser desktops, approval cards, shared computers and per-bot memory/skills/routines. Grok Bot is a product reference design only, not a runtime or development dependency.
 
-Read [`docs/HANDOFF.md`](docs/HANDOFF.md) before work. It records architecture, exact remaining Tasks 7/8/9/10/10b/10c, deploy safety and the unrun quality scorecard. Follow [`AGENTS.md`](AGENTS.md) and nested notes too.
+Read [`docs/DIRECTION.md`](docs/DIRECTION.md) (scope and priority) and [`docs/HANDOFF.md`](docs/HANDOFF.md) (architecture, roadmap phases, deploy safety, unrun scorecard) before work. Follow [`AGENTS.md`](AGENTS.md) and nested notes too.
 
 ## Local commands
 

@@ -7,10 +7,10 @@ Read this before making changes. This document has no credentials. The repositor
 SuperBot (fork of OpenMausBot) should behave like Grok Bot while staying self-hosted, cheap, approval-backed, and connected to Imam's Mac and phone:
 
 1. Run on a VPS using existing authorised AI APIs/subscriptions; a Mac is a client, not prerequisite compute.
-2. **One shared computer, one visible desktop per active bot**: shared Linux files/tools and separate leased visible Chrome/XFCE/Cua seats, not a container per bot. Headless is fallback only; Chrome stable is required.
+2. **One shared computer, one visible desktop seat** (capacity 1 until a VPS upgrade): shared Linux files/tools and a leased visible Chrome/XFCE/Cua seat, not a container per bot. Headless is fallback only; Chrome stable is required.
 3. **Independent bot identity**: private memory, skills, routines, approvals and credentials/scopes. Do not read or copy another bot's live cookies.
 4. **One canonical chat per bot** (Task 10b): no parallel legacy thread list in the final UI; migration must be lossless.
-5. **Orchestrator, not long inline turns** (Task 10c): immediate reply/ack; durable background jobs; one worker per workstream; follow-ups resume it; only the canonical bot speaks to Imam; completion events wake chat rather than polling; per-bot visible todos after actual work; steering and stop-all; 2–4 concurrent jobs; routines/event watchers wake chat.
+5. **Orchestrator, not long inline turns** (Task 10c): immediate reply/ack; durable background jobs; one worker per workstream; follow-ups resume it; only the canonical bot speaks to Imam; completion events wake chat rather than polling; per-bot visible todos after actual work; steering and stop-all; at most 2 concurrent jobs; routines/event watchers wake chat.
 6. Bots can create/coordinate bots by reusing rooms, bot packages and coordinator. No unbounded agents or hidden work.
 7. Each device creates one outbound connection to the VPS: no inbound Mac daemon or public VNC/CDP. Electron already does this; do not recreate a `superbot-agent` WebSocket daemon.
 8. Preserve approvals, admin same-origin authorization, exclusive leases, read-only viewing, secret redaction and permissions. Never add unauthenticated debug endpoints or direct DB/session/lease edits as a workaround.
@@ -124,36 +124,51 @@ Desktop rollback, after stopping all work: back up config/Compose, remove only i
 
 ## 7. Roadmap status and next acceptance gates
 
+Scope and priority follow [`docs/DIRECTION.md`](DIRECTION.md) (2026-11-06): personal, single-user; one desktop seat; at most 2 background jobs. New scope is frozen until the phases below are proven in order. Multi-seat code stays at capacity 1; do not extend or delete it.
+
 History: Task 1 `76852cb`; 2/2b `c2a64b4`, `97931ab`; 3 `0eb2e6f`; 4 `3ba35a7`; 5 `f09f313`; 6 `97ee6fe`; CI/updater improvements `b72858a`, `9a344ba`, `1758667`, `2125df0`; image layers 10/11 `332dfb3`, `788cc28`, `64e7a8f`.
 
 **Tasks 1/2/2b complete.** Debian 13, visible Chrome stable, durable workspaces, permissions, first frame, idle restart (~15 min) observed. Initial Chrome ~564 MiB was not multi-seat proof.
 
-**Tasks 3–6 implemented, final multi-seat proof missing.** Identities `:1..:3`, leased keys, multi-display config, bounded seat startup/driver helpers, per-seat idle adapter. Safe/cold two-seat lifecycle only rehearsed; no full UI gate. Preserve no silent owner transfer.
+**Tasks 3–6 implemented, no multi-seat proof; frozen at capacity 1.** Identities `:1..:3`, leased keys, multi-display config, bounded seat startup/driver helpers, per-seat idle adapter. Two-seat lifecycle only rehearsed. Keep the code; do not extend it. Preserve no silent owner transfer.
 
-**Task 7 incomplete.** `314e216` proved primary WebSocket HTTP 101 + RFB banner through Docker duplex. `35e3a58` starts a real seat before commands. `76af0e9` names failing checks; `2552e4a` probes the socket as `cua`. Full two-seat RFB/input/renew/release/TTL remains unproved. At stop: capacity 1, no busy seats, test seat removed through supported lifecycle. Do not infer general supervisor failure from an earlier manual-stop orphan.
+### Phase 1 — make it usable (now)
 
-Required completion:
-1. Start two real bots cold. Primary: JSON 200/control; secondary: 200 + `viewOnly:true`. App-only RFB 101 must lead through security negotiation and ServerInit to a real full framebuffer. Test client uses masked-client/unmasked-server binary frames and DES VNC bit-reversed key; never print passwords/screen contents.
-2. Real xterm/Xfce terminal on `:1` and `:2`: read-only key has no effect; current matching UI lease works; second viewer rejected/no takeover; check/renew keeps control; release/lease loss closes socket within 5 seconds and subsequent GET fails; displays/sockets differ; no unrelated execution.
-3. Verify `/api/desktop-viewer/local/shared`, `/api/desktop-viewer/local/shared-seat-2` and `/websockify`. Generic viewer + `botId/controlLeaseId` deliberately rejects. UI `/api/bots/:id/local-computer/join?controlLeaseId=...` must match a current live turn target. No direct lease/DB mutation.
-4. Clean up to capacity 1 using supported start/stop/API lifecycle only. Preserve workspaces/backups.
+**Task 7 minimal (single seat), incomplete.** Proven: `314e216` primary WebSocket HTTP 101 + RFB banner through Docker duplex. `35e3a58` starts a real seat before commands; `76af0e9` names failing checks; `2552e4a` probes the socket as `cua`. Not proven: RFB auth, full framebuffer, input, release close. Do not infer general supervisor failure from an earlier manual-stop orphan.
+
+Single-seat acceptance (two-seat, read-only-key and lease-handover proofs move to Phase 4):
+1. During a live bot turn on seat `:1`, the app viewer (`/api/bots/:id/local-computer/join?controlLeaseId=...`, `/api/desktop-viewer/local/shared` + `/websockify`) completes RFB security negotiation, ServerInit and a real full framebuffer. Test client uses masked-client/unmasked-server binary frames and DES VNC bit-reversed key; never print passwords/screen contents.
+2. Mouse and keyboard from the leased viewer reach the desktop (e.g. typing in an Xfce terminal); a second viewer is rejected, no silent takeover.
+3. Release or lease loss closes the socket within 5 seconds; a subsequent GET fails.
+4. Leases come from the live route only; no direct lease/DB mutation. Stay at capacity 1 via supported start/stop/API lifecycle. Preserve workspaces/backups.
 5. `365cc4f` line guard is not permission to grow monoliths; split carefully.
 
-**Task 8 — login broker, pending.** `computer-login-broker.ts` + atomic versioned snapshots, exclusive login writes, vault/permission gates. Prove bot B inherits bot A's authenticated state on a safe test site; no live SQLite cookie copy, no real dangerous credentials.
+Scorecard to run manually and fix: #1 Reply UX, #3 Choice card, #8 Routine, #11 Safety, #17 Browser.
+**Phase 1 done when:** Imam watches a bot open example.com in Chrome from the app and takes over the mouse.
 
-**Task 9 — resource policy, pending.** Initial capacity 1, hard max 3. Measure active Chrome PSS/docker stats (~600 MiB–1 GB each) under sustained multi-seat load and preserve >=1.5 GB for omb+caddy+OS. Reject/queue before OOM; show machine/seat usage in UI.
+### Phase 2 — feel like Grok Bot
 
-**Task 10 — client/PWA/rebrand 0.2.0/DMG, pending.** `OMB_CLIENT_ONLY=1` with sharing kept and no paired-Mac local server; responsive installable PWA/commands; SuperBot identity/version 0.2.0; signed `.dmg` built by GHA, not Mac. Remove “Get MausBot updates?”, newsletter opt-ins and Cloud nudges, not device pairing. No release/spend/DNS without explicit yes.
+**Task 10c simplified, pending.** Instant ack; long work runs as a durable background job; completion message wakes the canonical chat (no polling); at most 2 concurrent jobs; a follow-up steers or resumes the running job; Stop stops only the current bot's jobs/leases. Browser jobs share the single seat via its lease. Reuse existing queues, routines and stop controls; no new framework. Logs contain no secrets.
 
-**Task 10b — one canonical chat, pending.** Map existing threads to a canonical bot chat with safely archived history; transaction/replay/rollback before UI cutover. Persistent bot/chat-to-seat binding; bot list becomes chat list; retain files/approvals. Migration tests and visible resumed context.
+**Task 10b — one canonical chat, pending.** Map existing threads to a canonical bot chat with safely archived history; transaction/replay/rollback before UI cutover. Bot list becomes chat list; retain files/approvals. Migration tests and visible resumed context.
 
-**Task 10c — durable orchestrator, pending.** Registry + durable queue, job ids/status/transitions, bounded independent transcripts/logs. Events wake canonical chat. Small fast chat model, at most 2–4 jobs; browser jobs require seat leases. StopAll stops only current bot jobs/leases, not the operator or other bots. Prove immediate ack, follow-up resumes a running job, completion delivered after reconnect, two real jobs on distinct displays, cancellation/resource release. Reuse existing queues/routines/stop controls; logs contain no secrets.
+**Phase 2 done when:** scorecard #2 Long work, #6 Local job and #19 Parallel (2 jobs) pass.
 
-Mac acceptance pending: Share this computer + approved `uname -a` returning Darwin arm64 from the proper host. Never fake it.
+### Phase 3 — phone
+
+**Task 10 reduced to PWA.** Installable responsive web app over Tailscale; keep auth and device pairing. Skip DMG signing unless the Electron app needs it. **Done when:** scorecard #4 Phone passes.
+
+### Phase 4 — only when Imam asks (spend/infra needs his explicit yes)
+
+- Second desktop seat: Task 9 resource policy plus the dropped two-seat Task 7 proofs. Needs a VPS upgrade to at least 4 vCPU / 16 GB first.
+- Jakarta VPS move (~325 ms RTT makes the viewer laggy).
+- **Task 8 login broker** (`computer-login-broker.ts`, versioned snapshots): deferred; one shared Chrome profile is fine for one user.
+- Rebrand 0.2.0, signed DMG, newsletter/Cloud-nudge removal, `OMB_CLIENT_ONLY=1` client-only Mac.
+- Mac sharing tests #5/#7: Share this computer + approved `uname -a` returning Darwin arm64 from the proper host. Never fake it.
 
 ## 8. GitHub connectivity on the Mac
 
-Known issue: the Mac previously timed out on `curl https://github.com:443` with no proxy configured. First try:
+GitHub over HTTPS worked from the Mac on 2026-11-06 (`gh` authenticated, `git fetch origin` succeeded). If it fails again, first try:
 
 ```sh
 cd "/Users/imamjabar/Machine Learning/MyBot"
@@ -198,13 +213,13 @@ Never force/reset published main. Full-history bundles are unnecessary.
 - Preserve omb+Caddy network relation. No broad ad-hoc VPS source edits.
 - Mac terminal grant remains unresolved until an actual successful approval.
 - Avoid reproducing `vncPassword` through API `commands.run` output; redact and later narrow the status response.
-- One shared Unix uid is not a strong sandbox boundary. Untrusted bot commands can reach shared resources; stronger isolation is a later design task.
-- Backlog: rebrand/newsletter removal, signed 0.2.0 DMG, PWA/permission claims, Jakarta migration research. No expense without yes.
+- Accepted risk (single user): one shared Unix uid and the Docker socket in `omb` are not a sandbox. No gVisor/Kata, egress proxy or per-bot sandbox. Cheap safeguards: keep "Ask" approvals for shell/deletes; no main email/banking login in bot Chrome; EC2 with no IAM role, or IMDSv2 with hop limit 1 (AWS change needs Imam's yes); back up `/data` and `vm-home` before every deploy.
+- Backlog: see §7 Phase 4. No expense without yes.
 
 ## 11. Exact quality scorecard
 
 
-All statuses at the original assessment: **Not run yet**. PASS requires observed app behavior, not code presence. Parity requires all P0 tests 5,6,7,8,10,11,12,20 and >=90% of all 20.
+All statuses at the original assessment: **Not run yet**. PASS requires observed app behavior, not code presence. **Parity (revised 2026-11-06, `docs/DIRECTION.md`):** the five behaviours work (instant reply, background work that posts on completion, one chat per bot, watch/take over the browser desktop, works from phone) **and** tests #1, #2, #3, #4, #6, #8, #11, #17, #19 pass on observed behaviour. The rest are backlog.
 
 | # | Area | Test / pass criteria | Feature | Status |
 |---|---|---|---|---|
@@ -229,4 +244,4 @@ All statuses at the original assessment: **Not run yet**. PASS requires observed
 | 19 | Parallel | two jobs + responsive chat + stop works | Tasks 7/10c | Not run |
 | 20 | Usage | flash fleet/cost; routines pause at low cap | ledger/soft-stop | Not run |
 
-Real gates: #5/#7/#11 after Mac grant; #12/#17 after desktop+broker; #15/#19 after seats+orchestrator; #4/#18 after PWA/Phase D, then run the full round. Source artifacts and a blank scorecard are not evidence.
+Gate order: Phase 1 → #1, #3, #8, #11, #17; Phase 2 → #2, #6, #19; Phase 3 → #4; Phase 4/backlog → #5, #7, #9, #10, #12–#16, #18, #20. Source artifacts and a blank scorecard are not evidence.
