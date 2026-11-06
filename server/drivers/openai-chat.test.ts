@@ -44,6 +44,17 @@ async function runTurn(body: string | (() => Response), driver: "openai-compat" 
   return events;
 }
 
+describe("a turn's token usage", () => {
+  it("carries the provider's cached prompt tokens, so the ledger shows the real cache rate", async () => {
+    const events = await runTurn([
+      'data: {"choices":[{"delta":{"content":"hi"}}]}',
+      'data: {"choices":[],"usage":{"prompt_tokens":24097,"completion_tokens":5,"prompt_tokens_details":{"cached_tokens":23936}}}',
+      "data: [DONE]", "",
+    ].join("\n\n"));
+    expect(events.find((event) => event.type === "thread.token-usage.updated")).toMatchObject({ input: 24097, output: 5, cachedInput: 23936 });
+  });
+});
+
 describe("createOpenAIChatRuntime one-shot usage", () => {
   const fixture = async (body: unknown) => {
     vi.stubGlobal("fetch", vi.fn(async (_url: unknown, init?: RequestInit) => {
@@ -950,6 +961,136 @@ describe("createOpenAIChatRuntime rejected keys", () => {
     answer(() => new Response(JSON.stringify(body), { status }));
     await turn(instance);
     expect(await instance.snapshot()).toMatchObject({ state: "available", authenticated: true });
+    await instance.dispose();
+  });
+});
+
+describe("createOpenAIChatRuntime prefix cache stability", () => {
+  const mcpDir: string[] = [];
+  afterEach(() => { for (const d of mcpDir.splice(0)) rmSync(d, { recursive: true, force: true }); });
+
+  const toolServer = (): { command: string; args: string[]; env: Record<string, string> } => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-prefix-mcp-"));
+    mcpDir.push(dir);
+    const script = join(dir, "fake-mcp.mjs");
+    writeFileSync(script, `#!/usr/bin/env node
+      const send = (m) => process.stdout.write(JSON.stringify(m) + "\\n");
+      let buffer = "";
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (chunk) => {
+        buffer += chunk;
+        let nl;
+        while ((nl = buffer.indexOf("\\n")) !== -1) {
+          const line = buffer.slice(0, nl); buffer = buffer.slice(nl + 1);
+          const m = JSON.parse(line);
+          if (m.method === "initialize") send({jsonrpc:"2.0",id:m.id,result:{protocolVersion:"2024-11-05",capabilities:{tools:{}}}});
+          else if (m.method === "tools/list") send({jsonrpc:"2.0",id:m.id,result:{tools:[{name:"write",description:"Fixture write",inputSchema:{type:"object",properties:{},additionalProperties:false}}]}});
+          else if (m.method === "tools/call") send({jsonrpc:"2.0",id:m.id,result:{content:[{type:"text",text:"done"}]}});
+        }
+      });
+    `);
+    chmodSync(script, 0o755);
+    return { command: script, args: [], env: {} };
+  };
+
+  it("keeps request prefix identical across tool rounds and consecutive turns", async () => {
+    interface CapturedRequest {
+      body: {
+        messages: Array<Record<string, unknown>>;
+        tools?: Array<Record<string, unknown>>;
+      };
+      rawBody: string;
+    }
+    const requests: CapturedRequest[] = [];
+    const toolCallStream = 'data: {"choices":[{"index":0,"delta":{"reasoning_content":"Thinking fixture.","tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"fx_write","arguments":"{}"}}]}}]}\n\ndata: {"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n';
+    const answerStream = 'data: {"choices":[{"index":0,"delta":{"content":"Done."}}]}\n\ndata: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n';
+
+    vi.stubGlobal("fetch", vi.fn(async (input: unknown, init?: RequestInit) => {
+      if (!String(input).endsWith("/chat/completions")) return new Response(JSON.stringify({ data: [] }));
+      const rawBody = String(init?.body);
+      requests.push({ body: JSON.parse(rawBody) as CapturedRequest["body"], rawBody });
+      return new Response(requests.length === 1 ? toolCallStream : answerStream, {
+        headers: { "content-type": "text/event-stream" },
+      });
+    }));
+
+    const instance = await OpenAICompatDriver.create({
+      instanceId: "prefix-test",
+      displayName: "Prefix Test",
+      enabled: true,
+      config: OpenAICompatDriver.decodeConfig({ url: "https://api.example.com/v1", apiKeyEnv: "K", model: "m" }),
+      environment: { K: "secret" },
+    });
+
+    const events: RuntimeEvent[] = [];
+    instance.adapter.onEvent((event) => events.push(event));
+
+    const turn1System = "Standing instructions for the bot.";
+    const turn1Volatile = "Memory: likes tea.";
+    await instance.adapter.sendTurn({
+      threadId: "t-prefix",
+      text: "Please write.",
+      approvalMode: "full",
+      system: `${turn1System}\n\n${turn1Volatile}`,
+      systemStable: turn1System,
+      systemVolatile: turn1Volatile,
+      integrations: { custom: { fx: toolServer() } },
+    });
+
+    await vi.waitFor(() => {
+      if (!events.some((e) => e.type === "turn.completed")) throw new Error("turn 1 still running");
+    }, { timeout: 10_000 });
+
+    expect(requests.length).toBe(2);
+    const [req1, req2] = requests;
+
+    expect(req2.body.messages.length).toBeGreaterThan(req1.body.messages.length);
+    const req2Prefix = req2.body.messages.slice(0, req1.body.messages.length);
+    expect(req2Prefix).toEqual(req1.body.messages);
+    expect(req2Prefix.map((m) => JSON.stringify(m))).toEqual(req1.body.messages.map((m) => JSON.stringify(m)));
+
+    expect(req2.body.tools).toEqual(req1.body.tools);
+    expect(JSON.stringify(req2.body.tools)).toBe(JSON.stringify(req1.body.tools));
+
+    expect(req2.body.messages[0]).toEqual(req1.body.messages[0]);
+    expect(JSON.stringify(req2.body.messages[0])).toBe(JSON.stringify(req1.body.messages[0]));
+
+    const assistant = req2.body.messages[req1.body.messages.length];
+    expect(assistant).toMatchObject({
+      role: "assistant",
+      content: "",
+      reasoning_content: "Thinking fixture.",
+      tool_calls: [{ id: "c1", type: "function", function: { name: "fx_write", arguments: "{}" } }],
+    });
+    expect(assistant?.content).toBe("");
+
+    await instance.adapter.sendTurn({
+      threadId: "t-prefix",
+      text: "Next turn.",
+      approvalMode: "full",
+      system: `${turn1System}\n\n${turn1Volatile}`,
+      systemStable: turn1System,
+      systemVolatile: turn1Volatile,
+      transcript: [
+        { role: "user", text: "Please write." },
+        { role: "assistant", text: "Done." },
+      ],
+      integrations: { custom: { fx: toolServer() } },
+    });
+
+    await vi.waitFor(() => {
+      if (events.filter((e) => e.type === "turn.completed").length < 2) throw new Error("turn 2 still running");
+    }, { timeout: 10_000 });
+
+    expect(requests.length).toBe(3);
+    const req3 = requests[2];
+
+    expect(req3.body.messages[0]).toEqual(req1.body.messages[0]);
+    expect(JSON.stringify(req3.body.messages[0])).toBe(JSON.stringify(req1.body.messages[0]));
+
+    expect(req3.body.messages[1]).toEqual(req1.body.messages[1]);
+    expect(JSON.stringify(req3.body.messages[1])).toBe(JSON.stringify(req1.body.messages[1]));
+
     await instance.dispose();
   });
 });

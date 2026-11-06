@@ -46,6 +46,7 @@ export interface OpenAIChatMessage {
 interface Usage {
   input: number;
   output: number;
+  cachedInput?: number;
 }
 
 export interface Completion {
@@ -131,7 +132,8 @@ interface RuntimeOptions<Config> {
 
 const usageFrom = (usage: CompletionJson["usage"]): Usage | null =>
   usage
-    ? { input: usage.prompt_tokens ?? 0, output: usage.completion_tokens ?? 0 }
+    ? { input: usage.prompt_tokens ?? 0, output: usage.completion_tokens ?? 0,
+      ...(typeof usage.prompt_tokens_details?.cached_tokens === "number" ? { cachedInput: usage.prompt_tokens_details.cached_tokens } : {}) }
     : null;
 
 const completionUsage = (json: CompletionJson) => json.usage ?? json.x_groq?.usage;
@@ -227,8 +229,8 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
   const routes = createModelRoutes(options.apiUrl);
   /** Beside the messages, not on them, so encrypted reasoning never reaches a Chat Completions body, a log or a handoff. */
   const responseOutputs = new WeakMap<OpenAIChatMessage, ResponseItem[]>();
-  const assistantReply = (model: string, completion: Completion, content: string | null, toolCalls?: ChatToolCall[]): OpenAIChatMessage => {
-    const reply: OpenAIChatMessage = { role: "assistant", content,
+  const assistantReply = (model: string, completion: Completion, content: string | null = "", toolCalls?: ChatToolCall[]): OpenAIChatMessage => {
+    const reply: OpenAIChatMessage = { role: "assistant", content: content ?? "",
       ...(completion.protocolReasoning && !reasoningReplayRejected.has(model) ? { [options.reasoningReplayField ?? "reasoning_content"]: completion.protocolReasoning } : {}),
       ...(completion.protocolReasoningDetails.length ? { reasoning_details: completion.protocolReasoningDetails } : {}),
       ...(toolCalls ? { tool_calls: toolCalls } : {}) };
@@ -723,6 +725,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
           if (completion.usage) {
             usage.input += completion.usage.input;
             usage.output += completion.usage.output;
+            if (completion.usage.cachedInput !== undefined) usage.cachedInput = (usage.cachedInput ?? 0) + completion.usage.cachedInput;
             hasUsage = true;
             const contextWindow = options.models().options.find((entry) => entry.id === model)?.contextWindow;
             // Accounting sums the turn; context occupancy is the latest round only.
@@ -781,7 +784,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             seenCalls.add(call.id);
           }
           if (seenCalls.size > MAX_TURN_TOOL_CALLS) throw new ChatProtocolError(stoppedAfter(`${MAX_TURN_TOOL_CALLS} tool calls`));
-          messages.push(assistantReply(model, completion, completion.text || null, completion.toolCalls));
+          messages.push(assistantReply(model, completion, completion.text || "", completion.toolCalls));
           // A failure stays pending only until the bot runs tools again: one that went on to use more tools has read the error
           // and reacted (a wrong guess, a bad query, then the right call), so its turn is not failed for it, on any model. The
           // failed step still shows as failed; a failure in the last calls before the answer, or a person's no, still ends it.
