@@ -1,7 +1,5 @@
 name: Check
 on:
-  push:
-    branches-ignore: [main, web-dist, server-dist]
   workflow_dispatch:
 concurrency: { group: "check-${{ github.ref }}", cancel-in-progress: true }
 permissions: { contents: read }
