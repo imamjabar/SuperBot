@@ -1,7 +1,46 @@
+import { spawn } from "node:child_process";
+import { Duplex } from "node:stream";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { SHARED_LOCAL_VM_TARGET, sh, type CommandRunner, type LocalVmTarget, type Runtime } from "./container-computer.ts";
+import { augmentedPath, resolveCliSpawn } from "./env-path.ts";
 import { seatIdentity, type SeatIdentity } from "./local-vm-seats.ts";
+
+/** Copies bytes between stdio and the seat's websockify on the container's loopback; websockify ships python3. */
+const VIEWER_RELAY = [
+  "import os, socket, sys, threading",
+  "s = socket.create_connection(('127.0.0.1', int(sys.argv[1])))",
+  "def up():",
+  "    while True:",
+  "        d = os.read(0, 65536)",
+  "        if not d:",
+  "            s.shutdown(socket.SHUT_WR)",
+  "            return",
+  "        s.sendall(d)",
+  "threading.Thread(target=up, daemon=True).start()",
+  "while True:",
+  "    d = s.recv(65536)",
+  "    if not d:",
+  "        break",
+  "    os.write(1, d)",
+].join("\n");
+
+/** Seats other than 1 publish no host port, so their viewer is reached through `exec -i` instead of a new listener. */
+export function seatViewerTunnelArgs(seat: number, container = SHARED_LOCAL_VM_TARGET.containerName): string[] {
+  const { viewerPort } = seatIdentity(seat);
+  return ["exec", "-i", "-u", "cua", container, "python3", "-c", VIEWER_RELAY, String(viewerPort)];
+}
+
+export function openSeatViewerTunnel(runtime: Runtime, seat: number, container = SHARED_LOCAL_VM_TARGET.containerName): Duplex {
+  const resolved = resolveCliSpawn(runtime, seatViewerTunnelArgs(seat, container));
+  const child = spawn(resolved.command, resolved.args, { stdio: ["pipe", "pipe", "ignore"], env: { ...process.env, PATH: augmentedPath() } });
+  const stream = Duplex.from({ readable: child.stdout, writable: child.stdin });
+  const stop = () => { if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM"); };
+  stream.once("close", stop);
+  child.once("error", (error) => stream.destroy(error));
+  child.once("exit", () => stream.destroy());
+  return stream;
+}
 
 const SUPERVISOR_CONF = "/etc/supervisor/supervisord.conf";
 const SOCKET_READY = "openmausbot-seat-socket-ready";

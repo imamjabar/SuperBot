@@ -7,7 +7,7 @@ import { isSameOrigin, type RequestAuth } from "../request-auth.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 import { createUpgrades, type Upgrades } from "./upgrades.ts";
 
-const ROUTE = /^\/api\/desktop-viewer\/(local\/(?:shared|bot-[a-f0-9]{64}|pool-\d+)|vps\/[\w-]+)(\/websockify)?$/;
+const ROUTE = /^\/api\/desktop-viewer\/(local\/(?:shared(?:-seat-[23])?|bot-[a-f0-9]{64}|pool-\d+)|vps\/[\w-]+)(\/websockify)?$/;
 const HANDSHAKE_MS = 10_000;
 const RECHECK_MS = 5_000;
 const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -16,7 +16,10 @@ const CONTROL_LEASE = /^[A-Za-z0-9_-]{16,120}$/;
 
 /** Providers resolve a managed loopback endpoint, never a browser-supplied URL. */
 export interface DesktopConnection {
+  /** Loopback port of the viewer's websockify; ignored when `connect` is given. */
   port: number;
+  /** A byte stream to the viewer's websockify, for a viewer that has no host port. */
+  connect?: () => Duplex;
   password: string | null;
   live?: () => boolean;
   touch?: () => void;
@@ -38,8 +41,13 @@ interface Viewer { socket: Socket; close: () => void; owner?: string; botId?: st
 export function createDesktopViewer(deps: {
   target: (id: string) => DesktopTarget | undefined;
   live: (auth: RequestAuth) => boolean;
+  /** Whether this person may see this desktop at all; asked on open and on every liveness pass. */
+  allowed?: (auth: RequestAuth, id: string) => boolean;
+  /** True when one thread holds the whole desktop, so a bot's control lease reserves it for the person. Pool desktops and
+   * a single-seat shared desktop are never exclusive. */
+  exclusive?: (id: string) => boolean;
   /** Binds a viewer to a control lease: answers only while `controlLeaseId` holds `botId`'s computer and the target is
-   * that computer. Shared and pool targets are refused: a bot hold cannot reserve their desktop. */
+   * that computer. */
   lease?: (id: string, botId: string, controlLeaseId: string, threadId?: string) => (() => boolean) | undefined;
   /** The server's shared upgrade gate; a viewer made without one keeps its own. */
   upgrades?: Upgrades;
@@ -57,6 +65,7 @@ export function createDesktopViewer(deps: {
     if (method !== "GET") return json(res, 405, { error: "method not allowed" });
     // Also enforced at this boundary: admin and same-origin only.
     if (!auth.scopes.includes("admin") || !isSameOrigin(req)) return json(res, 403, { error: "forbidden" });
+    if (deps.allowed && !deps.allowed(auth, match[1])) return json(res, 403, { error: "forbidden" });
     // A lease-bound viewer: both names or neither, holding before anything is inspected, rechecked on every liveness pass.
     const botId = url.searchParams.get("botId");
     const controlLeaseId = url.searchParams.get("controlLeaseId");
@@ -70,7 +79,7 @@ export function createDesktopViewer(deps: {
     }
     if (botId === null && threadId !== undefined) return json(res, 400, { error: "threadId needs botId and controlLeaseId" });
     // A saved or constructed socket URL must not bypass the join refusal: a bot's lease does not exclude other users of a shared desktop.
-    if (botId !== null && (match[1] === "local/shared" || match[1].startsWith("local/pool-"))) {
+    if (botId !== null && match[1].startsWith("local/") && !match[1].startsWith("local/bot-") && deps.exclusive?.(match[1]) !== true) {
       return json(res, 409, { error: "Phone control requires a per-bot Local VM. Select per-bot mode in Settings → Computers." });
     }
     const bound = botId === null ? undefined : deps.lease!(match[1], botId, controlLeaseId!, threadId);
@@ -98,10 +107,11 @@ export function createDesktopViewer(deps: {
     }
     // Inspection may outlive a closed tab or the handshake deadline.
     if (res.destroyed || upgrade?.socket.destroyed) return;
-    const live = () => deps.live(auth) && deps.target(match[1])?.key === target.key && (connection.live?.() ?? true);
+    const live = () => deps.live(auth) && (deps.allowed?.(auth, match[1]) ?? true) && deps.target(match[1])?.key === target.key
+      && (connection.live?.() ?? true);
     if (!live()) return json(res, 401, { error: "Viewer access expired" });
     if (!holds()) return json(res, 409, { error: "Take control of this computer first" });
-    if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535) {
+    if (!connection.connect && (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535)) {
       return json(res, 409, { error: "The desktop viewer is not available." });
     }
     if (!match[2]) return json(res, 200, { password: connection.password });
@@ -113,7 +123,8 @@ export function createDesktopViewer(deps: {
     }
     // Fixed host and path, port from an inspected managed container. Never forward cookies, bearer tokens, query parameters or forwarded headers.
     const upstream = request({
-      hostname: "127.0.0.1", port: connection.port, path: "/websockify",
+      ...(connection.connect ? { createConnection: () => connection.connect!() as Socket } : { hostname: "127.0.0.1", port: connection.port }),
+      path: "/websockify",
       headers: { Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": key, "Sec-WebSocket-Version": "13" },
     });
     const { socket } = upgrade;

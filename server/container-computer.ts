@@ -1216,7 +1216,7 @@ export async function containerComputerScreenshot(
   platform: NodeJS.Platform = process.platform,
   target: LocalVmTarget = SHARED_LOCAL_VM_TARGET,
 ): Promise<string> {
-  const { png, format } = await containerComputerFrame(runner, platform, target);
+  const { png, format } = await containerComputerFrame(runner, platform, target, target.seat);
   return `data:image/${format};base64,${png}`;
 }
 

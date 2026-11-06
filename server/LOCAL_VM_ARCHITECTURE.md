@@ -97,6 +97,30 @@ it.
   the container stops (and keeps its workspace) only after every seat is idle. Its stop
   clears all seat windows.
 
+### Seat viewer and takeover
+
+Extra seats use the existing authenticated desktop proxy,
+`/api/desktop-viewer/local/shared-seat-N` (N = 2 or 3). Seat 1 stays `local/shared`. Each
+bot's Local VM status carries its `seat`, and its `viewer_url` points at that seat, so
+"Open live desktop" opens the thread's own display.
+
+- **Access:** admin scope, same origin and a live session, as for every desktop viewer. A
+  seat held by a turn is also limited to people who can see that turn's bot. Access is
+  checked again every 5 seconds, and signing out closes the stream.
+- **No new port:** an extra seat publishes no host port. The proxy opens `exec -i -u cua …
+  python3` in the shared container, which relays bytes to `127.0.0.1:690N`. The relay
+  starts only after the seat's supervisor programs show as running.
+- **Password:** the noVNC password is the container's `VNC_PW`. It goes only to the
+  authenticated same-origin JSON answer that the app's own noVNC client needs; it is never
+  put in a URL or log.
+- **Takeover:** this is the bot's existing computer control lease (`/api/bots/:id/computer/
+  control` and `…/local-computer/join`). A lease-bound viewer is accepted for a seat only
+  while that bot's thread holds the seat, and for `local/shared` only when seats > 1. The
+  person then has the seat to themselves: the bot's Cua calls and commands wait at the
+  existing control gate until the person releases it.
+- **Known open risk:** a watch-only viewer is view-only only on the client. Any admin who
+  can watch a seat can also send it input, as with the existing shared viewer.
+
 ## Sizing (VPS: 2 vCPU, 8 GB RAM, 77 GB disk)
 
 - Reserve 1.5 GB for the OS, omb and Caddy.

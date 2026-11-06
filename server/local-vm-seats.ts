@@ -102,6 +102,11 @@ export class SeatLeaseTable {
     return seats;
   }
 
+  holderOf(seat: number, now = Date.now()): SeatLease | null {
+    const lease = this.live(seat, now);
+    return lease ? { ...lease } : null;
+  }
+
   heldBy(threadId: string, now = Date.now()): SeatLease | null {
     for (let seat = 1; seat <= MAX_SEATS; seat++) {
       const lease = this.live(seat, now);

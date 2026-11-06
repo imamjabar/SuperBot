@@ -422,7 +422,7 @@ import { ComputerIdleTimer } from "./computer-idle.ts";
 import { CLOUD_COMPUTER_DID_NOT_START, CLOUD_COMPUTER_START_BUDGET_MS, CLOUD_COMPUTER_STARTING, createCloudComputerPower } from "./host/cloud-computer-power.ts";
 import { LocalVmLease, LocalVmLeasePool } from "./local-vm-lease.ts";
 import { SeatLeaseTable, localVmSeatKey, localVmSeatKeys } from "./local-vm-seats.ts";
-import { containerStopSeat, ensureContainerSeat } from "./container-seats.ts";
+import { containerSeatStatus, containerStopSeat, ensureContainerSeat, openSeatViewerTunnel } from "./container-seats.ts";
 import { SeatIdleRegistry } from "./local-vm-seat-idle.ts";
 import { LocalVmSeatPool, type LocalVmSeatHolder } from "./local-vm-seat-pool.ts";
 import { createLoopGuard, loopGuardSettings } from "./host/loop-guard.ts"; import { createPersonFirst } from "./host/person-first.ts";
@@ -608,7 +608,7 @@ import { createUndoRoutes } from "./routes/undo.ts";
 import { createDesktopViewer, desktopViewerUrl } from "./routes/desktop-viewer.ts";
 import { createUpgrades } from "./routes/upgrades.ts";
 import { createBrowserViewerRoutes } from "./routes/browser-viewers.ts";
-import { localDesktopTarget, localVmViewerStatus } from "./desktop-viewer-targets.ts";
+import { localDesktopTarget, localVmViewerStatus, seatDesktopTarget } from "./desktop-viewer-targets.ts";
 import { viewerTargetId } from "../shared/desktop-viewer.ts";
 import { createComputerPreviews } from "./computer-previews.ts";
 import { createAntigravityLeftoverRoutes } from "./routes/antigravity-leftovers.ts";
@@ -4673,6 +4673,17 @@ const desktopViewer = createDesktopViewer({
         return connection;
       } };
     }
+    const extraSeat = /^local\/shared-seat-([23])$/.exec(id);
+    if (extraSeat) {
+      const seat = Number(extraSeat[1]);
+      if (seat > localVmSeatLeases.capacity && !localVmSeatIdle.alive().includes(seat)) return;
+      return seatDesktopTarget({ ...SHARED_LOCAL_VM_TARGET, seat }, {
+        status: target => containerComputerStatus(undefined, undefined, target, { probeDesktop: false }),
+        seatRunning: async (runtime, n) => (await containerSeatStatus(n, { runtime })).running,
+        tunnel: (runtime, n) => openSeatViewerTunnel(runtime, n),
+        touch: target => { localVmIdleFor(target).touch(); localVmSeatIdle.touch(seat); },
+      });
+    }
     const targets = [SHARED_LOCAL_VM_TARGET, ...store.bots.map(bot => perBotLocalVmTarget(bot.id)),
       ...Array.from({ length: localVmMaxInstances(cfg) }, (_, seat) => poolLocalVmTarget(seat))];
     const target = targets.find(target => viewerTargetId(target) === id);
@@ -4682,6 +4693,14 @@ const desktopViewer = createDesktopViewer({
     });
   },
   live: auth => auth.kind === "loopback" || sessions.isLive(auth.session.id),
+  // A seat held by a turn is shown only to people who can see that turn's bot.
+  allowed: (auth, id) => {
+    const seat = sharedDesktopSeat(id);
+    const holder = seat === null ? null : localVmSeatLeases.holderOf(seat);
+    return !holder || visibleTo(viewerFor(auth)).bot(holder.ownerId);
+  },
+  // With several seats each thread has its own display, so a bot's control lease reserves that display for the person.
+  exclusive: (id) => id.startsWith("local/shared-seat-") || (id === "local/shared" && localVmSeatLeases.capacity > 1),
   // A control lease opens only the computer it holds, and only when that is the desktop being viewed.
   lease: (id, botId, controlLeaseId, threadId) => {
     const bot = store.bot(botId);
@@ -4691,6 +4710,11 @@ const desktopViewer = createDesktopViewer({
     return holds() ? holds : undefined;
   },
 });
+function sharedDesktopSeat(id: string): number | null {
+  if (id === "local/shared") return 1;
+  const seat = /^local\/shared-seat-([23])$/.exec(id);
+  return seat ? Number(seat[1]) : null;
+}
 function closeSessionStreams(sessionId: string): void {
   browserLive.closeForOwner(sessionId);
   desktopViewer.closeForOwner(sessionId);
@@ -11767,7 +11791,8 @@ const { fillLoginForTurn } = createFillLoginTurn({
 async function localVmPayload(target: LocalVmTarget, auth: RequestAuth) {
   const status = localVmUpdates.describe(target, await containerComputerStatus(undefined, undefined, target));
   return {
-    ...localVmViewerStatus(status, auth),
+    ...localVmViewerStatus(status, auth, target.seat),
+    seat: target.seat ?? 1,
     stop_reason: localVmStopReason(target.key, status),
     commands: setupCommands(status.runtime, process.platform, target),
     idle_timeout_ms: localVmIdleMs(),
@@ -12523,6 +12548,8 @@ ROUTES.push(createComputerRoutes({
   localVmProvisionBusy: { get: () => localVmProvisionBusy, set: (busy) => { localVmProvisionBusy = busy; } },
   localVmModeChangeBusy: { get: () => localVmModeChangeBusy },
   localVmOwnerBusy, localVmIdleMs, localVmLeaseFor, localVmIdleFor, localVmTargetForBot, localVmTargetForStatus,
+  localVmSeatExclusive: (botId, threadId) => localVmSeatLeases.capacity > 1 && threadId !== undefined
+    && localVmSeatLeases.heldBy(threadId)?.ownerId === botId,
   localVmPayload, localVmInventoryPayload, existingPerBotLocalVmCount, teamComputersPayload, teamComputerInUse,
   managedBoatOwners, providerTransitionMessage, botHasActiveTurn, botComputerControlKey, botComputerControlSnapshot,
   computerPreviewBot, computerPreviewSurface, claimTeamComputerLifecycle, claimBotComputerLifecycle,

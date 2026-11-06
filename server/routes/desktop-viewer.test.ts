@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { connect } from "node:net";
 import { once } from "node:events";
 import { createServer, request, type IncomingHttpHeaders, type Server } from "node:http";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -12,7 +13,7 @@ import { json, readBody } from "../harness/http.ts";
 import { SHARED_LOCAL_VM_TARGET, perBotLocalVmTarget, poolLocalVmTarget, type ContainerComputerStatus } from "../container-computer.ts";
 import { createDesktopViewer, desktopViewerUrl, type DesktopTarget } from "./desktop-viewer.ts";
 import { viewerTargetId } from "../../shared/desktop-viewer.ts";
-import { localDesktopTarget, localVmViewerStatus } from "../desktop-viewer-targets.ts";
+import { localDesktopTarget, localVmViewerStatus, seatDesktopTarget } from "../desktop-viewer-targets.ts";
 
 let dir: string;
 let sessions: SessionRegistry;
@@ -34,6 +35,10 @@ let now: number;
 let targetLookups: number;
 let handled: () => void;
 let leases: Set<string>;
+let seatRunning: boolean;
+let tunnels: number;
+let denied: Set<string>;
+let exclusive: Set<string>;
 const leaseKey = (id: string, botId: string, lease: string) => `${id} ${botId} ${lease}`;
 let targets = [SHARED_LOCAL_VM_TARGET, perBotLocalVmTarget("test-bot"), poolLocalVmTarget(1)];
 const peers = new Set<Duplex>();
@@ -85,6 +90,7 @@ beforeEach(async () => {
   vpsTarget = undefined;
   targetLookups = 0; handled = () => {};
   leases = new Set();
+  seatRunning = true; tunnels = 0; denied = new Set(); exclusive = new Set();
   targets = [SHARED_LOCAL_VM_TARGET, perBotLocalVmTarget("test-bot"), poolLocalVmTarget(1)];
   desktop = createServer((_req, res) => res.writeHead(404).end());
   desktop.on("upgrade", (req, socket) => {
@@ -101,6 +107,20 @@ beforeEach(async () => {
     target: id => {
       targetLookups++;
       if (id === "vps/test-bot") return vpsTarget;
+      if (id === "local/shared-seat-2") {
+        return seatDesktopTarget({ ...SHARED_LOCAL_VM_TARGET, seat: 2 }, {
+          status: async target => {
+            inspected.push(`${target.key}#2`);
+            return {
+              managed: true, imageMatches: true, network: "loopback", container: "running", runtime: "docker", viewer_port: 1,
+              viewer_url: "http://127.0.0.1:1/vnc.html#password=fixture-secret",
+            } as ContainerComputerStatus;
+          },
+          seatRunning: async (_runtime, seat) => seat === 2 && seatRunning,
+          tunnel: () => { tunnels++; return connect(desktopPort, "127.0.0.1"); },
+          touch: target => touched.push(`${target.key}#${target.seat}`),
+        });
+      }
       const target = targets.find(target => viewerTargetId(target) === id);
       return target && localDesktopTarget(target, {
         status: async target => {
@@ -115,6 +135,8 @@ beforeEach(async () => {
       });
     },
     live: auth => auth.kind === "loopback" || sessions.isLive(auth.session.id),
+    allowed: (_auth, id) => !denied.has(id),
+    exclusive: id => exclusive.has(id),
     lease: (id, botId, lease, threadId) => {
       if (!leases.has(leaseKey(id, botId, lease)) || (threadId !== undefined && threadId !== "th-1")) return;
       // Settled at open; afterwards only the lease is asked about.
@@ -407,4 +429,44 @@ it("keeps the session and scope checks ahead of the lease, and closes a session'
   const rest = Promise.all([other, browser].map(socket => once(socket, "close")));
   expect(viewer.closeForOwner(admin.session.id)).toBe(2);
   await rest;
+});
+
+const seatBase = "/api/desktop-viewer/local/shared-seat-2";
+
+it("reaches an extra seat through its tunnel, never a host port, and only while the seat runs", async () => {
+  expect((await get(seatBase)).body).toEqual({ password: "fixture-secret" });
+  const answer = await open(`${seatBase}/websockify`);
+  expect(answer.status).toBe(101);
+  const socket = answer.socket!;
+  const echo = new Promise<Buffer>(resolve => socket.once("data", resolve));
+  socket.write(Buffer.from([1, 2, 3]));
+  expect(await echo).toEqual(Buffer.from([1, 2, 3]));
+  expect(seenPath).toBe("/websockify");
+  expect(tunnels).toBe(1);
+  expect(touched).toContain("shared#2");
+  seatRunning = false;
+  expect((await get(seatBase)).status).toBe(409);
+  expect((await open(`${seatBase}/websockify`)).status).toBe(409);
+  expect(tunnels).toBe(1);
+});
+
+it("hides a seat from a person who cannot see the bot holding it, before anything is inspected", async () => {
+  denied.add("local/shared-seat-2");
+  expect((await get(seatBase)).status).toBe(403);
+  expect((await open(`${seatBase}/websockify`)).status).toBe(403);
+  expect(inspected).toEqual([]);
+  expect(tunnels).toBe(0);
+});
+
+it("lets a control lease reserve a seat only when that seat is exclusive to its thread", async () => {
+  leases.add(leaseKey("local/shared-seat-2", "test-bot", lease));
+  leases.add(leaseKey("local/shared", "test-bot", lease));
+  const seatBound = `${seatBase}/websockify?botId=test-bot&controlLeaseId=${lease}`;
+  const sharedBound = `${base}/websockify?botId=test-bot&controlLeaseId=${lease}`;
+  expect((await open(seatBound)).status).toBe(409);
+  expect((await open(sharedBound)).status).toBe(409);
+  exclusive.add("local/shared-seat-2");
+  expect((await open(seatBound)).status).toBe(101);
+  expect((await open(sharedBound)).status).toBe(409);
+  expect((await open(`${seatBase}/websockify?botId=other-bot&controlLeaseId=${lease}`)).status).toBe(409);
 });

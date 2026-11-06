@@ -58,6 +58,8 @@ export interface ComputerRouteDeps {
   localVmIdleFor(target: LocalVmTarget): Pick<ComputerIdleTimer, "touch" | "cancel">;
   localVmTargetForBot(botId: string): LocalVmTarget;
   localVmTargetForStatus(botId: string, threadId?: string): LocalVmTarget;
+  /** True when this bot's thread holds its own seat of a multi-seat shared desktop, so control of it excludes everyone else. */
+  localVmSeatExclusive(botId: string, threadId?: string): boolean;
   localVmPayload(target: LocalVmTarget, auth: RequestAuth): Promise<unknown>;
   localVmInventoryPayload(): Promise<unknown>;
   existingPerBotLocalVmCount(runtime: Runtime): Promise<number>;
@@ -85,7 +87,7 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
     store, cfg, sessions, teamComputers, computerControl, controlLeaseIdSchema, boatLifecycleBusyBots,
     computerProviderConfigTransitions, localVmActiveThreads, localVmLifecycleBusy, localVmSeen, localVmImageBusy,
     localVmProvisionBusy, localVmModeChangeBusy, localVmOwnerBusy, localVmIdleMs, localVmLeaseFor, localVmIdleFor,
-    localVmTargetForBot, localVmTargetForStatus, localVmPayload, localVmInventoryPayload, existingPerBotLocalVmCount,
+    localVmTargetForBot, localVmTargetForStatus, localVmSeatExclusive, localVmPayload, localVmInventoryPayload, existingPerBotLocalVmCount,
     teamComputersPayload, teamComputerInUse, managedBoatOwners, providerTransitionMessage, botHasActiveTurn,
     botComputerControlKey, botComputerControlSnapshot, computerPreviewBot, computerPreviewSurface,
     claimTeamComputerLifecycle, claimBotComputerLifecycle, claimBoatInventoryRequest, claimManagedBoatMutation,
@@ -432,7 +434,7 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
       if (threadId && await computerPreviewSurface(bot, threadId) !== "vm") {
         return json(res, 409, { error: "This conversation is not using the Local VM" });
       }
-      if (localVmMode(cfg) !== "per-bot") {
+      if (localVmMode(cfg) !== "per-bot" && !localVmSeatExclusive(bot.id, threadId)) {
         return json(res, 409, { error: "Phone control requires a per-bot Local VM. Select per-bot mode in Settings → Computers." });
       }
       const lease = controlLeaseIdSchema.safeParse(url.searchParams.get("controlLeaseId") ?? undefined);
@@ -449,7 +451,7 @@ export function createComputerRoutes(deps: ComputerRouteDeps): RouteHandler {
       }
       localVmIdleFor(target).touch();
       res.setHeader("cache-control", "private, no-store");
-      if (auth.kind === "loopback") return json(res, 200, { joinUrl: status.viewer_url });
+      if (auth.kind === "loopback" && (target.seat ?? 1) === 1) return json(res, 200, { joinUrl: status.viewer_url });
       const socket = new URLSearchParams({ botId: bot.id, ...(threadId ? { threadId } : {}), controlLeaseId: lease.data });
       return json(res, 200, {
         socketPath: `api/desktop-viewer/${viewerTargetId(target)}/websockify?${socket}`,

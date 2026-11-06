@@ -113,6 +113,8 @@ interface LocalVmStatus {
   problem: string | null;
   viewer_url: string;
   target_key: string;
+  /** The display this thread uses inside the shared desktop; absent from older servers. */
+  seat?: number;
 }
 
 const computerControlSnapshotSchema = z.object({
@@ -650,7 +652,7 @@ export function ComputerPanel({
     return snap;
   }, [bot.id, dispatch]);
   const liveTarget = !computerStatusCurrent ? null
-    : phase === "vm" && vmStatus?.viewer_url && vmStatus.target_key ? viewerTargetId({ key: vmStatus.target_key })
+    : phase === "vm" && vmStatus?.viewer_url && vmStatus.target_key ? viewerTargetId({ key: vmStatus.target_key, seat: vmStatus.seat })
       : cloudPreviewReady && cloudBackend === "vps" ? `vps/${bot.id}` : null;
   const takeover = useComputerTakeover({
     botId: bot.id, session: `${viewerConnectionKey}:${panelView}`, held: control.held, request: requestControl,
