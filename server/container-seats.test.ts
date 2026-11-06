@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CONTAINER, SHARED_LOCAL_VM_TARGET, containerComputerMcp, containerExec, cuaExecArgs, type CommandRunner } from "./container-computer.ts";
+import { CONTAINER, SHARED_LOCAL_VM_TARGET, containerComputerMcp, containerExec, containerRunArgs, cuaExecArgs, managedImageDockerfile, type CommandRunner } from "./container-computer.ts";
 import { containerSeatStatus, containerStartSeat, containerStopSeat, ensureContainerSeat, parseSeatStatus, seatPrograms } from "./container-seats.ts";
 import { SeatLeaseTable, localVmSeatKey } from "./local-vm-seats.ts";
 
@@ -135,5 +135,25 @@ describe("two bots on the shared desktop", () => {
     expect(containerComputerMcp("docker", undefined, second, second.seat).args[3]).toBe("/run/user/1000/openmausbot-cua-2.sock");
     expect(table.acquire({ ownerId: "bot-c", threadId: "t3" }, 0)).toEqual({ ok: false, reason: "no-free-seat" });
     expect(table.acquire({ ownerId: "bot-a", threadId: "t1" }, 0)).toMatchObject({ ok: true, lease: { seat: { seat: 1 } } });
+  });
+});
+
+describe("view-only viewer password", () => {
+  it("gives every new container its own view-only password, separate from the full one", () => {
+    const env = (args: string[], name: string) => args.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1);
+    const first = containerRunArgs("docker", "full-pass");
+    const second = containerRunArgs("docker", "full-pass");
+    expect(env(first, "VNC_PW")).toBe("full-pass");
+    expect(env(first, "VNC_VIEW_PW")).toMatch(/^[A-Za-z0-9_-]{8}$/);
+    expect(env(first, "VNC_VIEW_PW")).not.toBe(env(second, "VNC_VIEW_PW"));
+  });
+
+  it("hands x11vnc the view-only password after the full one", () => {
+    const dockerfile = managedImageDockerfile();
+    const full = dockerfile.indexOf('printenv VNC_PW > "$HOME/.vnc/passwd-$seat"');
+    const view = dockerfile.indexOf("{ echo __BEGIN_VIEWONLY__; printenv VNC_VIEW_PW; } >>");
+    expect(full).toBeGreaterThan(-1);
+    expect(view).toBeGreaterThan(full);
+    expect(dockerfile.indexOf("-passwdfile", view)).toBeGreaterThan(view);
   });
 });

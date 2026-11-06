@@ -53,10 +53,12 @@ export function seatDesktopTarget(target: LocalVmTarget & { seat: number }, deps
       if (!(await deps.seatRunning(runtime, target.seat))) {
         throw Object.assign(new Error("Local VM seat is not running"), { status: 409 });
       }
+      const fragment = new URLSearchParams(new URL(status.viewer_url).hash.slice(1));
       return {
         port: 0,
         connect: () => deps.tunnel(runtime, target.seat),
-        password: new URLSearchParams(new URL(status.viewer_url).hash.slice(1)).get("password"),
+        password: fragment.get("password"),
+        viewPassword: fragment.get("view_password"),
         touch: () => deps.touch(target),
       };
     },

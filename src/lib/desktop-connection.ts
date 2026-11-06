@@ -44,6 +44,7 @@ export async function connectDesktop(screen: HTMLElement, target: string, option
     credentials: { password: config.password ?? "", username: "", target: "" },
   });
   client.scaleViewport = true;
+  client.viewOnly = config.viewOnly === true;
   client.background = "var(--color-inset)";
   let ended = false;
   const deadline = setTimeout(() => { client.disconnect(); end(); }, 15_000);

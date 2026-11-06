@@ -21,6 +21,8 @@ export interface DesktopConnection {
   /** A byte stream to the viewer's websockify, for a viewer that has no host port. */
   connect?: () => Duplex;
   password: string | null;
+  /** x11vnc's view-only password. When set, an extra seat opened without a control lease gets only this one. */
+  viewPassword?: string | null;
   live?: () => boolean;
   touch?: () => void;
   /** Acquired only by WebSockets; release must not close other viewers. */
@@ -114,7 +116,12 @@ export function createDesktopViewer(deps: {
     if (!connection.connect && (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535)) {
       return json(res, 409, { error: "The desktop viewer is not available." });
     }
-    if (!match[2]) return json(res, 200, { password: connection.password });
+    if (!match[2]) {
+      const watchOnly = botId === null && match[1].startsWith("local/shared-seat-");
+      if (!watchOnly) return json(res, 200, { password: connection.password });
+      if (!connection.viewPassword) return json(res, 409, { error: "This desktop can only be opened after taking control of it." });
+      return json(res, 200, { password: connection.viewPassword, viewOnly: true });
+    }
     if (!upgrade || !pending) return json(res, 426, { error: "WebSocket upgrade required" });
     const key = req.headers["sec-websocket-key"];
     if (req.headers.upgrade?.toLowerCase() !== "websocket" || req.headers["sec-websocket-version"] !== "13"

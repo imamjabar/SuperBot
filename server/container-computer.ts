@@ -31,7 +31,7 @@ export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 // localhost/ is explicit: Podman prepends it to unqualified build tags and may then resolve the name on Docker Hub.
 // Image and container labels, not this mutable tag, decide compatibility.
 export const IMAGE_REPOSITORY = "localhost/openmausbot/cua-local-vm";
-export const IMAGE_LAYER_VERSION = "9";
+export const IMAGE_LAYER_VERSION = "10";
 export const IMAGE_LAYER_LABEL = "com.openmausbot.image-layer";
 const BUILT_IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
 const DIGEST_PINNED_IMAGE = /^[a-z0-9./_-]+(:[\w.-]+)?@sha256:[a-f0-9]{64}$/;
@@ -248,6 +248,7 @@ RUN printf '%s\\n' \\
       '      install -d -m 0700 "$HOME/.vnc"' \\
       '      umask 077' \\
       '      printenv VNC_PW > "$HOME/.vnc/passwd-$seat"' \\
+      '      if [ -n "$(printenv VNC_VIEW_PW || true)" ]; then { echo __BEGIN_VIEWONLY__; printenv VNC_VIEW_PW; } >> "$HOME/.vnc/passwd-$seat"; fi' \\
       '      exec x11vnc -display "$DISPLAY" -localhost -passwdfile "rm:$HOME/.vnc/passwd-$seat" -shared -forever -noxdamage -rfbport "$((5900 + seat))"' \\
       '    fi' \\
       '    exec x11vnc -display "$DISPLAY" -localhost -nopw -shared -forever -noxdamage -rfbport "$((5900 + seat))" ;;' \\
@@ -547,18 +548,21 @@ function inspectedImage(stdout: string, runtime: Runtime): {
   };
 }
 
-function viewerPassword(env: string[] | Record<string, string> | undefined): string | null {
+function envValue(env: string[] | Record<string, string> | undefined, name: string): string | null {
   if (Array.isArray(env)) {
-    return env.find((entry) => entry.startsWith("VNC_PW="))?.slice("VNC_PW=".length) || null;
+    return env.find((entry) => entry.startsWith(`${name}=`))?.slice(name.length + 1) || null;
   }
-  return env?.VNC_PW || null;
+  return env?.[name] || null;
 }
 
-function viewerUrl(password: string | null, port: number | null): string {
+/** `view_password` is the x11vnc view-only password from `VNC_VIEW_PW`; noVNC ignores the extra fragment key. */
+function viewerUrl(env: string[] | Record<string, string> | undefined, port: number | null): string {
   if (!port) return "";
   const base = `http://127.0.0.1:${port}/vnc.html`;
+  const password = envValue(env, "VNC_PW");
   if (!password) return base;
-  const fragment = new URLSearchParams({ autoconnect: "true", resize: "scale", password });
+  const viewPassword = envValue(env, "VNC_VIEW_PW");
+  const fragment = new URLSearchParams({ autoconnect: "true", resize: "scale", password, ...(viewPassword ? { view_password: viewPassword } : {}) });
   return `${base}#${fragment.toString()}`;
 }
 
@@ -655,7 +659,7 @@ export async function containerComputerStatus(
       const resources = detail?.configuration?.resources;
       status.security =
         (resources?.memoryInBytes ?? 0) >= MEMORY_BYTES && resources?.cpus === 2 ? "hardened" : "unsafe";
-      status.viewer_url = viewerUrl(viewerPassword(detail?.configuration?.environment), status.viewer_port);
+      status.viewer_url = viewerUrl(detail?.configuration?.environment, status.viewer_port);
     } else {
       const inspected = JSON.parse(stdout) as Array<{
         Config?: { Image?: string; Labels?: Record<string, string>; Env?: string[] };
@@ -699,7 +703,7 @@ export async function containerComputerStatus(
           ? podmanSecurityIsHardened(detail?.HostConfig, detail?.EffectiveCaps, detail?.BoundingCaps)
           : dockerSecurityIsHardened(detail?.HostConfig)
       ) ? "hardened" : "unsafe";
-      status.viewer_url = viewerUrl(viewerPassword(detail?.Config?.Env), status.viewer_port);
+      status.viewer_url = viewerUrl(detail?.Config?.Env, status.viewer_port);
     }
   } catch {
   }
@@ -957,6 +961,7 @@ export function containerRunArgs(
   runtime: Runtime,
   password = "CHANGE_ME",
   target: LocalVmTarget = SHARED_LOCAL_VM_TARGET,
+  viewPassword = randomBytes(6).toString("base64url"),
 ): string[] {
   if (runtime === "container" && target.key !== SHARED_LOCAL_VM_TARGET.key) {
     throw new Error("Per-bot Local VMs require Docker or Podman because Apple container requires a fixed host port");
@@ -1031,6 +1036,8 @@ export function containerRunArgs(
       : `type=bind,source=${target.workspaceDir},target=${VM_WORKSPACE_GUEST}`,
     "-e",
     `VNC_PW=${password}`,
+    "-e",
+    `VNC_VIEW_PW=${viewPassword}`,
     "-p",
     target.viewerPort
       ? `127.0.0.1:${target.viewerPort}:${INTERNAL_VIEWER_PORT}`

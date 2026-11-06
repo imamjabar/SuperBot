@@ -113,7 +113,7 @@ beforeEach(async () => {
             inspected.push(`${target.key}#2`);
             return {
               managed: true, imageMatches: true, network: "loopback", container: "running", runtime: "docker", viewer_port: 1,
-              viewer_url: "http://127.0.0.1:1/vnc.html#password=fixture-secret",
+              viewer_url: "http://127.0.0.1:1/vnc.html#password=fixture-secret&view_password=fixture-view",
             } as ContainerComputerStatus;
           },
           seatRunning: async (_runtime, seat) => seat === 2 && seatRunning,
@@ -434,7 +434,8 @@ it("keeps the session and scope checks ahead of the lease, and closes a session'
 const seatBase = "/api/desktop-viewer/local/shared-seat-2";
 
 it("reaches an extra seat through its tunnel, never a host port, and only while the seat runs", async () => {
-  expect((await get(seatBase)).body).toEqual({ password: "fixture-secret" });
+  expect((await get(seatBase)).body).toEqual({ password: "fixture-view", viewOnly: true });
+  expect((await get(`${seatBase}?botId=test-bot&controlLeaseId=${lease}`)).status).toBe(409);
   const answer = await open(`${seatBase}/websockify`);
   expect(answer.status).toBe(101);
   const socket = answer.socket!;

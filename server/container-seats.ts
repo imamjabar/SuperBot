@@ -34,11 +34,24 @@ export function seatViewerTunnelArgs(seat: number, container = SHARED_LOCAL_VM_T
 export function openSeatViewerTunnel(runtime: Runtime, seat: number, container = SHARED_LOCAL_VM_TARGET.containerName): Duplex {
   const resolved = resolveCliSpawn(runtime, seatViewerTunnelArgs(seat, container));
   const child = spawn(resolved.command, resolved.args, { stdio: ["pipe", "pipe", "ignore"], env: { ...process.env, PATH: augmentedPath() } });
-  const stream = Duplex.from({ readable: child.stdout, writable: child.stdin });
-  const stop = () => { if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM"); };
-  stream.once("close", stop);
+  const { stdin, stdout } = child;
+  const stream = new Duplex({
+    read() { stdout.resume(); },
+    write(chunk, _encoding, done) { stdin.write(chunk, done); },
+    final(done) { stdin.end(done); },
+    destroy(error, done) {
+      stdout.destroy();
+      stdin.destroy();
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
+      done(error);
+    },
+  });
+  stdout.on("data", (chunk: Buffer) => { if (!stream.push(chunk)) stdout.pause(); });
+  stdout.once("end", () => stream.push(null));
+  stdout.once("error", (error) => stream.destroy(error));
+  stdin.once("error", (error) => stream.destroy(error));
   child.once("error", (error) => stream.destroy(error));
-  child.once("exit", () => stream.destroy());
+  child.once("close", () => stream.destroy());
   return stream;
 }
 

@@ -118,8 +118,12 @@ bot's Local VM status carries its `seat`, and its `viewer_url` points at that se
   while that bot's thread holds the seat, and for `local/shared` only when seats > 1. The
   person then has the seat to themselves: the bot's Cua calls and commands wait at the
   existing control gate until the person releases it.
-- **Known open risk:** a watch-only viewer is view-only only on the client. Any admin who
-  can watch a seat can also send it input, as with the existing shared viewer.
+- **Watch-only:** every new container gets a random `VNC_VIEW_PW` next to `VNC_PW`. Image
+  layer 10 writes it after `__BEGIN_VIEWONLY__` in the seat's x11vnc password file, so
+  x11vnc itself refuses input from that password. An extra seat opened without a control
+  lease receives only the view-only password (`viewOnly: true`). A container from image
+  layer 9 or older has no view-only password, so an extra seat there opens only with a
+  control lease. Seat 1 keeps the full password, as before.
 
 ## Sizing (VPS: 2 vCPU, 8 GB RAM, 77 GB disk)
 
