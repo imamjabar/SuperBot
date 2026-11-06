@@ -150,7 +150,7 @@ export function AskChoices({ choices, label, onPick, sending = null, picked = []
             role={multi ? "checkbox" : "radio"}
             aria-checked={on}
             aria-busy={sending === choice.label || undefined}
-            disabled={disabled || (sending !== null && sending !== choice.label)}
+            disabled={disabled || sending !== null}
             onClick={() => onPick(choice.label)}
             className={cn(ASK_CHOICE, on ? "bg-ink/[0.08] ring-ink/25" : "enabled:hover:bg-ink/[0.045]", quiet && !on && "text-ink-secondary")}
           >

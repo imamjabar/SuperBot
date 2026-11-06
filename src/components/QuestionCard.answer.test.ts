@@ -74,7 +74,9 @@ describe("QuestionCard answered in one step", () => {
     expect(dispatch.mock.calls[0]![0]).toMatchObject({ type: "decideRequest", threadId: "t1", requestId: "req-1", behavior: "answer" });
     expect(dispatch.mock.calls[0]![0].message).toContain("A: Pro");
     expect(choice("Pro").getAttribute("aria-busy")).toBe("true");
+    expect(choice("Pro").disabled).toBe(true);
     expect(choice("Free").disabled).toBe(true);
+    act(() => choice("Pro").click());
     act(() => choice("Free").click());
     expect(dispatch, "one answer at a time").toHaveBeenCalledTimes(1);
     mount(card([plan], { answered: "answer", answeredText: "The user answered your questions.\n\nQ: Which plan should the workspace use?\nA: Pro" }));

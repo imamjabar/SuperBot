@@ -606,9 +606,10 @@ import { createTeamRoutes } from "./routes/teams.ts";
 import { createThreadModelRoutes } from "./routes/thread-models.ts";
 import { createUndoRoutes } from "./routes/undo.ts";
 import { createDesktopViewer, desktopViewerUrl } from "./routes/desktop-viewer.ts";
+import { startControlAutoRelease } from "./computer-control-release.ts";
 import { createUpgrades } from "./routes/upgrades.ts";
 import { createBrowserViewerRoutes } from "./routes/browser-viewers.ts";
-import { localDesktopTarget, localVmViewerStatus, seatDesktopTarget } from "./desktop-viewer-targets.ts";
+import { localDesktopTarget, localVmViewerStatus, seatDesktopTarget, sharedDesktopSeat } from "./desktop-viewer-targets.ts";
 import { viewerTargetId } from "../shared/desktop-viewer.ts";
 import { createComputerPreviews } from "./computer-previews.ts";
 import { createAntigravityLeftoverRoutes } from "./routes/antigravity-leftovers.ts";
@@ -4711,11 +4712,10 @@ const desktopViewer = createDesktopViewer({
     return holds() ? holds : undefined;
   },
 });
-function sharedDesktopSeat(id: string): number | null {
-  if (id === "local/shared") return 1;
-  const seat = /^local\/shared-seat-([23])$/.exec(id);
-  return seat ? Number(seat[1]) : null;
-}
+const stopControlAutoRelease = startControlAutoRelease({
+  heldKeys: () => computerControl.heldKeys(), targetIdFor: (key) => { const b = !key.startsWith("computer_") && store.bot(key); return b && turnSurfacePlan(b).computer === "vm" ? viewerTargetId(localVmTargetForStatus(b.id)) : null; },
+  openViewers: (id) => desktopViewer.openViewers(id), release: (key) => computerControl.release(key),
+});
 function closeSessionStreams(sessionId: string): void {
   browserLive.closeForOwner(sessionId);
   desktopViewer.closeForOwner(sessionId);
@@ -4873,7 +4873,7 @@ async function answerRequest(
   if (outcome === "answered" && behavior === "answer" && message && cardMessage) {
     const settled = store.messagesFor(threadId).find((m) => m.id === cardMessage.id)?.card;
     if (settled) {
-      store.patchMessage(threadId, cardMessage.id, { card: { ...settled, answeredText: message } });
+      store.patchMessage(threadId, cardMessage.id, { card: { ...settled, answered: "answer", answeredText: message } });
     }
   }
   // Record only verdicts that reached the engine; a question's answer is not a decision.
@@ -15748,7 +15748,7 @@ const gracefulShutdown = createGracefulShutdown({
       phones.close();
       sharedComputerControl.close();
       browserLive.closeAll();
-      desktopViewer.closeAll();
+      desktopViewer.closeAll(); stopControlAutoRelease();
       upgrades.close();
       for (const idle of localVmIdles.values()) idle.cancel();
       cloudComputerPower.close();

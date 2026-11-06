@@ -87,6 +87,12 @@ export class ComputerControl {
     const entry = this.entries.get(botId);
     return entry?.heldSinceMs != null && entry.controlLeaseId === controlLeaseId;
   }
+  heldKeys(): string[] {
+    const keys: string[] = [];
+    for (const [key, entry] of this.entries) if (entry.heldSinceMs !== null) keys.push(key);
+    return keys;
+  }
+
 
   /** An open plea stays: handing back is not answering the card that asked. */
   release(botId: string): ControlSnapshot {

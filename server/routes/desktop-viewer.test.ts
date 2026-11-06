@@ -654,3 +654,17 @@ it("completes an authenticated RFB 3.8 handshake and relays input events through
     await fake.close();
   }
 });
+
+it("counts open viewers by target and decrements on close", async () => {
+  expect(viewer.openViewers("local/shared")).toBe(0);
+  const first = (await open(`${base}/websockify`)).socket!;
+  expect(viewer.openViewers("local/shared")).toBe(1);
+  const second = (await open(`${base}/websockify`)).socket!;
+  expect(viewer.openViewers("local/shared")).toBe(2);
+  expect(viewer.openViewers("local/other")).toBe(0);
+
+  first.destroy();
+  await expect.poll(() => viewer.openViewers("local/shared")).toBe(1);
+  second.destroy();
+  await expect.poll(() => viewer.openViewers("local/shared")).toBe(0);
+});

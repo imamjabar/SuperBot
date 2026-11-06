@@ -38,7 +38,7 @@ export function desktopViewerUrl(target: string, threadId?: string): string {
   return `/desktop-viewer#${params}`;
 }
 
-interface Viewer { socket: Socket; close: () => void; owner?: string; botId?: string }
+interface Viewer { socket: Socket; close: () => void; owner?: string; botId?: string; targetId: string }
 
 export function createDesktopViewer(deps: {
   target: (id: string) => DesktopTarget | undefined;
@@ -101,7 +101,7 @@ export function createDesktopViewer(deps: {
     if (pending && stopped) { pending.socket.destroy(); return; }
     let upgrade: Viewer | undefined;
     if (pending) {
-      const viewer: Viewer = { socket: pending.socket, close: () => pending.socket.destroy() };
+      const viewer: Viewer = { socket: pending.socket, close: () => pending.socket.destroy(), targetId: match[1] };
       if (auth.kind === "session") viewer.owner = auth.session.id;
       if (botId !== null) viewer.botId = botId;
       viewers.set(req, viewer);
@@ -214,6 +214,13 @@ export function createDesktopViewer(deps: {
         closed++;
       }
       return closed;
+    },
+    openViewers: (targetId: string): number => {
+      let count = 0;
+      for (const viewer of viewers.values()) {
+        if (viewer.targetId === targetId && !viewer.socket.destroyed) count++;
+      }
+      return count;
     },
     closeAll: () => {
       stopped = true;

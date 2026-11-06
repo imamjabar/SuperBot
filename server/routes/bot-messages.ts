@@ -9,7 +9,7 @@ import type { WidgetAction } from "../../shared/widget.ts";
 import { parseFollowUp } from "../../shared/follow-up.ts";
 import type { ResolvedSender } from "../../shared/wire.ts";
 import { admit } from "../admission.ts";
-import { dismissQuestionCard } from "../card-dismissal.ts";
+import { dismissQuestionCard, settledCardResponse } from "../card-dismissal.ts";
 import { AppMessageRate, appContextBlock, prepareAppMessage } from "../chat-apps.ts";
 import { prepareWidgetPress, reopenCancelledPress } from "../chat-widgets.ts";
 import type { ModelSelection, RequestOutcome, SteerOutcome } from "../contracts.ts";
@@ -587,6 +587,8 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
         const pending = store.messagesFor(bot.threadId).find((message) => message.card?.requestId === requestId);
         const dismissed = dismissQuestionCard(store, bot.threadId, pending, body);
         if (dismissed) return json(res, dismissed.status, dismissed.body);
+        const settled = settledCardResponse(pending?.card, behavior, body.message);
+        if (settled) return json(res, settled.status, settled.body);
         const outcome = await answerRequest(bot.threadId, bot.modelSelection.instanceId, requestId, behavior, body.message, { id: bot.id, name: bot.name }, body.always === true, body.rememberCommand === true);
         if (outcome === "unavailable" && isPersistentQuestionCard(pending?.card) && behavior === "answer") {
           if (!pending) return json(res, 404, { error: "this question is no longer available" });
@@ -700,6 +702,8 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
         const pending = store.messagesFor(threadId).find((message) => message.card?.requestId === requestId);
         const dismissed = dismissQuestionCard(store, threadId, pending, body);
         if (dismissed) return json(res, dismissed.status, dismissed.body);
+        const settled = settledCardResponse(pending?.card, behavior, body.message);
+        if (settled) return json(res, settled.status, settled.body);
         const persistentQuestion = isPersistentQuestionCard(pending?.card);
         const owner = group
           ? persistentQuestion

@@ -22,4 +22,6 @@ jobs:
           pnpm vitest run
           server/routes/desktop-viewer.test.ts server/container-seats.test.ts server/local-vm-seat-idle.test.ts
           server/local-vm-seats.test.ts scripts/testing/file-size-ratchet.test.ts
+          server/computer-control-release.test.ts server/card-dismissal.test.ts server/routes/bot-messages.test.ts
+          server/surface.test.ts src/components/QuestionCard.answer.test.ts
       - run: pnpm vitest run server/index.test.ts -t "Local VM|computer|control"

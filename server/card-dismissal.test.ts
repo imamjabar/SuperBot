@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { QUESTION_DISMISS_MESSAGE } from "../shared/ask-question.ts";
-import { dismissQuestionCard } from "./card-dismissal.ts";
+import { dismissQuestionCard, settledCardResponse } from "./card-dismissal.ts";
 import type { Message } from "./store.ts";
 
 const question = (card: Partial<NonNullable<Message["card"]>> = {}): Message => ({
@@ -35,5 +35,34 @@ describe("dismissQuestionCard", () => {
     expect(dismissQuestionCard({ patchMessage }, "t1", question({ requestType: "permission", tool: "Bash" }), { dismiss: true })).toBeNull();
     expect(dismissQuestionCard({ patchMessage }, "t1", undefined, { dismiss: true })).toBeNull();
     expect(patchMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("settledCardResponse", () => {
+  it("returns null for an open question", () => {
+    expect(settledCardResponse(question().card, "answer", "Jakarta")).toBeNull();
+  });
+
+  it("is idempotent for the same answer and rejects a different second answer", () => {
+    const answered = question({ answered: "answer", answeredText: "Jakarta" }).card;
+    expect(settledCardResponse(answered, "answer", "Jakarta")).toEqual({
+      status: 200,
+      body: { ok: true, outcome: "answered", alreadySettled: true },
+    });
+    expect(settledCardResponse(answered, "answer", "Singapore")).toEqual({
+      status: 409,
+      body: { error: "this question has already been answered" },
+    });
+  });
+
+  it("rejects second answers to expired or stopped cards", () => {
+    expect(settledCardResponse(question({ expired: true }).card, "answer", "Jakarta")).toEqual({
+      status: 409,
+      body: { error: "this question has expired" },
+    });
+    expect(settledCardResponse(question({ stopped: true }).card, "answer", "Jakarta")).toEqual({
+      status: 409,
+      body: { error: "this question is no longer open" },
+    });
   });
 });

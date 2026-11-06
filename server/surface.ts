@@ -229,7 +229,7 @@ export function surfacePrompt(
       ` Two surfaces are mounted this turn: the built-in browser (the browser server's browser_navigate, browser_snapshot, browser_click, browser_fill and friends) and ${computer} (the computer server's tools). Web tasks → the built-in browser. Desktop apps, files and shell → ${computer} tools. Pick one surface for a task and stay on it; if you need the user to sign in, say which surface — the Browser tab or ${computer}.`;
   } else if (computer) {
     text =
-      ` Everything you do on screen happens on ${computer}, web pages included, through its own browser; there is no separate built-in browser this turn. If you need the user to sign in, tell them it is on ${computer}.`;
+      ` Everything you do on screen happens on ${computer}, web pages included, through its own browser; there is no separate built-in browser this turn. Screen work is slow: answer facts, news, weather and other read-only lookups with web search, or a plain HTTP fetch from the shell, and open the desktop browser only when the user asks to see it or the task needs a visible or signed-in page. If you need the user to sign in, tell them it is on ${computer}.`;
   } else if (mounted.browser) {
     text =
       " Everything you do on screen happens in the built-in browser tab; there is no desktop computer this turn, but your own shell and file tools still work for ordinary code and file tasks, if you have them. If you need the user to sign in, tell them it is in the Browser tab of the Screen panel.";

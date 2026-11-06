@@ -16,3 +16,32 @@ export function dismissQuestionCard(
   store.patchMessage(threadId, pending.id, { card: { ...pending.card, dismissed: true } });
   return { status: 200, body: { ok: true, dismissed: true } };
 }
+
+export function settledCardResponse(
+  card: Message["card"],
+  behavior: "allow" | "deny" | "answer",
+  message?: unknown,
+): { status: number; body: Record<string, unknown> } | null {
+  if (!card) return null;
+  if (card.answered) {
+    if (behavior === "answer") {
+      const incoming = typeof message === "string" ? message.trim() : "";
+      const existing = card.answeredText?.trim() || (card.answered === "answer" ? "" : card.answered.trim());
+      if (incoming && existing && incoming === existing) {
+        return { status: 200, body: { ok: true, outcome: "answered", alreadySettled: true } };
+      }
+      return { status: 409, body: { error: "this question has already been answered" } };
+    }
+    if (behavior === card.answered) {
+      return { status: 200, body: { ok: true, outcome: behavior === "allow" ? "allowed-once" : "rejected", alreadySettled: true } };
+    }
+    return { status: 409, body: { error: "this request has already been answered" } };
+  }
+  if (card.expired) {
+    return { status: 409, body: { error: "this question has expired" } };
+  }
+  if (card.stopped) {
+    return { status: 409, body: { error: "this question is no longer open" } };
+  }
+  return null;
+}

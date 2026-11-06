@@ -123,7 +123,7 @@ export function QuestionCard({
     setDrafts((previous) => ({ ...previous, [index]: { ...(previous[index] ?? EMPTY), ...next } }));
 
   function send(final: Record<number, Draft>, label?: string) {
-    if (sending || !card?.requestId) return;
+    if (sending || !card?.requestId || card.answered || card.expired || card.stopped) return;
     const answers = questions.map((_, index) => answersOf(final[index] ?? EMPTY));
     if (answers.some((entry) => !entry.length)) return;
     const message = card.questionRequest ? formatQuestionAnswers(questions, answers) : cardAnswerFor(card, answers[0]![0]!);
@@ -135,7 +135,7 @@ export function QuestionCard({
   }
 
   const choose = (label: string) => {
-    if (sending) return;
+    if (sending || card.answered || card.expired || card.stopped) return;
     if (multi) {
       update(currentIndex, { picked: draft.picked.includes(label) ? draft.picked.filter((entry) => entry !== label) : [...draft.picked, label] });
       return;
@@ -151,6 +151,7 @@ export function QuestionCard({
   };
 
   const typed = (text: string) => {
+    if (sending || card.answered || card.expired || card.stopped) return;
     const next = { ...drafts, [currentIndex]: { picked: multi ? draft.picked : [], custom: text } };
     setDrafts(next);
     if (questions.every((_, index) => answersOf(next[index] ?? EMPTY).length > 0)) send(next);
@@ -201,7 +202,7 @@ export function QuestionCard({
             multi={multi}
             picked={draft.picked}
             sending={sending && oneTap ? sent?.label ?? null : null}
-            disabled={sending && !oneTap}
+            disabled={sending || Boolean(card.answered || card.expired || card.stopped)}
             quiet={typedPast}
             onPick={choose}
           />

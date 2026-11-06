@@ -83,3 +83,9 @@ export function seatDesktopTarget(target: LocalVmTarget & { seat: number }, deps
     },
   };
 }
+
+export function sharedDesktopSeat(id: string): number | null {
+  if (id === "local/shared") return 1;
+  const seat = /^local\/shared-seat-([23])$/.exec(id);
+  return seat ? Number(seat[1]) : null;
+}
