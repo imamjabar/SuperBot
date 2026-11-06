@@ -33,5 +33,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="desktop-$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
-          gh release create "$tag" release/*.dmg --repo "$GITHUB_REPOSITORY" --prerelease --title "SuperBot desktop $tag" --notes "Unsigned arm64 Mac build. First open: right-click the app, Open."
+          tag="v$(node -p "require(\"./package.json\").version")"
+          gh release create "$tag" release/*.dmg --repo "$GITHUB_REPOSITORY" --prerelease --title "SuperBot $tag" --notes "Unsigned arm64 Mac build. First open: right-click the app, Open."
