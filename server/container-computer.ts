@@ -31,7 +31,7 @@ export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 // localhost/ is explicit: Podman prepends it to unqualified build tags and may then resolve the name on Docker Hub.
 // Image and container labels, not this mutable tag, decide compatibility.
 export const IMAGE_REPOSITORY = "localhost/openmausbot/cua-local-vm";
-export const IMAGE_LAYER_VERSION = "10";
+export const IMAGE_LAYER_VERSION = "11";
 export const IMAGE_LAYER_LABEL = "com.openmausbot.image-layer";
 const BUILT_IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
 const DIGEST_PINNED_IMAGE = /^[a-z0-9./_-]+(:[\w.-]+)?@sha256:[a-f0-9]{64}$/;
@@ -243,15 +243,15 @@ RUN printf '%s\\n' \\
       '    exec dbus-launch --exit-with-session startxfce4 ;;' \\
       '  vnc)' \\
       '    await_display' \\
-      '    if [ -r "$HOME/.vnc/passwd" ] && [ ! -w "$HOME/.vnc/passwd" ]; then exec x11vnc -display "$DISPLAY" -localhost -rfbauth "$HOME/.vnc/passwd" -shared -forever -noxdamage -rfbport "$((5900 + seat))"; fi' \\
-      '    if [ -n "$(printenv VNC_PW || true)" ]; then' \\
-      '      install -d -m 0700 "$HOME/.vnc"' \\
-      '      umask 077' \\
-      '      printenv VNC_PW > "$HOME/.vnc/passwd-$seat"' \\
-      '      if [ -n "$(printenv VNC_VIEW_PW || true)" ]; then { echo __BEGIN_VIEWONLY__; printenv VNC_VIEW_PW; } >> "$HOME/.vnc/passwd-$seat"; fi' \\
-      '      exec x11vnc -display "$DISPLAY" -localhost -passwdfile "rm:$HOME/.vnc/passwd-$seat" -shared -forever -noxdamage -rfbport "$((5900 + seat))"' \\
-      '    fi' \\
-      '    exec x11vnc -display "$DISPLAY" -localhost -nopw -shared -forever -noxdamage -rfbport "$((5900 + seat))" ;;' \\
+      '    home="$(getent passwd "$(id -u)" | cut -d: -f6)"' \\
+      '    if [ -z "$home" ] || [ ! -d "$home" ]; then echo "no home directory for uid $(id -u)" >&2; exit 1; fi' \\
+      '    if [ -r "$home/.vnc/passwd" ] && [ ! -w "$home/.vnc/passwd" ]; then exec x11vnc -display "$DISPLAY" -localhost -rfbauth "$home/.vnc/passwd" -shared -forever -noxdamage -rfbport "$((5900 + seat))"; fi' \\
+      '    if [ -z "$(printenv VNC_PW || true)" ]; then echo "VNC_PW is not set: refusing to serve seat $seat without a password" >&2; exit 1; fi' \\
+      '    install -d -m 0700 "$home/.vnc"' \\
+      '    umask 077' \\
+      '    printenv VNC_PW > "$home/.vnc/passwd-$seat"' \\
+      '    if [ -n "$(printenv VNC_VIEW_PW || true)" ]; then { echo __BEGIN_VIEWONLY__; printenv VNC_VIEW_PW; } >> "$home/.vnc/passwd-$seat"; fi' \\
+      '    exec x11vnc -display "$DISPLAY" -localhost -passwdfile "rm:$home/.vnc/passwd-$seat" -shared -forever -noxdamage -rfbport "$((5900 + seat))" ;;' \\
       '  viewer)' \\
       '    exec websockify --web /usr/share/novnc "$((6900 + seat))" "127.0.0.1:$((5900 + seat))" ;;' \\
       '  driver)' \\

@@ -150,10 +150,21 @@ describe("view-only viewer password", () => {
 
   it("hands x11vnc the view-only password after the full one", () => {
     const dockerfile = managedImageDockerfile();
-    const full = dockerfile.indexOf('printenv VNC_PW > "$HOME/.vnc/passwd-$seat"');
+    const full = dockerfile.indexOf('printenv VNC_PW > "$home/.vnc/passwd-$seat"');
     const view = dockerfile.indexOf("{ echo __BEGIN_VIEWONLY__; printenv VNC_VIEW_PW; } >>");
     expect(full).toBeGreaterThan(-1);
     expect(view).toBeGreaterThan(full);
     expect(dockerfile.indexOf("-passwdfile", view)).toBeGreaterThan(view);
+  });
+
+  it("takes the VNC home from the passwd entry and refuses to serve a seat without a password", () => {
+    const dockerfile = managedImageDockerfile();
+    const vnc = dockerfile.slice(dockerfile.indexOf("'  vnc)'"), dockerfile.indexOf("'  viewer)'"));
+    expect(vnc).toContain('home="$(getent passwd "$(id -u)" | cut -d: -f6)"');
+    expect(vnc).not.toContain("$HOME");
+    const refusal = vnc.indexOf('if [ -z "$(printenv VNC_PW || true)" ]; then echo');
+    expect(refusal).toBeGreaterThan(-1);
+    expect(refusal).toBeLessThan(vnc.indexOf("-passwdfile"));
+    expect(vnc.slice(refusal, vnc.indexOf("\n", refusal))).toContain("exit 1");
   });
 });

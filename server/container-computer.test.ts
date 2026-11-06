@@ -853,7 +853,8 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain("published for linux/amd64 only");
     expect(dockerfile).not.toMatch(/headless|chromium-browser|apt-get install[^\n]*(chromium|firefox)/);
     expect(dockerfile).toContain('exec Xvfb "$DISPLAY" -screen 0 1280x800x24');
-    expect(dockerfile).toContain('-localhost -nopw -shared -forever -noxdamage -rfbport "$((5900 + seat))"');
+    expect(dockerfile).toContain('-localhost -passwdfile "rm:$home/.vnc/passwd-$seat" -shared -forever -noxdamage -rfbport "$((5900 + seat))"');
+    expect(dockerfile).not.toContain("-nopw");
     expect(dockerfile).toContain("stdout_logfile_maxbytes=1MB");
     expect(dockerfile).toContain("openmausbot-seat-conf 1 > /etc/supervisor/conf.d/seat-1.conf");
     expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
@@ -884,7 +885,7 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain("6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2");
     expect(dockerfile).toContain("/usr/local/share/licenses/noto-cjk/OFL.txt");
     expect(dockerfile).toContain("fc-cache -f");
-    expect(IMAGE_LAYER_VERSION).toBe("10");
+    expect(IMAGE_LAYER_VERSION).toBe("11");
   });
 
   it("starts the driver's Chrome without its own sandbox inside the hardened container", () => {
