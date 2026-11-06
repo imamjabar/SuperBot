@@ -6,6 +6,7 @@ import { GROK_MOVE_NOTICE } from "../../src/lib/notices";
 import { markSimpleModePromptSeen } from "../../src/lib/simple-mode-prompt";
 import { applySkinChoice, readSkinChoice } from "../../src/lib/skins";
 import "../../src/styles.css";
+import { registerServiceWorker } from "../../src/lib/web-push";
 
 // This entry point is served only by the disposable verification launcher.
 // The voice-latency harness opts in with ?ombVoiceProbe=1; the recorder in
@@ -22,4 +23,5 @@ if (!new URLSearchParams(location.search).has("simpleModePrompt")) markSimpleMod
 // The same for the once-per-person Move from Grok Bot popup, with ?grokMovePopup=1.
 if (!new URLSearchParams(location.search).has("grokMovePopup")) localStorage.setItem(GROK_MOVE_NOTICE, "1");
 applySkinChoice(readSkinChoice());
+void registerServiceWorker();
 createRoot(document.getElementById("root")!).render(<App />);

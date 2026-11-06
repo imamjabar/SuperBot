@@ -483,6 +483,46 @@ describe("createOpenAIChatRuntime tool approvals", () => {
       await instance.dispose();
     }
   }, 20_000);
+
+  it("ends cleanly with nothing more to say after its line went out before a tool call, and never shows its reasoning as the reply", async () => {
+    const toolRound = 'data: {"choices":[{"index":0,"delta":{"content":"Starting that job now."}}]}\n\n'
+      + 'data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"ask2","type":"function","function":{"name":"ask_user","arguments":'
+      + JSON.stringify(JSON.stringify({ questions: [{ question: "Go?", options: [{ label: "Yes" }, { label: "No" }] }] }))
+      + '}}]}}]}\n\n'
+      + 'data: {"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n';
+    const silentEnd = 'data: {"choices":[{"index":0,"delta":{"reasoning_content":"Already told them; nothing to add."}}]}\n\n'
+      + 'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n';
+    let calls = 0;
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      if (String(input).endsWith("/models")) return new Response(JSON.stringify({ data: [] }), { status: 200 });
+      calls += 1;
+      return new Response(calls === 1 ? toolRound : silentEnd, { status: 200, headers: { "content-type": "text/event-stream" } });
+    }));
+    const instance = await OpenAICompatDriver.create({
+      instanceId: "compat-silent", displayName: "Compat Silent", enabled: true,
+      config: OpenAICompatDriver.decodeConfig({ url: "https://api.example.com/v1", apiKeyEnv: "K", model: "m" }),
+      environment: { K: "secret" },
+    });
+    const events: RuntimeEvent[] = [];
+    instance.adapter.onEvent((event) => events.push(event));
+    try {
+      await instance.adapter.sendTurn({ threadId: "silent", text: "research this", approvalMode: "full" });
+      const opened = await vi.waitFor(() => {
+        const found = events.find((event) => event.type === "request.opened");
+        if (!found) throw new Error("waiting for the card");
+        return found;
+      }, { timeout: 10_000 });
+      await instance.adapter.respondToRequest("silent", opened.requestId!, { behavior: "deny" });
+      await vi.waitFor(() => {
+        if (!events.some((event) => event.type === "turn.completed")) throw new Error("turn still running");
+      }, { timeout: 10_000 });
+      expect((events.find((event) => event.type === "turn.completed") as any).ok).toBe(true);
+      expect(events.filter((event) => event.type === "item.completed" && (event as any).itemType === "assistant_text").map((event) => (event as any).text)).toEqual(["Starting that job now."]);
+      expect(events.some((event) => event.type === "runtime.error")).toBe(false);
+    } finally {
+      await instance.dispose();
+    }
+  }, 20_000);
 });
 
 describe("createOpenAIChatRuntime mid-turn steer", () => {
@@ -1058,11 +1098,10 @@ describe("createOpenAIChatRuntime prefix cache stability", () => {
     const assistant = req2.body.messages[req1.body.messages.length];
     expect(assistant).toMatchObject({
       role: "assistant",
-      content: "",
+      content: null,
       reasoning_content: "Thinking fixture.",
       tool_calls: [{ id: "c1", type: "function", function: { name: "fx_write", arguments: "{}" } }],
     });
-    expect(assistant?.content).toBe("");
 
     await instance.adapter.sendTurn({
       threadId: "t-prefix",

@@ -419,7 +419,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     }
     const r = await api("/api/internal/threads", { method: "POST", body: JSON.stringify(body) });
     if (r.error && r.state !== "failed") return { text: `Couldn't open that thread: ${String(r.error)}`, isError: true };
-    if (r.steered === true) return { text: `Sent to your running job #${String(r.title)}; it reads this at its next step and its one result still comes back here. Tell the person in one short line, then end your turn.` };
+    if (r.steered === true) return { text: `Sent to your running job #${String(r.title)}; it reads this at its next step and its one result still comes back here. If you already told the person, end your turn now and write nothing more; otherwise say so in one short line.` };
     const receipt = r.self !== true && Array.isArray(r.receipts) && jsonRecord(r.receipts[0]) ? r.receipts[0] : undefined;
     const threadTitle = String(r.title ?? receipt?.title ?? title);
     const threadId = String(r.threadId ?? receipt?.threadId ?? "");
@@ -444,7 +444,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       ? ` @${String(r.botName ?? "that bot")} can run ${Number(r.limit) || 0} threads at once and they are all spoken for, so it waits ${ordinal(Number(r.position) || 1)} in line for a free slot after this turn ends.`
       : " It starts when this turn ends, like any handoff.";
     return {
-      text: `${opened}${timing}${approval} Its result will be delivered to this conversation automatically (assignment id: ${assignmentId || "unknown"}). Acknowledge it, mention it to the person as #${threadTitle}, and finish your turn; do not check or wait for it in this turn.`,
+      text: `${opened}${timing}${approval} Its result will be delivered to this conversation automatically (assignment id: ${assignmentId || "unknown"}); do not check or wait for it in this turn. If you already told the person you started it, end your turn now and write nothing more; otherwise say so in one short line naming #${threadTitle}.`,
     };
   }
   if (name === "list_team_setup") {

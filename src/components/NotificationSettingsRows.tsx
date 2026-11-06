@@ -9,6 +9,7 @@ import {
   useNotificationSounds,
 } from "@/lib/notification-preferences";
 import { requestNotificationPermission } from "@/lib/notify";
+import { disablePush, enablePush } from "@/lib/web-push";
 import { SettingRow, Switch } from "./SettingsPrimitives";
 
 export function NotificationRows({ simple = false }: { simple?: boolean }) {
@@ -42,11 +43,23 @@ export function DeviceNotificationsRow({ simple = false }: { simple?: boolean })
 
   const blocked = permission === "denied";
   const toggle = async () => {
-    if (permission === "granted") return setFinishedNotifications(!enabled);
+    if (permission === "granted") {
+      const next = !enabled;
+      setFinishedNotifications(next);
+      if (next) {
+        void enablePush();
+      } else {
+        void disablePush();
+      }
+      return;
+    }
     const next = await requestNotificationPermission();
     if (!next) return;
     setPermission(next);
-    if (next === "granted") setFinishedNotifications(true);
+    if (next === "granted") {
+      setFinishedNotifications(true);
+      void enablePush();
+    }
   };
 
   return (

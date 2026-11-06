@@ -14,6 +14,8 @@ import { PairPage } from "./pair/PairPage";
 import { HomeScreen, SignedOutAtHome } from "./components/HomeScreen";
 import { PageBoundary } from "./components/PageBoundary";
 import { endedBeforeReload, forgetEndedSession, SESSION_ENDED_REASON } from "./lib/session-ended";
+import { finishedNotificationsEnabled } from "./lib/notification-preferences";
+import { enablePush, registerServiceWorker } from "./lib/web-push";
 import "./styles.css";
 
 // Before first paint; settleAdvancedModeDefault must run before applySkin writes omb-skin.
@@ -21,6 +23,12 @@ settleAdvancedModeDefault();
 applySkinChoice(readSkinChoice());
 applyFont(readFont());
 applyChatWidth(readChatWidth());
+
+void registerServiceWorker().then((reg) => {
+  if (reg && typeof Notification !== "undefined" && Notification.permission === "granted" && finishedNotificationsEnabled()) {
+    void enablePush(reg);
+  }
+});
 
 // The app is its own chunk, so these pages don't parse it. Everywhere else its fetch starts now, alongside the session
 // read, instead of after it. A failed fetch renders as a throw, so PageBoundary offers a reload.

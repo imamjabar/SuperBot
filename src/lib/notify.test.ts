@@ -9,6 +9,8 @@ vi.mock("./notification-preferences", () => ({
 import {
   buildNotificationOptions,
   requestNotificationPermission,
+  setActiveServiceWorkerRegistration,
+  setNotificationOpenHandler,
   showNotification,
   type NotifyFrame,
 } from "./notify";
@@ -41,6 +43,8 @@ function installNotification(permission: NotificationPermission, focused = false
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  setActiveServiceWorkerRegistration(null);
+  setNotificationOpenHandler(null);
   sounds.enabled = true;
   sounds.finished = true;
 });
@@ -229,6 +233,53 @@ describe("buildNotificationOptions", () => {
     expect(buildNotificationOptions({ id: "bot-9" })).toEqual({
       tag: "openmausbot:bot-9",
       icon: undefined,
+    });
+  });
+});
+
+describe("service worker notifications", () => {
+  it("shows via active SW registration with target data instead of constructor", () => {
+    const { notices } = installNotification("granted");
+    const showNotificationMock = vi.fn(async () => {});
+    const fakeReg = { showNotification: showNotificationMock } as unknown as ServiceWorkerRegistration;
+    setActiveServiceWorkerRegistration(fakeReg);
+
+    showNotification(frame, vi.fn());
+
+    expect(notices).toHaveLength(0);
+    expect(showNotificationMock).toHaveBeenCalledWith(frame.title, {
+      body: frame.body,
+      tag: `openmausbot:${frame.botId}`,
+      icon: undefined,
+      data: { botId: frame.botId, threadId: frame.threadId },
+    });
+  });
+
+  it("falls back to SW registration when Notification constructor throws", async () => {
+    installNotification("granted");
+    vi.stubGlobal("Notification", class {
+      static permission = "granted";
+      constructor() {
+        throw new TypeError("Illegal constructor");
+      }
+    });
+    const showNotificationMock = vi.fn(async () => {});
+    const fakeReg = { showNotification: showNotificationMock } as unknown as ServiceWorkerRegistration;
+    vi.stubGlobal("navigator", {
+      serviceWorker: {
+        getRegistration: vi.fn(async () => fakeReg),
+        addEventListener: vi.fn(),
+      },
+    });
+
+    showNotification(frame, vi.fn());
+    await Promise.resolve();
+
+    expect(showNotificationMock).toHaveBeenCalledWith(frame.title, {
+      body: frame.body,
+      tag: `openmausbot:${frame.botId}`,
+      icon: undefined,
+      data: { botId: frame.botId, threadId: frame.threadId },
     });
   });
 });

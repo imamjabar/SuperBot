@@ -229,8 +229,8 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
   const routes = createModelRoutes(options.apiUrl);
   /** Beside the messages, not on them, so encrypted reasoning never reaches a Chat Completions body, a log or a handoff. */
   const responseOutputs = new WeakMap<OpenAIChatMessage, ResponseItem[]>();
-  const assistantReply = (model: string, completion: Completion, content: string | null = "", toolCalls?: ChatToolCall[]): OpenAIChatMessage => {
-    const reply: OpenAIChatMessage = { role: "assistant", content: content ?? "",
+  const assistantReply = (model: string, completion: Completion, content: string | null, toolCalls?: ChatToolCall[]): OpenAIChatMessage => {
+    const reply: OpenAIChatMessage = { role: "assistant", content,
       ...(completion.protocolReasoning && !reasoningReplayRejected.has(model) ? { [options.reasoningReplayField ?? "reasoning_content"]: completion.protocolReasoning } : {}),
       ...(completion.protocolReasoningDetails.length ? { reasoning_details: completion.protocolReasoningDetails } : {}),
       ...(toolCalls ? { tool_calls: toolCalls } : {}) };
@@ -607,7 +607,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
       let unread: string[] = [];
       let callsAtNudge = -1;
       const repeats = options.localModel ? new ChatRepeatGuard() : undefined;
-      let unreadable = false, askedAgain = false;
+      let unreadable = false, askedAgain = false, spoke = false;
       try {
         const parsed = parseToolScope(turn.toolScope);
         if (!parsed.ok) throw new Error(parsed.error);
@@ -733,8 +733,11 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
               contextTokens: completion.usage.input + completion.usage.output, ...(contextWindow ? { contextWindow } : {}) });
           }
           // Reasoning on a tool-call round belongs to the protocol, not a final reply.
-          const reply = completion.text.trim() ? completion.text : completion.toolCalls.length || unreadable ? "" : completion.reasoning;
-          if (reply.trim()) emit({ ...base(turn.threadId, turnId), type: "item.completed", itemType: "assistant_text", text: safeText(reply) });
+          const reply = completion.text.trim() ? completion.text : completion.toolCalls.length || unreadable || spoke ? "" : completion.reasoning;
+          if (reply.trim()) {
+            spoke = true;
+            emit({ ...base(turn.threadId, turnId), type: "item.completed", itemType: "assistant_text", text: safeText(reply) });
+          }
           abort.signal.throwIfAborted();
           if (unreadable) {
             askedAgain = true;
@@ -742,7 +745,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             continue;
           }
           if (!completion.toolCalls.length) {
-            if (!reply.trim()) throw new ChatProtocolError("provider returned an empty response");
+            if (!reply.trim() && !spoke) throw new ChatProtocolError("provider returned an empty response");
             if (completion.finishReason && completion.finishReason !== "stop") {
               throw new ChatProtocolError(`provider did not finish the response (${completion.finishReason})`);
             }
@@ -784,7 +787,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             seenCalls.add(call.id);
           }
           if (seenCalls.size > MAX_TURN_TOOL_CALLS) throw new ChatProtocolError(stoppedAfter(`${MAX_TURN_TOOL_CALLS} tool calls`));
-          messages.push(assistantReply(model, completion, completion.text || "", completion.toolCalls));
+          messages.push(assistantReply(model, completion, completion.text || null, completion.toolCalls));
           // A failure stays pending only until the bot runs tools again: one that went on to use more tools has read the error
           // and reacted (a wrong guess, a bad query, then the right call), so its turn is not failed for it, on any model. The
           // failed step still shows as failed; a failure in the last calls before the answer, or a person's no, still ends it.
