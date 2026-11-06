@@ -714,7 +714,7 @@ function collectActions(root: WidgetRoot, strict: boolean): WidgetActionEntry[] 
         return;
       }
       const row = lastOf(ancestors, (ancestor) => ancestor.type === "ListViewItem" || ancestor.type === "Table.Row" || ancestor.type === "Row");
-      found.push({ ref: node.id, label: widgetString(node, "label") ?? "", action: picked, kind: "button", ...(node.submit === true ? { tone: "submit" as const } : {}), ...(row ? { row: firstText(row) } : {}) });
+      found.push({ ref: node.id, label: widgetString(node, "label") ?? "", action: picked, kind: "button", ...(node.submit === true || picked.type === "send_message" ? { tone: "submit" as const } : {}), ...(row ? { row: firstText(row) } : {}) });
     } else if (node.type === "ListViewItem" && isRecord(node.onClickAction)) {
       found.push({ ref: node.id, label: firstText(node), action: node.onClickAction as unknown as WidgetAction, kind: "item" });
     }
