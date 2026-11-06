@@ -31,7 +31,7 @@ export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 // localhost/ is explicit: Podman prepends it to unqualified build tags and may then resolve the name on Docker Hub.
 // Image and container labels, not this mutable tag, decide compatibility.
 export const IMAGE_REPOSITORY = "localhost/openmausbot/cua-local-vm";
-export const IMAGE_LAYER_VERSION = "11";
+export const IMAGE_LAYER_VERSION = "12";
 export const IMAGE_LAYER_LABEL = "com.openmausbot.image-layer";
 const BUILT_IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
 const DIGEST_PINNED_IMAGE = /^[a-z0-9./_-]+(:[\w.-]+)?@sha256:[a-f0-9]{64}$/;
@@ -258,7 +258,7 @@ RUN printf '%s\\n' \\
       '    socket=${CUA_SOCKET}' \\
       '    [ "$seat" = 1 ] || socket="/run/user/1000/openmausbot-cua-$seat.sock"' \\
       '    await_display' \\
-      '    exec env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 ${CUA_EXECUTABLE} serve --socket "$socket" --permission-mode standard --cursor-reduced-motion on ;;' \\
+      '    exec env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 ${CUA_EXECUTABLE} serve --socket "$socket" --permission-mode standard --grant existing-profile --cursor-reduced-motion on ;;' \\
       '  *) echo "unknown seat role: $role" >&2; exit 2 ;;' \\
       'esac' \\
       > /usr/local/bin/openmausbot-seat \\
