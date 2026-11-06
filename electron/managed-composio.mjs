@@ -1,12 +1,9 @@
 const TOKEN = /^[0-9a-f]{64}$/;
 
-/** OpenMausBot's connected-apps service (cloudflare/composio-broker): the packaged desktop app and a Cloud home use it. */
-export const DEFAULT_MANAGED_COMPOSIO_BROKER_URL = "https://openmausbot-composio.milindsoni201.workers.dev";
-
-/** An explicit URL wins; otherwise the default, only for a shipped build, so development and tests never register. */
-export function managedComposioBrokerUrl(configured, shipped) {
-  const explicit = typeof configured === "string" ? configured.trim() : "";
-  return normalizeManagedComposioBrokerUrl(explicit || (shipped ? DEFAULT_MANAGED_COMPOSIO_BROKER_URL : ""));
+/** A connected-apps service (cloudflare/composio-broker) is used only when OMB_COMPOSIO_BROKER_URL names one: SuperBot
+ *  never registers with OpenMausBot's hosted service, so app logins stay in the owner's own Composio project. */
+export function managedComposioBrokerUrl(configured) {
+  return normalizeManagedComposioBrokerUrl(typeof configured === "string" ? configured.trim() : "");
 }
 
 export function normalizeManagedComposioBrokerUrl(value) {

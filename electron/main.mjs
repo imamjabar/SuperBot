@@ -449,7 +449,7 @@ async function secureWorkspaceConfig() {
 }
 
 function composioBrokerUrl() {
-  return managedComposioBrokerUrl(process.env.OMB_COMPOSIO_BROKER_URL, app.isPackaged);
+  return managedComposioBrokerUrl(process.env.OMB_COMPOSIO_BROKER_URL);
 }
 
 // Finder/Explorer launches have no usable stdio, so the server child's output goes to server.log here.
