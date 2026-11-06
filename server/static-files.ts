@@ -26,7 +26,8 @@ const PAGES: Record<string, string> = { "/": "/index.html", "/rail": "/rail.html
 export function serveStatic(res: ServerResponse, path: string, staticDir: string | null): boolean {
   if (!staticDir) return false;
   const safe = PAGES[path] ?? path.replace(/\.\./g, "");
-  const file = join(staticDir, safe);
+  // The bundle directory may be a git checkout (the VPS pulls the web-dist branch), so dot paths such as /.git are never files.
+  const file = join(staticDir, /\/\./.test(safe) ? "index.html" : safe);
   try {
     const data = readFileSync(file);
     const type = MIME[extname(file)] ?? "application/octet-stream";

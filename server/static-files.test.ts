@@ -11,6 +11,8 @@ writeFileSync(join(dir, "index.html"), "app");
 writeFileSync(join(dir, "rail.html"), "rail");
 mkdirSync(join(dir, "assets"));
 writeFileSync(join(dir, "assets", "rail-1a2b.js"), "js");
+mkdirSync(join(dir, ".git"));
+writeFileSync(join(dir, ".git", "config"), "[remote]");
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 function get(path: string, staticDir: string = dir) {
@@ -34,5 +36,9 @@ describe("serveStatic", () => {
     expect(get("/settings").body).toBe("app");
     expect(get("/rail/more").body).toBe("app");
     expect(get("/assets/rail-1a2b.js").headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+  });
+
+  it("never serves a hidden file from a checked-out bundle", () => {
+    for (const path of ["/.git/config", "/assets/../.git/config", "/a/.env"]) expect(get(path).body, path).toBe("app");
   });
 });
