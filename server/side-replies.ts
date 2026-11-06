@@ -1,5 +1,4 @@
-import type { Message } from "../shared/wire.ts";
-import type { Store } from "./store.ts";
+import type { Message, Store } from "./store.ts";
 
 export const SIDE_LANE_TITLE = "Quick replies";
 const CONTEXT_MESSAGES = 12;
