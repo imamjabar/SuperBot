@@ -142,7 +142,6 @@ export function RichTable({ columns, rows, name = t("table.title"), expanded = f
  * card in a Simple reply: header names are the sort buttons, rows are split by hairlines, and nothing else is drawn. */
 type TableLook = "panel" | "quiet" | "card";
 
-const PHONE_STACK_COLUMNS = 4;
 
 function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, direction, headless = false, look = "panel" }: RichTableProps & {
   order: number[]; wrap: boolean; large: boolean; sort: TableSort; onSort: (column: number) => void; look?: TableLook;
@@ -168,9 +167,8 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
     return () => observer.disconnect();
   }, []);
   const belowSm = useMediaQuery(BELOW_SM);
-  const phoneCard = card && belowSm && !virtual;
-  const stack = phoneCard && columns.length >= PHONE_STACK_COLUMNS;
-  const phoneFit = phoneCard && wrap && !stack;
+  const isNarrow = belowSm || (available !== null && available < 520);
+  const phoneFit = isNarrow && wrap && !virtual && columns.length <= 6;
   const fit = phoneFit || fitsColumns({ wrap, virtual, minimums, available });
   const widths = useMemo(() => columns.map((column, index) => column.width ?? Math.min(320, Math.max(140,
     Math.max(column.text.length, ...rows.slice(0, 100).map((row) => Math.min(40, row[index]?.text.length ?? 0))) * 7 + 40,
@@ -190,28 +188,14 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
   const sortLabel = (column: TableColumn, index: number) => t("table.sort", { column: column.text || index + 1 });
   const header = (column: TableColumn, index: number) => column.content ?? (column.text || t("table.column", { number: index + 1 }));
   const arrow = (index: number, className?: string) => sort?.column === index && sort.descending ? <ArrowDown size={12} className={className} /> : <ArrowUp size={12} className={cn(className, sort?.column !== index && !card && "opacity-35")} />;
-  if (stack) return <div role="list" aria-label={name} dir={direction} className="flex flex-col gap-2 p-2 text-[14px] leading-5" data-stacked="">
-    {order.map((rowIndex) => {
-      const row = rows[rowIndex]!;
-      return <div key={rowIndex} role="listitem" className="min-w-0 rounded-xl bg-ink/[0.04] px-3 py-2.5">
-        <div dir="auto" className="mb-1 font-semibold whitespace-pre-wrap [overflow-wrap:anywhere]">{row[0]?.content ?? row[0]?.text}</div>
-        {columns.slice(1).map((column, offset) => {
-          const cell = row[offset + 1];
-          return <div key={offset} dir="auto" className="whitespace-pre-wrap [overflow-wrap:anywhere]">
-            <span className="text-ink-secondary">{header(column, offset + 1)}: </span>{cell?.content ?? cell?.text}
-          </div>;
-        })}
-      </div>;
-    })}
-  </div>;
   return <div ref={scroll} tabIndex={0} role="region" aria-label={name}
     className={cn("overflow-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60", card && !fit && "[mask-image:linear-gradient(90deg,#000_calc(100%-40px),transparent)]")}
     style={{ maxHeight: large ? "65dvh" : virtual || !wrap ? 400 : undefined }} data-fit={fit || undefined}>
-    <table dir={direction} aria-label={name} aria-rowcount={order.length + 1} className={cn("w-full border-separate border-spacing-0 text-[14px]", fit ? "table-auto" : "table-fixed", card && "leading-5")} style={fit ? undefined : { minWidth: widths.reduce((a, b) => a + b, 0) }}>
+    <table dir={direction} aria-label={name} aria-rowcount={order.length + 1} className={cn("w-full border-separate border-spacing-0 text-[13px] sm:text-[14px]", fit ? "table-auto" : "table-fixed", card && "leading-5")} style={fit ? undefined : { minWidth: widths.reduce((a, b) => a + b, 0) }}>
       {!fit && <colgroup>{widths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup>}
       <thead ref={heading} hidden={headless} className={cn("sticky top-0 z-10", look === "panel" ? "bg-raised" : "bg-composer")}><tr aria-rowindex={1}>
         {columns.map((column, index) => <th key={index} scope="col" aria-sort={sort?.column === index ? sort.descending ? "descending" : "ascending" : "none"}
-          className={card ? "px-3 py-2.5 align-bottom font-semibold sm:px-4" : "h-10 border-b border-hairline/60 px-3 py-2 font-medium"} style={{ textAlign: alignment(column, index) }}>
+          className={card ? "px-1.5 py-2 align-bottom font-semibold sm:px-4 sm:py-2.5" : "h-9 border-b border-hairline/60 px-1.5 py-1.5 font-medium sm:h-10 sm:px-3 sm:py-2"} style={{ textAlign: alignment(column, index) }}>
           <div className="break-words [overflow-wrap:anywhere]" style={fit && !phoneFit ? { minWidth: minimums[index] } : undefined}>
             {card ? (
               <button type="button" className="group/th inline-flex max-w-full items-center gap-1 text-start font-semibold [text-align:inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60" aria-label={sortLabel(column, index)} title={sortLabel(column, index)} onClick={() => onSort(index)}>
@@ -220,7 +204,7 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
               </button>
             ) : <>
               <span dir="auto">{header(column, index)}</span>
-              <button type="button" className="table-action ms-1 inline-flex align-middle" aria-label={sortLabel(column, index)} title={sortLabel(column, index)} onClick={() => onSort(index)}>{arrow(index)}</button>
+              <button type="button" className="table-action ms-1 inline-flex align-middle max-sm:min-w-0 max-sm:min-h-0 max-sm:w-4 max-sm:h-4" aria-label={sortLabel(column, index)} title={sortLabel(column, index)} onClick={() => onSort(index)}>{arrow(index)}</button>
             </>}
           </div>
         </th>)}
@@ -231,8 +215,8 @@ function TableViewport({ columns, rows, order, name, wrap, large, sort, onSort, 
           className={card ? undefined : item.index % 2 ? cn(look === "quiet" ? "bg-ink/[0.03]" : "bg-inset/35", "hover:bg-raised/70") : "hover:bg-raised/70"}>
           {columns.map((column, index) => {
             const cell = rows[order[item.index]!]![index];
-            return <td key={index} className={card ? "border-t-[0.5px] border-ink/[0.07] px-3 py-2.5 align-top tabular-nums sm:px-4" : "border-b border-hairline/20 px-3 py-2.5 align-top tabular-nums"} style={{ textAlign: cell?.align ?? alignment(column, index), verticalAlign: cell?.vAlign }}>
-              <div dir="auto" title={!wrap ? cell?.text : undefined} className={wrap ? "whitespace-pre-wrap break-words [overflow-wrap:anywhere]" : "truncate"}>{cell?.content ?? cell?.text}</div>
+            return <td key={index} className={card ? "border-t-[0.5px] border-ink/[0.07] px-1.5 py-2 align-top tabular-nums sm:px-4 sm:py-2.5" : "border-b border-hairline/20 px-1.5 py-1.5 align-top tabular-nums sm:px-3 sm:py-2.5"} style={{ textAlign: cell?.align ?? alignment(column, index), verticalAlign: cell?.vAlign }}>
+              <div dir="auto" title={!wrap ? cell?.text : undefined} className={wrap ? "whitespace-normal break-words [overflow-wrap:anywhere]" : "truncate"}>{cell?.content ?? cell?.text}</div>
             </td>;
           })}
         </tr>)}
