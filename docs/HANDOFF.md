@@ -145,8 +145,8 @@ Single-seat acceptance (two-seat, read-only-key and lease-handover proofs move t
 4. Leases come from the live route only; no direct lease/DB mutation. Stay at capacity 1 via supported start/stop/API lifecycle. Preserve workspaces/backups.
 5. `365cc4f` line guard is not permission to grow monoliths; split carefully.
 
-Scorecard to run manually and fix: #1 Reply UX, #3 Choice card, #8 Routine, #11 Safety, #17 Browser.
-**Phase 1 done when:** Imam watches a bot open example.com in Chrome from the app and takes over the mouse.
+Scorecard to run manually and fix: #1 Reply UX, #3 Choice card, #8 Routine, #11 Safety, #17 Browser. **Imam reported all five good on 2026-11-06**, then found and confirmed fixed (deployed `73fcb90`): a choice can no longer be tapped twice (question cards and bot-built widget choices settle; the server refuses a second answer), a person's Local VM control is released 60 s after the last viewer closes, and Local VM turns answer news/weather/facts by web search or shell fetch instead of driving the desktop browser. Still open: Cua `browser_prepare` is refused in the desktop (`--grant existing-profile` needs a new desktop image + layer bump).
+**Phase 1 done when:** Imam watches a bot open example.com in Chrome from the app and takes over the mouse. (Observed by Imam in #17.)
 
 ### Phase 2 — feel like Grok Bot
 
