@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -21,6 +21,7 @@ import {
   VM_WORKSPACE_GUEST,
   WORKSPACE_LABEL,
   containerComputerAction,
+  ensureVmWorkspace,
   containerComputerFrame,
   containerComputerMcp,
   containerComputerScreenshot,
@@ -822,12 +823,13 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain("sha256sum -c -");
     expect(dockerfile).toContain(`install -D -m 0755 "$driver_bin" ${CUA_EXECUTABLE}`);
     expect(dockerfile).toContain(`cua-driver ${CUA_DRIVER_VERSION}`);
-    expect(dockerfile).toContain(`serve --socket ${CUA_SOCKET} --permission-mode standard`);
+    expect(dockerfile).toContain(`socket=${CUA_SOCKET}`);
+    expect(dockerfile).toContain('serve --socket "$socket" --permission-mode standard');
     expect(dockerfile).toContain("CUA_DRIVER_RS_TELEMETRY_ENABLED=0");
     // 0.37.0 waits 800 ms after every foreground key, click or scroll for a window it might open, and glides its agent cursor
     // for about 0.6 s before each pixel action; plain logs feed desktop_error.
     expect(dockerfile).toContain(`CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 ${CUA_EXECUTABLE} serve`);
-    expect(dockerfile).toContain(`--permission-mode standard --cursor-reduced-motion on'`);
+    expect(dockerfile).toContain("--permission-mode standard --cursor-reduced-motion on ;;'");
     expect(dockerfile).toContain("prepare-openmausbot-workspace.sh");
     expect(dockerfile).toContain('if ! chmod 0700 "$workspace"');
     expect(dockerfile).toContain('test -r "$directory" && test -w "$directory" && test -x "$directory"');
@@ -838,6 +840,38 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain(`${IMAGE_LAYER_LABEL}="${IMAGE_LAYER_VERSION}"`);
     expect(dockerfile).toContain("did not become ready within 45 seconds");
     expect(dockerfile).not.toContain("while ! DISPLAY=:1 xset q");
+  });
+
+  it("builds a Debian 13 desktop with visible Google Chrome stable and seat 1 on Xvfb", () => {
+    const dockerfile = managedImageDockerfile();
+    expect(BASE_IMAGE).toBe("docker.io/library/debian@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6");
+    expect(dockerfile).toContain("apt-get install -y --no-install-recommends google-chrome-stable");
+    expect(dockerfile).toContain("54dea5f6c2a26091578cf52a999cebc6b64df478d37ad4dce96376b711e3b27c  /etc/apt/keyrings/google-chrome.asc");
+    expect(dockerfile).toContain("published for linux/amd64 only");
+    expect(dockerfile).not.toMatch(/headless|chromium-browser|apt-get install[^\n]*(chromium|firefox)/);
+    expect(dockerfile).toContain('exec Xvfb "$DISPLAY" -screen 0 1280x800x24');
+    expect(dockerfile).toContain('-localhost -nopw -shared -forever -noxdamage -rfbport "$((5900 + seat))"');
+    expect(dockerfile).toContain("stdout_logfile_maxbytes=1MB");
+    expect(dockerfile).toContain("openmausbot-seat-conf 1 > /etc/supervisor/conf.d/seat-1.conf");
+    expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
+    expect(dockerfile).not.toContain("trycua");
+  });
+
+  it("leaves a guest-owned workspace alone and refuses a linked one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-vm-ws-"));
+    try {
+      const workspaceDir = join(dir, "vm-home");
+      mkdirSync(workspaceDir, { mode: 0o711 });
+      const target = { ...SHARED_LOCAL_VM_TARGET, workspaceDir };
+      await ensureVmWorkspace("linux", target, (process.getuid?.() ?? 0) + 1);
+      expect(statSync(workspaceDir).mode & 0o777).toBe(0o711);
+      const linked = join(dir, "linked");
+      symlinkSync(join(dir, "elsewhere"), linked);
+      mkdirSync(join(dir, "elsewhere"));
+      await expect(ensureVmWorkspace("linux", { ...target, workspaceDir: linked })).rejects.toThrow("not a link");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("installs checksum-pinned Japanese fonts and their license before the desktop starts", () => {

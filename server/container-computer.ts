@@ -2,9 +2,9 @@
 import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { lstatSync } from "node:fs";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 import { augmentedPath, resolveCliSpawn } from "./env-path.ts";
@@ -23,14 +23,14 @@ export type CommandRunner = (
 ) => Promise<{ stdout: string }>;
 
 export const CUA_DRIVER_VERSION = "0.37.0";
-export const BASE_IMAGE_REPOSITORY = "docker.io/trycua/xfce-cua";
-// Official multi-architecture Cua XFCE 0.1.0 manifest (amd64 + arm64).
-export const BASE_IMAGE_DIGEST = "sha256:274eb636f5cf3fc58f705916ee72b7a701270b3877369d08533a385c5325be9b";
+export const BASE_IMAGE_REPOSITORY = "docker.io/library/debian";
+// Official Debian 13 (trixie) multi-architecture index (amd64 + arm64), verified against registry-1.docker.io.
+export const BASE_IMAGE_DIGEST = "sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6";
 export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 // localhost/ is explicit: Podman prepends it to unqualified build tags and may then resolve the name on Docker Hub.
 // Image and container labels, not this mutable tag, decide compatibility.
 export const IMAGE_REPOSITORY = "localhost/openmausbot/cua-local-vm";
-export const IMAGE_LAYER_VERSION = "8";
+export const IMAGE_LAYER_VERSION = "9";
 export const IMAGE_LAYER_LABEL = "com.openmausbot.image-layer";
 const BUILT_IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
 const DIGEST_PINNED_IMAGE = /^[a-z0-9./_-]+(:[\w.-]+)?@sha256:[a-f0-9]{64}$/;
@@ -117,24 +117,53 @@ const LINUX_WHEELS = {
   },
 } as const;
 
-/** Both Linux wheels are exact-version and SHA-256 verified. The first RUN rejects a defective base: some published ARM64
- * upstream layers shipped zero-byte OpenSSL libraries ("curl: error while loading shared libraries … file too short"). */
+const NODE_RUNTIME = {
+  version: "24.22.2",
+  x64: "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75",
+  arm64: "eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8",
+} as const;
+
+const GOOGLE_LINUX_SIGNING_KEY = {
+  url: "https://dl.google.com/linux/linux_signing_key.pub",
+  sha256: "54dea5f6c2a26091578cf52a999cebc6b64df478d37ad4dce96376b711e3b27c",
+} as const;
+
+/** Debian 13 desktop, one seat per X display `:N`: Xvfb, an XFCE session, x11vnc on 127.0.0.1:590N, noVNC on 690N and a
+ * Cua Driver socket. The image starts seat 1; `openmausbot-seat-conf N > /etc/supervisor/conf.d/seat-N.conf` followed by
+ * `supervisorctl update` starts seat N. Node, both Cua Driver wheels and the Google signing key are SHA-256 verified. */
 export function managedImageDockerfile(): string {
   return `FROM ${BASE_IMAGE}
 USER root
 RUN set -eux; \\
+    export DEBIAN_FRONTEND=noninteractive; \\
+    apt-get update; \\
+    apt-get install -y --no-install-recommends \\
+      ca-certificates curl xz-utils procps tini supervisor dbus dbus-x11 \\
+      xvfb x11vnc x11-xserver-utils xdg-utils novnc websockify \\
+      xfce4-session xfwm4 xfce4-panel xfdesktop4 xfce4-settings xfce4-terminal exo-utils at-spi2-core \\
+      fontconfig fonts-dejavu-core fonts-liberation fonts-noto-color-emoji \\
+      python3 python3-venv pulseaudio picom git gh; \\
+    rm -rf /var/lib/apt/lists/*; \\
+    dbus-uuidgen --ensure; \\
+    groupadd -g 1000 cua; \\
+    useradd -u 1000 -g 1000 -m -s /bin/bash cua; \\
+    install -d -o cua -g cua -m 0700 /run/user/1000; \\
+    install -d -m 1777 /tmp/.X11-unix; \\
+    install -d -m 0755 /run/dbus; \\
+    python3 -m venv /opt/venv
+RUN set -eux; \\
     arch="$(uname -m)"; \\
     case "$arch" in \\
-      x86_64) wheel_url='${LINUX_WHEELS.x86_64.url}'; wheel_sha='${LINUX_WHEELS.x86_64.sha256}'; wheel_path='/tmp/cua_driver-${CUA_DRIVER_VERSION}-py3-none-manylinux_2_31_x86_64.whl'; lib_triplet='x86_64-linux-gnu' ;; \\
-      aarch64|arm64) wheel_url='${LINUX_WHEELS.aarch64.url}'; wheel_sha='${LINUX_WHEELS.aarch64.sha256}'; wheel_path='/tmp/cua_driver-${CUA_DRIVER_VERSION}-py3-none-manylinux_2_31_aarch64.whl'; lib_triplet='aarch64-linux-gnu' ;; \\
+      x86_64) wheel_url='${LINUX_WHEELS.x86_64.url}'; wheel_sha='${LINUX_WHEELS.x86_64.sha256}'; wheel_path='/tmp/cua_driver-${CUA_DRIVER_VERSION}-py3-none-manylinux_2_31_x86_64.whl'; node_arch='x64'; node_sha='${NODE_RUNTIME.x64}' ;; \\
+      aarch64|arm64) wheel_url='${LINUX_WHEELS.aarch64.url}'; wheel_sha='${LINUX_WHEELS.aarch64.sha256}'; wheel_path='/tmp/cua_driver-${CUA_DRIVER_VERSION}-py3-none-manylinux_2_31_aarch64.whl'; node_arch='arm64'; node_sha='${NODE_RUNTIME.arm64}' ;; \\
       *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \\
     esac; \\
-    for ssl_lib in "/lib/$lib_triplet/libssl.so.3" "/lib/$lib_triplet/libcrypto.so.3"; do \\
-      if [ -e "$ssl_lib" ] && [ ! -s "$ssl_lib" ]; then \\
-        echo "pinned base image is defective on $arch: $ssl_lib is zero bytes, so curl cannot start — re-pull or replace the base image instead of debugging the wheel download" >&2; \\
-        exit 1; \\
-      fi; \\
-    done; \\
+    node_tar="/tmp/node-v${NODE_RUNTIME.version}-linux-$node_arch.tar.xz"; \\
+    curl -fsSL "https://nodejs.org/dist/v${NODE_RUNTIME.version}/node-v${NODE_RUNTIME.version}-linux-$node_arch.tar.xz" -o "$node_tar"; \\
+    echo "$node_sha  $node_tar" | sha256sum -c -; \\
+    tar -xJf "$node_tar" -C /usr/local --strip-components=1 --no-same-owner --exclude='*/include' --exclude='*/share/doc' --exclude='*/share/man'; \\
+    rm -f "$node_tar" /usr/local/CHANGELOG.md /usr/local/README.md /usr/local/LICENSE; \\
+    test "$(node --version)" = "v${NODE_RUNTIME.version}"; \\
     curl -fsSL "$wheel_url" -o "$wheel_path"; \\
     echo "$wheel_sha  $wheel_path" | sha256sum -c -; \\
     /opt/venv/bin/python -m pip install --no-cache-dir --force-reinstall --no-deps "$wheel_path"; \\
@@ -155,36 +184,121 @@ RUN set -eux; \\
     curl -fsSL 'https://raw.githubusercontent.com/notofonts/noto-cjk/165c01b46ea533872e002e0785ff17e44f6d97d8/LICENSE' -o /usr/local/share/licenses/noto-cjk/OFL.txt; \\
     echo '6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2  /usr/local/share/licenses/noto-cjk/OFL.txt' | sha256sum -c -; \\
     fc-cache -f
+# Google ships Chrome for Linux on amd64 only, and no substitute browser is allowed. Its own sandbox needs namespaces this
+# hardened container (capabilities dropped, runtime seccomp) refuses, so Chrome exits with code 21; the container is the
+# isolation boundary here.
+RUN set -eux; \\
+    if [ "$(dpkg --print-architecture)" = amd64 ]; then \\
+      install -d -m 0755 /etc/apt/keyrings; \\
+      curl -fsSL '${GOOGLE_LINUX_SIGNING_KEY.url}' -o /etc/apt/keyrings/google-chrome.asc; \\
+      echo '${GOOGLE_LINUX_SIGNING_KEY.sha256}  /etc/apt/keyrings/google-chrome.asc' | sha256sum -c -; \\
+      echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.asc] https://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google-chrome.list; \\
+      apt-get update; \\
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends google-chrome-stable; \\
+      rm -f /etc/apt/sources.list.d/google-chrome*; \\
+      rm -rf /var/lib/apt/lists/*; \\
+      test -x /usr/bin/google-chrome; \\
+      printf '%s\\n' '#!/bin/sh' 'exec /usr/bin/google-chrome-stable --no-sandbox --no-first-run --no-default-browser-check "$@"' > /usr/local/bin/google-chrome; \\
+      chmod 0755 /usr/local/bin/google-chrome; \\
+      install -d -m 0755 /usr/local/share/applications /etc/xdg/xfce4; \\
+      sed 's#/usr/bin/google-chrome-stable#/usr/local/bin/google-chrome#g' /usr/share/applications/google-chrome.desktop > /usr/local/share/applications/google-chrome.desktop; \\
+      update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/local/bin/google-chrome 300; \\
+      printf '%s\\n' 'WebBrowser=google-chrome' > /etc/xdg/xfce4/helpers.rc; \\
+      printf '%s\\n' '[Default Applications]' 'text/html=google-chrome.desktop' 'x-scheme-handler/http=google-chrome.desktop' 'x-scheme-handler/https=google-chrome.desktop' > /etc/xdg/mimeapps.list; \\
+    else \\
+      echo "Google Chrome stable is published for linux/amd64 only; build this image with --platform linux/amd64" >&2; \\
+      exit 1; \\
+    fi
 ${workspacePreparationDockerfile(VM_WORKSPACE_GUEST)}
-# A bot's own desktop: a 200 ms (not 800) watch for windows an action opens still sees Firefox popups; no cursor glide; plain logs; Chrome's own sandbox off, since it needs namespaces this hardened container (capabilities dropped, runtime seccomp) refuses and Chrome exits with code 21; the container is the isolation boundary here.
+# Driver: a 200 ms (not 800) watch for windows an action opens still sees browser popups; no cursor glide; plain logs.
 RUN printf '%s\\n' \\
       '#!/bin/sh' \\
-      '/usr/local/bin/prepare-openmausbot-workspace.sh' \\
-      'attempt=0' \\
-      'until DISPLAY=:1 xset q >/dev/null 2>&1; do' \\
-      '  attempt=$((attempt + 1))' \\
-      '  if [ "$attempt" -ge 45 ]; then echo "X display :1 did not become ready within 45 seconds" >&2; exit 1; fi' \\
-      '  sleep 1' \\
-      'done' \\
-      'exec env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 ${CUA_EXECUTABLE} serve --socket ${CUA_SOCKET} --permission-mode standard --cursor-reduced-motion on' \\
-      > /usr/local/bin/start-openmausbot-cua-driver.sh \\
-    && chmod 0755 /usr/local/bin/start-openmausbot-cua-driver.sh
-RUN printf '%s\\n' \\
-      '' \\
-      '[program:openmausbot-cua-driver]' \\
-      'command=/usr/local/bin/start-openmausbot-cua-driver.sh' \\
-      'user=cua' \\
-      'environment=HOME="/home/cua",USER="cua",DISPLAY=":1"' \\
+      'set -eu' \\
+      'role="$1"' \\
+      'seat="$2"' \\
+      'case "$seat" in 1|2|3) ;; *) echo "seat must be 1, 2 or 3, not $seat" >&2; exit 2 ;; esac' \\
+      'export DISPLAY=":$seat"' \\
+      'if [ "$seat" != 1 ]; then export XDG_RUNTIME_DIR="/run/user/1000/seat-$seat"; mkdir -p -m 0700 "$XDG_RUNTIME_DIR"; fi' \\
+      'await_display() {' \\
+      '  attempt=0' \\
+      '  until xset q >/dev/null 2>&1; do' \\
+      '    attempt=$((attempt + 1))' \\
+      '    if [ "$attempt" -ge 45 ]; then echo "X display $DISPLAY did not become ready within 45 seconds" >&2; exit 1; fi' \\
+      '    sleep 1' \\
+      '  done' \\
+      '}' \\
+      'case "$role" in' \\
+      '  display)' \\
+      '    /usr/local/bin/prepare-openmausbot-workspace.sh' \\
+      '    rm -f "/tmp/.X$seat-lock" "/tmp/.X11-unix/X$seat"' \\
+      '    exec Xvfb "$DISPLAY" -screen 0 1280x800x24 -ac +extension GLX +render -noreset -nolisten tcp ;;' \\
+      '  session)' \\
+      '    await_display' \\
+      '    xset s off s noblank || true' \\
+      '    pulseaudio --start --exit-idle-time=-1 || true' \\
+      '    picom -b || true' \\
+      '    exec dbus-launch --exit-with-session startxfce4 ;;' \\
+      '  vnc)' \\
+      '    await_display' \\
+      '    if [ -r "$HOME/.vnc/passwd" ] && [ ! -w "$HOME/.vnc/passwd" ]; then exec x11vnc -display "$DISPLAY" -localhost -rfbauth "$HOME/.vnc/passwd" -shared -forever -noxdamage -rfbport "$((5900 + seat))"; fi' \\
+      '    if [ -n "$(printenv VNC_PW || true)" ]; then' \\
+      '      install -d -m 0700 "$HOME/.vnc"' \\
+      '      umask 077' \\
+      '      printenv VNC_PW > "$HOME/.vnc/passwd-$seat"' \\
+      '      exec x11vnc -display "$DISPLAY" -localhost -passwdfile "rm:$HOME/.vnc/passwd-$seat" -shared -forever -noxdamage -rfbport "$((5900 + seat))"' \\
+      '    fi' \\
+      '    exec x11vnc -display "$DISPLAY" -localhost -nopw -shared -forever -noxdamage -rfbport "$((5900 + seat))" ;;' \\
+      '  viewer)' \\
+      '    exec websockify --web /usr/share/novnc "$((6900 + seat))" "127.0.0.1:$((5900 + seat))" ;;' \\
+      '  driver)' \\
+      '    socket=${CUA_SOCKET}' \\
+      '    [ "$seat" = 1 ] || socket="/run/user/1000/openmausbot-cua-$seat.sock"' \\
+      '    await_display' \\
+      '    exec env CUA_DRIVER_BROWSER_NO_SANDBOX=1 CUA_DRIVER_INSTALL_CHANNEL=python_package CUA_DRIVER_RS_TELEMETRY_ENABLED=0 CUA_DRIVER_WINDOW_CHANGE_TIMEOUT_MS=200 NO_COLOR=1 ${CUA_EXECUTABLE} serve --socket "$socket" --permission-mode standard --cursor-reduced-motion on ;;' \\
+      '  *) echo "unknown seat role: $role" >&2; exit 2 ;;' \\
+      'esac' \\
+      > /usr/local/bin/openmausbot-seat \\
+    && printf '%s\\n' \\
+      '#!/bin/sh' \\
+      'set -eu' \\
+      'seat="$1"' \\
+      'case "$seat" in 1|2|3) ;; *) echo "seat must be 1, 2 or 3, not $seat" >&2; exit 2 ;; esac' \\
+      'suffix=""' \\
+      '[ "$seat" = 1 ] || suffix="-$seat"' \\
+      'program() {' \\
+      '  printf "[program:%s%s]\\ncommand=/usr/local/bin/openmausbot-seat %s %s\\nuser=cua\\nenvironment=HOME=\\"/home/cua\\",USER=\\"cua\\",XDG_RUNTIME_DIR=\\"/run/user/1000\\"\\nautorestart=true\\nstopasgroup=true\\nkillasgroup=true\\npriority=%s\\nstdout_logfile=/var/log/supervisor/%s%s.log\\nstdout_logfile_maxbytes=1MB\\nstdout_logfile_backups=1\\nstderr_logfile=/var/log/supervisor/%s%s.error.log\\nstderr_logfile_maxbytes=1MB\\nstderr_logfile_backups=1\\n\\n" "$1" "$suffix" "$2" "$seat" "$3" "$4" "$suffix" "$4" "$suffix"' \\
+      '}' \\
+      'program xvfb display 10 xvfb' \\
+      'program xfce session 20 xfce' \\
+      'program vncserver vnc 20 vncserver' \\
+      'program novnc viewer 25 novnc' \\
+      'program openmausbot-cua-driver driver 30 cua-driver' \\
+      > /usr/local/bin/openmausbot-seat-conf \\
+    && printf '%s\\n' \\
+      '#!/bin/sh' \\
+      'set -eu' \\
+      '/usr/local/bin/openmausbot-seat-conf "$1" > "/etc/supervisor/conf.d/seat-$1.conf"' \\
+      'exec supervisorctl -c /etc/supervisor/supervisord.conf update' \\
+      > /usr/local/bin/openmausbot-start-seat \\
+    && chmod 0755 /usr/local/bin/openmausbot-seat /usr/local/bin/openmausbot-seat-conf /usr/local/bin/openmausbot-start-seat \\
+    && printf '%s\\n' \\
+      '[program:dbus]' \\
+      'command=/usr/bin/dbus-daemon --system --nofork --nopidfile' \\
       'autorestart=true' \\
-      'startsecs=2' \\
-      'stdout_logfile=/var/log/supervisor/cua-driver.log' \\
-      'stderr_logfile=/var/log/supervisor/cua-driver.error.log' \\
-      'priority=30' \\
-      >> /etc/supervisor/supervisord.conf
+      'priority=1' \\
+      'stdout_logfile=/var/log/supervisor/dbus.log' \\
+      'stdout_logfile_maxbytes=1MB' \\
+      'stderr_logfile=/var/log/supervisor/dbus.error.log' \\
+      'stderr_logfile_maxbytes=1MB' \\
+      > /etc/supervisor/conf.d/dbus.conf \\
+    && /usr/local/bin/openmausbot-seat-conf 1 > /etc/supervisor/conf.d/seat-1.conf
 LABEL ${MANAGED_LABEL}="1" \\
       ${DRIVER_LABEL}="${CUA_DRIVER_VERSION}" \\
       ${BASE_IMAGE_LABEL}="${BASE_IMAGE_DIGEST}" \\
       ${IMAGE_LAYER_LABEL}="${IMAGE_LAYER_VERSION}"
+EXPOSE ${INTERNAL_VIEWER_PORT}
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
 `;
 }
 
@@ -913,9 +1027,24 @@ export function containerRunArgs(
   return common;
 }
 
-async function ensureVmWorkspace(platform: NodeJS.Platform, target: LocalVmTarget): Promise<void> {
+const GUEST_UID = 1000;
+
+/** The guest (uid 1000) may own its bind-mounted workspace while the app runs as another uid (a VPS service user), which
+ * cannot chmod it. Such a directory is left as is once it is proven a real directory inside its parent, never a link. */
+export async function ensureVmWorkspace(
+  platform: NodeJS.Platform,
+  target: LocalVmTarget,
+  appUid: number = process.getuid?.() ?? GUEST_UID,
+): Promise<void> {
   await mkdir(target.workspaceDir, { recursive: true, mode: 0o700 });
-  if (platform !== "win32") await chmod(target.workspaceDir, 0o700);
+  if (platform === "win32") return;
+  const entry = await lstat(target.workspaceDir);
+  const real = await realpath(target.workspaceDir);
+  if (!entry.isDirectory() || !real.startsWith(`${await realpath(dirname(target.workspaceDir))}${sep}`)) {
+    throw new Error(`The Local VM workspace ${target.workspaceDir} must be a real directory, not a link`);
+  }
+  if (entry.uid !== appUid) return;
+  await chmod(target.workspaceDir, platform !== "linux" || appUid === GUEST_UID ? 0o700 : 0o755);
 }
 
 function imagePullArgs(runtime: Runtime): string[] {

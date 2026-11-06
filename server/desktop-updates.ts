@@ -15,11 +15,13 @@ import { keepFirefoxProfileBeforeRemove, keepInstalledAppsBeforeRemove } from ".
 
 export type LocalVmUpdateNeed = "image" | "recreate";
 
-/** A desktop OpenMausBot made, or a durable folder left by one, that this release cannot run without updating. */
+/** A desktop OpenMausBot made, or a durable folder left by one, that this release cannot run without updating. Only the
+ * shared desktop is replaced automatically; another target's outdated container is never removed here. */
 export function localVmUpdateNeed(status: ContainerComputerStatus, workspaceExists: boolean): LocalVmUpdateNeed | null {
   if (!status.runtime || !status.daemonUp) return null;
   if (status.container === "missing") return workspaceExists && !status.image && status.create_supported ? "image" : null;
   if (!status.managed || status.imageMatches) return null;
+  if (status.target_key !== undefined && status.target_key !== SHARED_LOCAL_VM_TARGET.key) return null;
   return status.image ? "recreate" : "image";
 }
 
