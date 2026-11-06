@@ -4701,7 +4701,7 @@ const desktopViewer = createDesktopViewer({
     return !holder || visibleTo(viewerFor(auth)).bot(holder.ownerId);
   },
   // With several seats each thread has its own display, so a bot's control lease reserves that display for the person.
-  exclusive: (id) => id.startsWith("local/shared-seat-") || (id === "local/shared" && (localVmSeatLeases.capacity > 1 || localVmSeatLeases.leasedSeats().includes(1))),
+  exclusive: (id) => id.startsWith("local/shared-seat-") || (id === "local/shared" && (localVmSeatLeases.capacity > 1 || localVmActiveThreads.has(SHARED_LOCAL_VM_TARGET.key))),
   // A control lease opens only the computer it holds, and only when that is the desktop being viewed.
   lease: (id, botId, controlLeaseId, threadId) => {
     const bot = store.bot(botId);
@@ -6277,6 +6277,7 @@ function localVmTargetForThread(botId: string, threadId: string): LocalVmTarget 
   if (localVmMode(cfg) === "pool") return poolLocalVmTarget(localVmSeatPool.assign(threadId, localVmPoolSeatHolder));
   const target = localVmTargetForBot(botId);
   const capacity = localVmSeatLeases.capacity;
+  if (capacity === 1) return target;
   const leased = localVmSeatLeases.acquire({ ownerId: botId, threadId });
   if (!leased.ok) {
     throw new Error(leased.reason === "no-free-seat"
@@ -12546,8 +12547,8 @@ ROUTES.push(createComputerRoutes({
   localVmProvisionBusy: { get: () => localVmProvisionBusy, set: (busy) => { localVmProvisionBusy = busy; } },
   localVmModeChangeBusy: { get: () => localVmModeChangeBusy },
   localVmOwnerBusy, localVmIdleMs, localVmLeaseFor, localVmIdleFor, localVmTargetForBot, localVmTargetForStatus,
-  localVmSeatExclusive: (botId, threadId) => threadId !== undefined &&
-    localVmSeatLeases.heldBy(threadId)?.ownerId === botId,
+  localVmSeatExclusive: (botId, threadId) => threadId !== undefined && (localVmSeatLeases.capacity > 1
+    ? localVmSeatLeases.heldBy(threadId)?.ownerId === botId : localVmActiveThreads.get(SHARED_LOCAL_VM_TARGET.key) === threadId),
   localVmPayload, localVmInventoryPayload, existingPerBotLocalVmCount, teamComputersPayload, teamComputerInUse,
   managedBoatOwners, providerTransitionMessage, botHasActiveTurn, botComputerControlKey, botComputerControlSnapshot,
   computerPreviewBot, computerPreviewSurface, claimTeamComputerLifecycle, claimBotComputerLifecycle,

@@ -1,0 +1,25 @@
+name: Check
+on:
+  push:
+    branches-ignore: [main, web-dist, server-dist]
+  workflow_dispatch:
+concurrency: { group: "check-${{ github.ref }}", cancel-in-progress: true }
+permissions: { contents: read }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec oxlint --deny-warnings server shared
+      - run: pnpm typecheck
+        env: { NODE_OPTIONS: --max-old-space-size=8192 }
+      - run: >-
+          pnpm vitest run
+          server/routes/desktop-viewer.test.ts server/container-seats.test.ts server/local-vm-seat-idle.test.ts
+          server/local-vm-seats.test.ts scripts/testing/file-size-ratchet.test.ts
+      - run: pnpm vitest run server/index.test.ts -t "Local VM|computer|control"
