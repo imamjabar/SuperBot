@@ -62,7 +62,7 @@ H=/var/lib/docker/volumes/superbot_data/_data/.openmausbot
 
    ```sh
    sh superbot-web-pull.sh
-   docker pull ghcr.io/imamjabar/superbot-computer@sha256:5ef8951515a5093cc7e8ab20322069b666512f1e2d15637860135fcad4af1640
+   docker pull ghcr.io/imamjabar/superbot-computer@sha256:eac28caa7855766e7c628faa953640b47ccbf01621aa6dcce1db00f535a9c1a7
    $C up -d --no-build omb
    $C up -d --no-build --force-recreate caddy
    ```
@@ -106,5 +106,6 @@ To return to an earlier desktop image without the rest of the rollback, set
 `OMB_LOCAL_VM_IMAGE` in `docker-compose.computer.yml` back to one of these,
 remove `openmausbot-computer`, and run `$C up -d --no-build omb`:
 
+- `ghcr.io/imamjabar/superbot-computer@sha256:5ef8951515a5093cc7e8ab20322069b666512f1e2d15637860135fcad4af1640` (layer 10)
 - `ghcr.io/imamjabar/superbot-computer@sha256:fe305fe15159dc0defd168142b02c531f4758f488f3de2d01e2e03e132a710dc`
 - `ghcr.io/imamjabar/superbot-computer@sha256:d7894c2788e22312a6ab443a09ad7cce700748c8e9a57a7c53a9b6cc6d625b77`

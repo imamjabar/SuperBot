@@ -10,7 +10,7 @@ services:
       - ./server-dist:/app/dist-server:ro
     environment:
       OMB_DATA_DIR: /host-data/.openmausbot
-      OMB_LOCAL_VM_IMAGE: ghcr.io/imamjabar/superbot-computer@sha256:5ef8951515a5093cc7e8ab20322069b666512f1e2d15637860135fcad4af1640
+      OMB_LOCAL_VM_IMAGE: ghcr.io/imamjabar/superbot-computer@sha256:eac28caa7855766e7c628faa953640b47ccbf01621aa6dcce1db00f535a9c1a7
 
 volumes:
   superbot_data:
