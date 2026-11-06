@@ -422,7 +422,7 @@ import { ComputerIdleTimer } from "./computer-idle.ts";
 import { CLOUD_COMPUTER_DID_NOT_START, CLOUD_COMPUTER_START_BUDGET_MS, CLOUD_COMPUTER_STARTING, createCloudComputerPower } from "./host/cloud-computer-power.ts";
 import { LocalVmLease, LocalVmLeasePool } from "./local-vm-lease.ts";
 import { SeatLeaseTable, localVmSeatKey, localVmSeatKeys } from "./local-vm-seats.ts";
-import { containerSeatStatus, containerStopSeat, ensureContainerSeat, openSeatViewerTunnel } from "./container-seats.ts";
+import { containerSeatStatus, containerStopSeat, openSeatViewerTunnel, startSeatLifecycle } from "./container-seats.ts";
 import { SeatIdleRegistry } from "./local-vm-seat-idle.ts";
 import { LocalVmSeatPool, type LocalVmSeatHolder } from "./local-vm-seat-pool.ts";
 import { createLoopGuard, loopGuardSettings } from "./host/loop-guard.ts"; import { createPersonFirst } from "./host/person-first.ts";
@@ -6305,12 +6305,8 @@ function localVmMachineBusy(target: LocalVmTarget): boolean {
     localVmActiveThreads.has(key) || localVmLeases.forTarget(key).current(localVmOwnerBusy) !== null);
 }
 
-/** Waits out an idle stop of the same seat that is still running, so the seat is never started and stopped at once. */
 async function ensureLocalVmSeat(target: LocalVmTarget, runtime: Runtime): Promise<void> {
-  if (target.seat === undefined) return;
-  await localVmSeatIdle.settled(target.seat);
-  await ensureContainerSeat(target, { runtime });
-  localVmSeatIdle.touch(target.seat);
+  await startSeatLifecycle(target, localVmSeatIdle, { runtime });
 }
 
 function localVmIdleFor(target: LocalVmTarget): ComputerIdleTimer {
@@ -13482,6 +13478,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           const vm = await attachmentVmForTurn(internalCapability);
           if (!vm) return json(res, 409, { error: "You have no Local VM desktop in this turn, so there is nowhere to run a command." });
           const runtime = (await containerRuntimeStatus()).runtime;
+          if (runtime) await ensureLocalVmSeat(vm, runtime);
           requireActiveInternalCapability();
           if (!runtime || !internalCapabilityIsActive({ ...internalCapability, localVmTarget: vm }) ||
               botComputerControlSnapshot(internalSender.id).held) {

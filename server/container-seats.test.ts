@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { CONTAINER, SHARED_LOCAL_VM_TARGET, containerComputerMcp, containerExec, containerRunArgs, cuaExecArgs, managedImageDockerfile, type CommandRunner } from "./container-computer.ts";
-import { containerSeatStatus, containerStartSeat, containerStopSeat, ensureContainerSeat, parseSeatStatus, seatPrograms } from "./container-seats.ts";
+import { PassThrough } from "node:stream";
+import { CONTAINER, SHARED_LOCAL_VM_TARGET, containerComputerMcp, containerExec, containerRunArgs, cuaExecArgs, managedImageDockerfile, type CommandRunner, type ContainerComputerStatus } from "./container-computer.ts";
+import { containerSeatStatus, containerStartSeat, containerStopSeat, ensureContainerSeat, parseSeatStatus, seatPrograms, startSeatLifecycle } from "./container-seats.ts";
+import { SeatIdleRegistry } from "./local-vm-seat-idle.ts";
+import { seatDesktopTarget } from "./desktop-viewer-targets.ts";
 import { SeatLeaseTable, localVmSeatKey } from "./local-vm-seats.ts";
 
 function recorder(stdout = ""): { runner: CommandRunner; calls: { command: string; args: string[] }[] } {
@@ -114,6 +117,42 @@ describe("ensureContainerSeat", () => {
     const { runner } = recorder();
     await expect(ensureContainerSeat({ ...SHARED_LOCAL_VM_TARGET, seat: 2 }, { runtime: "docker", runner, sleep: async () => {} }))
       .rejects.toThrow(/seat 2 did not start/);
+  });
+
+  it("starts a turn's seat on its first command, so the viewer then finds it running with its credentials", async () => {
+    let started = false;
+    const runner: CommandRunner = async (_command, args) => {
+      if (args.includes("/usr/local/bin/openmausbot-start-seat")) started = true;
+      return { stdout: started && !args.includes("/usr/local/bin/openmausbot-start-seat") ? running(2) : "" };
+    };
+    const idle = new SeatIdleRegistry({ idleMs: () => 900_000, inUse: () => true, stop: async () => {} });
+    const seat = { ...SHARED_LOCAL_VM_TARGET, seat: 2 };
+    const viewer = seatDesktopTarget(seat, {
+      status: async () => ({
+        managed: true, imageMatches: true, network: "loopback", container: "running", runtime: "docker", viewer_port: 1,
+        viewer_url: "http://127.0.0.1:1/vnc.html#password=full&view_password=watch",
+      }) as ContainerComputerStatus,
+      seatRunning: async (runtime, n) => (await containerSeatStatus(n, { runtime, runner })).running,
+      tunnel: () => new PassThrough(),
+      touch: () => {},
+    });
+    try {
+      await expect(viewer.resolve()).rejects.toMatchObject({ status: 409 });
+      await startSeatLifecycle(seat, idle, { runtime: "docker", runner, sleep: async () => {} });
+      expect(started).toBe(true);
+      expect(idle.alive()).toEqual([2]);
+      expect(await viewer.resolve()).toMatchObject({ password: "full", viewPassword: "watch" });
+    } finally {
+      idle.forgetAll();
+    }
+  });
+
+  it("never lists a seat as running when it did not come up", async () => {
+    const { runner } = recorder();
+    const idle = new SeatIdleRegistry({ idleMs: () => 900_000, inUse: () => true, stop: async () => {} });
+    await expect(startSeatLifecycle({ ...SHARED_LOCAL_VM_TARGET, seat: 2 }, idle, { runtime: "docker", runner, sleep: async () => {} }))
+      .rejects.toThrow(/seat 2 did not start/);
+    expect(idle.alive()).toEqual([]);
   });
 });
 

@@ -4,6 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { SHARED_LOCAL_VM_TARGET, sh, type CommandRunner, type LocalVmTarget, type Runtime } from "./container-computer.ts";
 import { augmentedPath, resolveCliSpawn } from "./env-path.ts";
+import type { SeatIdleRegistry } from "./local-vm-seat-idle.ts";
 import { seatIdentity, type SeatIdentity } from "./local-vm-seats.ts";
 
 /** Copies bytes between stdio and the seat's websockify on the container's loopback; websockify ships python3. */
@@ -176,4 +177,17 @@ export async function ensureContainerSeat(
     if ((await containerSeatStatus(seat, seatOptions)).running) return;
   }
   throw new Error(`Local VM seat ${seat} did not start within ${SEAT_START_SECONDS} seconds`);
+}
+
+/** The one way a turn's seat becomes usable: it waits out an idle stop in flight, starts the seat, and only after
+ * the seat is seen running lists it in the idle registry that the viewer and the inventory read. */
+export async function startSeatLifecycle(
+  target: LocalVmTarget,
+  idle: Pick<SeatIdleRegistry, "settled" | "touch">,
+  options: { runtime: Runtime; runner?: CommandRunner; sleep?: (ms: number) => Promise<void> },
+): Promise<void> {
+  if (target.seat === undefined) return;
+  await idle.settled(target.seat);
+  await ensureContainerSeat(target, options);
+  idle.touch(target.seat);
 }
