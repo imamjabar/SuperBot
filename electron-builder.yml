@@ -15,8 +15,8 @@ protocols:
 # stranded on its installed version.
 publish:
   - provider: github
-    owner: milind-soni
-    repo: OpenMausBot
+    owner: imamjabar
+    repo: SuperBot
 
 directories:
   buildResources: build

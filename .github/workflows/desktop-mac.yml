@@ -1,0 +1,37 @@
+name: Desktop Mac
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-mac
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Package
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: pnpm package:prepare && pnpm build:speech && pnpm build:cua && pnpm exec electron-builder --mac dmg --arm64 --publish never -c.mac.identity=- -c.mac.hardenedRuntime=false -c.dmg.sign=false
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="desktop-$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
+          gh release create "$tag" release/*.dmg --repo "$GITHUB_REPOSITORY" --prerelease --title "SuperBot desktop $tag" --notes "Unsigned arm64 Mac build. First open: right-click the app, Open."
