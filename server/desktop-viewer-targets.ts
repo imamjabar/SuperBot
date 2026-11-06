@@ -13,20 +13,26 @@ export function localVmViewerStatus<T extends { target_key: string; viewer_url: 
   };
 }
 
+/** `tunnel`: set when this server runs in a container of its own, whose loopback is not the host's, so the desktop's
+ * loopback-published viewer port is reached through `exec -i` instead. */
 export function localDesktopTarget(target: LocalVmTarget, deps: {
   status: (target: LocalVmTarget) => Promise<ContainerComputerStatus>;
   touch: (target: LocalVmTarget) => void;
+  tunnel?: (runtime: Runtime, container: string) => Duplex;
 }): DesktopTarget {
   return {
     key: target.key,
     async resolve() {
       const status = await deps.status(target);
       if (!status.managed || !status.imageMatches || status.network !== "loopback" || status.container !== "running"
-        || !status.viewer_url) {
+        || !status.viewer_url || (deps.tunnel && !status.runtime)) {
         throw Object.assign(new Error("Local VM unavailable"), { status: 409 });
       }
+      const { tunnel } = deps;
+      const runtime = status.runtime;
       return {
-        port: status.viewer_port ?? 0,
+        port: tunnel ? 0 : status.viewer_port ?? 0,
+        ...(tunnel && runtime ? { connect: () => tunnel(runtime, target.containerName) } : {}),
         password: new URLSearchParams(new URL(status.viewer_url).hash.slice(1)).get("password"),
         touch: () => deps.touch(target),
       };

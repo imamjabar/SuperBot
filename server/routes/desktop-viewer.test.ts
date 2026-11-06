@@ -451,6 +451,32 @@ it("reaches an extra seat through its tunnel, never a host port, and only while 
   expect(tunnels).toBe(1);
 });
 
+it("reaches seat 1 through the tunnel, not the published port, when the server runs in a container of its own", async () => {
+  const tunnelled: Array<[string, string]> = [];
+  const target = localDesktopTarget(SHARED_LOCAL_VM_TARGET, {
+    status: async () => ({
+      managed: true, imageMatches: true, network: "loopback", container: "running", runtime: "docker", viewer_port: 1,
+      viewer_url: "http://127.0.0.1:1/vnc.html#password=fixture-secret",
+    }) as ContainerComputerStatus,
+    touch: () => {},
+    tunnel: (runtime, container) => { tunnelled.push([runtime, container]); return connect(desktopPort, "127.0.0.1"); },
+  });
+  const connection = await target.resolve();
+  expect(connection.port).toBe(0);
+  expect(connection.password).toBe("fixture-secret");
+  const socket = connection.connect!();
+  peers.add(socket);
+  await once(socket, "connect");
+  expect(tunnelled).toEqual([["docker", SHARED_LOCAL_VM_TARGET.containerName]]);
+  const runtimeless = localDesktopTarget(SHARED_LOCAL_VM_TARGET, {
+    status: async () => ({ managed: true, imageMatches: true, network: "loopback", container: "running", viewer_port: 1,
+      viewer_url: "http://127.0.0.1:1/vnc.html#password=fixture-secret" }) as ContainerComputerStatus,
+    touch: () => {},
+    tunnel: () => { throw new Error("no runtime, no tunnel"); },
+  });
+  await expect(runtimeless.resolve()).rejects.toMatchObject({ status: 409 });
+});
+
 it("hides a seat from a person who cannot see the bot holding it, before anything is inspected", async () => {
   denied.add("local/shared-seat-2");
   expect((await get(seatBase)).status).toBe(403);

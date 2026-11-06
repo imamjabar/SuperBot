@@ -4690,6 +4690,7 @@ const desktopViewer = createDesktopViewer({
     return target && localDesktopTarget(target, {
       status: target => containerComputerStatus(undefined, undefined, target, { probeDesktop: false }),
       touch: target => localVmIdleFor(target).touch(),
+      ...(SERVER_IN_CONTAINER ? { tunnel: (runtime: Runtime, container: string) => openSeatViewerTunnel(runtime, 1, container) } : {}),
     });
   },
   live: auth => auth.kind === "loopback" || sessions.isLive(auth.session.id),
@@ -5637,6 +5638,8 @@ const localVmOwnerBusy = (botId: string) => store.bot(botId)?.busy === true;
 const localVmLeases = new LocalVmLeasePool(30 * 60_000);
 const localVmSeatPool = new LocalVmSeatPool(() => localVmMaxInstances(cfg));
 const localVmLifecycleBusy = new Set<string>();
+/** This server's own loopback is its container's, not the host's, so a Local VM's loopback-published port is out of reach. */
+const SERVER_IN_CONTAINER = existsSync("/.dockerenv") || existsSync("/run/.containerenv");
 const localVmThreadTargets = new Map<string, LocalVmTarget>();
 const localVmActiveThreads = new Map<string, string>();
 const localVmSeatLeases = new SeatLeaseTable(() => localVmSeats(cfg), 30 * 60_000);
