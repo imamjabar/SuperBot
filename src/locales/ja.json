@@ -2127,8 +2127,6 @@
   "chat.assistant": "アシスタント",
   "chat.webhookTask": "Webhook のタスク",
   "chat.viewPayload": "イベントのペイロードを見る",
-  "chat.sentMidTurn": "ターンの途中で送信",
-  "chat.sentMidTurnHint": "ボットの作業中に送信されました。同じターン内で、次のステップの前に読まれています。",
   "chat.viaCall": "通話経由",
   "chat.callRecord.title": "{name}との通話",
   "chat.callRecord.label": "ライブ通話：{title}、{duration}",

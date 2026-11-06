@@ -2020,8 +2020,6 @@
   "chat.assistant": "Assistente",
   "chat.webhookTask": "Tarefa de webhook",
   "chat.viewPayload": "Ver o payload do evento",
-  "chat.sentMidTurn": "enviado durante o turno",
-  "chat.sentMidTurnHint": "Enviado enquanto o bot trabalhava — ele viu isso antes do passo seguinte, dentro do mesmo turno.",
   "chat.viaCall": "por chamada",
   "chat.callRecord.title": "Chamada com {name}",
   "chat.callRecord.label": "Chamada ao vivo: {title}, {duration}",

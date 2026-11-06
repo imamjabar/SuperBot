@@ -4,6 +4,7 @@ import { isStatusActivity } from "@/lib/activity-runs";
 import { peerLine, peerRequest } from "@/lib/peer-message";
 import { localDay } from "@/lib/transcript-derivations";
 import type { TranscriptItem } from "@/lib/activity-runs";
+import type { PeerExchangeGroup } from "@/lib/peer-exchange";
 import type { Message } from "@/state/store";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
@@ -121,14 +122,15 @@ export function needsStamp(prev: Message | undefined, first: Message, simple: bo
 }
 
 /** How Simple mode lays out a transcript's rows: which bubbles join, and which cards tuck under their bot's bubble. */
-export function simpleRowLayout(items: readonly TranscriptItem[], { botId, showToolCalls, unreadIds }: {
+export function simpleRowLayout(items: readonly (TranscriptItem | PeerExchangeGroup)[], { botId, showToolCalls, unreadIds }: {
   botId: string; showToolCalls: boolean; unreadIds: ReadonlySet<string> | null;
 }): { joins: BubbleJoin[]; tucks: boolean[] } {
-  const rowsOf = (item: TranscriptItem) => item.kind === "message" ? [item.message] : item.messages;
+  const rowsOf = (item: TranscriptItem | PeerExchangeGroup) => item.kind === "message" ? [item.message] : item.messages;
   const dividerAt = unreadIds ? items.findIndex((item) => rowsOf(item).some((row) => unreadIds.has(row.id))) : -1;
   const slots = items.map((item, i): TranscriptSlot => {
     const previous = items[i - 1];
     const stamped = needsStamp(previous && rowsOf(previous).at(-1), rowsOf(item)[0]!, true) && i > 0 || i === dividerAt;
+    if (item.kind === "peer-exchange") return { group: null, hidden: false, breakBefore: stamped || i === 0, breakAfter: false, stamped };
     if (item.kind !== "message") return { group: null, hidden: !showToolCalls, breakBefore: stamped || i === 0, breakAfter: false, stamped };
     const m = item.message;
     const group = isCancelledTranscriptRow(m) ? null : bubbleGroup(m, botId);

@@ -2034,8 +2034,6 @@
   "chat.assistant": "Assistente",
   "chat.webhookTask": "Attività webhook",
   "chat.viewPayload": "Vedi i dati dell'evento",
-  "chat.sentMidTurn": "inviato a metà turno",
-  "chat.sentMidTurnHint": "Inviato mentre il bot lavorava — l'ha visto prima del passo successivo, nello stesso turno.",
   "chat.viaCall": "via chiamata",
   "chat.callRecord.title": "Chiamata con {name}",
   "chat.callRecord.label": "Chiamata in diretta: {title}, {duration}",

@@ -54,8 +54,9 @@ import { THIS_COMPUTER_NOT_READY } from "../../shared/your-computer";
 import { BotAvatar } from "./Avatar";
 import { TurnPresence } from "./TurnPresence";
 import { showToolCallsEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
-import { normalizeState, stateForBot } from "@/lib/mascot";
-import { peerLine, peerRequest, type PeerLine } from "@/lib/peer-message";
+import { stateForBot } from "@/lib/mascot";
+import { peerLine, peerRequest } from "@/lib/peer-message";
+import { PeerLabel } from "./PeerLabel";
 import { showWorkingDots } from "@/lib/turn-tail";
 import { lastNonReceipt } from "@/lib/receipts";
 import { useTurnLive } from "@/state/turn-status"; import { useTurnNow } from "./NowCard"; import { useThreadRoutineRun } from "@/state/older-routine-runs";
@@ -106,7 +107,9 @@ import { effectivePlace, toolPlace, type EffectivePlace } from "@/lib/place";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
-import { groupTranscript, isStatusActivity, turnDurations, workedLabel } from "@/lib/activity-runs";
+import { isStatusActivity, turnDurations, workedLabel } from "@/lib/activity-runs";
+import { groupTranscriptWithPeerExchanges } from "@/lib/peer-exchange";
+import { PeerExchangeRow } from "./PeerExchangeRow";
 import { StatusActivityRow } from "@/components/StatusActivityRow";
 import { CancelledTurnRow } from "./CancelledTurnRow";
 import { ActivityRun } from "./ActivityRun";
@@ -434,7 +437,7 @@ const Bubble = memo(function Bubble({
 
   return (
     <div {...{ [MESSAGE_ROW]: "" }} className={cn("group flex w-full flex-col", user ? "animate-msg-in items-end" : "items-start", simple && join?.above && SIMPLE_STACKED)}>
-      {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} />}
+      {message.relay ? <RelayLabel message={message} /> : peer && <PeerLabel peer={peer} bots={bots} />}
       {speaker && <div className="mb-0.5 px-1 text-[12px] font-medium text-ink-secondary">{speaker}</div>}
       <div className={cn("flex w-full items-center gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
@@ -523,11 +526,6 @@ const Bubble = memo(function Bubble({
                   return highlightCitationSource(citation);
                 }}
               />}
-              {message.steered && (
-                <div className="mt-1 text-[11px] text-ink-tertiary" title={t("chat.sentMidTurnHint")}>
-                  {t("chat.sentMidTurn")}
-                </div>
-              )}
               {message.quickModel && <QuickModelNote model={message.quickModel} />}
               <UserLineNote message={message} />
               {collapsible && (
@@ -604,33 +602,6 @@ const Bubble = memo(function Bubble({
   );
 });
 
-function PeerLabel({ peer }: { peer: PeerLine }) {
-  const { bots } = useChatRows();
-  const author =
-    bots.find((b) => b.id === peer.botId) ?? bots.find((b) => b.name === peer.name);
-  const how =
-    peer.delivery === "delegate_bot"
-      ? t("chat.peer.handedTask")
-      : peer.delivery === "start_thread"
-        ? t("chat.peer.openedThread")
-        : peer.delivery === "coordinate_bots"
-          ? t("chat.peer.requested")
-          : t("chat.peer.asked");
-  return (
-    <div className="mb-1 flex items-center gap-1.5 pl-0.5" data-testid="peer-label">
-      <BotAvatar
-        bot={author ?? { name: peer.name, color: "blue" }}
-        state={normalizeState(author?.mascotExpression) ?? "happy"}
-        size={16}
-        motion="none"
-        motionKey={0}
-        animated={false}
-      />
-      <span className="text-[11px] font-medium text-ink-secondary">{peer.name}</span>
-      <span className="text-[11px] text-ink-tertiary">· {how}</span>
-    </div>
-  );
-}
 
 const ActivityChip = memo(function ActivityChip({ message, place = "auto" }: { message: Message; place?: EffectivePlace }) {
   const { bots, dispatch, threadId } = useChatRows(), liveTools = use(LiveToolsContext);
@@ -684,7 +655,7 @@ const MessagesList = memo(function MessagesList({
 }) {
   const { botId, threadId, botName, botColor, bots, hasMore, focus, showToolCalls, locale, simple = false } = useChatRows(), busy = use(ChatBusyContext);
   // A finished turn keeps the bot's progress lines and folds only its tool steps under "Worked for", in both modes.
-  const items = useMemo(() => groupTranscript(messages), [messages, locale]);
+  const items = useMemo(() => groupTranscriptWithPeerExchanges(messages), [messages, locale]);
   const newestMessageId = messages.at(-1)?.id;
   let newestUserMessageId: string | undefined;
   for (let i = messages.length - 1; i >= 0 && !newestUserMessageId; i--) {
@@ -723,8 +694,7 @@ const MessagesList = memo(function MessagesList({
             </div>
           );
         }
-        const m = item.message;
-        const row = (() => {
+        const renderRow = (m: Message) => {
           if (isCancelledTranscriptRow(m)) {
             return (
               <CancelledTurnRow
@@ -797,7 +767,21 @@ const MessagesList = memo(function MessagesList({
               );
             }
           }
-        })();
+        };
+        if (item.kind === "peer-exchange") {
+          const forceOpen = item.messages.some((step) => step.id === focusedId);
+          return (
+            <div key={item.id} className="contents">
+              {newDay && <DaySeparator at={first.at} today={today} simple={simple} />}
+              {divider}
+              <PeerExchangeRow fromName={item.from.name} toName={botName} count={item.messages.length} forceOpen={forceOpen}>
+                {item.messages.map((step) => <div key={step.id} className="contents" data-mid={step.id}>{renderRow(step)}</div>)}
+              </PeerExchangeRow>
+            </div>
+          );
+        }
+        const m = item.message;
+        const row = renderRow(m);
         if (!row) return divider && <div key={m.id} className="contents">{divider}</div>;
         return (
           <div key={m.id} className="contents" data-mid={m.id} data-tuck={layout?.tucks[i] ? "" : undefined}>
