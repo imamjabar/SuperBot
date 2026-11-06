@@ -38,9 +38,10 @@ describe("PeerExchangeRow", () => {
 
     const toggle = host.querySelector<HTMLButtonElement>('[data-testid="peer-exchange-toggle"]');
     expect(toggle).toBeTruthy();
-    expect(toggle?.textContent).toContain("↔ Chief Assistant Bot → Designer Bot · 2 messages");
+    expect(toggle?.textContent).toContain("Chief → Designer · 2");
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
-
+    expect(toggle?.getAttribute("title")).toBe("Chief Assistant Bot and Designer Bot talked: 2 messages. Show");
+    expect(toggle?.getAttribute("aria-label")).toBe("Chief Assistant Bot and Designer Bot talked: 2 messages. Show");
     expect(host.textContent).not.toContain("@Designer Bot Ping Imam now...");
     expect(host.querySelector('[data-testid="request-bubble"]')).toBeNull();
 
@@ -49,7 +50,8 @@ describe("PeerExchangeRow", () => {
     });
 
     expect(toggle?.getAttribute("aria-expanded")).toBe("true");
-    expect(host.textContent).toContain("@Designer Bot Ping Imam now...");
+    expect(toggle?.getAttribute("title")).toBe("Chief Assistant Bot and Designer Bot talked: 2 messages. Hide");
+    expect(toggle?.getAttribute("aria-label")).toBe("Chief Assistant Bot and Designer Bot talked: 2 messages. Hide");
     expect(host.querySelector('[data-testid="request-bubble"]')).toBeTruthy();
     expect(host.querySelector('[data-testid="peer-exchange-messages"]')).toBeTruthy();
 
@@ -77,7 +79,9 @@ describe("PeerExchangeRow", () => {
       );
     });
 
-    expect(host.textContent).toContain("↔ Chief Assistant Bot → Designer Bot · 1 message");
+    expect(host.textContent).toContain("Chief → Designer · 1");
+    const toggle = host.querySelector<HTMLButtonElement>('[data-testid="peer-exchange-toggle"]');
+    expect(toggle?.getAttribute("title")).toBe("Chief Assistant Bot and Designer Bot talked: 1 message. Hide");
     expect(host.textContent).toContain("Force opened content");
   });
 });

@@ -441,6 +441,24 @@ it("answers a message sent while the bot works at once in the same chat, and the
   expect(chief.mainThreadId).toBe(f.chief.activeTaskId);
 }), 60_000);
 
+it("with front desk on, the person's chat has no computer tools and hands the work to a job that has them", () => fixture(async f => {
+  expect((await f.api("/api/config", { features: { frontDesk: true } }, "PATCH")).features).toBeDefined();
+  const job = { promptIncludes: "DESK_JOB_BRIEF", plan: { reply: "DESK_JOB_RESULT ready", resumeReply: "The job is back" } };
+  f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Look it up", message: "DESK_JOB_BRIEF look up the prices", report_back: true } }],
+    reply: "On it", resumeReply: "The job is back", byPrompt: [job] };
+  await f.start();
+  expect((await f.wait()).status).toBe("settled");
+  const turns = f.evidence();
+  const chat = turns.find((turn: any) => turn.threadId === f.chief.activeTaskId), work = turns.find((turn: any) => turn.threadId !== f.chief.activeTaskId);
+  expect(chat.system).toContain("must always answer within seconds");
+  expect(work.system).not.toContain("must always answer within seconds");
+  const toolNames = (turn: any) => (turn.evidence.find((entry: any) => entry.result?.tools)?.result.tools ?? []).map((tool: any) => tool.name);
+  expect(toolNames(work)).toContain("vm_exec");
+  expect(toolNames(chat)).not.toContain("vm_exec");
+  expect(toolNames(chat)).toContain("start_thread");
+  expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "The job is back")).toBe(true);
+}), 60_000);
+
 it("lets the opener find and close the completed task", () => fixture(async f => {
   await f.start();
   expect((await f.wait()).status).toBe("settled");

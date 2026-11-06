@@ -159,8 +159,9 @@ describe("peer exchange collapsing in ChatView", () => {
 
     const toggle = host.querySelector<HTMLButtonElement>('[data-testid="peer-exchange-toggle"]');
     expect(toggle).toBeTruthy();
-    expect(toggle?.textContent).toContain("Chief Assistant Bot → Designer Bot");
-
+    expect(toggle?.textContent).toContain("Chief → Designer · 3");
+    expect(toggle?.getAttribute("title")).toBe("Chief Assistant Bot and Designer Bot talked: 3 messages. Show");
+    expect(toggle?.getAttribute("aria-label")).toBe("Chief Assistant Bot and Designer Bot talked: 3 messages. Show");
     expect(host.textContent).toContain("Halo Imam...");
 
     expect(host.textContent).not.toContain("@Designer Bot Ping Imam now...");
@@ -169,9 +170,90 @@ describe("peer exchange collapsing in ChatView", () => {
     flushSync(() => {
       toggle?.click();
     });
-
+    expect(toggle?.getAttribute("title")).toBe("Chief Assistant Bot and Designer Bot talked: 3 messages. Hide");
+    expect(toggle?.getAttribute("aria-label")).toBe("Chief Assistant Bot and Designer Bot talked: 3 messages. Hide");
     expect(host.textContent).toContain("@Designer Bot Ping Imam now...");
     expect(host.textContent).toContain("Sent. One-line confirmation: pinged Imam.");
     expect(host.textContent).toContain("Halo Imam...");
+  });
+
+  it("folds requesting side activity rows into Chief → Designer · N while keeping bot text visible", () => {
+    const chiefBot: Bot = {
+      ...bot,
+      id: "chief",
+      name: "Chief Assistant Bot",
+    };
+    const messages: Message[] = [
+      {
+        id: "coord-1",
+        at: 1000,
+        role: "bot",
+        kind: "activity",
+        tool: { name: "agents_coordinate_bots", ok: true },
+      },
+      {
+        id: "sent-1",
+        at: 2000,
+        role: "bot",
+        kind: "activity",
+        from: { botId: "chief", name: "Chief Assistant Bot", color: "blue" },
+        tool: { name: "Sent to Designer Bot", ok: true },
+        threadRef: { botId: "designer", threadId: "t-designer-1", title: "Teammate work" },
+        roomRequest: { id: "req-42", phase: "request" },
+      },
+      {
+        id: "reply-1",
+        at: 3000,
+        role: "bot",
+        kind: "activity",
+        from: { botId: "designer", name: "Designer Bot", color: "purple" },
+        tool: { name: "Designer Bot replied", ok: true, output: "Mockup ready" },
+        roomRequest: { id: "req-42", phase: "result" },
+        threadRef: { botId: "designer", threadId: "t-designer-1", title: "Teammate work" },
+      },
+      {
+        id: "resumed-1",
+        at: 4000,
+        role: "bot",
+        kind: "activity",
+        tool: { name: "Resumed with Designer Bot results, reviewing", ok: true },
+      },
+      {
+        id: "reply-text",
+        at: 5000,
+        role: "bot",
+        kind: "text",
+        text: "Here is what Designer Bot created for you.",
+      },
+    ];
+
+    render({ ...chiefBot, messages });
+
+    const toggle = host.querySelector<HTMLButtonElement>('[data-testid="peer-exchange-toggle"]');
+    expect(toggle).toBeTruthy();
+    expect(toggle?.textContent).toContain("Chief → Designer · 3");
+    expect(toggle?.getAttribute("title")).toBe("Chief Assistant Bot and Designer Bot talked: 3 messages. Show");
+    expect(toggle?.getAttribute("aria-label")).toBe("Chief Assistant Bot and Designer Bot talked: 3 messages. Show");
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+
+    expect(host.textContent).toContain("Here is what Designer Bot created for you.");
+    expect(host.textContent).not.toContain("Mockup ready");
+
+    flushSync(() => {
+      toggle?.click();
+    });
+
+    expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle?.getAttribute("title")).toBe("Chief Assistant Bot and Designer Bot talked: 3 messages. Hide");
+    expect(host.textContent).toContain("Mockup ready");
+    expect(host.textContent).toContain("Here is what Designer Bot created for you.");
+
+    flushSync(() => {
+      toggle?.click();
+    });
+
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+    expect(host.textContent).not.toContain("Mockup ready");
+    expect(host.textContent).toContain("Here is what Designer Bot created for you.");
   });
 });

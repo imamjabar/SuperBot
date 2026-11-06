@@ -4,6 +4,13 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import type { Message } from "@/state/store";
 
+export function botFirstName(fullName?: string): string {
+  if (!fullName) return "";
+  const trimmed = fullName.trim();
+  if (!trimmed) return "";
+  return trimmed.split(/\s+/)[0]!;
+}
+
 export function PeerExchangeRow({
   fromName,
   toName,
@@ -25,11 +32,23 @@ export function PeerExchangeRow({
   }, [forceOpen]);
 
   const effectiveCount = count ?? messages?.length ?? 0;
+  const sourceName = fromName || t("chat.assistant");
   const targetName = toName || t("chat.assistant");
+  const fromFirst = botFirstName(sourceName) || sourceName;
+  const toFirst = botFirstName(targetName) || targetName;
   const label =
     effectiveCount === 1
-      ? t("chat.peerExchange.collapsedOne", { from: fromName, to: targetName })
-      : t("chat.peerExchange.collapsed", { from: fromName, to: targetName, count: effectiveCount });
+      ? t("chat.peerExchange.collapsedOne", { from: fromFirst, to: toFirst, count: effectiveCount })
+      : t("chat.peerExchange.collapsed", { from: fromFirst, to: toFirst, count: effectiveCount });
+
+  const titleKey = open
+    ? effectiveCount === 1
+      ? "chat.peerExchange.titleHideOne"
+      : "chat.peerExchange.titleHide"
+    : effectiveCount === 1
+      ? "chat.peerExchange.titleShowOne"
+      : "chat.peerExchange.titleShow";
+  const buttonTitle = t(titleKey, { from: sourceName, to: targetName, count: effectiveCount });
 
   return (
     <div className="my-1 flex flex-col gap-1.5" data-testid="peer-exchange-row">
@@ -38,7 +57,8 @@ export function PeerExchangeRow({
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           aria-expanded={open}
-          title={open ? t("chat.peerExchange.collapse") : t("chat.peerExchange.expand")}
+          title={buttonTitle}
+          aria-label={buttonTitle}
           className="flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-hairline/40 bg-panel/60 px-3 py-1 text-[12px] text-ink-secondary transition-colors hover:bg-control"
           data-testid="peer-exchange-toggle"
         >

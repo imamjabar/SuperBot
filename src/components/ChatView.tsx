@@ -774,7 +774,7 @@ const MessagesList = memo(function MessagesList({
             <div key={item.id} className="contents">
               {newDay && <DaySeparator at={first.at} today={today} simple={simple} />}
               {divider}
-              <PeerExchangeRow fromName={item.from.name} toName={botName} count={item.messages.length} forceOpen={forceOpen}>
+              <PeerExchangeRow fromName={item.from?.name || botName} toName={item.toName ?? botName} count={item.messages.length} forceOpen={forceOpen}>
                 {item.messages.map((step) => <div key={step.id} className="contents" data-mid={step.id}>{renderRow(step)}</div>)}
               </PeerExchangeRow>
             </div>

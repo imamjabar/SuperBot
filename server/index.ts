@@ -631,7 +631,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
-import { createPersonReplies } from "./person-replies.ts"; import { createSideReplies, SIDE_LANE_TITLE } from "./side-replies.ts";
+import { createPersonReplies } from "./person-replies.ts"; import { createSideReplies, SIDE_LANE_TITLE } from "./side-replies.ts"; import { FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
@@ -2941,12 +2941,12 @@ const wireBot = (bot: BotRecord): WireBot => {
     avatarUrl: visible.avatarUrl ?? null, ...(tasks ? { tasks: tasks.map((task) => wireTask(task, bot.modelSelection, awaiting)) } : {}) };
 };
 
-function toolScopeForTurn(botId: string) {
+function toolScopeForTurn(botId: string, threadId?: string) {
   const bot = store.bot(botId);
   if (!bot) throw Object.assign(new Error("no such bot"), { status: 404 });
   const parsed = parseToolScope(bot.toolScope);
   if (!parsed.ok) throw Object.assign(new Error("This bot's tool selection is invalid. Open Access settings and save a valid selection before starting a turn."), { status: 409, code: "tool_scope" });
-  return parsed.scope;
+  return threadId && frontDeskTurn(cfg, store, botMainThread(botId), botId, threadId) ? frontDeskScope(parsed.scope) : parsed.scope;
 }
 
 const wireTrustedApprovalBot = (bot: NonNullable<ReturnType<typeof store.bot>>) => {
@@ -7454,7 +7454,7 @@ async function acceptDirectSend(
     },
   );
 }
-const sideReplies = createSideReplies(store);
+const sideReplies = createSideReplies(store); createJobProgress(coordinator, store);
 const personReplies = createPersonReplies({
   store, sendSequencer, messageSender, usageTriggerFor, groupThreadIsWorking, startGroupTurn, startOrQueueDirectMessage,
   assertWithinBudget: () => assertWithinBudget(cfg, DATA_DIR),
@@ -7722,7 +7722,7 @@ async function beginTurn(
   }
   const policyRefusal = policyModelRefusal(instance);
   if (policyRefusal) throw Object.assign(new Error(policyRefusal), { status: 409, code: "managed_policy" });
-  const toolScope = toolScopeForTurn(bot.id);
+  const toolScope = toolScopeForTurn(bot.id, threadId);
   guestDrivenTurns.delete(threadId);
   const guestConfined = cloudGuestDriven(threadId) || cloudGuestDrivenHandoff(opts?.coordination?.id) || botApiThread(threadId);
   if (guestConfined && instance.adapter.capabilities.guestTurns !== "confined") {
@@ -8403,7 +8403,7 @@ async function beginTurn(
         : integrations.agents && sectionPeers.length > 0
           ? peerRosterSystemPrompt(sectionPeers, bot)
           : "";
-      const credentialPrompt = integrations.agents ? CREDENTIAL_PROMPT + THREADS_PROMPT + WIDGET_PROMPT : "";
+      const credentialPrompt = integrations.agents ? CREDENTIAL_PROMPT + (frontDeskTurn(cfg, store, botMainThread(bot.id), bot.id, threadId) ? FRONT_DESK_PROMPT : "") + THREADS_PROMPT + WIDGET_PROMPT : "";
       const routinePrompt = integrations.agents ? TRIGGER_PROMPT : "";
       const profilePrompt = integrations.agents ? PROFILE_PROMPT : "";
       const recallPrompt = integrations.agents && bot.memoryEnabled !== false ? SESSION_SEARCH_SYSTEM_PROMPT : "";
