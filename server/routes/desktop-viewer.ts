@@ -58,6 +58,7 @@ export function createDesktopViewer(deps: {
   const ownGate = deps.upgrades === undefined;
   upgrades.route((path) => Boolean(ROUTE.exec(path)?.[2]));
   const viewers = new Map<IncomingMessage, Viewer>();
+  const activeByTarget = new Map<string, Viewer>();
   let stopped = false;
 
   const route: RouteHandler = async ({ req, res, url, path, method, auth, json }) => {
@@ -89,6 +90,13 @@ export function createDesktopViewer(deps: {
     const holds = () => bound?.() ?? true;
     const target = deps.target(match[1]);
     if (!target) return json(res, 404, { error: "Desktop not found" });
+    const isExclusive = deps.exclusive?.(match[1]) === true;
+    if (match[2] && isExclusive) {
+      const existing = activeByTarget.get(match[1]);
+      if (existing && !existing.socket.destroyed) {
+        return json(res, 409, { error: "The desktop is currently in use by another viewer" });
+      }
+    }
     const pending = upgrades.pending(req);
     if (pending && stopped) { pending.socket.destroy(); return; }
     let upgrade: Viewer | undefined;
@@ -97,7 +105,10 @@ export function createDesktopViewer(deps: {
       if (auth.kind === "session") viewer.owner = auth.session.id;
       if (botId !== null) viewer.botId = botId;
       viewers.set(req, viewer);
-      pending.socket.once("close", () => viewers.delete(req));
+      pending.socket.once("close", () => {
+        viewers.delete(req);
+        if (activeByTarget.get(match[1]) === viewer) activeByTarget.delete(match[1]);
+      });
       upgrade = viewer;
     }
     let connection: DesktopConnection;
@@ -145,6 +156,7 @@ export function createDesktopViewer(deps: {
     upgrade.close = () => {
       if (closed) return;
       closed = true;
+      if (activeByTarget.get(match[1]) === upgrade) activeByTarget.delete(match[1]);
       release?.();
       clearTimeout(timeout);
       clearInterval(recheck);
@@ -171,6 +183,7 @@ export function createDesktopViewer(deps: {
       peer = remote;
       remote.once("error", upgrade.close);
       remote.once("close", upgrade.close);
+      if (isExclusive) activeByTarget.set(match[1], upgrade);
       pending.release();
       res.detachSocket(socket);
       socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
@@ -204,6 +217,7 @@ export function createDesktopViewer(deps: {
     },
     closeAll: () => {
       stopped = true;
+      activeByTarget.clear();
       if (ownGate) upgrades.close();
       for (const viewer of viewers.values()) viewer.close();
     },

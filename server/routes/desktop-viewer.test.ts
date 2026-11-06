@@ -14,6 +14,9 @@ import { SHARED_LOCAL_VM_TARGET, perBotLocalVmTarget, poolLocalVmTarget, type Co
 import { createDesktopViewer, desktopViewerUrl, type DesktopTarget } from "./desktop-viewer.ts";
 import { viewerTargetId } from "../../shared/desktop-viewer.ts";
 import { localDesktopTarget, localVmViewerStatus, seatDesktopTarget } from "../desktop-viewer-targets.ts";
+import { fakeVncDesktop } from "../../scripts/testing/fake-vnc-desktop.ts";
+// @ts-expect-error noVNC package export
+import { DESECBCipher } from "../../node_modules/@novnc/novnc/core/crypto/des.js";
 
 let dir: string;
 let sessions: SessionRegistry;
@@ -65,11 +68,11 @@ function get(path: string, extra: Record<string, string> = {}) {
 }
 
 function open(path = `${base}/websockify`, overrides: Record<string, string> = {}, rawKey = "dGhlIHNhbXBsZSBub25jZQ==") {
-  return new Promise<{ status: number; socket?: Duplex; body?: string }>((resolve, reject) => {
+  return new Promise<{ status: number; socket?: Duplex; head?: Buffer; body?: string }>((resolve, reject) => {
     const req = request({ hostname: "127.0.0.1", port: appPort, path, headers: {
       ...headers(), Upgrade: "websocket", Connection: "Upgrade", "Sec-WebSocket-Key": rawKey, "Sec-WebSocket-Version": "13", ...overrides,
     } });
-    req.once("upgrade", (res, socket) => { peers.add(socket); resolve({ status: res.statusCode!, socket }); });
+    req.once("upgrade", (res, socket, head) => { peers.add(socket); resolve({ status: res.statusCode!, socket, head }); });
     req.once("response", res => {
       let body = "";
       res.on("data", chunk => body += chunk);
@@ -496,4 +499,158 @@ it("lets a control lease reserve a seat only when that seat is exclusive to its 
   expect((await open(seatBound)).status).toBe(101);
   expect((await open(sharedBound)).status).toBe(409);
   expect((await open(`${seatBase}/websockify?botId=other-bot&controlLeaseId=${lease}`)).status).toBe(409);
+});
+
+function encodeWsClientBinary(payload: Buffer): Buffer {
+  const mask = Buffer.from([0x1a, 0x2b, 0x3c, 0x4d]);
+  let header: Buffer;
+  if (payload.length <= 125) {
+    header = Buffer.from([0x82, 0x80 | payload.length]);
+  } else if (payload.length <= 65535) {
+    header = Buffer.alloc(4);
+    header[0] = 0x82;
+    header[1] = 0x80 | 126;
+    header.writeUInt16BE(payload.length, 2);
+  } else {
+    header = Buffer.alloc(10);
+    header[0] = 0x82;
+    header[1] = 0x80 | 127;
+    header.writeBigUInt64BE(BigInt(payload.length), 2);
+  }
+  const masked = Buffer.alloc(payload.length);
+  for (let i = 0; i < payload.length; i++) {
+    masked[i] = payload[i] ^ mask[i % 4];
+  }
+  return Buffer.concat([header, mask, masked]);
+}
+
+function decodeWsServerFrames(buffer: Buffer): { messages: Buffer[]; rest: Buffer } {
+  const messages: Buffer[] = [];
+  let at = 0;
+  while (at + 2 <= buffer.length) {
+    const b1 = buffer[at + 1];
+    const masked = (b1 & 0x80) !== 0;
+    let len = b1 & 0x7f;
+    let offset = at + 2;
+    if (len === 126) {
+      if (offset + 2 > buffer.length) break;
+      len = buffer.readUInt16BE(offset);
+      offset += 2;
+    } else if (len === 127) {
+      if (offset + 8 > buffer.length) break;
+      len = Number(buffer.readBigUInt64BE(offset));
+      offset += 8;
+    }
+    const mask = masked ? buffer.subarray(offset, offset + 4) : null;
+    if (masked) offset += 4;
+    if (offset + len > buffer.length) break;
+    const chunk = Buffer.from(buffer.subarray(offset, offset + len));
+    if (mask) {
+      for (let i = 0; i < chunk.length; i++) chunk[i] ^= mask[i % 4];
+    }
+    messages.push(chunk);
+    at = offset + len;
+  }
+  return { messages, rest: buffer.subarray(at) };
+}
+
+it("rejects a second viewer on an exclusive target without taking over the first, until the first closes", async () => {
+  leases.add(leaseKey("local/shared-seat-2", "test-bot", lease));
+  exclusive.add("local/shared-seat-2");
+  const seatBound = `${seatBase}/websockify?botId=test-bot&controlLeaseId=${lease}`;
+  const first = await open(seatBound);
+  expect(first.status).toBe(101);
+  const firstSocket = first.socket!;
+  expect(firstSocket.destroyed).toBe(false);
+
+  const second = await open(seatBound);
+  expect(second.status).toBe(409);
+  expect(firstSocket.destroyed).toBe(false);
+
+  firstSocket.destroy();
+  await once(firstSocket, "close");
+
+  const third = await open(seatBound);
+  expect(third.status).toBe(101);
+  third.socket!.destroy();
+});
+
+it("completes an authenticated RFB 3.8 handshake and relays input events through the proxy", async () => {
+  const fake = await fakeVncDesktop({ width: 100, height: 100 });
+  try {
+    statusOverrides = { viewer_port: fake.port, viewer_url: `http://127.0.0.1:${fake.port}/vnc.html#password=fixture-secret` };
+    const answer = await open(`${base}/websockify`);
+    expect(answer.status).toBe(101);
+    const socket = answer.socket!;
+
+    let rawBuffer = answer.head ?? Buffer.alloc(0);
+    let incoming = Buffer.alloc(0);
+    const receive = async (minBytes: number): Promise<Buffer> => {
+      for (;;) {
+        if (incoming.length >= minBytes) {
+          const result = incoming.subarray(0, minBytes);
+          incoming = incoming.subarray(minBytes);
+          return result;
+        }
+        if (rawBuffer.length > 0) {
+          const decoded = decodeWsServerFrames(rawBuffer);
+          rawBuffer = decoded.rest;
+          for (const msg of decoded.messages) incoming = Buffer.concat([incoming, msg]);
+          if (incoming.length >= minBytes) continue;
+        }
+        const [chunk] = await once(socket, "data") as [Buffer];
+        rawBuffer = Buffer.concat([rawBuffer, chunk]);
+        const decoded = decodeWsServerFrames(rawBuffer);
+        rawBuffer = decoded.rest;
+        for (const msg of decoded.messages) incoming = Buffer.concat([incoming, msg]);
+      }
+    };
+    const banner = await receive(12);
+    expect(banner.toString("ascii")).toBe("RFB 003.008\n");
+    socket.write(encodeWsClientBinary(Buffer.from("RFB 003.008\n")));
+
+    const secTypes = await receive(2);
+    expect([...secTypes]).toEqual([1, 2]);
+    socket.write(encodeWsClientBinary(Buffer.from([2])));
+
+    const challenge = await receive(16);
+    const cipher = DESECBCipher.importKey("fixture-secret".split("").map((c: string) => c.charCodeAt(0)));
+    socket.write(encodeWsClientBinary(Buffer.from(cipher.encrypt(null, Array.from(challenge)))));
+
+    expect((await receive(4)).readUInt32BE(0)).toBe(0);
+    socket.write(encodeWsClientBinary(Buffer.from([1])));
+
+    const serverInit = await receive(24);
+    expect(serverInit.readUInt16BE(0)).toBe(100);
+    expect(serverInit.readUInt16BE(2)).toBe(100);
+    expect((await receive(serverInit.readUInt32BE(20))).toString("ascii")).toBe("Isolated Local VM");
+
+    const fbReq = Buffer.alloc(10);
+    fbReq[0] = 3;
+    fbReq.writeUInt16BE(100, 6);
+    fbReq.writeUInt16BE(100, 8);
+    socket.write(encodeWsClientBinary(fbReq));
+    const fbUpdate = await receive(4);
+    expect(fbUpdate[0]).toBe(0);
+    expect(fbUpdate.readUInt16BE(2)).toBeGreaterThanOrEqual(1);
+
+    const ptr = Buffer.alloc(6);
+    ptr[0] = 5;
+    ptr[1] = 1;
+    ptr.writeUInt16BE(50, 2);
+    ptr.writeUInt16BE(50, 4);
+    socket.write(encodeWsClientBinary(ptr));
+    await expect.poll(() => fake.pointer.length).toBeGreaterThanOrEqual(1);
+    expect(fake.pointer[0]).toMatchObject({ x: 50, y: 50, buttons: 1 });
+
+    const key = Buffer.alloc(8);
+    key[0] = 4;
+    key[1] = 1;
+    key.writeUInt32BE(0x58, 4);
+    socket.write(encodeWsClientBinary(key));
+    await expect.poll(() => fake.typed()).toBe("X");
+    socket.destroy();
+  } finally {
+    await fake.close();
+  }
 });
