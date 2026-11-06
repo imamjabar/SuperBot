@@ -98,6 +98,8 @@ GitHub Actions is authoritative for published builds:
 
 Wait for the relevant run to succeed and confirm its source commit/artifact. `2552e4a` does not require a new desktop image because only the socket probe changed.
 
+**Pushing `main` deploys.** A per-minute cron on the VPS runs `$HOME/SuperBot/web-pull.sh` (log `/tmp/web-pull.log`), which pulls the `web-dist`/`server-dist` branches that `web.yml` publishes for every server/web change on `main`. Land unproven server changes on a branch first; the `check.yml` workflow runs lint, typecheck and the focused seat/viewer tests on every non-main branch push. After the cron pulls, `superbot-web-pull-final.sh` cannot fetch (`.git/FETCH_HEAD: Permission denied`) and misreports that as "branch not found"; confirm with `docker exec superbot-omb-1 cat /app/dist-server/server-dist-manifest.json`, then force-recreate `omb` and Caddy.
+
 Deploy only when Imam asks, from the authorised Mac via SSH over Tailscale, using the existing updater installed on the VPS:
 
 ```sh
