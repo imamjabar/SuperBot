@@ -29,7 +29,7 @@ describe("a thread's live turn", () => {
   it("lets any other chip, a question or the bot's words replace the report", () => {
     note({ type: "turn.progress", activity: "write", itemId: "w", bytes: 9 } as Partial<RuntimeEvent>);
     note({ type: "item.started", itemType: "tool", itemId: "other", title: "Bash" } as Partial<RuntimeEvent>);
-    expect(turnLive("t").status).toBeNull();
+    expect(turnLive("t").status).toEqual({ activity: "tool", tool: "Bash", itemId: "other" });
     note({ type: "content.delta", streamKind: "assistant_text", delta: "Done" } as Partial<RuntimeEvent>);
     expect(turnLive("t").status).toEqual({ activity: "reply" });
     note({ type: "item.completed", itemType: "assistant_text", text: "Done" } as Partial<RuntimeEvent>);
@@ -70,5 +70,42 @@ describe("a thread's live turn", () => {
     note({ type: "content.delta", streamKind: "assistant_text", delta: "b" } as Partial<RuntimeEvent>, "x");
     expect(turnLive("x")).toBe(first);
     expect(turnLive("y")).toEqual({ ended: false, status: null });
+  });
+
+  it("tracks the last named step and preserves it across item completion and deltas, resetting on new turns", () => {
+    note({ type: "turn.started" });
+    expect(turnLive("t").lastStep).toBeUndefined();
+    note({ type: "turn.progress", activity: "command", itemId: "c", target: "scrape.py" } as Partial<RuntimeEvent>);
+    expect(turnLive("t").lastStep).toEqual({ activity: "command", itemId: "c", target: "scrape.py" });
+    note({ type: "item.completed", itemType: "tool", itemId: "c", ok: true } as Partial<RuntimeEvent>);
+    expect(turnLive("t").status).toBeNull();
+    expect(turnLive("t").lastStep).toEqual({ activity: "command", itemId: "c", target: "scrape.py" });
+    note({ type: "content.delta", streamKind: "reasoning_text", delta: "pondering" } as Partial<RuntimeEvent>);
+    expect(turnLive("t").status).toEqual({ activity: "thinking" });
+    expect(turnLive("t").lastStep).toEqual({ activity: "command", itemId: "c", target: "scrape.py" });
+    note({ type: "turn.started", turnId: "turn-2" });
+    expect(turnLive("t").lastStep).toBeUndefined();
+  });
+
+  it("sets tool status on item.started when no step exists, and replaces it with later turn.progress", () => {
+    note({ type: "turn.started" });
+    note({ type: "item.started", itemType: "tool", itemId: "tool-1", title: "mcp__github__search_repos" } as Partial<RuntimeEvent>);
+    expect(turnLive("t").status).toEqual({ activity: "tool", tool: "mcp__github__search_repos", itemId: "tool-1" });
+    note({ type: "turn.progress", activity: "web", itemId: "tool-1", target: "repo search" } as Partial<RuntimeEvent>);
+    expect(turnLive("t").status).toEqual({ activity: "web", itemId: "tool-1", target: "repo search" });
+  });
+
+  it("tracks wait markers from turn.wait_started and clears them on turn.wait_ended and turn end", () => {
+    note({ type: "turn.started" });
+    expect(turnLive("t").waiting).toBeUndefined();
+    note({ type: "turn.wait_started", resource: "computer:box:bx_1" } as Partial<RuntimeEvent>);
+    expect(turnLive("t").waiting).toEqual({ resource: "computer:box:bx_1" });
+    note({ type: "turn.wait_ended", resource: "computer:box:bx_1", waitedMs: 500, outcome: "acquired" } as Partial<RuntimeEvent>);
+    expect(turnLive("t").waiting).toBeUndefined();
+
+    note({ type: "turn.wait_started", resource: "browser:bot-1" } as Partial<RuntimeEvent>);
+    expect(turnLive("t").waiting).toEqual({ resource: "browser:bot-1" });
+    note({ type: "turn.completed", ok: true } as Partial<RuntimeEvent>);
+    expect(turnLive("t").waiting).toBeUndefined();
   });
 });

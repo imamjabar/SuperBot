@@ -100,9 +100,27 @@ describe("transcriptLookups", () => {
     expect(lookups.replyTarget(b2)).toBeUndefined();
     expect(lookups.replyTarget(b3)).toBe(u1);
     expect(lookups.replyTarget(b4)).toBeUndefined();
-    expect(lookups.replyTarget(b5)).toBe(u2);
+    expect(lookups.replyTarget(b5)).toBeUndefined();
     expect(lookups.replyTarget(b6)).toBeUndefined();
     expect(lookups.replyTarget(x)).toBe(b1);
+  });
+
+  it("quotes out-of-order answers once, and leaves in-order answers and repeated answers unquoted", () => {
+    const q1 = msg("q1", { role: "user", text: "question 1", at: 1 });
+    const a1_1 = msg("a1_1", { role: "bot", text: "answer 1 part 1", requestMessageId: "q1", at: 2 });
+    const a1_2 = msg("a1_2", { role: "bot", text: "answer 1 part 2", requestMessageId: "q1", at: 3 });
+    const inOrder = [q1, a1_1, a1_2];
+    const lookups1 = transcriptLookups(inOrder, inOrder);
+    expect(lookups1.replyTarget(a1_1)).toBeUndefined();
+    expect(lookups1.replyTarget(a1_2)).toBeUndefined();
+
+    const q2 = msg("q2", { role: "user", text: "question 2", at: 4 });
+    const a1_3 = msg("a1_3", { role: "bot", text: "answer 1 part 3", requestMessageId: "q1", at: 5 });
+    const a1_4 = msg("a1_4", { role: "bot", text: "answer 1 part 4", requestMessageId: "q1", at: 6 });
+    const withInterleaved = [q1, a1_1, a1_2, q2, a1_3, a1_4];
+    const lookups2 = transcriptLookups(withInterleaved, withInterleaved);
+    expect(lookups2.replyTarget(a1_3)).toBe(q1);
+    expect(lookups2.replyTarget(a1_4)).toBeUndefined();
   });
 });
 

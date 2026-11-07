@@ -15,6 +15,8 @@ export interface TurnLive {
   /** The newest turn this thread showed has completed, failed or stopped. */
   ended: boolean;
   status: LiveStatus | null;
+  lastStep?: LiveStatus | null;
+  waiting?: { resource: string } | null;
 }
 
 const UNKNOWN: TurnLive = { ended: false, status: null };
@@ -28,9 +30,38 @@ function sameStatus(a: LiveStatus | null, b: LiveStatus | null): boolean {
   return ("bytes" in a ? a.bytes : undefined) === ("bytes" in b ? b.bytes : undefined) && progressKey(a) === progressKey(b);
 }
 
+function sameWaiting(a: { resource: string } | null | undefined, b: { resource: string } | null | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.resource === b.resource;
+}
+
+function isNamedStep(status: LiveStatus | null | undefined): boolean {
+  if (!status) return false;
+  const { activity } = status;
+  if (
+    activity !== "web" &&
+    activity !== "fetch" &&
+    activity !== "read" &&
+    activity !== "command" &&
+    activity !== "write" &&
+    activity !== "edit"
+  ) {
+    return false;
+  }
+  return Boolean(("target" in status && status.target) || ("file" in status && status.file));
+}
+
 function put(threadId: string, next: TurnLive): void {
   const current = threads.get(threadId);
-  if (current && current.turnId === next.turnId && current.ended === next.ended && sameStatus(current.status, next.status)) return;
+  if (
+    current &&
+    current.turnId === next.turnId &&
+    current.ended === next.ended &&
+    sameStatus(current.status, next.status) &&
+    sameStatus(current.lastStep ?? null, next.lastStep ?? null) &&
+    sameWaiting(current.waiting, next.waiting)
+  ) return;
   threads.delete(threadId);
   threads.set(threadId, next);
   if (threads.size > MAX_THREADS) threads.delete(threads.keys().next().value!);
@@ -50,19 +81,37 @@ export function noteTurnEvent(event: RuntimeEvent): void {
       return put(threadId, { turnId, ended: false, status: null });
     case "turn.completed":
     case "cap.exhausted":
-    case "session.exited":
-      return put(threadId, { turnId, ended: true, status: null });
+    case "session.exited": {
+      const { waiting: _, ...rest } = live;
+      return put(threadId, { ...rest, turnId, ended: true, status: null });
+    }
+    case "turn.wait_started":
+      return put(threadId, { ...live, ended: false, waiting: { resource: event.resource } });
+    case "turn.wait_ended": {
+      const { waiting: _, ...rest } = live;
+      return put(threadId, { ...rest, ended: false });
+    }
     case "turn.progress": {
       const { activity, tool, file, bytes, itemId, target, detail, quiet, tail } = event;
-      return put(threadId, { turnId, ended: false, status: {
+      const status: LiveStatus = {
         activity, ...(tool ? { tool } : {}), ...(file ? { file } : {}), ...(bytes !== undefined ? { bytes } : {}), ...(itemId ? { itemId } : {}),
         ...(target ? { target } : {}), ...(detail ? { detail } : {}), ...(quiet ? { quiet } : {}), ...(tail?.length ? { tail } : {}),
-      } });
+      };
+      const named = isNamedStep(status);
+      const lastStep = named ? status : live.lastStep;
+      return put(threadId, { ...live, ended: false, status, ...(lastStep ? { lastStep } : {}) });
     }
     case "content.delta":
-      return put(threadId, { turnId, ended: false, status: { activity: event.streamKind === "reasoning_text" ? "thinking" : "reply" } });
-    case "item.started":
-      return put(threadId, { ...live, ended: false, status: live.status?.itemId && live.status.itemId === event.itemId ? live.status : null });
+      return put(threadId, { ...live, ended: false, status: { activity: event.streamKind === "reasoning_text" ? "thinking" : "reply" } });
+    case "item.started": {
+      const stepExists = Boolean(live.status?.itemId && live.status.itemId === event.itemId);
+      const status: LiveStatus | null = stepExists
+        ? live.status
+        : event.itemType === "tool" && event.title
+          ? { activity: "tool", tool: bridgedToolName(event.title, event.input), ...(event.itemId ? { itemId: event.itemId } : {}) }
+          : null;
+      return put(threadId, { ...live, ended: false, status });
+    }
     case "item.completed":
     case "request.opened":
       return put(threadId, { ...live, status: null });
@@ -97,4 +146,10 @@ export function useTurnLive(threadId: string | null | undefined): TurnLive {
 /** Tests only. */
 export function resetTurnLive(): void {
   threads.clear();
+}
+
+/** The agents tool bridge runs a hidden tool through `use_tool`, naming it in the call's input preview. */
+function bridgedToolName(title: string, input: string | undefined): string {
+  if (!/(?:^|__)use_tool$/.test(title) || !input) return title;
+  return /"name":\s*"([^"\\]+)"/.exec(input)?.[1] ?? title;
 }

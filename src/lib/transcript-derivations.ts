@@ -21,13 +21,29 @@ export function transcriptLookups(all: readonly Message[], branch: readonly Mess
   }
   for (const siblings of forks.values()) siblings.sort((a, b) => a.at - b.at);
   const implied = new Map<string, Message>();
-  let previous: Message | undefined;
+  const quoted = new Set<string>();
+  let latestUserText: Message | undefined;
   for (const message of branch) {
     if (message.kind !== "text") continue;
-    const asked = message.role === "bot" && !message.replyToId && message.requestMessageId ? byId.get(message.requestMessageId) : undefined;
-    const continues = previous?.id === message.requestMessageId || (previous?.role === "bot" && previous.requestMessageId === message.requestMessageId);
-    if (asked && asked.role === "user" && asked.kind === "text" && !asked.reaction && !continues) implied.set(message.id, asked);
-    previous = message;
+    if (message.role === "user" && !message.reaction) {
+      latestUserText = message;
+      continue;
+    }
+    if (message.role === "bot" && !message.replyToId && message.requestMessageId) {
+      const asked = byId.get(message.requestMessageId);
+      if (
+        asked &&
+        asked.role === "user" &&
+        asked.kind === "text" &&
+        !asked.reaction &&
+        latestUserText &&
+        latestUserText.id !== message.requestMessageId &&
+        !quoted.has(message.requestMessageId)
+      ) {
+        implied.set(message.id, asked);
+        quoted.add(message.requestMessageId);
+      }
+    }
   }
   const retryableId = lastNonReceipt(branch)?.id;
   return {
