@@ -7384,7 +7384,7 @@ async function acceptDirectSend(
       const typedStop = await stopOnTypedCommand({ botId, threadId, text, trigger, personPresent, fromApp: Boolean(app), busy: currentAtStart.busy === true, row: { replyToId: replyTo?.id, sendId, sender, ...spokenLineFields(via, callId) } });
       if (typedStop) return typedStop;
       if (currentAtStart.busy) {
-        const personsOwn = personPresent && !app && (trigger.kind === "user" || trigger.kind === "owner"), queuedPrompt = (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(text, dataContext), replyTo, userNameFor(threadId)));
+        const personAsks = !app && (trigger.kind === "user" || trigger.kind === "owner"), personsOwn = personPresent && personAsks, queuedPrompt = (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(text, dataContext), replyTo, userNameFor(threadId)));
         const instance = runningTurnInstance(currentAtStart, threadId);
         let steered: SteerOutcome = "refused";
         const steerInput = extractTurnImages(text);
@@ -7437,7 +7437,7 @@ async function acceptDirectSend(
           handoffs.steered(threadId, steerTarget, instance?.instanceId, message.id);
           signInSettle.answerInChat(botId, threadId);
           if (personsOwn) personFirst.wait(threadId, { requeue: (note) => void queueSteeredMessage(current.id, threadId, text, { prompt: note ? `${queuedPrompt}\n\n${note}` : queuedPrompt, rowId: message.id, first: true, queuedAt: message.at, replyToId: replyTo?.id, dataContext, sender, trigger, via, callId, mentions }) });
-          if (personsOwn && followUp === undefined) answerWhileBusy(current, threadId, text, "steered", message.id);
+          if (personAsks && followUp === undefined) answerWhileBusy(current, threadId, text, "steered", message.id);
           return { ok: true as const, steered: true as const, threadId, message };
         }
         if (!current.busy) {
@@ -7456,7 +7456,7 @@ async function acceptDirectSend(
         });
         if (personsOwn && !chose) personFirst.wait(threadId, {});
         if (chose === "restart") await restartForPerson(botId, threadId, trigger);
-        if (personsOwn && followUp === undefined && !chose) answerWhileBusy(current, threadId, text, "queued");
+        if (personAsks && followUp === undefined && !chose) answerWhileBusy(current, threadId, text, "queued");
         return { ok: true as const, queued: true as const, queueId: queued.id, threadId };
       }
       return startOrQueueDirectMessage(botId, threadId, text, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions);
