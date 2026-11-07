@@ -144,7 +144,6 @@ describe("peer exchange collapsing in ChatView", () => {
         kind: "text",
         turnId: "turn-1",
         turnTerminal: true,
-        turnSucceeded: true,
         text: "Sent. One-line confirmation: pinged Imam.",
       },
       {

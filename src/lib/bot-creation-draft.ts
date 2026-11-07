@@ -92,7 +92,7 @@ export class BotCreationDraft {
   dispose() { if (this.avatarObjectUrl) URL.revokeObjectURL(this.avatarObjectUrl); }
 
   private routine(input: RoutineInput, previous?: Routine): Routine {
-    const { groupId: _group, resultsThreadId: _results, checks: _checks, access: _access, deliver: _deliver, schedule, ...fields } = input;
+    const { groupId: _group, resultsThreadId: _results, checks: _checks, access: _access, deliver: _deliver, github: _github, schedule, ...fields } = input;
     const normalizedSchedule = schedule.type === "interval" ? {
       ...schedule, weekdays: schedule.weekdays ?? undefined,
       window: schedule.window ?? undefined, endsAt: schedule.endsAt ?? undefined,
@@ -104,6 +104,7 @@ export class BotCreationDraft {
       timeoutMinutes: input.timeoutMinutes ?? undefined,
       durationMinutes: input.durationMinutes ?? previous?.durationMinutes ?? 30,
       schedule: normalizedSchedule,
+      ...(input.github ? { github: input.github } : {}),
     };
   }
 

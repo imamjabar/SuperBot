@@ -240,7 +240,7 @@ export function groupPeerExchanges(messages: readonly Message[]): PeerExchangeIt
         items.push({
           kind: "peer-exchange",
           id: exchangeId,
-          from: { botId: from.botId, name: from.name, color: from.color },
+          from: { botId: from.botId, name: from.name, ...(from.color ? { color: from.color } : {}) },
           ...(targetPeerName ? { toName: targetPeerName } : {}),
           messages: groupMessages,
         });

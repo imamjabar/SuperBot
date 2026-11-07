@@ -89,7 +89,7 @@ export async function enablePush(registration?: ServiceWorkerRegistration | null
     if (!subscription) {
       subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey,
+        applicationServerKey: applicationServerKey as unknown as BufferSource,
       });
     }
 

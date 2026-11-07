@@ -148,7 +148,7 @@ export interface Message extends Pick<import("../../shared/wire").WireMessage, "
   parentId?: string | null;
   replyToId?: string;
   sendId?: string;
-  from?: { botId: string; name: string; color: MausColor };
+  from?: { botId: string; name: string; color?: MausColor };
   peerAsk?: { botId: string; name: string; unattended?: boolean };
   roomRequest?: { id: string; phase: "request" | "result" };
   reactions?: import("../../shared/wire").WireMessage["reactions"];

@@ -35,7 +35,6 @@ describe("groupPeerExchanges", () => {
       kind: "text",
       turnId: "turn-1",
       turnTerminal: true,
-      turnSucceeded: true,
       text: "Sent. One-line confirmation: pinged Imam.",
     };
     const digest: Message = {

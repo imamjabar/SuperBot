@@ -10,6 +10,7 @@ import { addPointedChip } from "@/lib/pointed-chips";
 import type { AppDocument, AppPayload } from "../../../shared/app";
 import { pointMessage, readPointEvent } from "../../../shared/app-frame/point";
 import type { PublishedPageCard } from "../../../shared/published-page";
+import { AppFrame, type AppFrameHandle } from "./AppFrame";
 import { publishAppPage, unpublishPage } from "./app-api";
 import { ASK_CHIP, ASK_CHIP_IDLE, ASK_CHIP_PICKED } from "../AskCard";
 
