@@ -940,7 +940,6 @@ function catalogTools(profile: CatalogProfile) {
     (profile.escalations === true || tool.name !== "raise_escalation") &&
     (profile.reportsBack === true || tool.name !== "report_progress") &&
     (profile.computerSelection === true || tool.name !== "select_computer") &&
-    (profile.webFetch === true || tool.name !== "web_fetch") &&
     (profile.room !== true || !ROOM_REFUSED_TOOL_NAMES.has(tool.name)));
   const AUTHORING_TOOLS = profile.skillAuthoring
     ? BOT_SCOPED_TOOLS

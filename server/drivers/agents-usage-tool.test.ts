@@ -29,8 +29,9 @@ describe("the usage_limits tool", () => {
     await expect(callUsageLimitsTool(context({ ok: false, body: { error: "not yours" } }))).resolves.toEqual({ text: "not yours", isError: true });
   });
 
-  it("lists web_fetch only when the profile has webFetch true", () => {
-    expect(availableTools(catalogProfileFromEnv({})).map((tool) => tool.name)).not.toContain("web_fetch");
-    expect(availableTools(catalogProfileFromEnv({ OMB_WEB_FETCH: "1" })).map((tool) => tool.name)).toContain("web_fetch");
+  it("lists web_fetch in a chat, a job and a room", () => {
+    for (const env of [{}, { OMB_REPORTS_BACK: "1" }, { OMB_ROOM: "1" }]) {
+      expect(availableTools(catalogProfileFromEnv({ OMB_BOT_ID: "bot", ...env })).map((tool) => tool.name)).toContain("web_fetch");
+    }
   });
 });
