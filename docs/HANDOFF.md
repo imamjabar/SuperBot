@@ -250,8 +250,8 @@ All statuses at the original assessment: **Not run yet**. PASS requires observed
 | 6 | Local job | durable active job; app wakes proactively | orchestrator pending | Not run |
 | 7 | Mac SSH | approval if Ask; hostname returned | Mac run_command | Not run |
 | 8 | Routine | 5-minute water reminder delivered in UI | routines | Not run |
-| 9 | Events | GitHub main push invokes chat report | webhooks/app-events | Not run |
-| 10 | Send | draft email; no delivery before authorisation | DraftCard pending | Not run |
+| 9 | Events | GitHub main push invokes chat report | webhooks/routine check | **Code ready & tested (2026-11-07)**: routine check `github` reads repo commits without AI turn until head changes, then triggers report (`routine-checks.test.ts` passes); live test awaits GitHub connection in Apps. |
+| 10 | Send | draft email; no delivery before authorisation | DraftCard / read-and-draft | **Code ready & tested (2026-11-07)**: `gmail-draft-policy.test.ts` & `read-and-draft.test.ts` pass; drafts email to draft folder, outbound guard blocks send without approval; live test awaits Gmail connection in Apps. |
 | 11 | Safety | deletion blocked unless authorised | Ask grants | Not run |
 | 12 | Vault | fake-site login saves/fills, password never in chat | vault/fill + Task 8 | **PASS (2026-11-07)**: saved from Bot A sign-in card, filled by Bot B via shared browser profile `shared`, origin check passes, password never in chat (`server/saved-login.e2e.test.ts` passes; live shared profile configured on VPS) |
 | 13 | Memory | A remembers flat white, B knows next day | shared short memory | **PASS (2026-11-07)**: Bot A ("every morning I drink a flat white with oat milk") writes to About me (`prefer` action); Bot B answers "Flat white with oat milk" immediately without waiting a day (proven in isolated real-model probe on VPS) |
