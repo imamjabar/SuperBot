@@ -17,7 +17,7 @@ export const WEB_TOOL_DEFINITIONS = [
   {
     name: "web_fetch",
     description:
-      "Read a public web page, RSS feed or JSON/text address and get its readable text (scripts and markup removed), up to 12,000 characters per call; pass offset to read further. For news, prices or any page: one call per page, then answer; prefer a site's RSS or section page for headlines. Only http(s) on the public internet; no sign-in.",
+      "Read a public web page, RSS feed or JSON/text address and get its readable text (scripts and markup removed), up to 12,000 characters per call; pass offset to read further. For news, prices or any page: one call per page, then answer; prefer a site's RSS or section page for headlines. Use this before any browser or screen for a public page. Only http(s) on the public internet; no sign-in: a page behind a sign-in or one that shows its text only through scripts comes back with needsBrowser and next, which says how to open it in the built-in browser.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
