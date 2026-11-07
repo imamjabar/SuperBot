@@ -1247,7 +1247,7 @@ describe("structured tool execution boundaries", () => {
 
   it("stops a model that keeps requesting tools after 64 steps, with one next action that does not repeat the steps that ran", async () => {
     const f = await fixture((_body, response, round) => sse(response, [
-      chunk({ tool_calls: [toolCall("audit_write", '{"name":"receipt","value":"done"}', `call_${round}`)] }, "tool_calls"),
+      chunk({ tool_calls: [toolCall("audit_write", `{"name":"receipt","value":"${round}"}`, `call_${round}`)] }, "tool_calls"),
     ]), "grok");
     const stop = f.instance.adapter.onEvent((event) => {
       if (event.type === "request.opened") void f.instance.adapter.respondToRequest(f.threadId, event.requestId!, { behavior: "allow" });
@@ -1259,6 +1259,24 @@ describe("structured tool execution boundaries", () => {
     expect(f.effects()).toHaveLength(64);
     expect(f.recorder.events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
       message: "Stopped after 64 steps without a final answer. The steps so far already ran, so ask only for what's left.",
+      terminal: true,
+    })]);
+  });
+
+  it("stops a hosted model that repeats the same call for the same answer, before the step cap", async () => {
+    const f = await fixture((_body, response, round) => sse(response, [
+      chunk({ tool_calls: [toolCall("audit_write", '{"name":"receipt","value":"done"}', `call_${round}`)] }, "tool_calls"),
+    ]), "grok");
+    const stop = f.instance.adapter.onEvent((event) => {
+      if (event.type === "request.opened") void f.instance.adapter.respondToRequest(f.threadId, event.requestId!, { behavior: "allow" });
+    });
+    await f.start();
+    expect(await f.completed()).toMatchObject({ ok: false, stopReason: "incomplete_action" });
+    stop();
+    expect(f.requests).toHaveLength(10);
+    expect(f.effects()).toHaveLength(10);
+    expect(f.recorder.events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
+      message: expect.stringMatching(/same call to \S+ 10 times and got the same answer each time/),
       terminal: true,
     })]);
   });
