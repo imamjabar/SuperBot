@@ -570,6 +570,7 @@ it("with front desk on, the person's chat has no computer tools and hands the wo
   const toolNames = (turn: any) => (turn.evidence.find((entry: any) => entry.result?.tools)?.result.tools ?? []).map((tool: any) => tool.name);
   expect(toolNames(work)).toContain("vm_exec");
   expect(toolNames(chat)).not.toContain("vm_exec");
+  expect(toolNames(chat)).not.toContain("select_computer");
   expect(toolNames(chat)).toContain("start_thread");
   const main: Array<{ text?: string; roomRequest?: { phase?: string } }> = await f.messages(f.chief.activeTaskId);
   const jobLines: Array<{ text?: string }> = await f.messages(work.threadId);
