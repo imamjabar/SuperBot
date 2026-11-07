@@ -27,6 +27,14 @@ export async function observeSignInPage(engine: (args: string[]) => Promise<Reco
   return check.ok ? { host: check.pageHost, signIn: page.signIn === true } : null;
 }
 
+/** The bots a login saved from `botId`'s sign-in card fills for: every bot on the same named browser profile, so the
+ * bots that share its cookies also share its saved password. A bot's own or temporary browser keeps it to that bot. */
+export function loginBotsFor(bots: ReadonlyArray<{ id: string; browserProfile?: string | null }>, botId: string): string[] {
+  const profile = bots.find((bot) => bot.id === botId)?.browserProfile;
+  if (!profile || profile === "guest") return [botId];
+  return [botId, ...bots.filter((bot) => bot.id !== botId && bot.browserProfile === profile).map((bot) => bot.id)];
+}
+
 /** A sign-in page on another site than the card's, which a login saved from the card fills only once the person, shown
  * that host on the card, confirms it: a page the bot chose must not receive a password saved for the site the card names. */
 export function cardSignInElsewhere(cardHost: string, observed: ObservedPage | null): string | null {

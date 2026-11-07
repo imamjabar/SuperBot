@@ -58,11 +58,19 @@ async function browserFixture(url: string, cuaRecord?: string) {
   // The stand-in agent-browser: always running, `close` and `set` do nothing, `mcp` answers get_url and eval from the
   // page, and every other command goes to the bridge.
   writeFileSync(binaryPath, `#!${process.execPath}
+const fs = require("node:fs");
+const path = require("node:path");
 const args = process.argv.slice(2).filter((arg) => arg !== "--json" && arg !== "--no-webmcp");
 const say = (value) => { process.stdout.write(JSON.stringify(value)); process.exit(0); };
 const bridge = (path, body) => fetch("http://127.0.0.1:${port}" + path, { method: "POST", body: JSON.stringify(body) }).then((response) => response.text());
-if (args[0] === "session" && args[1] === "list") say({ success: true, data: { sessions: [process.env.AGENT_BROWSER_SESSION] } });
-else if (args[0] === "close" || args[0] === "set") process.exit(0);
+const closedFile = path.join("${tools}", ".closed-" + (process.env.AGENT_BROWSER_SESSION || "default"));
+if (args[0] === "session" && args[1] === "list") {
+  if (fs.existsSync(closedFile)) {
+    try { fs.unlinkSync(closedFile); } catch {}
+    say({ success: true, data: { sessions: [] } });
+  } else say({ success: true, data: { sessions: [process.env.AGENT_BROWSER_SESSION] } });
+} else if (args[0] === "close") { try { fs.writeFileSync(closedFile, ""); } catch {} process.exit(0); }
+else if (args[0] === "set") process.exit(0);
 else if (args[0] === "mcp") {
   const tool = (name) => ({ name, description: name, inputSchema: { type: "object", properties: { script: { type: "string" } } } });
   const answer = (id, result) => process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\\n");
@@ -152,6 +160,102 @@ it.skipIf(process.platform === "win32")("saves a login from the sign-in card wit
     expect(JSON.stringify(await messages())).not.toContain(PASSWORD);
     expect(logins.text).not.toContain(PASSWORD);
     expect(readFileSync(join(browser.fixture.info.dataDir, "logins.json.enc")).includes(Buffer.from(PASSWORD))).toBe(false);
+  } finally {
+    await browser.close();
+  }
+}, 120_000);
+
+it.skipIf(process.platform === "win32")("shares a login saved from a sign-in card between bots on the same browser profile and refuses it to a bot with its own browser", async () => {
+  const browser = await browserFixture("https://login.microsoftonline.com/common/oauth2/authorize?client_id=fake");
+  const { page, api, evidence, answered } = browser;
+  page.answer = () => ({ navigate: INVOICES });
+  try {
+    expect((await api("PATCH", "/api/config", {
+      features: { browser: true },
+      browserProfiles: [{ id: "shared", name: "Shared profile" }],
+    })).status).toBe(200);
+
+    const botA = (await api("POST", "/api/bots", { name: "Bot A" })).body.bot;
+    const botB = (await api("POST", "/api/bots", { name: "Bot B" })).body.bot;
+    const botC = (await api("POST", "/api/bots", { name: "Bot C" })).body.bot;
+
+    expect((await api("PATCH", `/api/bots/${botA.id}`, { computer: "browser", browserProfile: "shared" })).status).toBe(200);
+    expect((await api("PATCH", `/api/bots/${botB.id}`, { computer: "browser", browserProfile: "shared" })).status).toBe(200);
+    expect((await api("PATCH", `/api/bots/${botC.id}`, { computer: "browser", browserProfile: "guest" })).status).toBe(200);
+
+    writeFileSync(browser.planPath, JSON.stringify({
+      [botA.id]: { turns: [
+        { steps: [{ tool: "request_sign_in", arguments: { site: "https://example.com/invoices", reason: "The invoices are behind a login." } }],
+          reply: "I asked you to sign in to example.com." },
+        { steps: [{ tool: "fill_login", arguments: {} }], reply: `Signed in as A. The password was ${PASSWORD}.` },
+      ] },
+      [botB.id]: { turns: [
+        { steps: [{ tool: "fill_login", arguments: {} }], reply: `Signed in as B. The password was ${PASSWORD}.` },
+      ] },
+      [botC.id]: { turns: [
+        { steps: [{ tool: "fill_login", arguments: {}, expectError: true }], reply: "Cannot fill." },
+      ] },
+    }));
+
+    await runControlOmb(["send", "--bot", botA.id, "--task", botA.threadId, "--text", "Download this month's invoices.", "--url", browser.base]);
+    await expect.poll(() => evidence().length, { timeout: 20_000 }).toBe(1);
+    const messagesA = async () => (await api("GET", `/api/threads/${botA.threadId}/messages`)).body.messages as Array<Record<string, unknown>>;
+    await expect.poll(async () => (await messagesA()).some((message) => message.kind === "signin"), { timeout: 15_000 }).toBe(true);
+    const card = (await messagesA()).find((message) => message.kind === "signin")!;
+
+    const target = await api("GET", `/api/bots/${botA.id}/sign-in-cards/${card.id}/save-login?threadId=${botA.threadId}`);
+    expect(target).toMatchObject({ status: 200, body: { site: "example.com", signInHost: "login.microsoftonline.com" } });
+    const saved = await api("POST", `/api/bots/${botA.id}/sign-in-cards/${card.id}/save-login`,
+      { threadId: botA.threadId, username: USERNAME, password: PASSWORD, signInHost: "login.microsoftonline.com" });
+    expect(saved).toMatchObject({ status: 200, body: { done: true, resumed: true, saved: true, site: "example.com and login.microsoftonline.com" } });
+    expect(saved.text).not.toContain(PASSWORD);
+
+    await expect.poll(() => evidence().length, { timeout: 20_000 }).toBe(2);
+    const [filledA] = answered(1, "fill_login");
+    expect(filledA.isError).toBeFalsy();
+
+    const logins = await api("GET", "/api/logins");
+    expect(logins.status).toBe(200);
+    expect(logins.body.logins).toEqual([expect.objectContaining({
+      site: "example.com",
+      hosts: ["example.com", "login.microsoftonline.com"],
+      exactHost: false,
+      source: "card",
+      bots: expect.arrayContaining([botA.id, botB.id]),
+    })]);
+    const savedLogin = logins.body.logins[0];
+    expect(savedLogin.bots).toContain(botA.id);
+    expect(savedLogin.bots).toContain(botB.id);
+    expect(savedLogin.bots).not.toContain(botC.id);
+
+    page.navigate("https://login.microsoftonline.com/common/oauth2/authorize?client_id=fake", LOGIN_FORM);
+    page.answer = () => ({ navigate: INVOICES });
+    await runControlOmb(["send", "--bot", botB.id, "--task", botB.threadId, "--text", "Sign in to example.com.", "--url", browser.base]);
+    await expect.poll(() => evidence().length, { timeout: 20_000 }).toBe(3);
+    const [filledB] = answered(2, "fill_login");
+    expect(filledB.isError).toBeFalsy();
+    expect(filledB.content[0].text).toBe(`Filled the username and the password for ${USERNAME} on login.microsoftonline.com and submitted it; the page is now https://example.com/invoices (“Invoices”). Check you are signed in.`);
+
+    const messagesB = async () => (await api("GET", `/api/threads/${botB.threadId}/messages`)).body.messages as Array<Record<string, unknown>>;
+    await expect.poll(async () => (await messagesB()).some((message) => message.role === "bot" && String(message.text).startsWith("Signed in as B.")), { timeout: 15_000 }).toBe(true);
+    const replyB = (await messagesB()).find((message) => message.role === "bot" && String(message.text).startsWith("Signed in as B."))!;
+    expect(replyB.text).toBe("Signed in as B. The password was ••••••.");
+    expect(JSON.stringify(await messagesB())).not.toContain(PASSWORD);
+
+    page.navigate("https://login.microsoftonline.com/common/oauth2/authorize?client_id=fake", LOGIN_FORM);
+    await runControlOmb(["send", "--bot", botC.id, "--task", botC.threadId, "--text", "Sign in to example.com.", "--url", browser.base]);
+    await expect.poll(() => evidence().length, { timeout: 20_000 }).toBe(4);
+    const [filledC] = answered(3, "fill_login");
+    expect(filledC.isError).toBe(true);
+    expect(filledC.content[0].text).toContain("No saved login for login.microsoftonline.com");
+    expect(filledC.content[0].text).toContain("You have no saved logins");
+
+    const messagesC = async () => (await api("GET", `/api/threads/${botC.threadId}/messages`)).body.messages as Array<Record<string, unknown>>;
+    await expect.poll(async () => (await messagesC()).some((message) => message.role === "bot"), { timeout: 15_000 }).toBe(true);
+    expect(JSON.stringify(await messagesC())).not.toContain(PASSWORD);
+
+    expect(JSON.stringify(evidence())).not.toContain(PASSWORD);
+    expect(JSON.stringify(browser.engineArgs)).not.toContain(PASSWORD);
   } finally {
     await browser.close();
   }

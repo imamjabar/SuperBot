@@ -439,7 +439,7 @@ import { HeldSecrets, LoginStore } from "./login-store.ts";
 import { OnePasswordLogins, onePasswordUnavailable, sdkOnePasswordClient, type OnePasswordSdk } from "./onepassword.ts";
 import { nativeRequire } from "./data/engine.ts";
 import { createFillLoginTurn } from "./host/fill-login-turn.ts";
-import { BotLogins, cardLoginPlace, cardSignInElsewhere, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
+import { BotLogins, cardLoginPlace, cardSignInElsewhere, loginBotsFor, observeSignInPage, type ObservedPage } from "./bot-logins.ts";
 import { relayFrame } from "./browser-relay.ts";
 import { browserEvidence, stepContext } from "./browser-steps.ts";
 import { parseLoginFields, parseTotpField, createLoginRoutes } from "./routes/logins.ts";
@@ -11763,7 +11763,7 @@ async function saveLoginFromCard(botId: string, threadId: string, messageId: str
   const current = signInMessage(botId, threadId, messageId)?.signIn;
   if (!current || current.superseded || signInOutcome(current)) return { status: 409, body: { error: "this sign-in request was answered or replaced while the login was being saved" } };
   const place = cardLoginPlace(page.cardHost, page.observed, body.signInHost);
-  logins.create({ ...place, username: fields.value.username ?? "", password: fields.value.password!, totp: totp.value ?? null, source: "card", bots: [botId] });
+  logins.create({ ...place, username: fields.value.username ?? "", password: fields.value.password!, totp: totp.value ?? null, source: "card", bots: loginBotsFor(store.bots, botId) });
   const elsewhere = place.hosts.filter((host) => loginSite(host) !== place.site);
   return signInSettle.settle(botId, threadId, messageId, "done", { site: [place.site, ...elsewhere].join(" and ") });
 }

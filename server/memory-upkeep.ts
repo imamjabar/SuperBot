@@ -228,7 +228,8 @@ async function askModel(engine: UpkeepEngine, prompt: string, timeoutMs = MODEL_
   try {
     const answer = await Promise.race([engine.generateText(prompt, { signal: expiry.signal }), expired]);
     return typeof answer === "string" ? answer : null;
-  } catch {
+  } catch (error) {
+    console.warn(`memory upkeep: the model call failed: ${error instanceof Error ? error.message : String(error)}`);
     return null;
   } finally {
     clearTimeout(timer);

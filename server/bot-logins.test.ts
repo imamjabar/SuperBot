@@ -1,10 +1,25 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { cardLoginPlace, cardSignInElsewhere, observeSignInPage } from "./bot-logins.ts";
+import { cardLoginPlace, cardSignInElsewhere, loginBotsFor, observeSignInPage } from "./bot-logins.ts";
 import { FakeLoginPage, LOGIN_FORM } from "./testing/fake-login-page.ts";
 
 let page: FakeLoginPage | null = null;
 afterEach(() => { page?.close(); page = null; });
+
+describe("who a login saved from a sign-in card fills for", () => {
+  const bots = [
+    { id: "a", browserProfile: "shared" }, { id: "b", browserProfile: "shared" }, { id: "c", browserProfile: null },
+    { id: "d", browserProfile: "guest" }, { id: "e", browserProfile: "guest" }, { id: "f", browserProfile: "other" },
+  ];
+
+  it("is every bot on the saving bot's named browser profile, and only the saving bot otherwise", () => {
+    expect(loginBotsFor(bots, "b")).toEqual(["b", "a"]);
+    expect(loginBotsFor(bots, "c")).toEqual(["c"]);
+    expect(loginBotsFor(bots, "d")).toEqual(["d"]);
+    expect(loginBotsFor(bots, "f")).toEqual(["f"]);
+    expect(loginBotsFor(bots, "gone")).toEqual(["gone"]);
+  });
+});
 
 describe("a login saved from a sign-in card", () => {
   it("fills on the card's site, at the sign-in page open on that site", () => {
