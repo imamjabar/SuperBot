@@ -311,6 +311,25 @@ one person, when their own message began the work. A routine, a webhook, an
 outside app or a bot's own work saves no one's preference. A Chief of Staff
 saves such a preference itself instead of sending it to each bot.
 
+### Saved when the turn succeeds
+
+What a turn saves with `memory_update` (`append`, `replace`, `remove`,
+`supersede`, `prefer`) and `memory_log` waits until that turn ends
+(`server/memory-stage.ts`). The bot gets its usual answer at once, worked out
+against its notes as this turn has changed them, so a later edit in the same
+turn finds an entry it added. The writes reach `MEMORY.md`, the archive, the
+day's log and About me only when the turn completes successfully. A turn that
+fails, is stopped, never starts or is cut by a restart leaves none of them: they
+are held in the server process and never on disk. Each turn's writes are saved
+at most once, and an entry or log line already there is not added again, so a
+turn run again after a restart does not repeat it. Another conversation sees
+them only after that turn ends, and an edit there that conflicts with them by
+then is not saved; the server log says so. `forget` is not held: it removes at
+once, and also drops what the same turn had staged that mentions those words.
+A write when no turn of that conversation is running is saved at once. The
+turn's own outcome line in the daily log (failed turns included) is written as
+before.
+
 ## Editing
 
 `MEMORY.md` and every topic file can be edited in the panel. A save carries

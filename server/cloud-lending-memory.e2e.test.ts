@@ -291,7 +291,7 @@ it("a turn in a conversation a guest left behind cannot write a bot's memory wit
   await stop(bot, guests);
   const ownerTools = await toolsFor(async () => say(owner, bot, "Remember that I like figs.", await newThread(bot)));
   expect((await ownerTools("memory_update", { action: "append", text: "The owner likes figs." })).isError).toBeFalsy();
-  expect(await memoryText(bot)).toContain("The owner likes figs.");
+  expect(await memoryText(bot), "staged until the owner's turn succeeds").not.toContain("The owner likes figs.");
   expect((await sees(ownerTools)).computers).toHaveLength(1);
 }, 60_000);
 

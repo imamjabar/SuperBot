@@ -86,25 +86,38 @@ export interface PreferenceTarget {
   save(text: string): number;
 }
 
+export type MemoryUpdateBody = { action?: unknown; text?: unknown; oldText?: unknown; until?: unknown };
+
+/** The one-line preference `prefer` saves, or why this turn can't save it. */
+export function preferenceToSave(body: MemoryUpdateBody, prefer: PreferenceTarget | null | undefined): { ok: true; text: string } | { ok: false; code: "invalid"; error: string } {
+  const text = typeof body.text === "string" ? body.text.replace(/\s+/g, " ").trim() : "";
+  if (!text || text.length > PREFERENCE_CHARS) {
+    return { ok: false, code: "invalid", error: `prefer needs text: the person's preference as one short line, at most ${PREFERENCE_CHARS} characters.` };
+  }
+  if (!prefer) {
+    return { ok: false, code: "invalid", error: "Only work one person began with their own words can save their preference: ask them to say it in their own chat with you." };
+  }
+  return { ok: true, text };
+}
+
+export function memoryUpdateOf(body: MemoryUpdateBody): MemoryUpdate {
+  return { action: body.action, text: body.text, oldText: body.oldText, ...(body.until !== undefined ? { until: body.until } : {}) } as MemoryUpdate;
+}
+
 /** memory_update from a bot's turn. forget takes the passage in oldText; `aboutMe` is null when this conversation may not
  * change the person's About me. prefer saves one standing preference into the About me of the person who began this
  * work, which every bot reads, so nothing has to be passed on to each bot; `prefer` is null when no one person began it. */
 export function botMemoryUpdate(
   layer: string,
-  body: { action?: unknown; text?: unknown; oldText?: unknown; until?: unknown },
-  opts: { source: string; aboutMe: Pick<AboutMe, "forget"> | null; prefer?: PreferenceTarget | null },
+  body: MemoryUpdateBody,
+  opts: { source: string; now?: Date; aboutMe: Pick<AboutMe, "forget"> | null; prefer?: PreferenceTarget | null },
 ): BotMemoryResult {
   if (body.action === "prefer") {
-    const text = typeof body.text === "string" ? body.text.replace(/\s+/g, " ").trim() : "";
-    if (!text || text.length > PREFERENCE_CHARS) {
-      return { ok: false, code: "invalid", error: `prefer needs text: the person's preference as one short line, at most ${PREFERENCE_CHARS} characters.` };
-    }
-    if (!opts.prefer) {
-      return { ok: false, code: "invalid", error: "Only work one person began with their own words can save their preference: ask them to say it in their own chat with you." };
-    }
+    const preference = preferenceToSave(body, opts.prefer);
+    if (!preference.ok) return preference;
     // Said again now, it holds again, even after the person had it forgotten.
-    clearForgotten(text);
-    return { ok: true, preference: opts.prefer.save(text) > 0 ? "saved" : "known", ...(opts.prefer.person ? { person: opts.prefer.person } : {}) };
+    clearForgotten(preference.text);
+    return { ok: true, preference: opts.prefer!.save(preference.text) > 0 ? "saved" : "known", ...(opts.prefer!.person ? { person: opts.prefer!.person } : {}) };
   }
   if (body.action === "forget") {
     const passage = typeof body.oldText === "string" ? body.oldText : "";
@@ -117,5 +130,5 @@ export function botMemoryUpdate(
     return { ok: true, forgotten, aboutMe };
   }
   if (body.action === "append" && typeof body.text === "string") clearForgotten(body.text);
-  return updateMemory(layer, { action: body.action, text: body.text, oldText: body.oldText, ...(body.until !== undefined ? { until: body.until } : {}) } as MemoryUpdate, { source: opts.source });
+  return updateMemory(layer, memoryUpdateOf(body), { source: opts.source, ...(opts.now ? { now: opts.now } : {}) });
 }

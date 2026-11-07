@@ -10,7 +10,6 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { launchVerificationServer, runControlOmb, type VerificationServer } from "../scripts/control-omb.ts";
 import { handleToolCall, request } from "../scripts/mcp-server.ts";
 import { readHandoffs } from "./testing/handoff-rows.ts";
-import { memoryDate } from "./workspace.ts";
 
 describe("independent bot tasks through the isolated control surface", () => {
   let session: VerificationServer;
@@ -430,12 +429,13 @@ describe("independent bot tasks through the isolated control surface", () => {
     expect((await internal(token, "POST", "/api/internal/memory", { action: "append", text: "A unique saved fact." })).status).toBe(200);
     for (const text of ["", " \n\t "]) {
       expect((await internal(token, "POST", "/api/internal/memory", { action: "replace", oldText: "unique saved fact", text })).status).toBe(400);
-      expect((await api("GET", `/api/bots/${botId}/memory`)).body.text).toBe(`- ${memoryDate()} · from chat "${"t".repeat(60)}…" · A unique saved fact.\n`);
+      expect((await api("GET", `/api/bots/${botId}/memory`)).body.text, "staged until the turn succeeds").not.toContain("A unique saved fact.");
     }
     const project = join(session.info.dataDir, "task-workspaces", botId, threadId, "result.txt");
     writeFileSync(project, "Generated project files are retained.");
     await control(["interrupt", "--bot", botId, "--task", threadId]);
     await expect.poll(async () => (await botState(botId)).busy, { timeout: 10_000 }).toBe(false);
+    expect((await api("GET", `/api/bots/${botId}/memory`)).body.text, "a stopped turn leaves no memory").not.toContain("A unique saved fact.");
     expect((await api("DELETE", `/api/bots/${botId}/tasks/${threadId}`)).status).toBe(200);
     expect((await api("DELETE", `/api/bots/${botId}`)).status).toBe(200);
     expect(readFileSync(project, "utf8")).toBe("Generated project files are retained.");
@@ -527,8 +527,8 @@ describe("independent bot tasks through the isolated control surface", () => {
     ]);
     expect(appended.map((result) => result.status)).toEqual([200, 200]);
     const memory = (await api("GET", `/api/bots/${botId}/memory`)).body.text;
-    expect(memory).toContain("A remembers apples.");
-    expect(memory).toContain("B remembers berries.");
+    expect(memory, "staged until each turn succeeds").not.toContain("A remembers apples.");
+    expect(memory).not.toContain("B remembers berries.");
     expect((await internal(tokenA, "POST", "/api/internal/memory", { action: "replace", oldText: "A remembers apples.", text: "A remembers apricots." })).status).toBe(200);
     expect((await internal(tokenB, "POST", "/api/internal/memory", { action: "replace", oldText: "A remembers apples.", text: "stale overwrite" })).status).toBe(409);
     const foreign = await tool("create_bot", { name: "Foreign memory owner" });
@@ -557,6 +557,10 @@ describe("independent bot tasks through the isolated control surface", () => {
     expect((await control(["wait", "--bot", botId, "--task", taskA, "--timeout", "1"])).status).toBe("settled");
     writeFileSync(modelFile(models[1], "gate"), "finish B");
     expect((await control(["wait", "--bot", botId, "--task", taskB, "--timeout", "10"])).status).toBe("settled");
+    const saved = (await api("GET", `/api/bots/${botId}/memory`)).body.text;
+    expect(saved).toContain("B remembers berries.");
+    expect(saved).toContain("B is still authorized.");
+    expect(saved, "the interrupted turn's notes never land").not.toMatch(/apples|apricots|expired write/);
     const messagesA = await control(["messages", "--bot", botId, "--task", taskA]);
     const messagesB = await control(["messages", "--bot", botId, "--task", taskB]);
     expect(JSON.stringify(messagesA.messages)).not.toContain("ONLY_B");

@@ -24,6 +24,8 @@ jobs:
           server/local-vm-seats.test.ts scripts/testing/file-size-ratchet.test.ts
           server/computer-control-release.test.ts server/card-dismissal.test.ts server/routes/bot-messages.test.ts
           server/surface.test.ts src/components/QuestionCard.answer.test.ts
+          server/memory-stage.test.ts server/workspace.test.ts server/memory-forget.test.ts server/memory-journal.test.ts
+          server/drivers/agents-call.test.ts server/independent-threads-api.test.ts
       - run: pnpm vitest run server/index.test.ts -t "Local VM|computer|control"
   probe-dist:
     if: ${{ inputs.probe_dist }}

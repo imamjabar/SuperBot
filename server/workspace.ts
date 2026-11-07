@@ -319,8 +319,12 @@ function lineSpan(text: string, index: number, length: number): { start: number;
   return { start, end: newline === -1 ? text.length : newline };
 }
 
-/** No await between reading the file and replacing it; shell writes by an engine or editor are not serialized. */
-export function updateMemory(botId: string, update: MemoryUpdate, opts: MemoryUpdateOptions = {}): MemoryUpdateResult {
+export type MemoryUpdatePlan =
+  | Extract<MemoryUpdateResult, { ok: false }>
+  | (Extract<MemoryUpdateResult, { ok: true }> & { notes: string });
+
+/** The MEMORY.md text `update` makes of `read()`, read only once `update` is valid; `moved` lines go to the archive. */
+export function planMemoryUpdate(update: MemoryUpdate, read: () => string, opts: MemoryUpdateOptions = {}): MemoryUpdatePlan {
   const needsText = update.action !== "remove";
   const needsOld = update.action !== "append";
   if (!["append", "replace", "remove", "supersede"].includes(update.action)
@@ -338,10 +342,7 @@ export function updateMemory(botId: string, update: MemoryUpdate, opts: MemoryUp
   }
   const entryOpts: MemoryUpdateOptions = update.until ? { ...opts, until: update.until } : opts;
   const text = update.text === undefined ? undefined : redactSecretsInText(update.text);
-  const dir = ensureWorkspace(botId);
-  // Not readMemoryFile's fallback: a failed read must never become an overwrite of old notes.
-  const raw = readMemoryText(join(dir, "MEMORY.md"));
-  const current = isMemorySeed(raw) ? "" : raw;
+  const current = read();
   const today = memoryDate(opts.now);
   const appendEntry = (base: string, entry: string) => `${base}${base && !base.endsWith("\n") ? "\n" : ""}${entry}\n`;
   let next: string;
@@ -389,10 +390,25 @@ export function updateMemory(botId: string, update: MemoryUpdate, opts: MemoryUp
     }
   }
   const room = makeRoom(next, today, entry);
+  return { ok: true, truncated: memoryOverBudget(room.text), entry, moved: room.moved, notes: room.text };
+}
+
+/** MEMORY.md as notes, "" for the seed. Not readMemoryFile's fallback: a failed read must never become an overwrite of old notes. */
+export function currentMemoryNotes(botId: string): string {
+  const raw = readMemoryText(join(ensureWorkspace(botId), "MEMORY.md"));
+  return isMemorySeed(raw) ? "" : raw;
+}
+
+/** No await between reading the file and replacing it; shell writes by an engine or editor are not serialized. */
+export function updateMemory(botId: string, update: MemoryUpdate, opts: MemoryUpdateOptions = {}): MemoryUpdateResult {
+  const plan = planMemoryUpdate(update, () => currentMemoryNotes(botId), opts);
+  if (!plan.ok) return plan;
+  const { notes, ...result } = plan;
+  const today = memoryDate(opts.now);
   // Archive first, with no await before MEMORY.md: a line never leaves MEMORY.md before it is in the archive.
-  if (room.moved.length) appendMemoryArchive(botId, room.moved.map((moved) => moved.replace(/^.*/, `$&${SEP}moved ${today}`)));
-  writeMemoryFile(botId, room.text);
-  return { ok: true, truncated: memoryOverBudget(room.text), entry, moved: room.moved };
+  if (result.moved.length) appendMemoryArchive(botId, result.moved.map((moved) => moved.replace(/^.*/, `$&${SEP}moved ${today}`)));
+  writeMemoryFile(botId, notes);
+  return result;
 }
 
 function makeRoom(text: string, today: string, keep: string | undefined): { text: string; moved: string[] } {
@@ -442,7 +458,8 @@ export function memoryLogPath(now: Date = new Date()): string {
   return `memory/${MEMORY_LOG_DIR}/${memoryDate(now)}.md`;
 }
 
-export function appendMemoryLog(botId: string, text: string, opts: MemoryUpdateOptions = {}): MemoryLogResult {
+/** The line `appendMemoryLog` adds and the log file it goes to, without writing. */
+export function planMemoryLog(text: string, opts: MemoryUpdateOptions = {}): MemoryLogResult {
   if (typeof text !== "string" || !text.trim()) {
     return { ok: false, code: "invalid", error: "memory_log needs the text of what happened." };
   }
@@ -450,9 +467,15 @@ export function appendMemoryLog(botId: string, text: string, opts: MemoryUpdateO
   const pad = (n: number) => String(n).padStart(2, "0");
   const source = cleanSource(opts.source);
   const line = `- ${pad(now.getHours())}:${pad(now.getMinutes())}${SEP}${source ? `from ${source}${SEP}` : ""}${normaliseEntryText(redactSecretsInText(text))}`;
+  return { ok: true, file: memoryLogPath(now), line };
+}
+
+export function appendMemoryLog(botId: string, text: string, opts: MemoryUpdateOptions = {}): MemoryLogResult {
+  const plan = planMemoryLog(text, opts);
+  if (!plan.ok) return plan;
+  const { file: relativePath, line } = plan;
   const dir = join(ensureWorkspace(botId), "memory", MEMORY_LOG_DIR);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const relativePath = memoryLogPath(now);
   const path = join(dir, relativePath.slice(`memory/${MEMORY_LOG_DIR}/`.length));
   let current = "";
   try {

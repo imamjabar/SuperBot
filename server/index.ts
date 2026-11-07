@@ -353,6 +353,7 @@ import {
   journalTurnWrite,
   type MemoryJournalEntry,
 } from "./memory-journal.ts";
+import { memoryStage, openMemoryStage, settleMemoryStage, stageBotMemoryUpdate, stageMemoryLog } from "./memory-stage.ts";
 import {
   readSections,
   sectionContextKey,
@@ -4990,6 +4991,7 @@ function requestBehavior(value: unknown): "allow" | "deny" | "answer" | null {
 
 const lastReply = new Map<string, string>();
 const stoppedTurns = new Map<string, string | undefined>(), personStops = new PersonStops();
+function stoppedByClient(threadId: string, turnId: string | undefined): boolean { const stopped = stoppedTurns.get(threadId); return personStops.stopped(threadId, turnId) || (stoppedTurns.has(threadId) && (stopped === undefined || turnId === undefined || stopped === turnId)); }
 // The turn each thread runs, from its start to its end, and nothing once the thread is idle: what Stop and the rescue check.
 const liveTurns = new LiveTurns((threadId) => { const owner = store.botByThread(threadId); return owner ? threadBusy(owner.id, threadId) : groupSpeakers.has(threadId); });
 const settlingTurns = new Set<string>();
@@ -5142,7 +5144,7 @@ const memoryRowsByThread = new Map<string, MemoryJournalEntry[]>();
 bus.subscribe((event: RuntimeEvent) => {
   if (shouldIgnoreProviderEvent(event)) return;
   if (event.type === "turn.completed" || event.type === "session.exited") {
-    runningTurnEngines.delete(event.threadId);
+    runningTurnEngines.delete(event.threadId); settleMemoryStage(event.threadId, event.type === "turn.completed" && event.ok && event.stopReason !== "interrupted" && !stoppedByClient(event.threadId, event.turnId));
     const rows = endMemoryTurn(event.threadId);
     if (rows.length && (store.botByThread(event.threadId) || store.groupByThread(event.threadId))) {
       memoryRowsByThread.set(event.threadId, rows);
@@ -6804,9 +6806,7 @@ bus.subscribe((event: RuntimeEvent) => {
       const internal = isInternalTurn(event.threadId);
       clearInternalTurn(event.threadId);
       const reviewAnswer = reviewAnswerThreads.delete(event.threadId);
-      const stoppedTurnId = stoppedTurns.get(event.threadId);
-      const clientStopped = personStops.stopped(event.threadId, completedTurnId) || (stoppedTurns.has(event.threadId)
-        && (stoppedTurnId === undefined || completedTurnId === undefined || stoppedTurnId === completedTurnId));
+      const clientStopped = stoppedByClient(event.threadId, completedTurnId);
       const stopped = event.stopReason === "interrupted" || clientStopped;
       landParkedFiles(!event.ok && stopped);
       if (completedTurnId) {
@@ -8033,7 +8033,7 @@ async function beginTurn(
         attachCustomMcp(integrations, custom, cfg, { botId: bot.id, threadId });
         if (Object.keys(custom).length) Object.assign(integrations, chatAppsMcp.turnMounts(custom, bot.toolScope));
       }
-      const worksInWorkspace = supportsWorkspaceFiles(instance.driverKind);
+      if (bot.memoryEnabled !== false) openMemoryStage(threadId); const worksInWorkspace = supportsWorkspaceFiles(instance.driverKind);
       if (worksInWorkspace) {
         ensureWorkspace(bot.id, appLanguage());
         if (bot.memoryEnabled !== false) beginMemoryTurn(teamHost.layer(bot.id, threadId), threadId); botBox.lend(bot.id, threadId, teamHost.layerDirs(bot.id, threadId));
@@ -8652,7 +8652,7 @@ async function beginTurn(
       releaseTurnResources(resourceOwner);
       if (ownsLatestGeneration) {
         runningTurnEngines.delete(threadId);
-        endMemoryTurn(threadId);
+        settleMemoryStage(threadId, false); endMemoryTurn(threadId);
         clearTurnDigestState(threadId);
         releaseLocalVmThread(threadId);
         vpsThreadEnded(bot.id, threadId);
@@ -10304,7 +10304,7 @@ async function runClaimedGroupMemberTurn(
   const cwd = workspace && cloudGuestOpened(threadId)
     ? ensureTaskWorkspaceWithSkills(bot.id, threadId, skillsHost.turnImports(bot, threadId, instance))
     : groupTurnCwd(workspace, () => store.pinGroupCwd(readyGroup.id, threadId));
-  assertRoomFolder(cwd); if (workspace && bot.memoryEnabled !== false) beginMemoryTurn(teamHost.layer(bot.id, threadId), threadId); if (workspace) botBox.lend(bot.id, threadId, teamHost.layerDirs(bot.id, threadId));
+  assertRoomFolder(cwd); if (bot.memoryEnabled !== false) openMemoryStage(threadId); if (workspace && bot.memoryEnabled !== false) beginMemoryTurn(teamHost.layer(bot.id, threadId), threadId); if (workspace) botBox.lend(bot.id, threadId, teamHost.layerDirs(bot.id, threadId));
   {
     const drift = checkSoulDrift(bot.id, bot.soul ?? "", bot.soulHash ?? "");
     if (drift.drift !== Boolean(bot.soulDrift)) store.patchBot(bot.id, { soulDrift: drift.drift });
@@ -13277,15 +13277,15 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       }
       const ownersWrite = <T,>(write: () => T): T => lendingMemory ? lendingMemory.trustedWrite(internalSender.id, write) : write();
       if (method === "POST" && path === "/api/internal/memory") {
-        const body = await readInternalBody();
+        const body = await readInternalBody(), layer = teamHost.layer(internalSender.id, internalCapability.threadId), stage = memoryStage(internalCapability.threadId);
         const ownersAsk = CLOUD_TEAM || (!store.groupByThread(internalCapability.threadId) && ownersOwnAsk(store.activePath(internalCapability.threadId)));
-        const result = ownersWrite(() => botMemoryUpdate(teamHost.layer(internalSender.id, internalCapability.threadId), body, { source: memorySource(), aboutMe: ownersAsk ? aboutMeFacts : null,
-          prefer: body?.action === "prefer" ? personPreference.target(internalCapability, internalSender) : null }));
+        const opts = { source: memorySource(), aboutMe: ownersAsk ? aboutMeFacts : null, prefer: body?.action === "prefer" ? personPreference.target(internalCapability, internalSender) : null };
+        const result = stage ? stageBotMemoryUpdate(stage, layer, body, opts, ownersWrite) : ownersWrite(() => botMemoryUpdate(layer, body, opts));
         return json(res, result.ok ? 200 : result.code === "conflict" ? 409 : 400, result);
       }
       if (method === "POST" && path === "/api/internal/memory/log") {
-        const body = await readInternalBody();
-        const result = ownersWrite(() => appendMemoryLog(teamHost.layer(internalSender.id, internalCapability.threadId), body.text, { source: memorySource() }));
+        const body = await readInternalBody(), layer = teamHost.layer(internalSender.id, internalCapability.threadId), stage = memoryStage(internalCapability.threadId);
+        const result = stage ? stageMemoryLog(stage, layer, body.text, { source: memorySource() }, ownersWrite) : ownersWrite(() => appendMemoryLog(layer, body.text, { source: memorySource() }));
         return json(res, result.ok ? 200 : 400, result);
       }
       if (method === "POST" && path === "/api/internal/browser/mcp") {
