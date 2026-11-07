@@ -273,7 +273,9 @@ async function singleJob(browser, bot, main, person) {
     await sleep(1_500);
   }
   const rows = jobs.length ? await messages(jobs[0].threadId) : [];
-  const tools = rows.filter((m) => m.at >= t0 && m.tool && !m.tool.name.startsWith("notice:")).map((m) => m.tool.name);
+  const calls = rows.filter((m) => m.at >= t0 && m.tool && !m.tool.name.startsWith("notice:"));
+  const tools = calls.map((m) => m.tool.name);
+  const ran = calls.filter((m) => m.tool.input || m.tool.ok !== false).length;
   const cap = Number(process.env.PROBE_JOB_CALLS ?? 10);
   const web = tools.filter((name) => /web_fetch|web_search|research_/.test(name)).length;
   const ack = botText(await messages(main), t0)[0];
@@ -281,7 +283,7 @@ async function singleJob(browser, bot, main, person) {
   const toolMark = marks.find((m) => m.mark === "tool");
   jobs.length === 1 ? pass("oneJob") : fail("oneJob", { jobs: jobs.length });
   web > 0 ? pass("webToolUsed", { web, readText: tools.filter((name) => /data_sql|data_load/.test(name)).length }) : fail("webToolUsed", { tools: [...new Set(tools)].slice(0, 6) });
-  tools.length <= cap + 4 ? pass("callsWithinCap", { calls: tools.length, cap }) : fail("callsWithinCap", { calls: tools.length, cap });
+  ran <= cap ? pass("callsWithinCap", { ran, rows: tools.length, cap }) : fail("callsWithinCap", { ran, rows: tools.length, cap });
   const contextual = presence.filter((phrase) => /^(Reading|Searching the web for|Running data query|Reviewing) \S/.test(phrase));
   contextual.length ? pass("statusLineContextual", { phrases: contextual.slice(0, 4).map((p) => p.slice(0, 40)) }) : fail("statusLineContextual", { phrases: presence.slice(0, 4) });
   final ? pass("finalInMainChat", { len: final.text.length }) : fail("finalInMainChat", { jobs: jobs.length, busy: jobs.map((j) => Boolean(j.busy)) });

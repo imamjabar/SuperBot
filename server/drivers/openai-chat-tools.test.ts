@@ -1354,6 +1354,23 @@ describe("structured tool execution boundaries", () => {
     }));
   });
 
+  it("spends the budget only on calls that run, refusing the rest of a batch that crosses it", async () => {
+    const f = await fixture((body, response) => body.tools?.length
+      ? sse(response, [chunk({
+        tool_calls: [['bad', '{"name":"bad","value":42}'], ['a', '{"name":"a","value":"1"}'], ['b', '{"name":"b","value":"2"}'], ['c', '{"name":"c","value":"3"}']]
+          .map(([id, args], index) => ({ ...toolCall("audit_write", args, `call_${id}`), index })),
+      }, "tool_calls")])
+      : answer(response, "Final answer from gathered facts."));
+    await f.start({ approvalMode: "full", toolCallBudget: 2 });
+    expect(await f.completed()).toMatchObject({ ok: true });
+    expect(f.effects().map((effect) => effect.name)).toEqual(["a", "b"]);
+    expect(f.requests).toHaveLength(2);
+    const results = f.requests[1]!.messages.filter((m) => m.role === "tool");
+    expect(results.map((m) => m.tool_call_id)).toEqual(["call_bad", "call_a", "call_b", "call_c"]);
+    expect(results[0]?.content).not.toContain("tool calls");
+    expect(results[3]?.content).toContain("[OpenMausBot: this job has used its 2 tool calls. This call was not run.]");
+  });
+
   it("stops with a protocol error if the model attempts tool calls after the budget is spent", async () => {
     let callId = 0;
     const f = await fixture((_body, response) => {
