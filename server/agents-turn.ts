@@ -27,6 +27,8 @@ export interface AgentsTurn {
   skillAuthoring: boolean;
   roomHandoffId?: string;
   deliversSavedFiles?: boolean;
+  /** Hands the reports of the bot's own jobs back to the chat that asked: opening, steering or reworking them is refused. */
+  deliversReports?: boolean;
 }
 
 const flag = (on: boolean) => (on ? "1" : "0");

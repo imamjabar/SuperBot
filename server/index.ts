@@ -636,7 +636,7 @@ import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
 import { createDevsReports } from "./host/devs-reports.ts"; import { bugReportEndpoint, devsReportSender, devsStatusAsker } from "./devs-report-send.ts"; import { captureRecentLog } from "./recent-log.ts"; import { createShareAnswer } from "./host/share-answer.ts";
-import { createCardRequester, linePersonKey } from "./host/thread-person.ts"; import { selfThreadRefusal } from "./host/self-threads.ts"; import { lookedAfterBy } from "./host/looked-after.ts"; import { createActingPeople, HANDED_PEOPLE_FILE, HandedPeople, type HandedRun, keptPrivate, privateHandBack, withPerson } from "./host/acting-person.ts";
+import { createCardRequester, linePersonKey } from "./host/thread-person.ts"; import { DELIVER_REPORTS_REFUSAL, selfThreadRefusal } from "./host/self-threads.ts"; import { lookedAfterBy } from "./host/looked-after.ts"; import { createActingPeople, HANDED_PEOPLE_FILE, HandedPeople, type HandedRun, keptPrivate, privateHandBack, withPerson } from "./host/acting-person.ts";
 import { createThreadRoutes } from "./routes/threads.ts";
 import { createWebhookRoutes } from "./routes/webhooks.ts";
 import { withScopeHint } from "./connector-scope-hint.ts";
@@ -1612,6 +1612,7 @@ type InternalCapability = {
   boxId?: string | null;
   browserSession?: string;
   roomHandoffId?: string;
+  deliversReports?: boolean;
   attachedFiles?: number;
   /** attach_file may also deliver files saved outside the conversation's folders. Never on a Cloud home or a hosted workspace. */
   deliversSavedFiles?: boolean;
@@ -1830,13 +1831,14 @@ function agentsIntegration(
   generation: string,
   roomHandoffId?: string,
   hostFiles = false,
+  deliversReports = false,
 ) {
   const bot = store.bot(botId), speaking = botForThread(botId, threadId) ?? bot;
   // Only advertises the tools; the routes behind them refuse regardless.
   const host = { skillAuthoring: skillAuthoringEnabled(cfg), sharedComputers: lendingEnabled(), cloudHome: Boolean(CLOUD_HOME), team: Boolean(CLOUD_TEAM), escalations: chiefEscalationsEnabled(cfg),
     voiceNotes: tts.voiceReady(cfg, speaking?.voice) && speaking?.voiceNotes !== false, x: Boolean(researchCredential(cfg.treg?.key)), research: researchAvailability.available() };
   return { ...agentsProxyLaunch(), env: agentsServerEnv({ threadId, bot: bot ?? { id: botId }, room: Boolean(store.groupByThread(threadId)), teamComputer: Boolean(bot && inheritedTeamComputer(bot)), reportsBack: Boolean(store.taskByThread(botId, threadId)?.openedBy?.reportsBack), host },
-    { generation, depth, skillAuthoring, roomHandoffId, ...(hostFiles && !CLOUD_HOME && !HOSTED_WORKSPACE ? { deliversSavedFiles: true } : {}) },
+    { generation, depth, skillAuthoring, roomHandoffId, ...(deliversReports ? { deliversReports } : {}), ...(hostFiles && !CLOUD_HOME && !HOSTED_WORKSPACE ? { deliversSavedFiles: true } : {}) },
     (turn) => mintInternalCapability({ botId, threadId, kind: "agents", createdBots: 0, openedThreads: 0, ...turn }), `http://127.0.0.1:${PORT}`) };
 }
 
@@ -4070,13 +4072,16 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
         };
         signal.addEventListener("abort", abort, { once: true });
         if (signal.aborted) { abort(); return; }
+        const children = coordinator.children(node.id);
+        const deliversReports = resumed && !node.parentId && children.every((child) => child.question === undefined)
+          && children.some((child) => store.taskByThread(child.botId, child.threadId)?.openedBy?.reportsBack === true);
         void startTurn(bot.id, turnText, {
           threadId: node.threadId, cardContinuation: true, commsDepth: MAX_COMMS_DEPTH,
           requestMessageId: directRequestOwners.get(node.threadId)?.generations.has(node.rootId) ? directRequestOwners.get(node.threadId)?.messageId
             : coordinator.children(node.id).map((child) => store.taskByThread(child.botId, child.threadId)?.openedBy).find((by) => by?.reportsBack && by.threadId === node.threadId)?.requestMessageId,
           origin: actingPeople.handedOrigin(coordinator.node(node.rootId)?.origin ?? OUTSIDE, node.id),
           unattended: isUnattended(bot.id, node.threadId),
-          coordination: { id: node.id, resumed, settle: finish },
+          coordination: { id: node.id, resumed, deliversReports, settle: finish },
           onDispatchError: error => finish({ ok: false, text: error }),
         }).catch(error => finish({ ok: false, text: String(error) }));
       });
@@ -7658,7 +7663,7 @@ async function beginTurn(
     onSettled?: (outcome: HostTurnResult) => void;
     /** A one-on-one goal step: a card continuation that is still its own turn, as a room goal step is. */
     goalRunId?: string;
-    coordination?: { id: string; resumed: boolean; settle: (outcome: HostTurnResult) => void };
+    coordination?: { id: string; resumed: boolean; deliversReports?: boolean; settle: (outcome: HostTurnResult) => void };
     /** A person's own send: it may run beside a room turn on another thread. */ allowRoomTurnElsewhere?: boolean;
   },
 ) {
@@ -8388,7 +8393,7 @@ async function beginTurn(
       // One reachability rule: a bot is never told about a peer that coordinate_bots would refuse.
       const sectionPeers = reachablePeers(store.bots, bot);
       if (agentsMounted) {
-        integrations.agents = agentsIntegration(bot.id, threadId, commsDepth, skillAuthoring, dispatchClaimId, opts?.coordination?.id, worksInWorkspace);
+        integrations.agents = agentsIntegration(bot.id, threadId, commsDepth, skillAuthoring, dispatchClaimId, opts?.coordination?.id, worksInWorkspace, opts?.coordination?.deliversReports === true);
       }
       if (instance.adapter.capabilities.hooks === true && hooksEnabled()) {
         integrations.hooks = hooksIntegration(bot.id, threadId, dispatchClaimId);
@@ -13915,7 +13920,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             // Echo only the id the caller sent, never a bot's name.
           const addressed = store.bot(target.botId);
           const eligibility =
-            target.botId === internalSender.id && !fresh ? "Choose a teammate, not yourself"
+            target.botId === internalSender.id && internalCapability.deliversReports ? DELIVER_REPORTS_REFUSAL
+            : target.botId === internalSender.id && !fresh ? "Choose a teammate, not yourself"
             : !addressed ? `No bot with id "${target.botId}" — call list_bots and copy the exact id from the result`
             : addressed.hidden ? `The bot with id "${target.botId}" is no longer available — call list_bots for the ones you can reach`
             : roomHandoffProblem(target, address);
@@ -14323,8 +14329,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           projectId = project.id;
         }
         const sourceTitle = owner.group ? owner.group.name : (store.taskByThread(from.id, fromThreadId)?.title ?? "");
-        const picked = body.modelSelection === undefined ? null : checkedModelSelection(body.modelSelection, undefined, true); const refused = !picked ? null : target.id !== from.id ? "model_selection is only for threads on yourself" : !picked.ok ? picked.error : validateModelProposal(picked.selection, from); if (refused) return json(res, 400, { error: refused }); if (typeof body.job === "string" && body.job.trim() && target.id === from.id) { const steered = await steerOwnJob({ store, canSteer: canSteerThread, steer: steerThread }, from, body.job.trim(), message); return json(res, steered.status, steered.body); }
-        const selfRefused = target.id !== from.id ? null : selfThreadRefusal({ handoff: Boolean(internalCapability.roomHandoffId), requestLine: store.activePath(fromThreadId).findLast((line) => line.role === "user" && line.kind === "text") }); if (selfRefused) return json(res, 409, { error: selfRefused }); if (target.id === from.id && body.reportBack !== true) {
+        const picked = body.modelSelection === undefined ? null : checkedModelSelection(body.modelSelection, undefined, true); const refused = !picked ? null : target.id !== from.id ? "model_selection is only for threads on yourself" : !picked.ok ? picked.error : validateModelProposal(picked.selection, from); if (refused) return json(res, 400, { error: refused }); if (typeof body.job === "string" && body.job.trim() && target.id === from.id) { const steered = await steerOwnJob({ store, canSteer: canSteerThread, steer: steerThread }, from, body.job.trim(), message, { threadId: fromThreadId, deliversReports: internalCapability.deliversReports }); return json(res, steered.status, steered.body); }
+        const selfRefused = target.id !== from.id ? null : selfThreadRefusal({ deliversReports: internalCapability.deliversReports, handoff: Boolean(internalCapability.roomHandoffId), requestLine: store.activePath(fromThreadId).findLast((line) => line.role === "user" && line.kind === "text") }); if (selfRefused) return json(res, 409, { error: selfRefused }); if (target.id === from.id && body.reportBack !== true) {
           const inherited = picked?.ok ? { modelSelection: picked.selection, approvalMode: undefined } : parentThreadModel(from.id, fromThreadId);
           const task = store.createTask(from.id, title, false, projectId, { botId: from.id, name: from.name, at: Date.now() }, inherited.approvalMode, inherited.modelSelection);
           if (!task) return json(res, 500, { error: "couldn't create that thread" });

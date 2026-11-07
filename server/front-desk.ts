@@ -1,5 +1,6 @@
 import type { ToolScope } from "../shared/tool-scope.ts";
 import type { AppConfig } from "./config.ts";
+import { DELIVER_REPORTS_REFUSAL } from "./host/self-threads.ts";
 import { SIDE_LANE_TITLE } from "./side-replies.ts";
 import type { Store } from "./store.ts";
 
@@ -33,8 +34,10 @@ interface SteerJobDeps {
   steer(threadId: string, text: string): Promise<string>;
 }
 
-/** A correction or addition for a bot's own running job, read by that job at its next step. */
-export async function steerOwnJob(deps: SteerJobDeps, bot: { id: string; name: string }, jobThreadId: string, message: string): Promise<{ status: number; body: Record<string, unknown> }> {
+/** A correction or addition for a bot's own running job, read by that job at its next step. `from`: the turn asking. */
+export async function steerOwnJob(deps: SteerJobDeps, bot: { id: string; name: string }, jobThreadId: string, message: string, from: { threadId: string; deliversReports?: boolean }): Promise<{ status: number; body: Record<string, unknown> }> {
+  if (from.deliversReports) return { status: 409, body: { error: DELIVER_REPORTS_REFUSAL } };
+  if (jobThreadId === from.threadId) return { status: 400, body: { error: "That thread id is this chat itself, not a job. Answer the person here; list_threads shows your jobs' ids." } };
   const job = deps.store.taskByThread(bot.id, jobThreadId);
   if (!job || job.openedBy?.botId !== bot.id) return { status: 404, body: { error: "No job of yours has that thread id; use list_threads." } };
   if (!deps.canSteer(jobThreadId)) return { status: 409, body: { error: `#${job.title} is not running now, so it cannot take this. Start a new job with the full corrected brief.` } };
