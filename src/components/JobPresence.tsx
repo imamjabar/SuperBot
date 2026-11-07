@@ -2,12 +2,14 @@ import { Square } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { jobNowPhrases } from "@/lib/job-status";
+import type { LiveActivityPhrases } from "@/lib/live-activity";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useStore, type Bot, type Task } from "@/state/store";
 import { openBotThread } from "@/state/thread-navigation";
 import { useTurnLive } from "@/state/turn-status";
 import { BotAvatar } from "./Avatar";
 import { TurnPresence } from "./TurnPresence";
+
 export function ownRunningJobs(bot: Pick<Bot, "id" | "threadId" | "tasks">): Task[] {
   return (bot.tasks ?? []).filter(
     (task) =>
@@ -33,7 +35,8 @@ export function JobPresence({ bot, className }: { bot: Bot; className?: string }
 function JobLine({ bot, job }: { bot: Bot; job: Task }) {
   const { dispatch } = useStore();
   const showThreads = useShowThreads();
-  const now = jobNowPhrases(useTurnLive(job.threadId));
+  const live = useTurnLive(job.threadId);
+  const now: LiveActivityPhrases = live.turnId || job.turnStartedAt === undefined ? jobNowPhrases(live) : { phase: "job:unseen", phrases: [] };
   const open = () => openBotThread(dispatch, bot, job.threadId, showThreads);
 
   return (
