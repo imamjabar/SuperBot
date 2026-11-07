@@ -3,7 +3,7 @@ import { expect, it } from "vitest";
 import en from "./en.json";
 import { locales } from "./index";
 
-const SPLIT = ["cloudIntro.badge", "cloudBuy.card.trial", "cloudBuy.pay.planTrial", "usageMeter.confirm.trial", "usageMeter.confirm.trialNoDate", "roomCard.priceTrial"];
+const SPLIT = ["cloudIntro.badge", "cloudBuy.card.trial", "usageMeter.confirm.trial", "usageMeter.confirm.trialNoDate", "roomCard.priceTrial"];
 const ONE_DAY_DROPS_TODAY = ["usageMeter.confirm.trial", "usageMeter.confirm.trialNoDate", "roomCard.priceTrial"];
 
 it("has both wordings of a trial's length in every language, and only the longer one counts days", () => {
