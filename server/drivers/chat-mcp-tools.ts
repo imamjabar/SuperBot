@@ -48,9 +48,9 @@ export interface ChatToolSession {
   /** Directory reads and OpenMausBot's own agents server need no card; call_tool shows the tool it runs. */
   view(name: string, args: Record<string, unknown>): ChatToolCallView;
   execute(name: string, args: Record<string, unknown>, signal: AbortSignal): Promise<ChatToolResult>;
-  /** Once a connected app answered in this turn, the first built-in browser call is not run: the note says why and that
-   * calling again runs it, for when the app lacks the data or the action. Undefined: run the call. */
-  redundantBrowserCall(name: string): string | undefined;
+  /** Once a connected app answered in this turn, the built-in browser calls of the next model round are not run: the note
+   * says why and that calling again runs it, for when the app lacks the data or the action. Undefined: run the call. */
+  redundantBrowserCall(name: string, round: number): string | undefined;
   close(): Promise<void>;
 }
 
@@ -392,7 +392,7 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
   const searchable = new Set<string>();
   const connector = (server: string) => CONNECTOR_SERVERS.has(server) || searchable.has(server) || observers.has(server);
   let connectorAnswer: string | undefined;
-  let browserAfterConnector = false;
+  let heldRound: number | undefined;
   const eligible = (server: string) => scope === undefined || canUseMcpServer(scope, server);
   if (computerUse && integrations?.localComputer && eligible("computer")) servers.push(["computer", integrations.localComputer]);
   if (computerUse && integrations?.browser && eligible("browser")) servers.push(["browser", integrations.browser]);
@@ -643,9 +643,9 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       const call = directory!.call(args);
       return "answer" in call ? answer(call.answer) : run(catalog.get(call.name)!, call.arguments, callSignal);
     },
-    redundantBrowserCall(name) {
-      if (!connectorAnswer || browserAfterConnector || !registered.get(name)?.builtInBrowser) return undefined;
-      browserAfterConnector = true;
+    redundantBrowserCall(name, round) {
+      if (!connectorAnswer || !registered.get(name)?.builtInBrowser || (heldRound !== undefined && heldRound !== round)) return undefined;
+      heldRound = round;
       return connectorAnsweredNote(connectorAnswer);
     },
   };

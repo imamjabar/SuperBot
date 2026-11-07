@@ -809,13 +809,14 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             let result: ChatToolResult;
             let started = false;
             let fatal: Error | undefined, title = call.function.name, skipRepeatCount = false;
-            let notRun = false, connectorFirst: string | undefined;
+            let notRun = false;
             try {
               let args: unknown;
               try { args = JSON.parse(call.function.arguments); }
               catch { throw new ChatProtocolError("tool arguments are not complete JSON"); }
               if (!object(args)) throw new ChatProtocolError("tool arguments must be a JSON object");
               const inputPreview = preview(args);
+              const connectorFirst = call.function.name === ASK_USER_TOOL ? undefined : tools.redundantBrowserCall(call.function.name, round);
               if (call.function.name === ASK_USER_TOOL) {
                 if (!questionAllowed || !allowsTool(scope, { kind: "native", name: ASK_USER_TOOL })) throw new Error("Tool selection excludes this tool");
                 // A question goes before the gate: Full would auto-run an unanswered ask, Ask would show Allow/Deny.
@@ -841,7 +842,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 skipRepeatCount = true;
                 notRun = true;
                 result = { ok: false, text: `[OpenMausBot: this job has used its ${toolCallBudget} tool calls. This call was not run.]` };
-              } else if ((connectorFirst = tools.redundantBrowserCall(call.function.name)) !== undefined) {
+              } else if (connectorFirst !== undefined) {
                 skipRepeatCount = true;
                 notRun = true;
                 result = { ok: false, text: connectorFirst };

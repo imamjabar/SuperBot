@@ -105,8 +105,9 @@ const SIGN_IN_PATH = /(?:^|[/._-])(?:log-?in|sign-?in|auth|sso)(?:$|[/._-])/i;
 const PASSWORD_FIELD = /<input\b[^>]*\btype\s*=\s*["']?password\b/i;
 /** Below this a page with a password field is a sign-in form, not an article with a sign-in box. */
 const SIGN_IN_TEXT_MAX = 1_500;
-/** Below this a page that ships scripts shows its words only once they run. */
+/** Below this a page that ships scripts and an empty app mount or a noscript notice shows its words only once they run. */
 const SCRIPT_TEXT_MAX = 200;
+const SCRIPT_SHELL = /<noscript\b|<div\b[^>]*\bid\s*=\s*["']?(?:root|app|__next|__nuxt)["']?[^>]*>\s*<\/div>/i;
 
 /** Why a page's text needs the built-in browser, or undefined when web_fetch read it. */
 export function browserNeed(page: { status?: number; requested: URL; url?: URL; html?: string; text?: string }): BrowserNeed | undefined {
@@ -115,7 +116,7 @@ export function browserNeed(page: { status?: number; requested: URL; url?: URL; 
   if (page.html === undefined) return undefined;
   const length = page.text?.length ?? 0;
   if (PASSWORD_FIELD.test(page.html) && length < SIGN_IN_TEXT_MAX) return "sign-in";
-  if (length < SCRIPT_TEXT_MAX && /<script\b/i.test(page.html)) return "script";
+  if (length < SCRIPT_TEXT_MAX && /<script\b/i.test(page.html) && SCRIPT_SHELL.test(page.html)) return "script";
   return undefined;
 }
 
