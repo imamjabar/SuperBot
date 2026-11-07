@@ -173,6 +173,9 @@ const YOUR_COMPUTER_ALONE =
 const CONNECTED_APP_FIRST =
   " When a connected app can do the task, use it before any browser or screen. If that app is refused or fails, say so in one plain line with what fixes it (connecting it, or who can), and ask before doing the task on a screen instead.";
 
+const PUBLIC_PAGE_FIRST =
+  " Read a public page, news or feed whose address you know with web_fetch, never on a screen; when you do not know the address, find it with web_search if you have it. Use the browser for it only when web_fetch says it needs a sign-in or a browser, or the task needs clicks, forms or the person to see it; use a desktop only when no browser can do it.";
+
 const RESTATE_SENTENCE =
   " Before your first action on a screen or page in a task, say in one short sentence where you are working, using that same name.";
 
@@ -229,7 +232,7 @@ export function surfacePrompt(
       ` Two surfaces are mounted this turn: the built-in browser (the browser server's browser_navigate, browser_snapshot, browser_click, browser_fill and friends) and ${computer} (the computer server's tools). Web tasks → the built-in browser. Desktop apps, files and shell → ${computer} tools. Pick one surface for a task and stay on it; if you need the user to sign in, say which surface — the Browser tab or ${computer}.`;
   } else if (computer) {
     text =
-      ` Everything you do on screen happens on ${computer}, web pages included, through its own browser; there is no separate built-in browser this turn. Screen work is slow: answer facts, news, weather and other read-only lookups with web search, or a plain HTTP fetch from the shell, and open the desktop browser only when the user asks to see it or the task needs a visible or signed-in page. If you need the user to sign in, tell them it is on ${computer}.`;
+      ` Everything you do on screen happens on ${computer}, web pages included, through its own browser; there is no separate built-in browser this turn. Screen work is slow: answer facts, news, weather and other read-only lookups with web_fetch or web search, and open the desktop browser only when the user asks to see it or the task needs a visible or signed-in page. If you need the user to sign in, tell them it is on ${computer}.`;
   } else if (mounted.browser) {
     text =
       " Everything you do on screen happens in the built-in browser tab; there is no desktop computer this turn, but your own shell and file tools still work for ordinary code and file tasks, if you have them. If you need the user to sign in, tell them it is in the Browser tab of the Screen panel.";
@@ -247,7 +250,7 @@ export function surfacePrompt(
   if (opts.canSelect) text += " If no suitable computer is running but its provider is configured, select_computer can provision one for this computer task; reuse existing resources first. Do not provision merely for ordinary chat or inspection.";
   if (opts.canSelect && !computer && !mounted.browser) text += " No computer or browser tools are mounted yet; select_computer is the way to connect them before screen work, not a reason to claim you already performed it.";
   if (computer || mounted.browser) text += CONNECTED_APP_FIRST;
-  if (computer || mounted.browser) text += " For online research, use the selected OpenMausBot browser when a search service is unavailable. A failed tool proves only that this attempt failed, not that every browser is unavailable. Inspect the current page after navigation; report a sign-in page, redirect or error as such. A completed model turn is not proof that the user's task succeeded.";
+  if (computer || mounted.browser) text += PUBLIC_PAGE_FIRST + " For online research, use the selected OpenMausBot browser when a search service is unavailable. A failed tool proves only that this attempt failed, not that every browser is unavailable. Inspect the current page after navigation; report a sign-in page, redirect or error as such. A completed model turn is not proof that the user's task succeeded.";
   if (opts.cloudHome) for (const [desktop, cloudHome] of CLOUD_HOME_WORDING) text = text.replace(desktop, cloudHome);
   if (opts.cloudHome && opts.ownComputer) {
     // What this turn's places reach, never every screen: their own computer is reachable too, through shared_computer.

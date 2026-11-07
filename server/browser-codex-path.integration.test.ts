@@ -54,7 +54,7 @@ describe.skipIf(process.platform === "win32")("Codex browser turns with a minima
     // Preparation checks that the acknowledged close really removed it.
     writeFileSync(browser, "#!/bin/sh\nif [ \"$1\" = session ]; then printf '%s\\n' '{\"success\":true,\"data\":{\"sessions\":[]}}'; fi\nexit 0\n", { mode: 0o755 });
     writeFileSync(join(data, "config.json"), JSON.stringify({
-      features: { browser: true },
+      features: { browser: true, frontDesk: false },
       instances: Object.fromEntries(["default", "absolute"].map((id) => [id, {
         driver: "codex",
         environment: { FAKE_CODEX_DUMP: join(home, `${id}.json`) },

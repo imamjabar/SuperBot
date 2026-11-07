@@ -809,13 +809,14 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             let result: ChatToolResult;
             let started = false;
             let fatal: Error | undefined, title = call.function.name, skipRepeatCount = false;
-            let budgetRefused = false;
+            let notRun = false;
             try {
               let args: unknown;
               try { args = JSON.parse(call.function.arguments); }
               catch { throw new ChatProtocolError("tool arguments are not complete JSON"); }
               if (!object(args)) throw new ChatProtocolError("tool arguments must be a JSON object");
               const inputPreview = preview(args);
+              const connectorFirst = call.function.name === ASK_USER_TOOL ? undefined : tools.redundantBrowserCall(call.function.name, round);
               if (call.function.name === ASK_USER_TOOL) {
                 if (!questionAllowed || !allowsTool(scope, { kind: "native", name: ASK_USER_TOOL })) throw new Error("Tool selection excludes this tool");
                 // A question goes before the gate: Full would auto-run an unanswered ask, Ask would show Allow/Deny.
@@ -839,8 +840,12 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 }
               } else if (toolCallBudget !== undefined && dispatchedToolCalls >= toolCallBudget) {
                 skipRepeatCount = true;
-                budgetRefused = true;
+                notRun = true;
                 result = { ok: false, text: `[OpenMausBot: this job has used its ${toolCallBudget} tool calls. This call was not run.]` };
+              } else if (connectorFirst !== undefined) {
+                skipRepeatCount = true;
+                notRun = true;
+                result = { ok: false, text: connectorFirst };
               } else {
                 const refused = repeats?.refuses(call.function.name, call.function.arguments);
                 if (refused) { skipRepeatCount = true; throw new Error(refused); }
@@ -888,7 +893,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             const text = safeText(result.text);
             const output = preview({ ok: result.ok, result: text });
             emit({ ...base(turn.threadId, turnId), type: "item.completed", itemType: "tool", itemId: call.id, ok: result.ok, output });
-            if (!result.ok && !budgetRefused) { toolFailed = true; failedCalls.push(title); }
+            if (!result.ok && !notRun) { toolFailed = true; failedCalls.push(title); }
             messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ ok: result.ok, result: repeatNote ? `${text}\n\n${repeatNote}` : text }) });
             screenshotParts.push(...chatToolImages(call.id, result.images));
             abort.signal.throwIfAborted();

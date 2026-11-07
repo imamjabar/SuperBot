@@ -60,6 +60,19 @@ describe("web_fetch internal route", () => {
       } else if (path === "/long") {
         res.setHeader("content-type", "text/plain");
         res.end("X".repeat(25000));
+      } else if (path === "/news/today") {
+        res.writeHead(302, { location: "/account/login?next=/news/today" }).end();
+      } else if (path.startsWith("/account/login")) {
+        res.setHeader("content-type", "text/html");
+        res.end(`<html><head><title>Sign in</title></head><body><form><input name="user"><input type="password" name="pw"><button>Sign in</button></form></body></html>`);
+      } else if (path === "/members") {
+        res.writeHead(401).end();
+      } else if (path === "/app") {
+        res.setHeader("content-type", "text/html");
+        res.end(`<!doctype html><html><head><title>Dashboard</title><script src="/bundle.js"></script></head><body><div id="root"></div><noscript>Enable JavaScript</noscript></body></html>`);
+      } else if (path === "/article") {
+        res.setHeader("content-type", "text/html");
+        res.end(`<html><body><form><input type="password" name="pw"></form><article>${"Harga VPS Singapura naik. ".repeat(80)}</article></body></html>`);
       } else {
         res.writeHead(404).end();
       }
@@ -198,5 +211,33 @@ describe("web_fetch internal route", () => {
 
     const otherMethod = await callRoute(handler, { method: "GET" });
     expect(otherMethod.result).toBe(PASS);
+  });
+
+  it.each([
+    ["a redirect to a sign-in form", "/news/today", "sign-in"],
+    ["a 401 answer", "/members", "sign-in"],
+    ["a page that shows nothing until its scripts run", "/app", "script"],
+  ] as const)("hands %s to the built-in browser instead of returning its text", async (_case, path, need) => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}${path}` } });
+    expect(status).toBe(200);
+    expect(body.needsBrowser).toBe(need);
+    expect(String(body.next)).toContain("built-in browser (browser_navigate");
+    expect(body.text).toBeUndefined();
+  });
+
+  it("reads an article that carries a sign-in box as text", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}/article` } });
+    expect(status).toBe(200);
+    expect(body.needsBrowser).toBeUndefined();
+    expect(String(body.text)).toContain("Harga VPS Singapura naik.");
+  });
+
+  it("still reports a missing page as an error", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}/gone` } });
+    expect(status).toBe(502);
+    expect(body).toEqual({ error: "The page answered 404." });
   });
 });

@@ -1,12 +1,11 @@
 import type { ToolScope } from "../shared/tool-scope.ts";
 import type { AppConfig } from "./config.ts";
 import { DELIVER_REPORTS_REFUSAL } from "./host/self-threads.ts";
-import { SIDE_LANE_TITLE } from "./side-replies.ts";
 import type { Store } from "./store.ts";
 
-/** The person's own chat with a bot (its main thread) and its quick-reply lane, when the deployment turned front desk on. */
-export function frontDeskTurn(cfg: AppConfig, store: Pick<Store, "taskByThread">, mainThreadId: string | undefined, botId: string, threadId: string): boolean {
-  return cfg.features?.frontDesk === true && (threadId === mainThreadId || store.taskByThread(botId, threadId)?.title === SIDE_LANE_TITLE);
+/** The person's own chat with a bot (its main thread), unless the deployment turned front desk off. */
+export function frontDeskTurn(cfg: AppConfig, mainThreadId: string | undefined, threadId: string): boolean {
+  return cfg.features?.frontDesk !== false && threadId === mainThreadId;
 }
 
 export interface MainChat { threadId: string; title?: string }
@@ -21,12 +20,15 @@ export function newChatRefused(main: MainChat) {
   return { error: `This bot keeps one chat with you: use ${named(main)}.`, code: "main_chat_only", mainThreadId: main.threadId } as const;
 }
 
-/** Tools that make a turn slow: the computer, the browser and shells. The person's chat never holds them, so it always answers fast. */
+/** Tools that make a turn slow: the computer, the browser, shells, page reads and web searches. The person's chat never holds
+ * them, so it always answers fast and never takes the one desktop or browser seat a job may be using. */
 export const FRONT_DESK_DENY: readonly string[] = [
   "mcp:computer:*",
   "mcp:browser:*",
   "mcp:agents:vm_exec",
   "mcp:agents:shared_computer",
+  "mcp:agents:web_fetch",
+  "mcp:agents:web_search",
 ];
 
 export function frontDeskScope(scope: ToolScope | undefined): ToolScope {

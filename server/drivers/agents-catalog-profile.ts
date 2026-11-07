@@ -32,8 +32,8 @@ export interface CatalogProfile {
   room?: boolean;
   /** A job the bot opened on itself that reports back to a chat: report_progress is mounted. */
   reportsBack?: boolean;
-  /** A report-back job on an API-model engine: web_fetch is mounted to read web pages. */
-  webFetch?: boolean;
+  /** The Command Code gateway key is held: web_search is mounted. Absent means off. */
+  webSearch?: boolean;
 }
 
 /** Everything is off unless the harness says "1". */
@@ -54,6 +54,6 @@ export function catalogProfileFromEnv(env: NodeJS.ProcessEnv): CatalogProfile {
     computerSelection: env.OMB_COMPUTER_SELECTION === "1",
     room: env.OMB_ROOM === "1",
     reportsBack: env.OMB_REPORTS_BACK === "1",
-    webFetch: env.OMB_WEB_FETCH === "1",
+    webSearch: env.OMB_WEB_SEARCH === "1",
   };
 }

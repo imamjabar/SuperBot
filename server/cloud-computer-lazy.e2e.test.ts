@@ -181,7 +181,9 @@ describe("a cloud computer starts only when the bot uses it", () => {
     dumpFile = join(home, "dump.json");
     finishFile = join(home, "finish");
     mkdirSync(data, { recursive: true });
-    writeFileSync(join(data, "config.json"), JSON.stringify({ instances: {
+    writeFileSync(join(data, "config.json"), JSON.stringify({
+      features: { frontDesk: false },
+      instances: {
       claude: {
         driver: "claudeAgent", config: { cli: FAKE_CLAUDE },
         environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile },

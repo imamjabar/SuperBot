@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { isOwnJobThread, SIDE_LANE_TITLE } from "./job-threads";
+import { isOwnJobThread } from "./job-threads";
 
 describe("isOwnJobThread", () => {
-  it("recognizes quick replies side lane as an own job thread", () => {
-    expect(isOwnJobThread({ title: SIDE_LANE_TITLE }, "chief")).toBe(true);
-    expect(isOwnJobThread({ title: "Quick replies" }, undefined)).toBe(true);
-  });
-
   it("recognizes report_back job opened on itself", () => {
     const task = {
       title: "Research competitors",

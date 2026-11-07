@@ -235,10 +235,13 @@ const running = require("node:fs").existsSync(${JSON.stringify(join(home, "brows
 process.stdout.write(JSON.stringify({ success: true, data: args[0] === "session" ? { sessions: running ? [process.env.AGENT_BROWSER_SESSION] : [] } : {} }));
 `, { mode: 0o755 });
   chmodSync(join(home, "agent-browser"), 0o755);
-  writeFileSync(join(dataDir, "config.json"), JSON.stringify({ instances: {
-    ...Object.fromEntries(["codex", "cursor", "githubCopilot", "openaiCompat", "qwen", "hermes", "pi", "grok"].map((id) => [id, { driver: "not-a-real-driver" }])),
-    claude: { driver: "claudeAgent", displayName: "Claude", config: { cli } },
-  } }));
+  writeFileSync(join(dataDir, "config.json"), JSON.stringify({
+    features: { frontDesk: false },
+    instances: {
+      ...Object.fromEntries(["codex", "cursor", "githubCopilot", "openaiCompat", "qwen", "hermes", "pi", "grok"].map((id) => [id, { driver: "not-a-real-driver" }])),
+      claude: { driver: "claudeAgent", displayName: "Claude", config: { cli } },
+    },
+  }));
   website = createServer((req, res) => {
     visits.push({ peer: req.socket.remotePort!, host: String(req.headers.host) });
     if (req.headers.host === "slow.youtube.com") return void setTimeout(() => res.end("late"), 60_000);

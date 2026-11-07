@@ -98,6 +98,37 @@ function parseFeedItems(xml: string): string[] | null {
   return lines.length > 0 ? lines : null;
 }
 
+export type BrowserNeed = "sign-in" | "script";
+
+const SIGN_IN_STATUS: ReadonlySet<number> = new Set([401, 403, 407]);
+const SIGN_IN_PATH = /(?:^|[/._-])(?:log-?in|sign-?in|auth|sso)(?:$|[/._-])/i;
+const PASSWORD_FIELD = /<input\b[^>]*\btype\s*=\s*["']?password\b/i;
+/** Below this a page with a password field is a sign-in form, not an article with a sign-in box. */
+const SIGN_IN_TEXT_MAX = 1_500;
+/** Below this a page that ships scripts and an empty app mount or a noscript notice shows its words only once they run. */
+const SCRIPT_TEXT_MAX = 200;
+const SCRIPT_SHELL = /<noscript\b|<div\b[^>]*\bid\s*=\s*["']?(?:root|app|__next|__nuxt)["']?[^>]*>\s*<\/div>/i;
+
+/** Why a page's text needs the built-in browser, or undefined when web_fetch read it. */
+export function browserNeed(page: { status?: number; requested: URL; url?: URL; html?: string; text?: string }): BrowserNeed | undefined {
+  if (page.status !== undefined && SIGN_IN_STATUS.has(page.status)) return "sign-in";
+  if (page.url && SIGN_IN_PATH.test(page.url.pathname) && !SIGN_IN_PATH.test(page.requested.pathname)) return "sign-in";
+  if (page.html === undefined) return undefined;
+  const length = page.text?.length ?? 0;
+  if (PASSWORD_FIELD.test(page.html) && length < SIGN_IN_TEXT_MAX) return "sign-in";
+  if (length < SCRIPT_TEXT_MAX && /<script\b/i.test(page.html) && SCRIPT_SHELL.test(page.html)) return "script";
+  return undefined;
+}
+
+const BROWSER_NEXT: Record<BrowserNeed, string> = {
+  "sign-in": "This page asks to sign in, so web_fetch cannot read it.",
+  script: "This page shows its text only after its scripts run, so web_fetch got almost nothing.",
+};
+
+function browserNext(need: BrowserNeed): string {
+  return `${BROWSER_NEXT[need]} Open it in the built-in browser (browser_navigate, then browser_snapshot)${need === "sign-in" ? "; the person may need to sign in there" : ""}. Do not call web_fetch on it again. With no browser this turn, say that this page needs the browser; use a desktop only when no browser can open it.`;
+}
+
 export function createWebFetchRoutes(deps?: WebFetchDeps) {
   const fetchPage = deps?.fetchPage ?? fetchPublicPage;
 
@@ -120,8 +151,11 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
       offset = body.offset as number;
     }
 
+    const requested = URL.canParse(body.url.trim()) ? new URL(body.url.trim()) : undefined;
     const page = await fetchPage(body.url.trim(), { maxBytes: PAGE_MAX_BYTES, timeoutMs: PAGE_TIMEOUT_MS });
     if (!page.ok) {
+      const need = requested ? browserNeed({ status: page.status, requested }) : undefined;
+      if (need) return void ctx.json(ctx.res, 200, { url: requested!.href, needsBrowser: need, next: browserNext(need) });
       const status = page.refused ? 400 : 502;
       return void ctx.json(ctx.res, status, { error: page.error });
     }
@@ -139,6 +173,8 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
       const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);
       if (titleMatch) title = cleanXmlText(titleMatch[1]) || undefined;
       text = pageText(decoded);
+      const need = requested ? browserNeed({ requested, url: page.url, html: decoded, text }) : undefined;
+      if (need) return void ctx.json(ctx.res, 200, { url: page.url.href, ...(title !== undefined ? { title: redactSecretsInText(title) } : {}), needsBrowser: need, next: browserNext(need) });
     } else if (isFeedOrXml) {
       const feedLines = parseFeedItems(decoded);
       const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);

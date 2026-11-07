@@ -48,6 +48,9 @@ export interface ChatToolSession {
   /** Directory reads and OpenMausBot's own agents server need no card; call_tool shows the tool it runs. */
   view(name: string, args: Record<string, unknown>): ChatToolCallView;
   execute(name: string, args: Record<string, unknown>, signal: AbortSignal): Promise<ChatToolResult>;
+  /** Once a connected app answered in this turn, the built-in browser calls of the next model round are not run: the note
+   * says why and that calling again runs it, for when the app lacks the data or the action. Undefined: run the call. */
+  redundantBrowserCall(name: string, round: number): string | undefined;
   close(): Promise<void>;
 }
 
@@ -67,6 +70,12 @@ const MCP_TOOL_COUNT = TOOL_COUNT - RUNTIME_TOOLS;
 /** Past the limit a server is searched, not listed, so this only bounds what one server may offer. */
 const SERVER_TOOLS_MAX = 2_000;
 const DIRECTORY_SERVER = "mcp";
+/** Servers whose tools act through a person's connected account rather than a screen. */
+const CONNECTOR_SERVERS: ReadonlySet<string> = new Set(["composio", OWN_APPS_SERVER, "highlevel", "email"]);
+
+export function connectorAnsweredNote(tool: string): string {
+  return `[OpenMausBot: this browser call was not run. ${tool}, a connected app, already answered in this turn: use its result. If it lacks the data or the action this task needs, call the browser again and it will run.]`;
+}
 const DIRECTORY_TOOL_COUNT = 3;
 const MAX_PAGES = 100;
 const SCHEMA_BYTES = 64 * 1024;
@@ -381,6 +390,9 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
   const servers: Array<[string, Server]> = [];
   const observers = new Map<string, AppObserver>();
   const searchable = new Set<string>();
+  const connector = (server: string) => CONNECTOR_SERVERS.has(server) || searchable.has(server) || observers.has(server);
+  let connectorAnswer: string | undefined;
+  let heldRound: number | undefined;
   const eligible = (server: string) => scope === undefined || canUseMcpServer(scope, server);
   if (computerUse && integrations?.localComputer && eligible("computer")) servers.push(["computer", integrations.localComputer]);
   if (computerUse && integrations?.browser && eligible("browser")) servers.push(["browser", integrations.browser]);
@@ -609,7 +621,9 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       }
       if (result.structuredContent !== undefined) parts.push(JSON.stringify(result.structuredContent));
       if (unsupported) parts.unshift(`[${unsupported} unsupported MCP content item(s) omitted. The operation may have taken effect, but its full result cannot be represented; inspect its state before retrying.]`);
-      return { text: await savedOrBounded(parts.join("\n") || (images.length ? "Screenshot captured." : "(empty result)"), chatToolName(tool.server, tool.name), resultFolder, scrub), ok: result.isError !== true && unsupported === 0,
+      const ok = result.isError !== true && unsupported === 0;
+      if (ok && connector(tool.server)) connectorAnswer ??= chatToolName(tool.server, tool.name);
+      return { text: await savedOrBounded(parts.join("\n") || (images.length ? "Screenshot captured." : "(empty result)"), chatToolName(tool.server, tool.name), resultFolder, scrub), ok,
         ...(images.length ? { images } : {}) };
     } catch (error) {
       await close();
@@ -628,6 +642,11 @@ export async function mountChatTools(integrations: SendTurnInput["integrations"]
       if (listedAs === DESCRIBE_TOOL) return answer(directory!.describe(args));
       const call = directory!.call(args);
       return "answer" in call ? answer(call.answer) : run(catalog.get(call.name)!, call.arguments, callSignal);
+    },
+    redundantBrowserCall(name, round) {
+      if (!connectorAnswer || !registered.get(name)?.builtInBrowser || (heldRound !== undefined && heldRound !== round)) return undefined;
+      heldRound = round;
+      return connectorAnsweredNote(connectorAnswer);
     },
   };
 }

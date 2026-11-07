@@ -472,8 +472,8 @@ beforeAll(async () => {
   writeFileSync(
     join(home, ".openmausbot", "config.json"),
     JSON.stringify({
-      // generated titles are opt-in; this suite owns the one-shot's reply file (FAKE_CLAUDE_TEXT_FILE below); the setup card's tests turn its answers on
-      features: { llmThreadTitles: true, browser: false, smartSetupChoices: false },
+      // generated titles are opt-in; this suite owns the one-shot's reply file (FAKE_CLAUDE_TEXT_FILE below); the setup card's tests turn its answers on; front desk is off: these turns use the computer from the bot's main chat
+      features: { llmThreadTitles: true, browser: false, smartSetupChoices: false, frontDesk: false },
       instances: {
         ghost: { driver: "not-a-real-driver", displayName: "Ghost" },
         claude: { driver: "claudeAgent", displayName: "Fixture Claude", config: { cli: FAKE_CLAUDE_CLI } },
@@ -3748,6 +3748,7 @@ describe("harness HTTP API", () => {
     writeFileSync(join(isolatedStatic, "index.html"), "<!doctype html><title>Computer wait park test</title>");
     writeFileSync(join(isolatedStatic, "assets", "smoke.css"), "body{}");
     writeFileSync(join(isolatedData, "config.json"), JSON.stringify({
+      features: { frontDesk: false },
       instances: {
         claude: { driver: "claudeAgent", displayName: "Fixture Claude", config: { cli: FAKE_CLAUDE_CLI } },
       },
@@ -3955,6 +3956,7 @@ describe("harness HTTP API", () => {
     writeFileSync(join(isolatedStatic, "index.html"), "<!doctype html><title>Computer wait goal test</title>");
     writeFileSync(join(isolatedStatic, "assets", "smoke.css"), "body{}");
     writeFileSync(join(isolatedData, "config.json"), JSON.stringify({
+      features: { frontDesk: false },
       instances: {
         holder: {
           driver: "claudeAgent",

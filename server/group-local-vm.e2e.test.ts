@@ -108,7 +108,7 @@ beforeAll(async () => {
   });
   await new Promise<void>(resolve => boatServer.listen(0, "127.0.0.1", resolve));
   const boatPort = (boatServer.address() as { port: number }).port;
-  writeFileSync(join(data, "config.json"), JSON.stringify({ instances: { claude: {
+  writeFileSync(join(data, "config.json"), JSON.stringify({ features: { frontDesk: false }, instances: { claude: {
     driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
     // Its first computer call is what creates or wakes the Boat, as with a real model.
     environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile, FAKE_CLAUDE_USES_CLOUD_COMPUTER: "1" },

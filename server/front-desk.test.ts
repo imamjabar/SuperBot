@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { steerOwnJob } from "./front-desk.ts";
+import { allowsTool } from "../shared/tool-scope.ts";
+import type { AppConfig } from "./config.ts";
+import { frontDeskScope, frontDeskTurn, steerOwnJob } from "./front-desk.ts";
 import { DELIVER_REPORTS_REFUSAL } from "./host/self-threads.ts";
 
 const bot = { id: "bot", name: "Maus" };
@@ -40,5 +42,28 @@ describe("steerOwnJob", () => {
     const result = await steerOwnJob(d, bot, "job", "Rework Hetzner", { threadId: "chat", deliversReports: true });
     expect(result).toEqual({ status: 409, body: { error: DELIVER_REPORTS_REFUSAL } });
     expect(steered).toEqual([]);
+  });
+});
+
+describe("frontDeskScope", () => {
+  const tool = (server: string, name: string) => ({ kind: "mcp" as const, server, name });
+
+  it("keeps the person's chat off the desktop, the browser and page reads, and leaves it the job tools", () => {
+    const chat = frontDeskScope({ deny: ["mcp:data:data_sql"] });
+    for (const seat of [tool("computer", "click"), tool("browser", "browser_navigate"), tool("agents", "vm_exec"), tool("agents", "shared_computer"), tool("agents", "web_fetch"), tool("agents", "web_search")]) {
+      expect(allowsTool(chat, seat), `${seat.server}:${seat.name}`).toBe(false);
+    }
+    expect(allowsTool(chat, tool("data", "data_sql"))).toBe(false);
+    expect(allowsTool(chat, tool("agents", "start_thread"))).toBe(true);
+    expect(allowsTool(undefined, tool("agents", "web_fetch"))).toBe(true);
+  });
+});
+
+describe("frontDeskTurn", () => {
+  it("makes every bot's main chat a front desk unless the deployment turned it off", () => {
+    expect(frontDeskTurn({} as AppConfig, "main", "main")).toBe(true);
+    expect(frontDeskTurn({ features: {} } as AppConfig, "main", "main")).toBe(true);
+    expect(frontDeskTurn({ features: { frontDesk: false } } as AppConfig, "main", "main")).toBe(false);
+    expect(frontDeskTurn({} as AppConfig, "main", "job")).toBe(false);
   });
 });

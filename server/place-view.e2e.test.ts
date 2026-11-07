@@ -136,6 +136,7 @@ describe("a cloud computer that can't start, against the real server", () => {
     writeConfig(true);
   });
   const writeConfig = (ownKey: boolean) => writeFileSync(join(data, "config.json"), JSON.stringify({
+    features: { frontDesk: false },
     ...(ownKey ? { box: { token: "box_place_view_fixture" } } : {}),
     // Every turn first takes one screenshot through the cloud computer's tools: that call, not the message, starts the cloud computer.
     instances: { claude: {

@@ -81,6 +81,7 @@ if (process.argv[2] !== "--version") process.env.FAKE_CLAUDE_DUMP = ${JSON.strin
 await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-claude-cli.ts")).href)});
 `, { mode: 0o755 });
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({
+    features: { frontDesk: false },
     instances: {
       // Pin the fleet's other defaults so this never probes an installed CLI.
       ...Object.fromEntries(["codex", "cursor", "githubCopilot", "openaiCompat", "qwen", "hermes", "pi"].map((id) => [id, { driver: "not-a-real-driver" }])),

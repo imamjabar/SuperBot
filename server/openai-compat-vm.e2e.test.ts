@@ -129,6 +129,7 @@ beforeAll(async () => {
   writeFileSync(join(ui, "index.html"), "<title>openai-compat VM tools</title>");
   writeFileSync(join(ui, "assets", "test.css"), "body{}");
   writeFileSync(join(data, "config.json"), JSON.stringify({
+    features: { frontDesk: false },
     // Per-bot isolation: a fresh bot's VM is unseen until touched, so the strict pin cannot hide behind a warm cache entry.
     localVm: { mode: "per-bot" },
     instances: { claude: {

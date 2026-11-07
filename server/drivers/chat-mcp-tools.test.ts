@@ -200,6 +200,31 @@ describe("Chat MCP session", () => {
     expect(calls).toEqual([dropped ? {} : { url: " " }, { url: "https://example.com" }]);
   });
 
+  it("holds every browser call of the round after a connected app answered, and runs them in the next round", async () => {
+    const app = fixture(), browser = fixture();
+    const session = await mountChatTools({ composio: app.server, browser: browser.server }, app.controller.signal, true);
+    sessions.push(session);
+    expect(session.redundantBrowserCall("browser_write", 0)).toBeUndefined();
+    await expect(session.execute("composio_write", { value: "repo issues" }, app.controller.signal)).resolves.toMatchObject({ ok: true });
+    expect(session.redundantBrowserCall("composio_write", 1)).toBeUndefined();
+    const note = session.redundantBrowserCall("browser_write", 1);
+    expect(note).toContain("composio_write, a connected app, already answered");
+    expect(note).toContain("call the browser again and it will run");
+    expect(session.redundantBrowserCall("browser_write", 1), "a second browser call in the same batch waits too").toBe(note);
+    expect(existsSync(browser.receipt) && browser.read().calls.some((call) => call.method === "tools/call")).toBe(false);
+    expect(session.redundantBrowserCall("browser_write", 2)).toBeUndefined();
+    await expect(session.execute("browser_write", { value: "open" }, app.controller.signal)).resolves.toMatchObject({ ok: true, text: "recorded:open" });
+  });
+
+  it("leaves the browser to a turn whose connected app failed", async () => {
+    const app = fixture(`if (message.method === "tools/call") { reply(message, {content:[{type:"text",text:"not connected"}],isError:true}); continue; }`);
+    const browser = fixture();
+    const session = await mountChatTools({ composio: app.server, browser: browser.server }, app.controller.signal, true);
+    sessions.push(session);
+    await expect(session.execute("composio_write", { value: "repo issues" }, app.controller.signal)).resolves.toMatchObject({ ok: false });
+    expect(session.redundantBrowserCall("browser_write", 1)).toBeUndefined();
+  });
+
   it("shows a model behind Moonshot each schema fitted to its limit, and still checks calls against the full one", async () => {
     const full = wideSchema(110);
     const f = fixture("", full);
