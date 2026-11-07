@@ -249,8 +249,9 @@ function withDetail(step: LiveStep, detail: string | undefined): LiveStep {
 export function toolStep(call: { title?: string; summary?: string; input?: string }): LiveStep | undefined {
   const named = (call.title ?? "").replace(/^mcp__.+?__/, "").trim();
   const outer = parsedInput(call.input);
-  const bridged = named === "use_tool" && outer && typeof outer === "object" && typeof outer.name === "string" ? outer : undefined;
-  const title = bridged ? (bridged.name as string).replace(/^mcp__.+?__/, "").trim() : named;
+  const inner = outer && typeof outer === "object" && typeof outer.name === "string" ? outer.name.replace(/^mcp__.+?__/, "").trim() : undefined;
+  const bridged = inner && outer && typeof outer === "object" && (named === "use_tool" || (named === inner && Boolean(outer.arguments) && typeof outer.arguments === "object")) ? outer : undefined;
+  const title = bridged && inner ? inner : named;
   const parsed = bridged ? (bridged.arguments && typeof bridged.arguments === "object" ? bridged.arguments as Record<string, unknown> : undefined) : outer;
   if (call.summary?.trim()) {
     const target = commandTarget(call.summary);

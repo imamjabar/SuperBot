@@ -103,6 +103,7 @@ describe("toolStep", () => {
     expect(toolStep({ title: "agent_browser_open", input: toolDetailPreview({ url: "https://www.kompas.com/tren" }) })).toEqual({ activity: "fetch", target: "kompas.com", detail: "kompas.com/tren" });
     expect(toolStep({ title: "mcp__agents__use_tool", input: toolDetailPreview({ name: "web_fetch", arguments: { url: "https://kompas.com/" } }) })).toEqual({ activity: "fetch", target: "kompas.com" });
     expect(toolStep({ title: "use_tool", input: toolDetailPreview({ name: "vm_exec", arguments: { command: "pnpm test" } }) })).toEqual({ activity: "command", target: "pnpm test" });
+    expect(toolStep({ title: "mcp__agents__web_fetch", input: toolDetailPreview({ name: "web_fetch", arguments: { url: "https://kompas.com/" } }) })).toEqual({ activity: "fetch", target: "kompas.com" });
     expect(toolStep({ title: "agent_browser_click", input: toolDetailPreview({ ref: "e4" }) })).toBeUndefined();
   });
 
