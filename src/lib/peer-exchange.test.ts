@@ -400,7 +400,6 @@ describe("ownJobNoise", () => {
     tasks: [
       { threadId: "main", title: "Chief" },
       { threadId: "job-1", title: "Research market", openedBy: { botId: "chief", name: "Chief", reportsBack: true as const, at: 1 } },
-      { threadId: "job-quick", title: "Quick replies" },
       { threadId: "normal-thread", title: "Other conversation" },
     ],
   };
@@ -433,17 +432,6 @@ describe("ownJobNoise", () => {
       threadRef: { botId: "chief", threadId: "job-1", title: "Research market" },
     };
     expect(ownJobNoise(backRow, bot)).toBe(true);
-  });
-
-  it("hides rows pointing to Quick replies side lane", () => {
-    const quickRow: Message = {
-      id: "q1", at: 1,
-      role: "bot",
-      kind: "activity",
-      tool: { name: "Sent to Quick replies", ok: true },
-      threadRef: { botId: "chief", threadId: "job-quick", title: "Quick replies" },
-    };
-    expect(ownJobNoise(quickRow, bot)).toBe(true);
   });
 
   it("hides peer exchange rows where sender and receiver are the same bot", () => {

@@ -1,12 +1,11 @@
 import type { ToolScope } from "../shared/tool-scope.ts";
 import type { AppConfig } from "./config.ts";
 import { DELIVER_REPORTS_REFUSAL } from "./host/self-threads.ts";
-import { SIDE_LANE_TITLE } from "./side-replies.ts";
 import type { Store } from "./store.ts";
 
-/** The person's own chat with a bot (its main thread) and its quick-reply lane, when the deployment turned front desk on. */
-export function frontDeskTurn(cfg: AppConfig, store: Pick<Store, "taskByThread">, mainThreadId: string | undefined, botId: string, threadId: string): boolean {
-  return cfg.features?.frontDesk === true && (threadId === mainThreadId || store.taskByThread(botId, threadId)?.title === SIDE_LANE_TITLE);
+/** The person's own chat with a bot (its main thread), unless the deployment turned front desk off. */
+export function frontDeskTurn(cfg: AppConfig, mainThreadId: string | undefined, threadId: string): boolean {
+  return cfg.features?.frontDesk !== false && threadId === mainThreadId;
 }
 
 export interface MainChat { threadId: string; title?: string }

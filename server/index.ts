@@ -632,7 +632,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
-import { createPersonReplies } from "./person-replies.ts"; import { createSideReplies, SIDE_LANE_TITLE } from "./side-replies.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
+import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
@@ -2227,7 +2227,7 @@ function parksBehindCoordination(botId: string, threadId: string): boolean {
 
 function botAtThreadCapacity(botId: string, personThreadId?: string, startedByABot = false): boolean {
   // The person's main chat is never at capacity. threadBusy, not the stored flag: a reservation holds its slot after an early completion clears the flag.
-  const main = botMainThread(botId); return (!personThreadId || (personThreadId !== main && store.taskByThread(botId, personThreadId)?.title !== SIDE_LANE_TITLE)) && store.tasks(botId).filter((task) => threadBusy(botId, task.threadId) && !(startedByABot && frontDeskTurn(cfg, store, main, botId, task.threadId)) && (startedByABot || !cloudPlanTier.starter() || directRequestOwners.get(task.threadId)?.kind !== "handoff")).length >= (startedByABot ? maxConcurrentChildThreads : maxConcurrentBotThreads)(cfg, botThreadsHost(cloudPlanTier.starter()));
+  const main = botMainThread(botId); return (!personThreadId || personThreadId !== main) && store.tasks(botId).filter((task) => threadBusy(botId, task.threadId) && !(startedByABot && frontDeskTurn(cfg, main, task.threadId)) && (startedByABot || !cloudPlanTier.starter() || directRequestOwners.get(task.threadId)?.kind !== "handoff")).length >= (startedByABot ? maxConcurrentChildThreads : maxConcurrentBotThreads)(cfg, botThreadsHost(cloudPlanTier.starter()));
 }
 
 function hasDirectDispatch(botId: string): boolean {
@@ -2949,7 +2949,7 @@ function toolScopeForTurn(botId: string, threadId?: string) {
   if (!bot) throw Object.assign(new Error("no such bot"), { status: 404 });
   const parsed = parseToolScope(bot.toolScope);
   if (!parsed.ok) throw Object.assign(new Error("This bot's tool selection is invalid. Open Access settings and save a valid selection before starting a turn."), { status: 409, code: "tool_scope" });
-  return threadId && frontDeskTurn(cfg, store, botMainThread(botId), botId, threadId) ? frontDeskScope(parsed.scope) : parsed.scope;
+  return threadId && frontDeskTurn(cfg, botMainThread(botId), threadId) ? frontDeskScope(parsed.scope) : parsed.scope;
 }
 
 const wireTrustedApprovalBot = (bot: NonNullable<ReturnType<typeof store.bot>>) => {
@@ -7380,7 +7380,7 @@ async function acceptDirectSend(
       if (guardedStart) return guardedStart(currentAtStart);
 
       const typedStop = await stopOnTypedCommand({ botId, threadId, text, trigger, personPresent, fromApp: Boolean(app), busy: currentAtStart.busy === true, row: { replyToId: replyTo?.id, sendId, sender, ...spokenLineFields(via, callId) } });
-      if (typedStop) return typedStop; if (currentAtStart.busy && followUp === undefined && !app && (trigger.kind === "user" || trigger.kind === "owner") && sideReplies.takes(botId, threadId)) return sideReplies.answer({ botId, threadId, text, replyToId: replyTo?.id, sendId, sender, start: (laneId, context) => startOrQueueDirectMessage(botId, laneId, text, undefined, undefined, sender, trigger, via, callId, dataContext, { context }, mentions) });
+      if (typedStop) return typedStop;
       if (currentAtStart.busy) {
         const personsOwn = personPresent && !app && (trigger.kind === "user" || trigger.kind === "owner"), queuedPrompt = (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(text, dataContext), replyTo, userNameFor(threadId)));
         const instance = runningTurnInstance(currentAtStart, threadId);
@@ -7435,6 +7435,7 @@ async function acceptDirectSend(
           handoffs.steered(threadId, steerTarget, instance?.instanceId, message.id);
           signInSettle.answerInChat(botId, threadId);
           if (personsOwn) personFirst.wait(threadId, { requeue: (note) => void queueSteeredMessage(current.id, threadId, text, { prompt: note ? `${queuedPrompt}\n\n${note}` : queuedPrompt, rowId: message.id, first: true, queuedAt: message.at, replyToId: replyTo?.id, dataContext, sender, trigger, via, callId, mentions }) });
+          if (personsOwn && followUp === undefined) answerWhileBusy(current, threadId, text, "steered", message.id);
           return { ok: true as const, steered: true as const, threadId, message };
         }
         if (!current.busy) {
@@ -7453,13 +7454,19 @@ async function acceptDirectSend(
         });
         if (personsOwn && !chose) personFirst.wait(threadId, {});
         if (chose === "restart") await restartForPerson(botId, threadId, trigger);
+        if (personsOwn && followUp === undefined && !chose) answerWhileBusy(current, threadId, text, "queued");
         return { ok: true as const, queued: true as const, queueId: queued.id, threadId };
       }
       return startOrQueueDirectMessage(botId, threadId, text, replyTo, sendId, sender, trigger, via, callId, dataContext, app, mentions);
     },
   );
 }
-const sideReplies = createSideReplies(store), jobProgress = createJobProgress(coordinator, store);
+const jobProgress = createJobProgress(coordinator, store);
+const busyReplies = createBusyReplies({ store, write: (botId, prompt, signal) => sideJobs.text("busy-reply", botId)?.generateText(prompt, { signal, timeoutMs: BUSY_REPLY_TIMEOUT_MS }) });
+function answerWhileBusy(bot: { id: string; name: string }, threadId: string, text: string, handedTo: HandedTo, requestMessageId?: string): void {
+  void busyReplies.reply({ botId: bot.id, botName: bot.name, threadId, text, handedTo, ...(requestMessageId ? { requestMessageId } : {}) })
+    .catch((error) => console.warn(`busy reply failed: ${error instanceof Error ? error.message : String(error)}`));
+}
 const personReplies = createPersonReplies({
   store, sendSequencer, messageSender, usageTriggerFor, groupThreadIsWorking, startGroupTurn, startOrQueueDirectMessage,
   assertWithinBudget: () => assertWithinBudget(cfg, DATA_DIR),
@@ -8052,7 +8059,7 @@ async function beginTurn(
       const checkpointCwd = cwd && cwd !== privateWorkspace ? cwd : undefined;
       const dwebUrl = process.env.DWEB_URL?.trim();
       if (dwebUrl) integrations.dweb = { url: dwebUrl };
-      const frontDesk = frontDeskTurn(cfg, store, botMainThread(bot.id), bot.id, threadId); let teamComputer = computerSkipped || frontDesk || proactive.fence.confines(threadId) || botApiThread(threadId) ? undefined : inheritedTeamComputer(bot);
+      const frontDesk = frontDeskTurn(cfg, botMainThread(bot.id), threadId); let teamComputer = computerSkipped || frontDesk || proactive.fence.confines(threadId) || botApiThread(threadId) ? undefined : inheritedTeamComputer(bot);
       const cloudBackend = teamComputer || opts?.runOn === "cloud" || bot.cloudBackend !== "vps" ? "box" : "vps";
       const mountsComputerMcp = instance.adapter.capabilities.computerMcp === true;
       const mountsLocalComputer = instance.adapter.capabilities.localComputerMcp === true;
@@ -8781,7 +8788,7 @@ function routineSourceOwner(run: Pick<RoutineRun, "botId" | "sourceThreadId" | "
   return group?.memberIds.includes(bot.id) ? { bot, group, threadId } : null;
 }
 
-function mainThreadTasks(botId: string) { const all = store.tasks(botId), chats = all.filter((task) => !task.openedBy?.reportsBack && task.title !== SIDE_LANE_TITLE), tasks = chats.length ? chats : all, own = store.bot(botId)?.defaultBot?.person ? [...tasks].sort((a, b) => a.createdAt - b.createdAt)[0]?.threadId : undefined; return CLOUD_TEAM ? tasks.filter((task) => teamHost.audienceOf(task.threadId) === "team" || task.threadId === own) : CLOUD_HOME ? tasks.filter((task) => !cloudGuestOpened(task.threadId)) : tasks; }
+function mainThreadTasks(botId: string) { const all = store.tasks(botId), chats = all.filter((task) => !task.openedBy?.reportsBack), tasks = chats.length ? chats : all, own = store.bot(botId)?.defaultBot?.person ? [...tasks].sort((a, b) => a.createdAt - b.createdAt)[0]?.threadId : undefined; return CLOUD_TEAM ? tasks.filter((task) => teamHost.audienceOf(task.threadId) === "team" || task.threadId === own) : CLOUD_HOME ? tasks.filter((task) => !cloudGuestOpened(task.threadId)) : tasks; }
 function botMainThread(botId: string): string | undefined {
   return mainThread(mainThreadTasks(botId), store.bot(botId)?.threadId, store.bot(botId)?.mainThreadChoice);
 }

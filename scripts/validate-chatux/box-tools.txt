@@ -1,0 +1,10 @@
+server/drivers/agents-usage-tool.test.ts
+server/front-desk.test.ts
+server/wait-probes.test.ts
+server/routes/web-fetch.test.ts
+server/drivers/chat-mcp-tools.test.ts
+server/host/busy-reply.test.ts
+server/direct-coordination.e2e.test.ts
+server/talk-server.e2e.test.ts
+src/lib/job-threads.test.ts
+src/lib/peer-exchange.test.ts

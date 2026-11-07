@@ -485,24 +485,27 @@ it("a report-back job posts progress to the chat, and its progress and result qu
   expect(toolNames(turns.find((turn: any) => turn.threadId === f.chief.activeTaskId))).not.toContain("report_progress");
 }), 60_000);
 
-it.each([["on", true], ["off", false]])("with front desk %s, answers a message sent while the bot works at once in the same chat, and the work goes on and posts its result", (_mode, frontDesk) => fixture(async f => {
+it.each([["on", true], ["off", false]])("with front desk %s, a message sent while the main chat works gets a short reply in the main chat within seconds, and the work's result lands there once", (_mode, frontDesk) => fixture(async f => {
   await f.api("/api/config", { features: { frontDesk } }, "PATCH");
   const gate = join(f.session.info.dataDir, "long-work-gate");
   f.plan[f.chief.id] = { gateFile: gate, reply: "LONG_WORK_RESULT ready", byPrompt: [{ promptIncludes: "TIME_PING", plan: { reply: "It is 21:15" } }] };
   await f.start();
   const chat = () => f.messages(f.chief.activeTaskId);
+  const threads = async () => (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id).tasks.map((task: any) => task.threadId).sort();
   await expect.poll(async () => (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id).busy, { timeout: 15_000 }).toBe(true);
+  const before = await threads();
+  const botLines = async () => (await chat()).filter((m: any) => m.role === "bot" && m.kind === "text").length;
+  const linesBefore = await botLines();
+  const sentAt = Date.now();
   await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "TIME_PING what time is it?");
-  await expect.poll(async () => (await chat()).some((message: any) => message.role === "bot" && message.text === "It is 21:15"), { timeout: 15_000 }).toBe(true);
-  const asked = (await chat()).find((message: any) => message.role === "user" && message.text?.startsWith("TIME_PING"));
-  expect((await chat()).find((m: any) => m.role === "bot" && m.text === "It is 21:15").requestMessageId).toBe(asked.id);
-  expect(asked.steered).toBeUndefined();
-  expect((await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready")).toBe(false);
+  await expect.poll(botLines, { timeout: 12_000 }).toBeGreaterThan(linesBefore);
+  expect(Date.now() - sentAt, "the busy reply comes within seconds, not after the work").toBeLessThan(12_000);
+  expect((await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready"), "the work is still running").toBe(false);
+  expect(await threads(), "the reply opens no second thread").toEqual(before);
   writeFileSync(gate, "release");
-  await expect.poll(async () => (await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready"), { timeout: 15_000 }).toBe(true);
+  await expect.poll(async () => (await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready"), { timeout: 20_000 }).toBe(true);
   const chief = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id);
   expect(chief.mainThreadId).toBe(f.chief.activeTaskId);
-  expect((await chat()).filter((m: any) => m.role === "bot" && m.text === "It is 21:15"), "the side answer lands once").toHaveLength(1);
   expect((await chat()).filter((m: any) => m.text === "LONG_WORK_RESULT ready")).toHaveLength(1);
 }), 60_000);
 

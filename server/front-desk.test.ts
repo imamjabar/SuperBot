@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { allowsTool } from "../shared/tool-scope.ts";
-import { frontDeskScope, steerOwnJob } from "./front-desk.ts";
+import type { AppConfig } from "./config.ts";
+import { frontDeskScope, frontDeskTurn, steerOwnJob } from "./front-desk.ts";
 import { DELIVER_REPORTS_REFUSAL } from "./host/self-threads.ts";
 
 const bot = { id: "bot", name: "Maus" };
@@ -55,5 +56,14 @@ describe("frontDeskScope", () => {
     expect(allowsTool(chat, tool("data", "data_sql"))).toBe(false);
     expect(allowsTool(chat, tool("agents", "start_thread"))).toBe(true);
     expect(allowsTool(undefined, tool("agents", "web_fetch"))).toBe(true);
+  });
+});
+
+describe("frontDeskTurn", () => {
+  it("makes every bot's main chat a front desk unless the deployment turned it off", () => {
+    expect(frontDeskTurn({} as AppConfig, "main", "main")).toBe(true);
+    expect(frontDeskTurn({ features: {} } as AppConfig, "main", "main")).toBe(true);
+    expect(frontDeskTurn({ features: { frontDesk: false } } as AppConfig, "main", "main")).toBe(false);
+    expect(frontDeskTurn({} as AppConfig, "main", "job")).toBe(false);
   });
 });

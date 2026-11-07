@@ -2,6 +2,56 @@
 
 Evidence: **CI** = scoped specs in the branch-only `chatux-check.yml` (run 42346753665, 15 specs, `b11b0d3`; workflow removed before merge). **box** = vitest or headless Chrome on Chief's Linux computer, no Docker. **VPS** = disposable `omb-chatux-probe` (`scripts/validate-chatux/`): branch bundle from a `check.yml` run with `probe_dist=true`, real gateway, `deepseek/deepseek-v4.1-flash`, `frontDesk` on, `TZ=Asia/Jakarta`, container and data deleted afterwards. **none** = code only. PASS needs observed behaviour (`docs/HANDOFF.md` §11).
 
+## Branch `feat/tools-routing` (on `268363d`)
+
+Order for any web task (own design, not Grok's private mechanism): a connected app, then search or a public GET, then the built-in browser, then the one desktop seat. Desktop and browser work run in delegated jobs on that one seat. Mac rule for this package: no tests, builds or installs on the Mac; the specs below are for the box. Box list: `scripts/validate-chatux/box-tools.txt`.
+
+| Item | Commits | Status | Evidence |
+|---|---|---|---|
+| D1/D4: a public URL or news is read through `web_fetch`, never the desktop, from a chat or a job. `web_fetch` is mounted in every conversation (the `OMB_WEB_FETCH` gate is gone). The front desk denies it and hands the read to a job, so the main chat stays fast. The surface prompt puts `web_fetch` before any screen | `34127e6` | Box run pending | `server/drivers/agents-usage-tool.test.ts`, `server/front-desk.test.ts` |
+| D2: search tool | none | **Gap, not built** | See "D2 gap" below |
+| D3: connector first. On an API-model turn, once a connected app (`composio`, own apps, `highlevel`, `email`, a remote or app MCP server) has answered, the first built-in browser call is not run and the result says why. The next browser call runs, for when the app lacks the data or the action. The skipped call does not count against the job's budget and does not fail the turn | `d28dbf4` | Box run pending | `server/drivers/chat-mcp-tools.test.ts` (connector answered → browser call not sent to the browser server, then runs; a failed connector leaves the browser alone) |
+| D5: a sign-in or script-only page falls back to the built-in browser. `web_fetch` answers `needsBrowser: "sign-in"` for 401/403/407, for a redirect to a login/sign-in/auth/sso path, or for a page with a password field and under 1,500 characters of text. It answers `needsBrowser: "script"` for an HTML page with under 200 characters of text that ships scripts. Either answer comes with `next`, which names `browser_navigate`. A missing page is still a 502 | `e5667c8` | Box run pending | `server/routes/web-fetch.test.ts` (fixture: fetch gets a login wall → browser path chosen; an article with a sign-in box is still read); `server/wait-probes.test.ts` |
+| D6: desktop and browser work from jobs share the one seat; a second job waits; the chat never takes the seat | existing code; this branch adds `web_fetch` to `FRONT_DESK_DENY` and makes front desk the default | Existing behaviour; front-desk test added | Seats: Local VM capacity defaults to 1 (`seatCapacity` in `server/local-vm-seats.ts`). A second turn on a held computer resource waits in a FIFO queue (`TurnResources.startWaiting`; `bindTurnComputer` parks it after `COMPUTER_WAIT_MAX_MS`). The bot's one browser is one seat: another conversation's call waits, and an idle holder hands over after 60 s (`server/host/browser-seats.ts`, `browser-seats.test.ts` "serves waiters in the order they came"). The chat never takes a seat: a front-desk turn asks for computer `off`, mounts no browser and denies every seat tool (`server/front-desk.test.ts` "keeps the person's chat off the desktop…"). A Local VM configured with `seats` > 1 deliberately gives parallel jobs their own seats |
+| C3: one busy-chat policy. Every answer lands in the main chat | see C3 below | Box run pending | `server/host/busy-reply.test.ts`; `server/direct-coordination.e2e.test.ts` "a message sent while the main chat works gets a short reply in the main chat within seconds, and the work's result lands there once" (front desk on and off) |
+| C9: each job has a logical job id, separate from the request and turn ids | `4f72994` | Box run pending | `server/direct-coordination.e2e.test.ts`: the job thread's `openedBy.delegationId` equals the coordinator assignment id and is not the id of any request it answers; it is unchanged after a steer, with one assignment on the job thread. A restart rerun keeps the id (`server/runtime/runtime.test.ts` "a job cut mid-turn reruns once…"). A `rework` deliberately mints a new job |
+
+**D2 gap (exact).** No search was built, because no search is possible without a new paid provider:
+- **Engine search exists only on some engines.** Claude's `WebSearch` and Codex's `webSearch` are native to those engines. API-model (`openai-chat.ts`) turns have none.
+- **The other search tools need a key.** `research_search`/`x_search` need a treg key or a plan relay.
+- **The browser address bar does not count.** Its DuckDuckGo search (`src/lib/browser-address.ts`) is a client-side URL, not a server endpoint.
+- **Probed 2026-11-07 from the Mac with plain `curl`, no server:**
+  - `html.duckduckgo.com/html` answers 202 with a bot challenge and no results.
+  - Bing's `format=rss` answers 200, but its terms allow only personal, non-commercial RSS-reader use.
+
+So API-model jobs have no search. They read known addresses, RSS feeds and section pages with `web_fetch` (its description says so), and use the browser for anything else. Closing the gap needs a provider decision from Imam: a keyed search API, or a self-hosted SearXNG.
+
+**C3 audit (person-first and the side lane).** The entry points, from the code:
+- **No `followUp`:** web, PWA, desktop Talk and Live-call sends never set one (`src/components/send-key.test.ts`). They went to the "Quick replies" lane (`server/side-replies.ts`, `server/index.ts` `acceptDirectSend`). The lane copied only text replies back; its cards and widgets stayed in the lane, and the lane thread showed in the Advanced sidebar.
+- **Explicit `followUp` (CLI) or an app:** steered or queued in the same thread, with person-first (`server/host/person-first.ts`) stopping a step after 60 s. Person-first was therefore unreachable from the web.
+- **Card answers:** queue in the thread that holds the card (`server/person-replies.ts`).
+- **Goals:** wait until the bot is free.
+- **Guarded sends and the Bot API:** refused with 409.
+- **Rooms:** queue in the room.
+
+Two policies applied to the same person and the same chat: the lane and person-first.
+
+**C3 decision (the owner's direction, 2026-11-07).**
+- **The front desk is the immediate responder.** It answers within seconds and hands heavy work to jobs. It is now on by default for every bot (`features.frontDesk` on unless `false`; `frontDeskTurn`).
+- **The side lane is removed.** That means `server/side-replies.ts`, its test, `SIDE_LANE_TITLE` in `front-desk.ts`, the capacity exemption, `mainThreadTasks`, and `src/lib/job-threads.ts`.
+- **One policy covers a person's plain message to a busy chat, whether front desk is on or off:**
+  - The message goes to the running work: steered when the engine can take it, else queued first, with person-first stopping a step after 60 s.
+  - Within seconds, a short reply is posted in the same main chat. It is a one-off small-model call (`server/host/busy-reply.ts`, side job `busy-reply`, 8 s cap). It answers a quick question outright, or says the message was passed on (or is next in line) and that the result will come here. A fixed acknowledgement covers a missing or slow model.
+  - The work's result then lands in the main chat once.
+- **Why:** this is the owner's rule that nothing waits silently and nothing answers in a second thread, while the work still sees every message.
+- **Left as they are:**
+  - Card answers on a job thread still run in that thread.
+  - A queued message's busy reply cannot quote it, because the row only exists once it runs.
+  - A quick question can be answered twice: once by the busy reply and again by the queued turn.
+  - Old "Quick replies" threads stay as ordinary read-only threads. They are hidden while threads are hidden.
+
+**Risk for the box run.** Front desk on by default changes every main-chat turn in tests that do not set `features.frontDesk`. Tests that drive the computer, browser or shell from a bot's main thread are testing the front-desk-off path; the box run must list them, and each must set `features.frontDesk: false`. `docs/HANDOFF.md` §Front desk records the same rule.
+
 ## Branch `feat/one-main-chat` (on `764bf83`)
 
 On a server that belongs to one person, a person writes to each bot only in its main chat, front desk on or off; `docs/HANDOFF.md` §"One main chat" has the rule. Box list: `scripts/validate-chatux/box-onechat.txt`.
