@@ -1,0 +1,140 @@
+import { errorTranscript } from "../shared/client-cancel.js";
+import { connectorCallsIn, isOutboundTool } from "../shared/outbound.js";
+import { buildTurnDigest, digestTools } from "./digest.js";
+import { stopCause } from "./drivers/engine-errors.js";
+import { UNCONFIRMED } from "./runtime/tree.js";
+const REASON_CHARS = 600;
+export class TurnStops {
+    #byThread = new Map();
+    note(event) {
+        if (event.type === "turn.started") {
+            this.#byThread.delete(event.threadId);
+            return;
+        }
+        const error = event.type === "runtime.error" ? event.message
+            : event.type === "item.completed" && event.itemType === "assistant_text" && event.synthetic ? event.text : undefined;
+        if (event.type !== "cap.exhausted" && (error === undefined || errorTranscript(error).kind !== "error"))
+            return;
+        const stop = this.#turn(event.threadId, event.turnId);
+        if (event.type === "cap.exhausted")
+            stop.handoffPath = event.handoffPath;
+        else
+            stop.error = error;
+        if (event.type === "runtime.error") {
+            const { setup, stalled, trialCredit, limitResetsAt, limit } = event;
+            if (setup || stalled || trialCredit || limitResetsAt || limit)
+                stop.flags = { setup, stalled, trialCredit, limitResetsAt, limit };
+        }
+    }
+    stopping(threadId, turnId, cause) {
+        this.#turn(threadId, turnId).cause = cause;
+    }
+    #turn(threadId, turnId) {
+        const held = this.#byThread.get(threadId);
+        const stop = held && held.turnId === turnId ? held : { turnId };
+        this.#byThread.set(threadId, stop);
+        return stop;
+    }
+    read(threadId, turnId) {
+        const stop = this.#byThread.get(threadId);
+        return stop && (!turnId || !stop.turnId || stop.turnId === turnId) ? stop : undefined;
+    }
+    /** The turn's own last error, else the provider's stop reason in words; undefined for a turn that did not fail. */
+    failureCause(event) {
+        if (event.ok)
+            return undefined;
+        return this.read(event.threadId, event.turnId)?.error ?? stopCause(event.stopReason);
+    }
+    forget(threadId) {
+        this.#byThread.delete(threadId);
+    }
+}
+/** Cause first (a chip shows only the start), then the last message quoted as data, so a teammate's words never pass for the harness's. */
+export function stoppedTurnOutcome(input) {
+    const parts = [sentence(clip(input.reason, REASON_CHARS))];
+    if (input.turnId) {
+        const digest = buildTurnDigest({
+            turnId: input.turnId, botId: "", threadId: "", at: 0, durationMs: 0,
+            activities: input.activities, memory: [], reply: "", hookCoverage: "preview",
+        });
+        parts.push(digest.toolCalls
+            ? `Before it stopped it made ${digest.toolCalls} tool call${digest.toolCalls === 1 ? "" : "s"}: ${digestTools(digest)}.`
+            : "No tool calls were seen before it stopped.");
+    }
+    const said = input.said?.trim();
+    return said ? `${parts.join(" ")}\nIts last message, quoted: ${JSON.stringify(said)}` : parts.join(" ");
+}
+const SHELL_TOOL = /^(?:mcp__[\w-]+?__)?(?:bash|shell|exec|vm_exec|run_command|execute_command|run_shell_command|run_terminal_cmd|terminal|COMPOSIO_REMOTE_BASH_TOOL)$/i;
+const GIT_OUTWARD = /\bgit\s+(commit|push)\b/g;
+const MULTI_EXECUTE = /^(?:mcp__[\w-]+?__)?COMPOSIO_MULTI_EXECUTE_TOOL$/i;
+/** Its code can call any app tool, and nothing here can read which: it counts as a send. */
+const WORKBENCH = /^(?:mcp__[\w-]+?__)?COMPOSIO_REMOTE_WORKBENCH$/i;
+const MONEY_OUTWARD = /\b(pay|payment|charge|refund|transfer)\b/gi;
+const ERROR_CHARS = 200;
+const ERRORS_KEPT = 3;
+const toolRows = (rows) => rows.filter((row) => row.role === "bot" && row.kind === "activity" && row.tool !== undefined);
+/** A bounded preview that no longer parses gives no arguments, which counts the call as a send. */
+function previewArguments(preview) {
+    try {
+        return preview === undefined ? undefined : JSON.parse(preview);
+    }
+    catch {
+        return undefined;
+    }
+}
+/** The one outward-action classifier: the restart policy uses it so a cut turn that may already have acted never reruns.
+ * A row is written when its call starts, so a call cut before its result still counts, marked UNCONFIRMED. */
+export function outwardActions(rows) {
+    const labels = [];
+    for (const row of toolRows(rows)) {
+        const tool = row.tool;
+        if (tool.ok === false)
+            continue;
+        const add = (label) => {
+            const marked = tool.ok === undefined ? `${label}${UNCONFIRMED}` : label;
+            if (!labels.includes(marked))
+                labels.push(marked);
+        };
+        if (MULTI_EXECUTE.test(tool.name)) {
+            for (const call of connectorCallsIn("COMPOSIO_MULTI_EXECUTE_TOOL", previewArguments(tool.input)))
+                if (isOutboundTool(call.slug))
+                    add(call.slug);
+            continue;
+        }
+        if (WORKBENCH.test(tool.name)) {
+            add("COMPOSIO_REMOTE_WORKBENCH");
+            continue;
+        }
+        if (isOutboundTool(tool.name)) {
+            add(tool.name);
+            continue;
+        }
+        if (!SHELL_TOOL.test(tool.name))
+            continue;
+        const command = [tool.input, tool.summary].filter((text) => typeof text === "string").join("\n");
+        for (const git of command.matchAll(GIT_OUTWARD))
+            add(`git ${git[1]}`);
+        for (const money of command.matchAll(MONEY_OUTWARD))
+            add(money[1].toLowerCase());
+    }
+    return labels;
+}
+export function turnEvidence(rows) {
+    const tools = toolRows(rows);
+    const errors = tools.filter((row) => row.tool.ok === false).map((row) => {
+        const tool = row.tool;
+        const output = tool.itemId && typeof tool.output === "string" ? tool.output.split("\n").find((line) => line.trim()) : undefined;
+        return clip(output ? `${tool.name}: ${output}` : tool.name, ERROR_CHARS);
+    }).slice(-ERRORS_KEPT);
+    const okToolCalls = tools.filter((row) => row.tool.ok !== false && row.tool.itemId !== undefined).length;
+    const outward = outwardActions(rows);
+    return { toolCalls: tools.filter((row) => row.tool.itemId !== undefined).length, okToolCalls, errors, ...(outward.length ? { outward } : {}) };
+}
+function clip(text, max) {
+    const flat = text.replace(/\s+/g, " ").trim();
+    return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+function sentence(text) {
+    const capital = `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+    return /[.!?…"]$/.test(capital) ? capital : `${capital}.`;
+}
