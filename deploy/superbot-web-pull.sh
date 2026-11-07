@@ -42,19 +42,19 @@ chmod -R a-w "$HOME/SuperBot/server-dist"
 # Never switch the app to a bundle that fails its compiled self-check. index.js boots the whole server on import, so it is only syntax-checked.
 $C run -T --rm --no-deps --entrypoint sh omb -c 'test ! -w /app/dist-server && timeout 60 node --check /app/dist-server/index.js && timeout 60 node -e "import(\"/app/dist-server/cloud-home-start.js\").catch((e) => { console.error(e); process.exit(3); })" || exit 3' || rc=$?
 if [ "${rc:-0}" -ne 0 ]; then echo "Compiled server validation failed ${rc}" >&2; chmod -R u+w "$HOME/SuperBot/server-dist"; exit "$rc"; fi
-# Caddy joins omb's network namespace (network_mode: service:omb), so a replaced omb leaves the running Caddy in the
-# old, dead namespace: Caddy is recreated exactly then, and otherwise only reloads its config, keeping live connections.
+# Compose leaves a container whose config is unchanged running, and server-dist is a bind mount, so only
+# --force-recreate swaps in the new bundle. Caddy joins omb's network namespace (network_mode: service:omb),
+# so it must be recreated after every new omb or it stays in the old, dead namespace.
 omb_id() { id=$($C ps -q omb) && [ -n "$id" ] && docker inspect --format '{{.Id}}' "$id"; }
 before=$(omb_id || true)
-$C up -d --no-deps --no-build omb
+timeout 300 $C up -d --no-deps --no-build --force-recreate omb
 after=$(omb_id) || { echo "omb is not running after the update" >&2; exit 1; }
-caddy=$($C ps -q caddy || true)
-if [ -n "$caddy" ] && [ "$before" = "$after" ] && [ "$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$caddy")" = "container:$after" ]; then
-  $C exec -T caddy caddy reload --config /etc/caddy/Caddyfile
-else
-  echo "omb was replaced; reattaching caddy to its network namespace"
-  timeout 120 $C up -d --no-deps --no-build --force-recreate caddy
-fi
-curl -fsS --retry 5 --retry-delay 3 --retry-connrefused http://127.0.0.1:8080/api/health | grep -q '"openmausbot"' \
-  || { echo "the app does not answer its health check on 127.0.0.1:8080" >&2; exit 1; }
+[ "$after" != "$before" ] || { echo "omb was not recreated; it still runs the previous server" >&2; exit 1; }
+timeout 120 $C up -d --no-deps --no-build --force-recreate caddy
+tries=0
+until curl -fsS --max-time 5 http://127.0.0.1:8080/api/health | grep -q '"openmausbot"'; do
+  tries=$((tries + 1))
+  [ "$tries" -lt 20 ] || { echo "the app does not answer its health check on 127.0.0.1:8080" >&2; exit 1; }
+  sleep 3
+done
 echo "omb and caddy are up"
