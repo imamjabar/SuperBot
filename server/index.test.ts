@@ -8426,6 +8426,13 @@ describe("harness HTTP API", () => {
       expect(saved.tasks.find((task: { threadId: string }) => task.threadId === bot.threadId).surface).toBe("vm");
       expect((await api("GET", `/api/bots/${bot.id}/computer?threadId=${bot.threadId}`)).body.surface).toBe("vm");
       expect((await api("POST", `/api/bots/${bot.id}/computer/join?threadId=${bot.threadId}`, {})).status).toBe(409);
+      const chief = (await api("GET", "/api/bots?messages=0")).body.bots.find((b: { chiefOfStaff?: boolean }) => b.chiefOfStaff);
+      if (chief) {
+        for (const task of (chief.tasks as Array<{ threadId: string; busy?: boolean }> ?? []).filter((t) => t.busy)) {
+          await api("POST", `/api/bots/${chief.id}/interrupt`, { threadId: task.threadId });
+        }
+        await expect.poll(async () => (await api("GET", "/api/bots?messages=0")).body.bots.find((b: { id: string }) => b.id === chief.id)?.busy, { timeout: 10_000 }).toBe(false);
+      }
 
       await api("PATCH", `/api/bots/${bot.id}`, { computer: "vm" });
       await api("PATCH", `/api/bots/${bot.id}/tasks/${bot.threadId}`, { surface: "cloud" });
