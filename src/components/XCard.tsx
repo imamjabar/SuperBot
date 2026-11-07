@@ -7,7 +7,7 @@ import { xResearchAction } from "@/lib/cloud-plan";
 import { keyRemoved, keySaved, keySaveFailure, keyTestResult } from "@/lib/product-events";
 import { isXConnectorStatus, type XConnectorStatus, type XIncludedUsage } from "../../shared/x-connector";
 import { looksLikeKey, saveCredential, tregVerdict } from "./keys/key-save";
-import { useCloudPlan } from "./ProIntroduction";
+import { useCloudPlan } from "@/lib/cloud-plan-hook";
 
 const TREG_URL = "https://treg.to";
 const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";

@@ -132,13 +132,13 @@ export function connectorRefusalText(denials: ConnectorDenial[]): string {
   return [
     named + " " + (one ? "is" : "are") + " not granted to this bot.",
     "This call was not performed.",
-    "Ask the person to grant " + (one ? "it" : "these tools") + " in OpenMausBot if they want " + (one ? "it" : "them") + " run.",
+    "Ask the person to grant " + (one ? "it" : "these tools") + " in SuperBot if they want " + (one ? "it" : "them") + " run.",
   ].join(" ");
 }
 
 export function connectorUnrecognizedText(invoked: string, reason: string): string {
   return [
-    "A " + invoked + " call arrived in a shape OpenMausBot could not read (" + reason + "), so it was not performed.",
+    "A " + invoked + " call arrived in a shape SuperBot could not read (" + reason + "), so it was not performed.",
     invoked === COMPOSIO_MULTI_EXECUTE_TOOL
       ? "Send it again with the tools to execute as tools: [{ tool_slug, arguments }]."
       : "Send a well-formed call that names the tools to execute.",

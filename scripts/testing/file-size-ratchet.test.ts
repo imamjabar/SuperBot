@@ -7,7 +7,7 @@
 // lines; nothing new may exceed HARD_CAP, and the files listed above the cap
 // are the ones that program takes apart. Tests, fixtures, goldens and
 // vendored code are not counted.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
@@ -49,7 +49,8 @@ const LINES: Record<string, number> = {
 function sourceFiles(): string[] {
   const out = execFileSync("git", ["ls-files", "server", "shared", "src", "scripts", "evals", "electron", "companion"], { cwd: ROOT, encoding: "utf8" });
   return out.split("\n").filter((file) => /\.(ts|tsx|mjs|cjs)$/.test(file))
-    .filter((file) => !file.includes(".test.") && !file.includes("/testing/") && !file.includes("goldens") && !file.startsWith("electron/vendor/"));
+    .filter((file) => !file.includes(".test.") && !file.includes("/testing/") && !file.includes("goldens") && !file.startsWith("electron/vendor/"))
+    .filter((file) => existsSync(new URL(file, ROOT)));
 }
 
 const count = (file: string) => readFileSync(new URL(file, ROOT), "utf8").split("\n").length - 1;

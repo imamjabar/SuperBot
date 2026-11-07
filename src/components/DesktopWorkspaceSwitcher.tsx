@@ -7,7 +7,7 @@ import type { CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
 import { cloudColor } from "@/lib/cloud-look";
 import { t } from "@/lib/i18n";
 import { railShown, usePlaces } from "@/lib/places";
-import { CloudTile } from "./cloud-buy/parts";
+import { CloudTile } from "./CloudTile";
 import { SIMPLE_RAIL_BUTTON } from "./SidebarSimpleTop";
 
 export function openServerMenu(bridge: { menu: (options?: { from?: "howto" }) => Promise<void> }, { howTo = false, onClosed }: { howTo?: boolean; onClosed?: () => void } = {}): Promise<void> {

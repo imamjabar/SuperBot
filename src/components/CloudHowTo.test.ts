@@ -43,7 +43,7 @@ it("one step on the menu that keeps Add a Cloud, with Skip; nothing when not ask
 it("with the menu off screen, the dialog opens instead and says where the menu is for next time", () => {
   vi.stubGlobal("document", doc()); vi.stubGlobal("window", { innerWidth: 1200, innerHeight: 800 });
   render(); f.effects.forEach(effect => effect());
-  expect(f.dispatch).toHaveBeenCalledWith({ type: "openCloudAdd", source: "app_howto" });
+  expect(f.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   expect(track).toHaveBeenCalledWith("cloud_howto", { result: "no_button" });
   f.state = { cloudHowTo: false };
   expect(render()).toContain("Next time, Add a Cloud is in the menu on the left of the app.");

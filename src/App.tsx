@@ -19,7 +19,7 @@ import { GroupView } from "@/components/GroupView";
 import { SIDEBAR_AND_PANEL_FIT, SIDEBAR_INLINE, TWO_SIDE_PANELS_FIT, useMediaQuery } from "@/lib/use-media-query";
 import { preloadConnectedApps } from "@/lib/connected-apps";
 import {
-  ActivityPanel, BotSettingsDialog, CloudAddDialog, ComputerPanel, FilesView, InspectorPanel, KeyboardShortcutsModal, LocalVmWorkspace,
+  ActivityPanel, BotSettingsDialog, ComputerPanel, FilesView, InspectorPanel, KeyboardShortcutsModal, LocalVmWorkspace,
   PluginsPanel, preloadScreens, RemoteAgentSettingsPanel, RemoteDesktopPanel, RoomPanel, SettingsModal, TeamMapPage, TriggersPage,
 } from "@/components/lazy-screens";
 import { useAdvancedMode } from "@/lib/interface-mode";
@@ -46,9 +46,6 @@ import { WindowFrameBar } from "@/components/WindowFrameBar";
 import { cn } from "@/lib/cn";
 import { NoEngines } from "@/components/NoEngines";
 import { CloudEngineSignIn } from "@/components/CloudEngineSignIn";
-import { CloudIntent } from "@/components/CloudIntent";
-import { cloudIntentDue, cloudIntentShown, useCloudIntent } from "@/lib/cloud-intent";
-import { CloudSetup } from "@/components/CloudSetup";
 import { CloudWelcome } from "@/components/cloud-welcome/CloudWelcome";
 import { WelcomeKeeper } from "@/components/cloud-welcome/WelcomeKeeper";
 import { EmptyChatShell } from "@/components/onboarding/EmptyChatShell";
@@ -113,7 +110,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       if (requestedSettings === "organization") dispatch({ type: "toggleAppSettings", open: true, section: "organization" });
       else if (requestedSettings === "cloud") dispatch(CLOUD_LINK_SETTINGS);
       else if (requestedSettings === "cloud-settings") dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
-      else if (requestedSettings === "cloud-add" || requestedSettings === "cloud-add-howto") dispatch({ type: "openCloudAdd", source: requestedSettings === "cloud-add" ? "app_menu" : "app_howto" });
+      else if (requestedSettings === "cloud-add" || requestedSettings === "cloud-add-howto") dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
       else open();
     }
     return window.ogb.environments.onOpenSettings?.(open);
@@ -135,9 +132,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   usePageLanguage(effectiveLanguage(useLanguageChoice(), state.config?.language));
   const [paletteOpen, setPaletteOpen] = useState(false);
-  // Stays mounted once opened: a Cloud bought in it can arrive after the sheet is closed.
-  const cloudAddOpened = useRef(false);
-  cloudAddOpened.current ||= Boolean(state.cloudAdd);
   const [localVmWorkspaceBotId, setLocalVmWorkspaceBotId] = useState<string | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const previousViewRef = useRef(state.activeView);
@@ -158,16 +152,10 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
     state.instances.length > 0 &&
     !state.instances.some((i) => i.snapshot.state === "available");
   const cloudSignIn = cloudSignInDue(viewer, state, engineReady);
-  const cloudIntent = useCloudIntent();
-  const cloudAsk = cloudIntentShown(cloudIntentDue({
-    viewer, connected: state.connected, enginesKnown: state.instances.length > 0,
-    onboarding: state.config?.onboarding, reopened: false,
-  }), cloudIntent);
-  const cloudJobWaiting = Boolean(viewer?.cloudHome && viewer.canSave && cloudIntent.pending);
   const welcome = useCloudWelcome();
   const welcomeOnScreen = cloudWelcomeVisible({ viewer, connected: state.connected, enginesKnown: state.instances.length > 0, onboarding: state.config?.onboarding }, welcome)
     && state.activeView === "chat" && !(!remoteClient && localVmWorkspaceBotId);
-  const firstRun = cloudFirstRun({ welcome: welcomeOnScreen, intent: cloudAsk, signIn: cloudSignIn || cloudJobWaiting });
+  const firstRun = cloudFirstRun({ welcome: welcomeOnScreen, intent: false, signIn: cloudSignIn });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -275,7 +263,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
 
   useEffect(() => {
     return window.ogb?.onOpenAppSettings?.(section => dispatch((section === "cloud-add" || section === "cloud-add-howto") && window.ogb?.cloudAccount && !remoteClient
-      ? { type: "openCloudAdd", source: section === "cloud-add" ? "app_menu" : "app_howto" }
+      ? { type: "toggleAppSettings", open: true, section: "cloudAccount" }
       : section === "cloud" && window.ogb?.cloudAccount && !remoteClient
         ? CLOUD_LINK_SETTINGS
         : section === "cloud-settings" && (window.ogb?.cloudAccount || window.ogb?.cloudPlan) && !remoteClient
@@ -370,8 +358,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         />
       ) : firstRun === "welcome" ? (
         <CloudWelcome />
-      ) : firstRun === "intent" ? (
-        <CloudIntent />
       ) : firstRun === "sign-in" ? (
         <CloudEngineSignIn />
       ) : noEngines ? (
@@ -423,9 +409,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       </div>
       </div>
       {state.appSettingsOpen && <SettingsModal />}
-      {cloudAddOpened.current && <CloudAddDialog />}
       <CloudHowTo />
-      <CloudSetup viewer={viewer} welcomeShown={welcomeOnScreen} />
       <WelcomeKeeper viewer={viewer} />
       {state.pluginsOpen && <PluginsPanel />}
       {state.shortcutsOpen && (

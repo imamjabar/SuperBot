@@ -66,10 +66,6 @@ vi.mock("./WorkspaceBackupSettings", () => ({ WorkspaceBackupSettings: marker("b
 vi.mock("./RoomTurnTimeoutSettings", () => ({ RoomTurnTimeoutSettings: () => null }));
 vi.mock("./CompanyBackupSettings", () => ({ CompanyBackupSettings: () => null }));
 vi.mock("./ImportSettings", () => ({ ImportSettings: marker("import") }));
-vi.mock("./UpdatesConsent", async (importOriginal) => ({
-  ...await importOriginal<typeof import("./UpdatesConsent")>(),
-  UpdatesConsentRow: marker("updatesConsent"),
-}));
 vi.mock("./SidebarProfileMenu", async (importOriginal) => ({
   ...await importOriginal<typeof import("./SidebarProfileMenu")>(),
   useServerUpdateItem: () => fixture.serverUpdate,
@@ -209,7 +205,6 @@ describe("Settings in Simple mode", () => {
       'aria-label="Notification sounds"', 'aria-label="Show the notification feed"', 'aria-label="App language"', 'role="radiogroup" aria-label="Theme"']) {
       expect(placement(general, shown), shown).toBe("shown");
     }
-    expect(placement(open("updates"), "MARKER:updatesConsent;")).toBe("shown");
     const everyPage = ["general", "engines", "companion", "usage", "updates"].map((section) => open(section as AppSettingsSection)).join("");
     for (const gone of ["Effort for new bots", "Defaults for new bots", "Group turns", "MCP calls", "Parallel threads", "Automatic recovery", "Event log cleanup",
       "Interface font", "Chat width", "Pinned bots as circles", "Universal pins", "Tool calls", "This run", "Keep prompt cache warm"]) {
@@ -223,8 +218,8 @@ describe("Settings in Simple mode", () => {
     vi.stubGlobal("window", { ogb: { ...desktop.ogb, updater: { check: vi.fn(), install: vi.fn(), onState: vi.fn() } } });
     fixture.updater = { status: "idle" };
     const html = open("updates");
-    expect(html).toMatch(/>MausBot [^<]+<\/div>/);
-    for (const shown of ["Check for updates", "MARKER:updatesConsent;", "Replay welcome tour", "Diagnostics"]) expect(placement(html, shown), shown).toBe("shown");
+    expect(html).toMatch(/>SuperBot [^<]+<\/div>/);
+    for (const shown of ["Check for updates", "Replay welcome tour", "Diagnostics"]) expect(placement(html, shown), shown).toBe("shown");
   });
 
   it("checks the server's version from a browser", () => {
@@ -232,7 +227,7 @@ describe("Settings in Simple mode", () => {
     const onSelect = vi.fn();
     fixture.serverUpdate = { phase: "up-to-date", pending: false, label: "Up to date", item: { key: "update", label: "Up to date", subtitle: "v1.2.3", icon: null, disabled: false, onSelect } };
     const html = open("updates");
-    expect(html).toMatch(/>MausBot [^<]+<\/div>/);
+    expect(html).toMatch(/>SuperBot [^<]+<\/div>/);
     expect(html).toContain("Up to date v1.2.3");
     expect(placement(html, "Check for updates")).toBe("shown");
   });

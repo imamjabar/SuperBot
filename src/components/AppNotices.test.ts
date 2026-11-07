@@ -5,13 +5,12 @@ import { Children, createElement, isValidElement, type EffectCallback, type Reac
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CloudAccountState, CloudPlanSnapshot } from "../../electron/cloud-account.mjs";
-import type { CloudOffer, CloudTrial } from "../../electron/cloud-home.mjs";
+import type { CloudOffer } from "../../electron/cloud-home.mjs";
 import { withTourFinished } from "@/lib/guided-tour";
 import { setLocale } from "@/lib/i18n";
 import { EMPTY_ONBOARDING, LOCAL_VIEWER, markWelcomeFinished, MET_CHIEF_HINT, type WelcomeViewer } from "@/lib/onboarding";
-import { launchDialogShown, markLaunchDialog } from "@/lib/launch-dialogs";
-import { createDesktopPrefs, registerDesktopPrefs } from "../../electron/desktop-prefs.mjs";
-import { createUpdatesConsent, registerUpdatesConsent } from "../../electron/updates-consent.mjs";
+import { launchDialogShown } from "@/lib/launch-dialogs";
+import { registerDesktopPrefs } from "../../electron/desktop-prefs.mjs";
 
 const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], state: {} as any, updater: null as any, dispatch: null as any, brand: "default",
   viewerEmail: undefined as string | null | undefined }));
@@ -25,7 +24,6 @@ vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f
   CLOUD_LINK_SETTINGS: { type: "toggleAppSettings", open: true, section: "cloudAccount", cloudLink: true } }));
 vi.mock("@/lib/analytics", () => ({ emailGateDone: () => false, track: vi.fn() }));
 vi.mock("@/lib/updater", () => ({ useUpdaterState: () => f.updater }));
-vi.mock("./cloud-buy/NightCard", () => ({ NightCard: ({ children }: { children: unknown }) => children }));
 // Who MausBot belongs to: unknown (as before the session answers) unless a test says otherwise.
 vi.mock("@/lib/default-bot", async original => ({ ...await original<typeof import("@/lib/default-bot")>(), useViewerEmail: () => f.viewerEmail }));
 vi.mock("@/lib/brand", () => ({ brandStatus: () => ({ brand: { name: "OpenMausBot" }, source: f.brand, file: "" }), productName: () => "MausBot" }));
@@ -41,19 +39,8 @@ import { ADVANCED_MODE_KEY, setAdvancedMode } from "@/lib/interface-mode";
 import { SIMPLE_MODE_PROMPT_KEY } from "@/lib/simple-mode-prompt";
 import { api } from "@/state/store";
 
-const DAY = 86_400_000, NOW = new Date(2026, 9, 9, 12).getTime();
-const plans = [
-  { tier: "starter", label: "Starter", amount: 1500, trialDays: 7 },
-  { tier: "pro", label: "Pro", amount: 4900, trialDays: 7 },
-  { tier: "max", label: "Max", amount: 9900, trialDays: 7 },
-];
-const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", creditUsd: 5, refundDays: 14 };
-const PLAIN_OFFER: CloudOffer = { plans: plans.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
+const NOW = new Date(2026, 9, 9, 12).getTime();
 const signedOut: CloudAccountState = { status: "signed-out" };
-const free: CloudAccountState = { status: "connected", account: { id: "a", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
-const paid = (extra: Partial<CloudAccountState> = {}): CloudAccountState => ({ ...free, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, ...extra });
-const trial = (state: CloudTrial["state"], extra: Partial<CloudTrial> = {}): CloudTrial =>
-  ({ state, tier: "pro", endsAt: NOW + DAY, amount: 4900, chargeAt: NOW + DAY, holdUntil: null, deleteAt: null, keep: "none", ...extra });
 
 let storage: Map<string, string>;
 let account: CloudAccountState;
@@ -134,7 +121,7 @@ const hints = () => f.state.config.onboarding.hintsSeen as string[];
 beforeEach(() => {
   vi.clearAllMocks(); vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
   storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.brand = "default"; f.dispatch = vi.fn(); now = NOW; desk = desktopMachine();
-  setLocale("en"); viewer = LOCAL_VIEWER; account = signedOut; snapshot = { status: "none" }; offer = TRIAL_OFFER;
+  setLocale("en"); viewer = LOCAL_VIEWER; account = signedOut; snapshot = { status: "none" }; offer = null;
   session = new Map(); f.viewerEmail = undefined;
   vi.stubGlobal("sessionStorage", { getItem: (key: string) => session.get(key) ?? null, setItem: (key: string, value: string) => session.set(key, value) });
   f.state = { connected: true, hydrated: true, bots: structuredClone(FIRST_REPLY), groups: [], routines: [], instances: [{ instanceId: "claude", snapshot: { state: "available", authenticated: true } }],
@@ -158,175 +145,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); });
 
-describe("the free trial's notice, here and on My Cloud", () => {
-  it("shows the notice main says is due, tells main once, and stays up until it is closed", async () => {
-    const running = trial("active", { switchTo: { tier: "starter", amount: 1500 } });
-    account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active", credit: { grantedUsd: 5, remainingUsd: 3.2, state: "active" } };
-    offer = { ...PLAIN_OFFER };
-    const html = await launch();
-    expect(html).toContain("Your free trial ends on"); expect(html).toContain("Includes $5 of Claude credit: $3.20 left.");
-    expect(html).toContain("Prefer Starter at $15?");
-    expect(bridges.cloud.offer, "the trial's notice needs nothing from the offer").not.toHaveBeenCalled();
-    expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
-    snapshot = { ...snapshot, notice: undefined };
-    expect(await settle()).toContain("Your free trial ends on");
-    expect(bridges.plan.noticeSeen).toHaveBeenCalledOnce();
-    press("Manage subscription"); await flush();
-    expect(bridges.plan.manage).toHaveBeenCalledOnce();
-    expect(render()).toBe("");
-    expect(await launch()).not.toContain("Your free trial");
-  });
 
-  it("on My Cloud's own page, only the trial's notice, after its sign-in and setup checklist", async () => {
-    viewer = { hosted: false, canSave: true, cloudHome: true };
-    showWindow(MY_CLOUD);
-    returning();
-    snapshot = { status: "none", trial: trial("ended", { deleteAt: NOW + 3 * DAY, keep: "checkout" }), notice: "ended" };
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "cloud-setup-hidden"];
-    expect(await launch()).toContain("Your free trial has ended");
-    f.state.instances = [{ instanceId: "claude", snapshot: { state: "available", authenticated: false } }];
-    expect(await launch()).toBe("");
-    f.state.instances = [{ instanceId: "claude", snapshot: { state: "available", authenticated: true } }];
-    snapshot = { status: "none" };
-    expect(await launch()).toBe("");
-    expect(bridges.cloud.offer).not.toHaveBeenCalled();
-    snapshot = new Error("only available in this app's window");
-    expect(await launch()).toBe("");
-  });
-});
-
-describe("the first conversation after meeting the Chief", () => {
-  it("holds every corner notice, an account's own too, until the person has written and had a reply", async () => {
-    const running = trial("active");
-    account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active" };
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), MET_CHIEF_HINT];
-    f.state.bots = [{ tasks: [{ threadId: "first", usage: { turns: 0 } }] }];
-    expect(await launch()).toBe("");
-    f.state.bots = structuredClone(FIRST_REPLY);
-    expect(await launch()).toContain("Your free trial ends on");
-  });
-
-  it("changes nothing for an install whose first run came before: its notices keep their own rules", async () => {
-    const running = trial("active");
-    account = paid({ trial: running }); snapshot = { status: "paid", tier: "pro", trial: running, notice: "active" };
-    f.state.bots = [{ tasks: [{ threadId: "first", usage: { turns: 0 } }] }];
-    expect(await launch()).toContain("Your free trial ends on");
-  });
-});
-
-describe("This computer's Cloud sign-in card", () => {
-  it("an ended sign-in on a paid plan asks to sign in again", async () => {
-    account = { status: "reauth-required", message: "expired", lastPlan: { tier: "pro", active: true } }; returning();
-    expect(await launch()).toContain("Sign in again to reach the Cloud");
-    press("Sign in again"); await flush();
-    expect(bridges.cloud.signInAgain).toHaveBeenCalledOnce();
-  });
-});
-
-describe("the product-updates question after the update", () => {
-  const QUESTION = "Get MausBot updates?";
-  const RECEIPT = "R".repeat(43);
-  let saved: unknown;
-  let accountAnswer: { status: string; textVersion: string } | null;
-  let client: Record<string, ReturnType<typeof vi.fn>>;
-  /** Main's own consent for this desktop, behind its real IPC: the real record and logic, a fake Cloud client. */
-  const wireConsent = () => {
-    const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = JSON.parse(JSON.stringify(value)); } });
-    const consent = createUpdatesConsent({ prefs, account: () => client as never, available: async () => true, now: () => now });
-    registerUpdatesConsent({ ipcMain: { handle: (channel, handler) => void desk.handlers.set(channel, handler as Handler) }, page: event => (event as { page: Page }).page, consent });
-  };
-  const answer = () => (saved as { updatesConsent?: { status: string } } | null)?.updatesConsent ?? null;
-  const type = (value: string) => { const input = tree().find(node => node.type === "input" && node.props.type === "email")!; expect(input).toBeTruthy(); input.props.onChange({ target: { value } }); };
-
-  beforeEach(() => {
-    saved = null; accountAnswer = null;
-    client = { state: vi.fn(() => account), updatesConsent: vi.fn(async () => ({ cloudContractVersion: 1, consent: accountAnswer })),
-      recordUpdatesConsent: vi.fn(async (status: string, textVersion: string) => { accountAnswer = { status, textVersion }; }),
-      updatesConsentByEmail: vi.fn(async () => RECEIPT), withdrawUpdatesConsent: vi.fn(async () => {}) };
-    wireConsent();
-  });
-
-  it("No thanks is kept and it is never asked again", async () => {
-    const next = await launch();
-    expect(next).toContain(QUESTION);
-    for (const text of ["about new features and tips, about twice a month. You can unsubscribe any time.", "Your email", "Yes, send me updates", "No thanks"])
-      expect(next).toContain(text);
-    for (const part of ['role="dialog"', 'aria-modal="true"', 'aria-labelledby="updates-consent-title"', 'type="email"', 'value=""']) expect(next).toContain(part);
-    expect(next).not.toContain('type="checkbox"');
-    press("No thanks"); await flush();
-    expect(render()).toBe("");
-    expect(answer()).toMatchObject({ status: "declined" });
-    expect(client.updatesConsentByEmail).not.toHaveBeenCalled();
-    expect(await launch()).not.toContain(QUESTION);
-    wireConsent();
-    expect(await launch(), "a restart reads it from the desktop's file").not.toContain(QUESTION);
-  });
-
-  it("waits for a new install's first reply and for a launch after the one whose welcome finished", async () => {
-    desk.saved = null;
-    f.state.bots = [];
-    markWelcomeFinished();
-    const first = await launch();
-    expect(first, "the welcome just closed and no bot has answered").not.toContain(QUESTION);
-    f.state.bots = structuredClone(FIRST_REPLY);
-    const answered = await launch();
-    expect(answered, "a bot has answered, but in the launch the welcome finished").not.toContain(QUESTION);
-    session.clear();
-    const later = await launch();
-    expect(later).toContain(QUESTION);
-  });
-
-  it("waits while MausBot's first-launch card is due, then follows it in the same launch once it closes", async () => {
-    f.viewerEmail = null;
-    f.state.bots = [{ ...structuredClone(FIRST_REPLY[0]), id: "maus", defaultBot: {} }];
-    expect(await launch(), "the card is due: the question waits for it").not.toContain(QUESTION);
-    markLaunchDialog("mausbot"); f.state.bots[0].welcomed = true;
-    const after = await launch();
-    expect(after, "the card closed in this launch: the question follows it").toContain(QUESTION);
-  });
-
-  it("never during onboarding, the tour or Settings; it shows once they are done, before the other cards", async () => {
-    returning();
-    f.state.welcomeOpen = true; expect(await launch()).toBe("");
-    f.state.welcomeOpen = false; f.state.appSettingsOpen = true; expect(await launch()).toBe("");
-    f.state.appSettingsOpen = false;
-    const html = await launch();
-    expect(html).toContain(QUESTION);
-  });
-
-  it("signed out: an optional email; Yes sends it with no account and keeps the receipt. Signed in: one tap, on the account", async () => {
-    await launch(); expect(await settle()).toContain(QUESTION);
-    type("not-an-email"); press("Yes, send me updates"); await flush();
-    expect(render()).toContain("Enter a valid email address.");
-    expect(client.updatesConsentByEmail).not.toHaveBeenCalled();
-    type("person@example.test"); press("Yes, send me updates");
-    for (let i = 0; i < 5; i++) await flush();
-    expect(client.updatesConsentByEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "person@example.test", textVersion: "2026-10-23" }));
-    expect(answer()).toMatchObject({ status: "opted_in", email: "person@example.test", receipt: RECEIPT });
-    expect(render()).toBe("");
-
-    saved = null; account = free; wireConsent();
-    await launch(); const signedIn = await settle();
-    expect(signedIn).toContain(QUESTION); expect(signedIn).not.toContain('type="email"');
-    press("Yes, send me updates");
-    for (let i = 0; i < 5; i++) await flush();
-    expect(client.recordUpdatesConsent).toHaveBeenCalledWith("opted_in", "2026-10-23");
-    expect(answer()).toMatchObject({ status: "opted_in", account: "a" });
-    expect(await launch()).not.toContain(QUESTION);
-  });
-
-  it("not on a branded build, a saved server's page, or in a remote client's window; My Cloud's own page asks too", async () => {
-    f.brand = "file"; expect(await launch()).not.toContain(QUESTION);
-    f.brand = "default";
-    viewer = { hosted: true, canSave: true }; showWindow(VPS); expect(await launch()).not.toContain(QUESTION);
-    showWindow(LOCAL_ORIGIN); viewer = LOCAL_VIEWER; (window.ogb as Record<string, any>).remoteClient.active = true;
-    expect(await launch()).not.toContain(QUESTION);
-    snapshot = { status: "none" }; viewer = { hosted: false, canSave: true, cloudHome: true }; f.state.config.cloudHome = true;
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "cloud-setup-hidden"]; showWindow(MY_CLOUD);
-    expect(await launch()).toContain(QUESTION);
-    expect(answer()).toBeNull();
-  });
-});
 
 describe("no Use my Mac popup", () => {
   it("the page never asks main for one, whatever an older main would answer, and the cards go on as before", async () => {

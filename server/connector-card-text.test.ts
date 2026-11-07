@@ -25,6 +25,6 @@ describe("connectorCardText", () => {
     expect(connectorCardDescription("Notion", undefined, undefined)).toBe("Connect Notion so the bot can continue");
     expect(signInCardText("Biber", "github.com", "de"))
       .toBe("Biber braucht deine Anmeldung bei github.com. Öffne diese Unterhaltung in OpenMausBot, melde dich an und bestätige es dann auf der Karte.");
-    expect(signInCardText("Biber", "github.com")).toBe("Biber needs you to sign in to github.com. Open this conversation in OpenMausBot to sign in, then press Done.");
+    expect(signInCardText("Biber", "github.com")).toBe("Biber needs you to sign in to github.com. Open this conversation in SuperBot to sign in, then press Done.");
   });
 });

@@ -1,10 +1,7 @@
 import { hintSeen, hintSeenPatch, type OnboardingStatus } from "@/lib/onboarding";
 
-export const UPDATES_CONSENT_NOTICE = "updates-consent";
 /** The Simple mode popup, once per browser (simple-mode-prompt.ts keeps whether it was closed). */
 export const SIMPLE_MODE_NOTICE = "simple-mode-prompt";
-export const CLOUD_TRIAL_NOTICE = "cloud-trial-notice";
-export const CLOUD_NOTICE = "cloud-notice";
 /** Bots on this computer and on another place of the person's (two-places.ts): dismissed per place, by main. */
 export const TWO_PLACES_NOTICE = "two-places";
 /** The Move from Grok Bot popup: each person sees it once, first of all, after their welcome. */
@@ -17,10 +14,7 @@ export const GROK_MOVE_NOTICE = "grok-move-2026-11";
 export const NOTICES = [
   GROK_MOVE_NOTICE,
   SIMPLE_MODE_NOTICE,
-  UPDATES_CONSENT_NOTICE,
   TWO_PLACES_NOTICE,
-  CLOUD_TRIAL_NOTICE,
-  CLOUD_NOTICE,
 ] as const;
 
 export type NoticeId = (typeof NOTICES)[number];
@@ -31,7 +25,7 @@ export type NoticeFacts = Record<NoticeId, boolean | null>;
  * may show again in it. */
 export function nextNotice(facts: NoticeFacts, seen: (id: NoticeId) => boolean, launch: NoticeId | null = null): NoticeId | null {
   for (const id of NOTICES) {
-    if (seen(id) || (launch !== null && id !== launch && id !== UPDATES_CONSENT_NOTICE)) continue;
+    if (seen(id) || (launch !== null && id !== launch)) continue;
     if (facts[id] === null) return null;
     if (facts[id]) return id;
   }

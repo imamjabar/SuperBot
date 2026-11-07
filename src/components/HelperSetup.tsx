@@ -26,7 +26,7 @@ export function setupAction(step: SetupStep): Action {
     case "bots": return { type: "newBot" };
     case "apps": return { type: "togglePlugins", open: true, surface: "apps" };
     case "phone": return phonePairingSettingsAction();
-    case "cloud": return { type: "openCloudAdd", source: "app_onboarding" };
+    case "cloud": return { type: "toggleAppSettings", open: true, section: "cloudAccount" };
   }
 }
 
@@ -49,7 +49,6 @@ export function HelperSetup() {
           const { label, icon: Icon } = STEPS[step];
           return (
             <button key={step} type="button" data-helper-step={step} onClick={() => {
-              if (step === "cloud") track("onboarding_cloud", { action: "start_trial" });
               dispatch(setupAction(step));
             }}
               className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-accent/20">
@@ -76,7 +75,7 @@ export function chipAction(chip: Exclude<IntroChip, "ai">): Action {
     case "apps": return { type: "togglePlugins", open: true, surface: "apps" };
     case "import": return { type: "toggleAppSettings", open: true, section: "import" };
     case "phone": return phonePairingSettingsAction();
-    case "cloud": return { type: "openCloudAdd", source: "app_onboarding" };
+    case "cloud": return { type: "toggleAppSettings", open: true, section: "cloudAccount" };
   }
 }
 

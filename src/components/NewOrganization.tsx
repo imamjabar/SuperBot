@@ -1,22 +1,19 @@
-// A new organization on the Team plan the person pays for, from the rail's ＋: a name and a color, then it is added at once
-// (no checkout, nothing to pay) and its circle shows it being set up. Main asks the Admin; the page sees only what it says.
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import type { CloudSwatch, OrganizationBlock } from "../../../electron/cloud-list.mjs";
-import type { AddCloudView } from "../../../electron/cloud-rail.mjs";
+import type { CloudSwatch, OrganizationBlock } from "../../electron/cloud-list.mjs";
+import type { AddCloudView } from "../../electron/cloud-rail.mjs";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { CLOUD_LIST_NAME_LIMIT, DEFAULT_SWATCH, swatchFill } from "@/lib/cloud-extra";
 import { t } from "@/lib/i18n";
 import { placeInitials, refreshPlaces } from "@/lib/places";
 import type { LocaleKey } from "@/locales";
-import { SwatchRadios } from "../SwatchRadios";
-import { BackLink, FIELD, Heading, PRIMARY_WIDE } from "./parts";
+import { SwatchRadios } from "./SwatchRadios";
+import { BackLink, FIELD, Heading, PRIMARY_WIDE } from "./account-parts";
 
 const BLOCKED: Record<OrganizationBlock, LocaleKey> = { no_team_plan: "rail.orgNoPlan", limit: "rail.orgLimit", rate: "rail.orgRate", off: "rail.orgOff" };
 type OrganizationAnswer = { outcome: "added" | "taken" | "unsupported" | "failed" } | { outcome: "blocked"; blocked: OrganizationBlock };
 
-/** What main's answer means for the sheet: added (it closes), or the sentence to show. */
 export function organizationProblem(answer: OrganizationAnswer | null): LocaleKey | null {
   if (answer?.outcome === "added") return null;
   return answer?.outcome === "taken" ? "rail.orgTaken" : answer?.outcome === "blocked" ? BLOCKED[answer.blocked] : "rail.orgFailed";
@@ -28,7 +25,6 @@ export function NewOrganization({ onBack, onClose }: { onBack: (() => void) | nu
   const [busy, setBusy] = useState(false), [problem, setProblem] = useState<LocaleKey | null>(null);
   useEffect(() => { void window.ogb?.cloudAdd?.state().then(setView, () => setView(null)); }, []);
   const facts = view?.signedIn ? view.organizations ?? null : null;
-  // Closed for a reason this app doesn't know: the neutral word, never a limit it may not be at.
   const blocked = facts && !facts.canAdd ? facts.blocked ? BLOCKED[facts.blocked] : "rail.orgOff" : null;
   const shown = name.trim().replace(/\s+/g, " ");
   const create = async () => {

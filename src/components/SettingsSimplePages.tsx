@@ -5,7 +5,6 @@ import { appVersion } from "@/lib/app-links";
 import type { LocaleKey } from "@/locales";
 import { productName } from "../lib/brand";
 import { AnalyticsRow } from "./AnalyticsRow";
-import { UpdatesConsentRow } from "./UpdatesConsent";
 import { OpenAtLoginRow } from "./OpenAtLoginRow";
 import { DefaultBotSidebarRow } from "./DefaultBotControls";
 import { TalkShortcutRow } from "./TalkShortcutRow";
@@ -18,7 +17,6 @@ import { ActivitySection } from "./ActivitySection";
 import { BuiltInBrowserRow, ServerSitesRow } from "./BrowserSettingsRows";
 import { LoginsSettings } from "./LoginsSettings";
 import { OrganizationSettings } from "./OrganizationSettings";
-import { CloudPlanRow, CloudPlanFootnote, useCloudPlan } from "./ProIntroduction";
 import { CloudUsageDetails, CloudUsageSummaryView, useCloudUsageSettings } from "./CloudUsageMeter";
 import { SettingRow, SettingsDisclosureRow, SettingsGroup, SettingsRows } from "./SettingsPrimitives";
 import { UsageSection } from "./UsageSection";
@@ -54,7 +52,6 @@ export function SimpleGeneralPage({ has, peopleOpen, onLooks }: { has: Has; peop
         <SettingsGroup label={t("settings.group.account")} block="general">
           <SettingsRows>
             {has("general") && <ProfileSummaryRow />}
-            {has("general") && <CloudPlanRow place="account" />}
             {has("people") && <div data-settings-block="people" className="scroll-mt-4"><PeopleSection simple startOpen={peopleOpen} /></div>}
           </SettingsRows>
         </SettingsGroup>
@@ -156,8 +153,6 @@ export function SimpleComputerPage({ has, remoteAccess, servers, disclose }: { h
 
 export function SimpleBillingPage({ has, disclose, cloudAccount }: { has: Has; disclose: Disclose; cloudAccount: ReactNode }) {
   const { usage, upgrade, dialog } = useCloudUsageSettings();
-  const plan = useCloudPlan();
-  const signedOut = plan?.view.kind === "signed-out" || plan?.view.kind === "removed";
   return (
     <>
       <div data-settings-block="usage" className="scroll-mt-4">
@@ -170,9 +165,8 @@ export function SimpleBillingPage({ has, disclose, cloudAccount }: { has: Has; d
         </SettingsDisclosureRow>
       )}
       {has("cloudAccount") && (
-        <SettingsGroup label={t("settings.simple.billing.plan")} block="cloudAccount" footnote={<CloudPlanFootnote />}>
-          <SettingsRows><CloudPlanRow place="plan" usage={usage} upgrade={upgrade} /></SettingsRows>
-          {signedOut ? null : <div className="flex flex-col gap-4">{cloudAccount}</div>}
+        <SettingsGroup label={t("settings.simple.billing.plan")} block="cloudAccount">
+          <div className="flex flex-col gap-4">{cloudAccount}</div>
         </SettingsGroup>
       )}
     </>
@@ -200,7 +194,6 @@ export function SimpleUpdatesPage({ remoteActive }: { remoteActive: boolean }) {
     <SettingsGroup block="updates">
       <SettingsRows>
         {window.ogb?.updater ? <UpdatesRow title={versionTitle()} /> : <ServerUpdatesRow />}
-        <UpdatesConsentRow />
         {!remoteActive && <ReplayTourRow />}
         <DiagnosticsRow simple />
       </SettingsRows>

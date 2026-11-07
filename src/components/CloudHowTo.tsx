@@ -24,7 +24,7 @@ export function CloudHowTo() {
     const found = switcherPlacement();
     if (found) { setPlacement(found); return; }
     track("cloud_howto", { result: "no_button" });
-    dispatch({ type: "openCloudAdd", source: "app_howto" });
+    dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
     setToast(t("cloudHowTo.nextTime"));
   }, [open, dispatch]);
   if (toast) return <NoticeToast text={toast} onDone={() => setToast(null)} />;

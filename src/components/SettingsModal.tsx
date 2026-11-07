@@ -9,7 +9,6 @@ import { KeysPage } from "./keys/KeysPage";
 import { KEY_CATALOG, keyMatches, keySection, type KeyEntry } from "./keys/key-catalog";
 import { openKeySettings, useKeyFocus } from "./keys/key-focus";
 import { AnalyticsRow } from "./AnalyticsRow";
-import { UpdatesConsentRow } from "./UpdatesConsent";
 import { OpenAtLoginRow } from "./OpenAtLoginRow";
 import { DefaultBotSidebarRow } from "./DefaultBotControls";
 import { TalkShortcutRow, talkShortcutKeywords } from "./TalkShortcutRow";
@@ -35,7 +34,6 @@ import { ChromeRailRow } from "./ChromeRailToggle";
 import { WindowFrameRow } from "./WindowFrameRow";
 import { OrganizationSettings } from "./OrganizationSettings";
 import { CloudAccountSettings } from "./CloudAccountSettings";
-import { ProSettingsCard } from "./ProIntroduction";
 import { CloudUsageSettings } from "./CloudUsageMeter";
 import { Card, SettingsGroup, SIMPLE_BUTTONS } from "./SettingsPrimitives";
 import { shortcutLabel } from "./ShortcutHint";
@@ -328,7 +326,7 @@ export function SettingsModal() {
       case "cloudAccount":
         return (window.ogb?.cloudAccount || (window.ogb?.cloudPlan && state.config?.cloudHome === true)) && !remoteActive
           ? <CloudAccountSettings linkRequest={state.appSettingsCloudLink} cloudHome={state.config?.cloudHome === true} teamHome={state.config?.team}
-            onConnectPhone={() => dispatch(phonePairingSettingsAction())} onAddCloud={advanced ? () => dispatch({ type: "openCloudAdd", source: "app_settings" }) : undefined}
+            onConnectPhone={() => dispatch(phonePairingSettingsAction())}
             onSignIn={() => dispatch({ type: "openCloudAdd", source: "app_settings", signIn: true })} />
           : null;
       case "general":
@@ -338,7 +336,6 @@ export function SettingsModal() {
             <DefaultBotSidebarRow />
             <TalkShortcutRow />
 
-            <ProSettingsCard />
             <CloudUsageSettings />
             <Card title={t("settings.profile.title")} subtitle={t("settings.profile.sharedSubtitle")}>
               <ProfileFields />
@@ -349,7 +346,6 @@ export function SettingsModal() {
             <NewBotEffortRow />
             <SavedStepsRow />
             <AnalyticsRow />
-            <UpdatesConsentRow />
             <DefaultBotSettings />
 
             <Card title={t("settings.roomTurns.title")} subtitle={t("settings.roomTurns.subtitle")}>

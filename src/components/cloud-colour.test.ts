@@ -6,8 +6,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
 
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: { config: {} }, dispatch: () => {} }) }));
-const { DesktopWorkspaceSwitcher } = await import("../DesktopWorkspaceSwitcher");
-const { ConnectedWorkspacesSettings } = await import("../ConnectedWorkspacesSettings");
+const { DesktopWorkspaceSwitcher } = await import("./DesktopWorkspaceSwitcher");
+const { ConnectedWorkspacesSettings } = await import("./ConnectedWorkspacesSettings");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement;

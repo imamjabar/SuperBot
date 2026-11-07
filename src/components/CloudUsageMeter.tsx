@@ -3,7 +3,7 @@ import { ArrowUpRight, Gauge, Loader2, X } from "lucide-react";
 
 import type { CloudPlanBridge, CloudPlanSnapshot, CloudUpgradePreview, CloudUpgradeRefusal } from "../../electron/cloud-account.mjs";
 import type { CloudUsage, CloudUsageMeter } from "../../electron/cloud-home.mjs";
-import { cloudPlanChanged, useCloudPlanSnapshot } from "./CloudTrialNotice";
+import { cloudPlanChanged, useCloudPlanSnapshot } from "@/lib/cloud-plan-snapshot";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Card, SIMPLE_CARD } from "./SettingsPrimitives";
 import { localDesktopPage } from "./onboarding/WelcomeGate";

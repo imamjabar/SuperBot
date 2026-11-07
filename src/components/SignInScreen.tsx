@@ -1,10 +1,9 @@
-// Screen 2: sign in inside the sheet with an emailed code; single sign-on and two-step accounts continue in the browser.
 import type { ClipboardEvent, FormEvent, KeyboardEvent } from "react";
 import { Check, ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { CloudSignInPhase, CloudSignInProblem } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
-import { ACTIONS, BackLink, FIELD, Heading, LINK, PRIMARY, PRIMARY_WIDE, QUIET, SCREEN } from "./parts";
+import { ACTIONS, BackLink, FIELD, Heading, LINK, PRIMARY, PRIMARY_WIDE, QUIET, SCREEN } from "./account-parts";
 
 const DIGITS = 8;
 const BROWSER_PROBLEMS: ReadonlySet<CloudSignInProblem> = new Set(["sso", "two-factor", "browser"]);
@@ -108,7 +107,6 @@ export function SignInScreen({ phase, email, code, profileEmail, busy, now, onBa
   </div>;
 }
 
-/** The browser approval (single sign-on, two-step, or an older Cloud): the code to check, and the browser again. */
 export function BrowserSignInScreen({ code, checkout, trial, busy, onReopen, onCancel }: {
   code: string | null; checkout: boolean; trial: boolean; busy: boolean; onReopen: () => void; onCancel: () => void;
 }) {

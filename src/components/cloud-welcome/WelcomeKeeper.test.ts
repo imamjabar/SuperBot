@@ -31,7 +31,7 @@ vi.mock("@/state/store", async (original) => {
 });
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => true }));
-vi.mock("@/components/CloudTrialNotice", () => ({ useCloudPlanSnapshot: () => null }));
+vi.mock("@/lib/cloud-plan-snapshot", () => ({ useCloudPlanSnapshot: () => null }));
 vi.mock("@/components/EngineSetup", () => ({ EngineSetup: () => null }));
 vi.mock("@/components/TeamLibraryPanel", () => ({ TeamLibraryPanel: () => null }));
 import { CloudWelcome } from "./CloudWelcome";

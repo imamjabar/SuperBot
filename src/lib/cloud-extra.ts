@@ -1,9 +1,8 @@
 import type { CloudOffer, CloudOfferPlan } from "../../electron/cloud-home.mjs";
 import type { CloudSwatch } from "../../electron/cloud-list.mjs";
 import type { AddCloudView } from "../../electron/cloud-rail.mjs";
-import type { CloudColor } from "../../electron/cloud-buy.mjs";
 import type { LocaleKey } from "@/locales";
-import { cloudColorFill } from "@/lib/cloud-look";
+import { cloudColorFill, type CloudColor } from "@/lib/cloud-look";
 import { CHECKOUT_WAIT_MS } from "@/lib/cloud-plan";
 
 /** A Cloud's name as the Admin keeps it: up to 40 characters. */

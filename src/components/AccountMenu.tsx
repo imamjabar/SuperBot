@@ -5,8 +5,8 @@ import { cn } from "@/lib/cn";
 import type { CloudSignInPhase } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
 import { usePlaces } from "@/lib/places";
-import { CLOSE, Heading, PRIMARY, QUIET, SCREEN, SHEET } from "./cloud-buy/parts";
-import { codeDigits, SignInScreen } from "./cloud-buy/SignInScreen";
+import { CLOSE, Heading, PRIMARY, QUIET, SCREEN, SHEET } from "./account-parts";
+import { codeDigits, SignInScreen } from "./SignInScreen";
 import type { SidebarMenuItem } from "./SidebarPopoverMenu";
 
 export interface AccountsAccess {

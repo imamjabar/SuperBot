@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Cloud, Laptop, Loader2, Trash2 } from "lucide-react";
 import { Card } from "./SettingsPrimitives";
 import { ComputerSharingSettings } from "./ComputerSharingSettings";
-import { CloudTile } from "./cloud-buy/parts";
+import { CloudTile } from "./CloudTile";
 import { cloudColor } from "@/lib/cloud-look";
 import { useStore } from "@/state/store";
 import { sharedComputersEnabled } from "@/lib/feature-flags";

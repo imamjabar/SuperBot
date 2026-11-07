@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  cloudUsageSummary,
   phoneMenuItems,
   placeMenuItems,
   planUsageSummary,
@@ -112,7 +111,7 @@ describe("updatePhase", () => {
 describe("updateLabel", () => {
   it("names the version it is ready to install", () => {
     expect(updateLabel("downloaded", state({ status: "downloaded", version: "0.2.0" }))).toBe(
-      "Restart to update to MausBot 0.2.0",
+      "Restart to update to SuperBot 0.2.0",
     );
   });
 
@@ -126,7 +125,7 @@ describe("updateLabel", () => {
     expect(updateLabel("installing", state({ status: "installing", message: "Restart is taking longer than expected." })))
       .toBe("Restart is taking longer than expected.");
     expect(updateLabel("downloaded", state({ status: "downloaded", version: "0.2.0", installMode: "handoff" })))
-      .toBe("Install MausBot 0.2.0");
+      .toBe("Install SuperBot 0.2.0");
     expect(updateLabel("installing", state({ status: "installing", installMode: "handoff" })))
       .toBe("Opening a terminal…");
   });
@@ -200,7 +199,7 @@ describe("updateNoteworthy", () => {
 describe("outward links", () => {
   it("sends Help Center to the docs the website also links to", () => {
     expect(HELP_CENTER_URL).toBe(DOCS_URL);
-    expect(DOCS_URL).toBe("https://github.com/milind-soni/OpenMausBot/tree/main/docs");
+    expect(DOCS_URL).toBe("https://github.com/imamjabar/SuperBot/tree/main/docs");
   });
 
   it("sends Send Feedback to the Discord community", () => {
@@ -331,7 +330,7 @@ describe("Get the phone app", () => {
   it("offers iPhone and Android with the links the website and Cloud page use", () => {
     expect(PHONE_APPS.map((app) => [app.id, app.url])).toEqual([["ios", IOS_APP_STORE_URL], ["android", ANDROID_APK_URL]]);
     expect(IOS_APP_STORE_URL).toBe("https://apps.apple.com/in/app/mausbot/id6803387923");
-    expect(ANDROID_APK_URL).toBe("https://github.com/milind-soni/OpenMausBot/releases/download/android-v1.5.0/OpenMausBot.apk");
+    expect(ANDROID_APK_URL).toBe("https://github.com/imamjabar/SuperBot/releases/download/android-v1.5.0/OpenMausBot.apk");
   });
 
   const render = (connect?: PhoneAppConnect[]) => {
@@ -621,10 +620,4 @@ describe("the usage meta", () => {
     expect(resetsIn(null, now)).toBeUndefined();
   });
 
-  it("reads a paid Cloud's tightest meter, and nothing without one", () => {
-    const usage = { tier: "pro", resetsAt: Date.parse("2026-11-01T00:00:00Z"), meters: [{ kind: "voice", used: 30, max: 100 }, { kind: "decisions", used: 85, max: 100 }] };
-    expect(cloudUsageSummary({ status: "paid", tier: "pro", usage } as never)).toMatchObject({ value: "85% used" });
-    expect(cloudUsageSummary({ status: "paid", tier: "pro" } as never)).toBeNull();
-    expect(cloudUsageSummary({ status: "none" } as never)).toBeNull();
-  });
 });

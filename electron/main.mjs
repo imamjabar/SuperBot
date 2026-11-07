@@ -157,8 +157,8 @@ let pendingChatLink = pendingOrganizationEntry ? null : chatLinkFromCommandLine(
 let organizationEntryReady = false;
 let mainWindow = null;
 const serverUnavailableWindows = new WeakSet();
-let unreadCount = 0;
-let unreadOverlayIcon = null;
+let unreadCount = 0; let unreadOverlayIcon = null;
+app.setPath("userData", path.join(app.getPath("appData"), "OpenMausBot"));
 
 const windowStateFile = createWindowStateFile({ file: () => path.join(app.getPath("userData"), "window-state.json"), log: message => slog(message) });
 

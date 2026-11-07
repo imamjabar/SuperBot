@@ -1,9 +1,9 @@
 appId: com.openmausbot.app
-productName: OpenMausBot
-artifactName: OpenMausBot-${version}-${arch}.${ext}
+productName: SuperBot
+artifactName: SuperBot-${version}-${arch}.${ext}
 
 protocols:
-  - name: OpenMausBot package install
+  - name: SuperBot package install
     schemes: [openmausbot]
 
 # In-app auto-update reads latest-mac.yml + the .zip (macOS) or latest.yml +
@@ -131,11 +131,11 @@ mac:
     - from: dist-native/duckdb/darwin-${arch}/node_modules
       to: duckdb/node_modules
   extendInfo:
-    NSMicrophoneUsageDescription: OpenMausBot uses the microphone for voice dictation into the composer.
-    NSSpeechRecognitionUsageDescription: OpenMausBot transcribes your voice on-device to type messages for you.
-    NSAccessibilityUsageDescription: OpenMausBot uses Accessibility when you let a bot control this Mac.
-    NSScreenCaptureUsageDescription: OpenMausBot uses Screen Recording so bots can see this Mac before acting.
-    NSDownloadsFolderUsageDescription: OpenMausBot looks in Downloads for the file your Grok Bot saved when you move it here.
+    NSMicrophoneUsageDescription: SuperBot uses the microphone for voice dictation into the composer.
+    NSSpeechRecognitionUsageDescription: SuperBot transcribes your voice on-device to type messages for you.
+    NSAccessibilityUsageDescription: SuperBot uses Accessibility when you let a bot control this Mac.
+    NSScreenCaptureUsageDescription: SuperBot uses Screen Recording so bots can see this Mac before acting.
+    NSDownloadsFolderUsageDescription: SuperBot looks in Downloads for the file your Grok Bot saved when you move it here.
   # Notarization runs manually after the build (notarytool + staple),
   # mirroring the BlueyLite ship_release.sh flow.
   notarize: false
@@ -145,7 +145,7 @@ dmg:
   # ${arch} is load-bearing: without it the x64 dmg silently overwrites
   # the arm64 one when both arches build (this section overrides both the
   # top-level and mac-level artifactName, so it must carry the arch itself)
-  artifactName: OpenMausBot-${version}-${arch}.dmg
+  artifactName: SuperBot-${version}-${arch}.dmg
   # x/y are icon centres in points. electron-builder 26.15.3 sizes the window
   # from build/background.png and ignores dmg.window whenever a background is set.
   iconSize: 112
@@ -192,11 +192,11 @@ win:
 nsis:
   oneClick: true
   perMachine: false
-  shortcutName: OpenMausBot
+  shortcutName: SuperBot
   # Versioned, like the .dmg. The README's /latest/download/ button needs a
   # STABLE filename, so ship a second copy named OpenMausBot-setup.exe on the
   # release — the same trick as OpenMausBot.dmg beside OpenMausBot-${version}.dmg.
-  artifactName: OpenMausBot-${version}-setup.${ext}
+  artifactName: SuperBot-${version}-setup.${ext}
 
 linux:
   target:
@@ -229,7 +229,7 @@ linux:
       to: openmausbot-browser.apparmor
   desktop:
     entry:
-      Name: OpenMausBot
+      Name: SuperBot
       Comment: Your own team of AI bots, in a chat app
       Keywords: AI;Agents;Chat;Productivity;
 

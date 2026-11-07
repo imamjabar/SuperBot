@@ -4,7 +4,6 @@ import { useCloudSendNotice } from "@/components/CloudSendStrip";
 import { countedList } from "@/lib/cloud-send";
 import { WindowDragStrip } from "@/components/DesktopCapabilities";
 import { track } from "@/lib/analytics";
-import { reopenCloudIntent } from "@/lib/cloud-intent";
 import {
   CLOUD_SETUP_MOVE_SKIPPED, CLOUD_WELCOME_DONE, CLOUD_WELCOME_SHOWN, WELCOME_STEPS, welcomeStepFinished, welcomeStepHint, welcomeView, welcomeViewAfter,
   type WelcomeStep, type WelcomeView,
@@ -148,8 +147,7 @@ export function CloudWelcome() {
     if (!bot) return;
     end("done");
     dispatch({ type: "showChat" });
-    dispatch({ type: "select", id: bot.id });
-    reopenCloudIntent(true);
+    if (bot) openBot(dispatch, bot, showThreads);
   };
 
   let content;

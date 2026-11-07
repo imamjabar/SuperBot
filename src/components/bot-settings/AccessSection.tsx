@@ -19,7 +19,7 @@ import { ProposalStatus } from "./ProposalStatus";
 import { ToolSelectionCard } from "./ToolSelectionCard";
 import { BotApiCard } from "./BotApiCard";
 import { ToolBudgetLine } from "./ToolBudgetLine";
-import { useCloudPlan } from "../ProIntroduction";
+import { useCloudPlan } from "@/lib/cloud-plan-hook";
 import { xResearchAction } from "@/lib/cloud-plan";
 import { HIGHLEVEL_SLUG } from "@/lib/highlevel-sign-in";
 import { useBotApps } from "./useBotApps";

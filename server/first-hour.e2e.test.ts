@@ -190,10 +190,10 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     expect(tools).not.toContain(SEND);
     expect(tools).not.toContain(DELETE);
     const rows = await messages();
-    expect(rows.some((row) => row.role === "user" && String(row.text).includes("OpenMausBot first look")), "the first look's prompt is never the person's message").toBe(false);
+    expect(rows.some((row) => row.role === "user" && String(row.text).includes("SuperBot first look")), "the first look's prompt is never the person's message").toBe(false);
     expect(rows.find((row) => row.id === gmail.id).connector).toMatchObject({ status: "connected", resumed: true });
     const dump = JSON.parse(readFileSync(dumpFile(), "utf8"));
-    expect(JSON.stringify(dump.prompt)).toContain("OpenMausBot first look: Sam just connected Gmail.");
+    expect(JSON.stringify(dump.prompt)).toContain("SuperBot first look: Sam just connected Gmail.");
     const month = new Date().toISOString().slice(0, 7);
     const decisions = existsSync(join(dataDir, "decisions")) ? readdirSync(join(dataDir, "decisions")).filter((name) => name.startsWith(month)).map((name) => readFileSync(join(dataDir, "decisions", name), "utf8")).join("") : "";
     expect(decisions).toContain(`"tool":"${SEND}"`);

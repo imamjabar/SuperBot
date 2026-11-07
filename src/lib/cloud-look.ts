@@ -1,4 +1,4 @@
-import type { CloudColor } from "../../electron/cloud-buy.mjs";
+export type CloudColor = "blue" | "teal" | "purple" | "orange" | "red" | "yellow";
 import type { LocaleKey } from "@/locales";
 
 /** A Cloud's colour names, as main saves them (environments.cjs ENTRY_COLORS); each skin tunes its own tone of each. */

@@ -93,7 +93,7 @@ describe("per-bot access", () => {
     const verdict = highlevelAccess(contactsOnly, "HIGHLEVEL_LIST_PIPELINES");
     expect(verdict.ok).toBe(false);
     if (verdict.ok) throw new Error("unreachable");
-    expect(verdict.text).toBe('"HIGHLEVEL_LIST_PIPELINES" is not granted to this bot. This call was not performed. Ask the person to grant it in OpenMausBot if they want it run.');
+    expect(verdict.text).toBe('"HIGHLEVEL_LIST_PIPELINES" is not granted to this bot. This call was not performed. Ask the person to grant it in SuperBot if they want it run.');
     expect(verdict.text).not.toContain("HIGHLEVEL_GET_CONTACT");
     expect(verdict.rows[0]).toMatchObject({ decision: "auto-denied", rule: "connectorTools.highlevel", summary: "tool is not in this service's grant" });
     expect(highlevelAccess(contactsOnly, "HIGHLEVEL_ADD_NOTE")).toMatchObject({ ok: true, rows: [{ rule: "connectorTools.highlevel" }] });
