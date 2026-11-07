@@ -45,7 +45,7 @@ export const FRONT_DESK_PROMPT =
   " Write every reply, the short line before a job and the job's result alike, in the language of the person's latest message, even when earlier messages or notes about the person use another.";
 
 /** Follows the person's own line in a front-desk turn: the model keeps to the language of what it read last, not of the chat so far. */
-export const FRONT_DESK_LANGUAGE_NOTE = "\n\n[Reply in the language of this message.]";
+export const FRONT_DESK_LANGUAGE_NOTE = "\n\n[Reply in the language the person wrote this message in, even if the chat so far, notes about them, or a site or topic they name use another.]";
 
 interface SteerJobDeps {
   store: Pick<Store, "taskByThread" | "appendMessage">;
