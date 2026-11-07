@@ -467,6 +467,31 @@ describe("Runtime: one tree, one lane", () => {
     invariants(w);
   });
 
+  it("takes no turn for a job the person stopped, but still wakes for a real result beside it", async () => {
+    const w = world(a => a.assignee.botId === "builder" ? "hold" : undefined);
+    const root = w.runtime.begin(beginReq());
+    const child = ok(w.runtime.enqueue(toBot("builder", root.id)));
+    w.runtime.end(root.id, { ok: true, text: "Started the job." });
+    w.runtime.tick(); await flush();
+    w.runtime.cancel(child.id);
+    w.runtime.tick(); await flush(); w.runtime.tick();
+    expect(w.runner.runs.map(r => r.a.id)).toEqual([child.id]);
+    expect(w.store.get(child.id)).toMatchObject({ status: "cancelled", outcome: "stopped" });
+    expect(w.store.get(root.id)).toMatchObject({ status: "completed", outcome: "done", executions: 1 });
+    invariants(w);
+
+    const both = world(a => a.assignee.botId === "builder" ? "hold" : a.assignee.botId === "tester" ? { kind: "completed", text: "Two tests fail." } : undefined);
+    const root2 = both.runtime.begin(beginReq());
+    const stopped = ok(both.runtime.enqueue(toBot("builder", root2.id)));
+    ok(both.runtime.enqueue(toBot("tester", root2.id)));
+    both.runtime.end(root2.id, { ok: true, text: "Asked both." });
+    both.runtime.tick(); await flush();
+    both.runtime.cancel(stopped.id);
+    both.runtime.tick(); await flush(); both.runtime.tick();
+    expect(both.runner.runs.at(-1)!.a.id).toBe(root2.id);
+    expect(both.runner.runs.at(-1)!.input.resumed).toBe(true);
+  });
+
   it("wakes the requester for a reply nobody marked, or a failure even if marked", async () => {
     for (const result of [{ kind: "completed", text: "The host is imap.example.com." }, { kind: "failed", outcome: "provider_error", text: "It broke." }] as RunResult[]) {
       const w = world(a => a.assignee.botId === "builder" ? result : undefined);

@@ -1304,6 +1304,58 @@ describe("structured tool execution boundaries", () => {
     })]);
   });
 
+  it("limits a job to its configured tool-call budget, informs the model, and answers without tools", async () => {
+    let callId = 0;
+    const f = await fixture((body, response) => {
+      if (!body.tools?.length) {
+        answer(response, "Final answer from gathered facts.");
+        return;
+      }
+      sse(response, [chunk({
+        tool_calls: [
+          toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`),
+          toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`),
+          toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`),
+        ],
+      }, "tool_calls")]);
+    });
+    await f.start({ approvalMode: "full", toolCallBudget: 2 });
+    const completed = await f.completed();
+    expect(completed).toMatchObject({ ok: true });
+    expect(f.effects()).toHaveLength(2);
+    expect(f.requests).toHaveLength(2);
+    expect(f.requests[0]?.tools?.length).toBeGreaterThan(0);
+    expect(f.requests[1]?.tools).toBeUndefined();
+    const finalRequest = f.requests[1]!;
+    const toolResults = finalRequest.messages.filter((m) => m.role === "tool");
+    expect(toolResults).toHaveLength(3);
+    expect(toolResults[2]?.content).toContain("[OpenMausBot: this job has used its 2 tool calls. This call was not run.]");
+    const budgetPrompt = finalRequest.messages.find((m) => m.role === "user" && typeof m.content === "string" && m.content.includes("used its 2 tool calls"));
+    expect(budgetPrompt?.content).toBe("[OpenMausBot: this job has used its 2 tool calls. Write your final answer now from what you have gathered; say plainly what is still missing. No more tools.]");
+    expect(f.recorder.events).toContainEqual(expect.objectContaining({
+      type: "runtime.notice",
+      message: "Used this job's 2 tool calls; writing the answer from what it found.",
+    }));
+  });
+
+  it("stops with a protocol error if the model attempts tool calls after the budget is spent", async () => {
+    let callId = 0;
+    const f = await fixture((_body, response) => {
+      sse(response, [chunk({
+        tool_calls: [
+          toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`),
+        ],
+      }, "tool_calls")]);
+    });
+    await f.start({ approvalMode: "full", toolCallBudget: 2 });
+    const completed = await f.completed();
+    expect(completed).toMatchObject({ ok: false, stopReason: "error" });
+    expect(f.effects()).toHaveLength(2);
+    expect(f.recorder.events.filter((event) => event.type === "runtime.error")).toEqual([expect.objectContaining({
+      message: "Stopped after 2 tool calls without a final answer. The steps so far already ran, so ask only for what's left.",
+    })]);
+  });
+
   it("keeps Grok's native log small on a long turn with large tool results", async () => {
     ensureDirs();
     const large = "note ".repeat(4_000);

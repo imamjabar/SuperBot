@@ -107,6 +107,14 @@ describe("toolStep", () => {
     expect(toolStep({ title: "agent_browser_click", input: toolDetailPreview({ ref: "e4" }) })).toBeUndefined();
   });
 
+  it("names the site a data query or load reads from the web, and a plain query as a data query", () => {
+    const sql = "CREATE OR REPLACE TABLE pg AS SELECT regexp_extract(content, 'CX22') FROM read_text('https://www.hetzner.com/cloud?x=1')";
+    expect(toolStep({ title: "data_data_sql", input: toolDetailPreview({ sql }) })).toEqual({ activity: "fetch", target: "hetzner.com", detail: "hetzner.com/cloud" });
+    expect(toolStep({ title: "mcp__data__data_load", input: toolDetailPreview({ source: "https://www.kompas.com/rss", name: "kompas" }) })).toEqual({ activity: "fetch", target: "kompas.com", detail: "kompas.com/rss" });
+    expect(toolStep({ title: "data_data_sql", input: toolDetailPreview({ sql: "SELECT substr(c, 1, 50) FROM pg" }) })).toEqual({ activity: "command", target: "data query" });
+    expect(toolStep({ title: "data_data_load", input: toolDetailPreview({ source: "/w/sales.csv", name: "sales" }) })).toBeUndefined();
+  });
+
   it("cuts a long query to the cap and keeps the rest for the hover", () => {
     const query = "Acme construction leads with building permits filed this quarter, application deadlines 2026";
     const step = toolStep({ title: "WebSearch", input: toolDetailPreview({ query }) })!;

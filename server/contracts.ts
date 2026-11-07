@@ -212,6 +212,8 @@ export interface SendTurnInput {
   mcpCallTimeoutMs?: number;
   /** Times an API-model turn that answers after a failed tool call is sent back to re-run it (`loopGuard.correctiveRounds`); never after a denial. */
   toolErrorCorrectiveRounds?: number;
+  /** Tool calls a bot-opened job's API-model turn may make; once spent, its next answer is written from what it gathered, without tools. */
+  toolCallBudget?: number;
 }
 
 /** An MCP server this machine starts and talks to over stdio. */

@@ -5,10 +5,23 @@ import { createEngineLimitsRoutes, type EngineLimitsDeps } from "./engine-limits
 import { createHelperToolRoutes, type HelperToolContext, type HelperToolDeps } from "./helper-tools.ts";
 import { createMausBotNotificationRoutes, type LiveNotificationsDeps } from "./mausbot-notifications.ts";
 import { PASS } from "./table.ts";
+import { createWebFetchRoutes, type WebFetchDeps } from "./web-fetch.ts";
 import { createXResearchInternalRoutes, type XResearchDeps } from "./x-research.ts";
 
-export function createInternalToolRoutes(deps: { helpers: HelperToolDeps; xResearch: XResearchDeps; notifications: LiveNotificationsDeps; engineLimits: EngineLimitsDeps }) {
-  const routes = [createXResearchInternalRoutes(deps.xResearch), createHelperToolRoutes(deps.helpers), createMausBotNotificationRoutes(deps.notifications), createEngineLimitsRoutes(deps.engineLimits)];
+export function createInternalToolRoutes(deps: {
+  helpers: HelperToolDeps;
+  xResearch: XResearchDeps;
+  notifications: LiveNotificationsDeps;
+  engineLimits: EngineLimitsDeps;
+  webFetch?: WebFetchDeps;
+}) {
+  const routes = [
+    createXResearchInternalRoutes(deps.xResearch),
+    createHelperToolRoutes(deps.helpers),
+    createMausBotNotificationRoutes(deps.notifications),
+    createEngineLimitsRoutes(deps.engineLimits),
+    createWebFetchRoutes(deps.webFetch),
+  ];
   return async (ctx: HelperToolContext & { threadId: string }): Promise<typeof PASS | void> => {
     for (const route of routes) if (await route(ctx) !== PASS) return;
     return PASS;

@@ -607,7 +607,13 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
       let nudges = 0;
       let unread: string[] = [];
       let callsAtNudge = -1;
-      const repeats = options.localModel ? new ChatRepeatGuard() : undefined;
+      const repeats = new ChatRepeatGuard(options.localModel ? 3 : 2);
+      const toolCallBudget = typeof turn.toolCallBudget === "number" && Number.isInteger(turn.toolCallBudget) && turn.toolCallBudget > 0
+        ? turn.toolCallBudget
+        : undefined;
+      let dispatchedToolCalls = 0;
+      let budgetNoticed = false;
+      let budgetPrompted = false;
       let unreadable = false, askedAgain = false, spoke = false;
       try {
         const parsed = parseToolScope(turn.toolScope);
@@ -629,14 +635,15 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
           unread = turnEntry.asides.splice(0);
           if (unread.length) messages.push({ role: "user", content: unread.join("\n\n") });
           turnEntry.ending = round === MAX_CHAT_ROUNDS - 1;
-          native("out", options.nativeLog.outgoing(turn, messages, model, tools.definitions));
+          const roundTools = toolCallBudget !== undefined && dispatchedToolCalls >= toolCallBudget ? [] : tools.definitions;
+          native("out", options.nativeLog.outgoing(turn, messages, model, roundTools));
           let attempt = 0;
           let resized = false;
           let completion: Completion;
           for (;;) {
             let streamed = false;
             let answerStreamed = false;
-            const holdback = options.localModel && tools.definitions.length ? new TextCallHoldback() : undefined;
+            const holdback = options.localModel && roundTools.length ? new TextCallHoldback() : undefined;
             const pending = { assistant_text: "", reasoning_text: "" };
             const delta = (text: string, streamKind: keyof typeof pending, flush = false) => {
               let combined = pending[streamKind] + text;
@@ -659,9 +666,9 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 if (streamKind === "assistant_text") answerStreamed = true;
                 const shown = holdback && streamKind === "assistant_text" ? holdback.feed(text) : text;
                 if (shown) delta(shown, streamKind);
-              }, tools.definitions);
+              }, roundTools);
               // A reply cut off at the token limit may be a call cut short; running half of one is worse than saying so.
-              const written = holdback && !completion.toolCalls.length && completion.finishReason !== "length" ? textToolCalls(completion.text, tools.definitions) : null;
+              const written = holdback && !completion.toolCalls.length && completion.finishReason !== "length" ? textToolCalls(completion.text, roundTools) : null;
               unreadable = written?.kind === "unreadable" && !askedAgain;
               if (written?.kind === "calls") {
                 completion = { ...completion, text: written.text, toolCalls: written.calls, finishReason: "tool_calls" };
@@ -760,7 +767,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
               stopReason = "tool_error";
               throw new ChatProtocolError(toolFailureMessage(failedCalls, denials.filter((name) => name !== ASK_USER_TOOL)));
             }
-            if (options.nudgeAnnouncedAction && tools.definitions.length && announcesAction(completion.text)) {
+            if (options.nudgeAnnouncedAction && roundTools.length && announcesAction(completion.text)) {
               if (nudges >= MAX_ANNOUNCEMENT_NUDGES || turnEntry.ending) {
                 stopReason = "incomplete_action";
                 throw new ChatProtocolError(`Stopped after ${turnEntry.ending ? `${MAX_CHAT_ROUNDS} steps` : `${MAX_ANNOUNCEMENT_NUDGES} announcement nudges`} without a verified final answer. Earlier operations may have taken effect; inspect their state and continue only the remaining work.`);
@@ -781,7 +788,10 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             ok = true;
             break;
           }
-          if (!tools.definitions.length) throw new ChatProtocolError("provider returned tool calls, but no tools are available for this turn");
+          if (toolCallBudget !== undefined && dispatchedToolCalls >= toolCallBudget) {
+            throw new ChatProtocolError(stoppedAfter(`${toolCallBudget} tool calls`));
+          }
+          if (!roundTools.length) throw new ChatProtocolError("provider returned tool calls, but no tools are available for this turn");
           // Validate IDs for the entire batch before executing any of its calls.
           for (const call of completion.toolCalls) {
             if (seenCalls.has(call.id)) throw new ChatProtocolError("provider reused a tool-call ID; refusing to repeat an operation");
@@ -799,6 +809,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             let result: ChatToolResult;
             let started = false;
             let fatal: Error | undefined, title = call.function.name, skipRepeatCount = false;
+            let budgetRefused = false;
             try {
               let args: unknown;
               try { args = JSON.parse(call.function.arguments); }
@@ -826,6 +837,10 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                     result = { ok: true, text: answer };
                   }
                 }
+              } else if (toolCallBudget !== undefined && dispatchedToolCalls >= toolCallBudget) {
+                skipRepeatCount = true;
+                budgetRefused = true;
+                result = { ok: false, text: `[OpenMausBot: this job has used its ${toolCallBudget} tool calls. This call was not run.]` };
               } else {
                 const refused = repeats?.refuses(call.function.name, call.function.arguments);
                 if (refused) { skipRepeatCount = true; throw new Error(refused); }
@@ -843,6 +858,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
                 });
                 started = true;
                 if (allowed) {
+                  dispatchedToolCalls += 1;
                   result = await tools.execute(call.function.name, args as Record<string, unknown>, abort.signal);
                   if (result.images?.length && !seesImages(turn)) {
                     const { images: _dropped, ...rest } = result;
@@ -872,7 +888,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             const text = safeText(result.text);
             const output = preview({ ok: result.ok, result: text });
             emit({ ...base(turn.threadId, turnId), type: "item.completed", itemType: "tool", itemId: call.id, ok: result.ok, output });
-            if (!result.ok) { toolFailed = true; failedCalls.push(title); }
+            if (!result.ok && !budgetRefused) { toolFailed = true; failedCalls.push(title); }
             messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ ok: result.ok, result: repeatNote ? `${text}\n\n${repeatNote}` : text }) });
             screenshotParts.push(...chatToolImages(call.id, result.images));
             abort.signal.throwIfAborted();
@@ -880,6 +896,18 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             if (repeats?.stopped) { stopReason = "incomplete_action"; throw new ChatProtocolError(repeats.stopped); }
           }
           if (screenshotParts.length) messages.push({ role: "user", content: screenshotParts });
+          if (toolCallBudget !== undefined && dispatchedToolCalls >= toolCallBudget) {
+            if (!budgetNoticed) {
+              budgetNoticed = true;
+              emit({ ...base(turn.threadId, turnId), type: "runtime.notice", message: `Used this job's ${toolCallBudget} tool calls; writing the answer from what it found.` });
+            }
+            if (!budgetPrompted) {
+              budgetPrompted = true;
+              messages.push({ role: "user", content: `[OpenMausBot: this job has used its ${toolCallBudget} tool calls. Write your final answer now from what you have gathered; say plainly what is still missing. No more tools.]` });
+            }
+            toolFailed = false;
+            failedCalls.length = 0;
+          }
           if (completion.text.trim() && !toolFailed && !turnEntry.asides.length && completion.toolCalls.every((call) => call.function.name === HANDOFF_TOOL)) { ok = true; break; }
         }
         if (!ok) throw new ChatProtocolError(stoppedAfter(`${MAX_CHAT_ROUNDS} steps`));

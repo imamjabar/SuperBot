@@ -44,6 +44,7 @@ export function agentsServerEnv(conversation: AgentsConversation, turn: AgentsTu
     OMB_MEMORY_ENABLED: flag(bot.memoryEnabled !== false),
     OMB_SHARED_COMPUTERS_ENABLED: flag(host.sharedComputers),
     OMB_CLOUD_HOME: flag(host.cloudHome), OMB_TEAM_PEOPLE: flag(host.team), OMB_ROOM: flag(conversation.room), OMB_REPORTS_BACK: flag(conversation.reportsBack === true),
+    OMB_WEB_FETCH: flag(conversation.reportsBack === true),
     OMB_VOICE_NOTES: flag(host.voiceNotes),
     OMB_X_RESEARCH: flag(host.x && bot.xResearch !== false),
     OMB_RESEARCH: flag(host.x && host.research && bot.xResearch !== false),

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AppConfig } from "./config.ts";
-import { claudeUserSkillsDir, settingsTurnFields } from "./turn-settings.ts";
+import { claudeUserSkillsDir, JOB_TOOL_CALLS_DEFAULT, jobToolCallBudget, settingsTurnFields } from "./turn-settings.ts";
 
 const dirs: string[] = [];
 const temp = () => {
@@ -67,5 +67,14 @@ describe("turn fields from Settings", () => {
     expect(settingsTurnFields(on, temp(), false, temp()).mcpFromUserConfig).toBe(true);
     expect(settingsTurnFields(on, temp(), true, temp()).mcpFromUserConfig).toBe(false);
     expect(settingsTurnFields(on, temp(), false, temp())).not.toHaveProperty("userSkillsDir");
+  });
+});
+
+describe("job tool-call budget", () => {
+  it("takes an operator's 1–200 and falls back to the default otherwise", () => {
+    expect(jobToolCallBudget({})).toBe(JOB_TOOL_CALLS_DEFAULT);
+    expect(jobToolCallBudget({ OMB_JOB_TOOL_CALLS: "10" })).toBe(10);
+    expect(jobToolCallBudget({ OMB_JOB_TOOL_CALLS: "200" })).toBe(200);
+    for (const bad of ["0", "201", "2.5", "ten", ""]) expect(jobToolCallBudget({ OMB_JOB_TOOL_CALLS: bad }), bad).toBe(JOB_TOOL_CALLS_DEFAULT);
   });
 });

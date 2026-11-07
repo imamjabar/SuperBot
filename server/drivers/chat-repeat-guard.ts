@@ -3,7 +3,7 @@
 // count over, because that is progress. Each round on a laptop costs tens of seconds, so this stops long before the limit.
 import { createHash } from "node:crypto";
 
-const REFUSE_AFTER_FAILURES = 3;
+const DEFAULT_REFUSE_AFTER_FAILURES = 3;
 const REFUSALS_BEFORE_STOP = 2;
 const SAME_ANSWER_NOTE_AT = 3;
 const SAME_ANSWER_STOP_AT = 10;
@@ -33,14 +33,16 @@ export class ChatRepeatGuard {
   private refusals = 0;
   private stuck: string | null = null;
 
+  constructor(private readonly refuseAfterFailures = DEFAULT_REFUSE_AFTER_FAILURES) {}
+
   /** Why this call must not run again, or null. Asked before it runs. */
   refuses(name: string, args: string): string | null {
     const seen = this.seen.get(callKey(name, args));
-    if (!seen || seen.ok || seen.streak < REFUSE_AFTER_FAILURES) return null;
+    if (!seen || seen.ok || seen.streak < this.refuseAfterFailures) return null;
     if (++this.refusals >= REFUSALS_BEFORE_STOP) {
       this.stuck = `The model kept repeating a call to ${name} that had already failed ${seen.streak} times the same way, so the turn was stopped. Try again with a clearer request, or choose a stronger model.`;
     }
-    return `[OpenMausBot: this exact call was not run. It already failed ${seen.streak} times the same way. Use different inputs, try another approach, or say what is blocking.]`;
+    return `[OpenMausBot: this exact call was not run. It already failed ${seen.streak} times the same way. Use different inputs or another approach, or answer with what you have.]`;
   }
 
   /** A result the model has seen before, with a note to add to it. A screenshot is never the same answer: its text says
@@ -56,7 +58,7 @@ export class ChatRepeatGuard {
     const streak = before && before.ok === result.ok && before.answer === answer ? before.streak + 1 : 1;
     this.seen.set(key, { ok: result.ok, answer, streak });
     if (!result.ok) {
-      return streak === REFUSE_AFTER_FAILURES ? `[OpenMausBot: this exact call has now failed ${streak} times the same way, so it will not run again this turn. Change approach, or say what is blocking.]` : undefined;
+      return streak === this.refuseAfterFailures ? `[OpenMausBot: this exact call has now failed ${streak} times the same way, so it will not run again this turn. Change approach, or answer with what you have.]` : undefined;
     }
     if (streak >= SAME_ANSWER_STOP_AT) {
       this.stuck = `The model made the same call to ${name} ${streak} times and got the same answer each time, so the turn was stopped. Try again with a clearer request, or choose a stronger model.`;

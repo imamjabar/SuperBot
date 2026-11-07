@@ -726,12 +726,13 @@ export class Runtime {
 
   /** Each needs_input inbox item resumes its waiting requester at most once: dispatch marks it delivered in the
    * same transaction that starts the turn, and a delivered item never counts again, across restarts too. */
-  /** A root's teammates only said "noted": a turn would read that and do nothing, and no assignment above it waits on its answer.
-   * A routine's run and an outside runtime always take their turn: their last words are what they report. */
+  /** A root's teammates only said "noted", or the person stopped them: a turn would read that and do nothing, and no
+   * assignment above it waits on its answer. A routine's run and an outside runtime always take their turn: their last
+   * words are what they report. */
   private nothingToAnswer(n: Assignment): boolean {
     if (n.requester.kind !== "person" && n.requester.kind !== "bot_turn") return false;
     const news = settledSince(this.store, n);
-    return news.length > 0 && news.every(c => c.status === "completed" && c.statusOnly === true);
+    return news.length > 0 && news.every(c => (c.status === "completed" && c.statusOnly === true) || (c.status === "cancelled" && c.outcome === "stopped"));
   }
 
   private resumeReason(n: Assignment): "settled" | "asked" | undefined {

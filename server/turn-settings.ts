@@ -71,3 +71,11 @@ export function settingsTurnFields(cfg: AppConfig, dataDir: string, restrictsMcp
     toolErrorCorrectiveRounds: correctiveRounds(cfg),
   };
 }
+
+export const JOB_TOOL_CALLS_DEFAULT = 30;
+
+/** `OMB_JOB_TOOL_CALLS` (1–200) overrides the default. */
+export function jobToolCallBudget(env: NodeJS.ProcessEnv = process.env): number {
+  const value = Number(env.OMB_JOB_TOOL_CALLS);
+  return Number.isInteger(value) && value >= 1 && value <= 200 ? value : JOB_TOOL_CALLS_DEFAULT;
+}

@@ -28,4 +28,9 @@ describe("the usage_limits tool", () => {
     expect(asked.client.apiResponse).toHaveBeenCalledWith("/api/internal/engine-limits");
     await expect(callUsageLimitsTool(context({ ok: false, body: { error: "not yours" } }))).resolves.toEqual({ text: "not yours", isError: true });
   });
+
+  it("lists web_fetch only when the profile has webFetch true", () => {
+    expect(availableTools(catalogProfileFromEnv({})).map((tool) => tool.name)).not.toContain("web_fetch");
+    expect(availableTools(catalogProfileFromEnv({ OMB_WEB_FETCH: "1" })).map((tool) => tool.name)).toContain("web_fetch");
+  });
 });

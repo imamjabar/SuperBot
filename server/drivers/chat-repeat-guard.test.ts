@@ -16,6 +16,14 @@ describe("ChatRepeatGuard", () => {
     expect(guard.stopped).toContain("read");
   });
 
+  it("refuses the third identical failing call when configured with two", () => {
+    const guard = new ChatRepeatGuard(2);
+    expect(guard.noteAfter("read", "{}", failed)).toBeUndefined();
+    expect(guard.refuses("read", "{}")).toBeNull();
+    expect(guard.noteAfter("read", "{}", failed)).toContain("will not run again");
+    expect(guard.refuses("read", "{}")).toContain("was not run");
+  });
+
   it("treats other inputs and other failures as progress", () => {
     const guard = new ChatRepeatGuard();
     for (const text of ["a", "b", "c", "d"]) guard.noteAfter("read", "{}", { ok: false, text });

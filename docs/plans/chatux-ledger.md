@@ -26,12 +26,22 @@ Gaps found:
 2. **The job line stays generic during `data_sql` reads.** `toolStep` (`server/step-summary.ts`) does not recognise `data_sql`. Most samples read "Planning the steps"; a few read "Writing the answer" or "Waiting for data_data_sql". There is no live step, so no `[omb-timing] tool` mark is logged.
 3. **A stopped job wakes the main chat.** After Stop, the main chat starts a resume turn ("Thinking it through"). That is one more model turn for work the person cancelled.
 
+Root cause of gap 1: an API-model job (`openai-chat.ts`) gets only the `agents` and `data` tool servers when the browser is off and no computer is attached. The `browser` server is gated on `features.browser`, there is no engine-native web tool, and the research tools need a treg key. That leaves no page reader, so the model fetches pages through DuckDB. Meanwhile `FRONT_DESK_PROMPT` tells the chat that jobs have web tools. The repeat guard only ran for local models, and the only caps were 64 rounds and 200 calls per turn.
+
+Fixes on the branch, not yet verified:
+- **`web_fetch` agents tool** for report-back jobs (`OMB_WEB_FETCH`). It reads the page server-side through `fetchPublicPage`, which accepts public addresses only and re-checks every redirect, and returns readable text or RSS items in 12,000-character pages. The data prompts now point page reads to `web_fetch`.
+- **Tool-call budget** for bot-opened jobs: 30 calls by default, overridable with `OMB_JOB_TOOL_CALLS`. Once the budget is spent, the next round runs without tools and writes the answer from what was gathered.
+- **Repeat guard** for every API model: an identical failing call is refused after 2 failures on remote models, 3 on local.
+- **Status line:** `toolStep` reports a `data_sql` `read_text` or a `data_load` URL as "Reading <site>", and any other `data_sql` as "Running data query".
+- **Stop:** a job the person stopped no longer resumes the main chat (`nothingToAnswer`).
+- **Checks:** deterministic specs are listed in `scripts/validate-chatux/box-specs.txt`. The live check is `PROBE_SCENARIO=single scripts/validate-chatux/run.sh <run>`.
+
 ## Phases (`docs/DIRECTION.md` §7)
 
 | Phase | Done when | Status on this branch | Evidence | Next smallest deliverable |
 |---|---|---|---|---|
 | 1 Usable | Imam watches a bot open example.com and takes over the mouse | Not touched here; observed by Imam on `main` | Imam, 2026-11-06 | none on this branch |
-| 2 Grok-like | #2, #6, #19 pass with 2 jobs | Ack, 2 jobs, steer, Stop, read-only job view verified; long research does not finish in 8 min | CI + VPS | name `read_text('https://…')` in `data_sql` as "Reading <site>" in `toolStep` (gap 2), then steer research jobs toward fetch/search over DuckDB reads (gap 1) |
+| 2 Grok-like | #2, #6, #19 pass with 2 jobs | Ack, 2 jobs, steer, Stop, read-only job view verified. Long research did not finish in 8 min; `web_fetch`, the job budget, the repeat guard, site-named steps and no resume after Stop are on the branch but not yet verified | CI + VPS | box specs pass, then the single-job VPS probe (`webToolUsed`, `callsWithinCap`, `statusLineContextual`, `finalInMainChat`), then the overlap scenario again |
 | 3 Phone | #4 passes | Not touched | none | phone-width check of a 5-column table |
 | 4 Imam's picks | #5, #7, login sharing, rebrand | Not touched | none | out of scope here |
 

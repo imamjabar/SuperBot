@@ -240,6 +240,20 @@ const SHELL = /^(?:vm_exec|run_command|exec|shell|bash)$/i;
 const WRITE = /^(?:write|write.?file|create.?file)$/i;
 const EDIT = /^(?:edit|multi.?edit|notebook.?edit|str.?replace|replace|apply.?patch)$/i;
 const READ = /^(?:read|read.?file|view|open.?file)$/i;
+const DATA_SQL = /(?:^|_)data_sql$/;
+const DATA_LOAD = /(?:^|_)data_load$/;
+const SQL_URL = /'(https?:\/\/[^'\s]+)'/i;
+
+function dataStep(title: string, parsed: Record<string, unknown> | string | undefined): LiveStep | undefined {
+  const sql = DATA_SQL.test(title);
+  const source = sql ? SQL_URL.exec(inputField(parsed, ["sql"]) ?? "")?.[1] : inputField(parsed, ["source"])?.trim();
+  const site = source ? siteOf(source) : undefined;
+  if (site) {
+    const { hostname, pathname } = new URL(source!);
+    return withDetail({ activity: "fetch", target: cut(site, STEP_TARGET_MAX) }, `${hostname.replace(/^www\./i, "")}${pathname === "/" ? "" : pathname}`);
+  }
+  return sql ? { activity: "command", target: "data query" } : undefined;
+}
 
 function withDetail(step: LiveStep, detail: string | undefined): LiveStep {
   const shown = detail ? cut(detail, COMMAND_SUMMARY_MAX) : "";
@@ -275,6 +289,7 @@ export function toolStep(call: { title?: string; summary?: string; input?: strin
     const { hostname, pathname } = new URL(url.trim());
     return withDetail({ activity: "fetch", target: cut(site, STEP_TARGET_MAX) }, `${hostname.replace(/^www\./i, "")}${pathname === "/" ? "" : pathname}`);
   }
+  if (DATA_SQL.test(title) || DATA_LOAD.test(title)) return dataStep(title, parsed);
   const changed = title === "edit" ? firstChangedPath(parsed) : undefined;
   if (changed) {
     const file = progressFile(changed.path);

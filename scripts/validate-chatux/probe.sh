@@ -10,6 +10,9 @@ DIST=/tmp/omb-chatux-probe-dist.tgz
 CLIENT=/tmp/omb-chatux-probe.mjs
 LOG=/tmp/omb-chatux-probe.log
 SHOT=/tmp/omb-chatux-probe.png
+SCENARIO=${PROBE_SCENARIO:-overlap}
+JOB_CALLS=${PROBE_JOB_CALLS:-10}
+[ "$SCENARIO" = single ] && CLIENT_MS=180000 || CLIENT_MS=480000
 
 avail=$(awk '/MemAvailable/ { print int($2 / 1024) }' /proc/meminfo)
 [ "$avail" -ge 2048 ] || { echo "abort: only ${avail} MB available"; exit 2; }
@@ -39,14 +42,14 @@ chmod 600 "$TMP/env"
 [ "$(wc -l < "$TMP/env")" -eq 2 ] || { echo "abort: gateway settings not found"; exit 2; }
 
 docker run -d --name "$NAME" --memory 2g --env-file "$TMP/env" \
-  -e TZ=Asia/Jakarta -e HOME=/data -e OMB_DATA_DIR=/data/.openmausbot -e OMB_PORT=$PORT -e OMB_STATIC_DIR=/app/dist -e NODE_ENV=production \
+  -e TZ=Asia/Jakarta -e HOME=/data -e OMB_DATA_DIR=/data/.openmausbot -e OMB_PORT=$PORT -e OMB_STATIC_DIR=/app/dist -e NODE_ENV=production -e OMB_JOB_TOOL_CALLS=$JOB_CALLS \
   -v "$TMP/data":/data -v "$TMP/dist":/app/dist:ro -v "$TMP/dist-server":/app/dist-server:ro -v "$TMP/run":/probe-run \
   "$IMAGE" >/dev/null
 docker logs -f -t "$NAME" > "$TMP/run/server.log" 2>&1 &
 LOGGER=$!
 
 started=$(date +%s)
-summary=$(timeout 600 docker exec -e PROBE_PORT=$PORT -e PROBE_TIMEOUT_MS=480000 "$NAME" node /probe-run/probe.mjs || echo '{"ok":false,"error":"probe client exited or timed out"}')
+summary=$(timeout 600 docker exec -e PROBE_PORT=$PORT -e PROBE_TIMEOUT_MS=$CLIENT_MS -e PROBE_SCENARIO=$SCENARIO -e PROBE_JOB_CALLS=$JOB_CALLS "$NAME" node /probe-run/probe.mjs || echo '{"ok":false,"error":"probe client exited or timed out"}')
 {
   echo "branch build: $(cat "$TMP/dist-server/server-dist-manifest.json" 2>/dev/null)"
   echo "wall: $(( $(date +%s) - started )) s"

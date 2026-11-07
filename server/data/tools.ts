@@ -48,7 +48,7 @@ const CHART_SPEC_SCHEMA = {
 export const DATA_TOOLS = [
   tool(
     "data_load",
-    "Load data into a named table of this bot's database: a local file, folder or glob (csv, tsv, json, ndjson, parquet, xlsx, sqlite; .gz/.zst too), an http(s)/s3/gs/az URL, a postgres:// or mysql:// connection string (snapshots the tables read-only), or a Google Sheets URL. Replaces a table of the same name unless replace is false. Returns each table's columns, row count and sample values.",
+    "Load data into a named table of this bot's database: a local file, folder or glob (csv, tsv, json, ndjson, parquet, xlsx, sqlite; .gz/.zst too), an http(s)/s3/gs/az URL, a postgres:// or mysql:// connection string (snapshots the tables read-only), or a Google Sheets URL. Replaces a table of the same name unless replace is false. Returns each table's columns, row count and sample values. Data tools are for data files/tables (CSV, JSON, Parquet, spreadsheets, databases), not for reading a web page's text: use web_fetch for that when it is available.",
     {
       source: { type: "string", minLength: 1, maxLength: 4000 },
       name: { type: "string", pattern: IDENT, description: "Table name. Default: from the file name." },

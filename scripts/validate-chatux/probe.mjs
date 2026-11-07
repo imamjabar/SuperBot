@@ -12,6 +12,7 @@ const CHROME = process.env.AGENT_BROWSER_EXECUTABLE_PATH ?? "/opt/openmausbot-br
 const VPS_ASK = "Tolong riset harga VPS terkini: bandingkan paket termurah 2 vCPU / 4 GB di Hetzner, DigitalOcean dan Vultr dalam USD per bulan.";
 const NEWS_ASK = "berita kompas terkini";
 const STEER = "Untuk riset VPS: prioritaskan yang punya region Singapura.";
+const SINGLE = process.env.PROBE_SCENARIO === "single";
 const GENERIC_STATUS = /^(Starting|Planning the steps|Writing (the )?answer)$/;
 const STALE_REPLAY = /\b(earlier|previously|already (shared|sent|answered|reported))\b|sebelumnya|tadi sudah|sudah (saya )?(kirim|sampaikan)/i;
 
@@ -134,6 +135,7 @@ async function main() {
     const row = await waitFor("sidebar bot row", () => browser.evaluate(`(() => { const el = document.querySelector('[data-sidebar-bot-row=${JSON.stringify(bot.id)}]'); if (!el) return false; el.click(); return true; })()`), 30_000, 500);
     const opened = await waitFor("main chat", async () => { const s = await browser.evaluate(UI.mainChat); return s.composer ? s : undefined; }, 20_000, 500).catch(() => undefined);
     opened && !opened.jobFooter && !opened.conversationPill ? pass("botRowOpensMainChat") : fail("botRowOpensMainChat", { row: Boolean(row), state: opened ?? null });
+    if (SINGLE) return await singleJob(browser, bot, main, person);
 
     const t0 = Date.now();
     const sends = [];
@@ -250,6 +252,47 @@ async function main() {
   } finally {
     browser.close();
   }
+  summary.ok = Object.values(summary.checks).every((c) => c.pass);
+}
+
+async function singleJob(browser, bot, main, person) {
+  const t0 = Date.now();
+  const sent = await call("POST", `/api/bots/${bot.id}/messages`, { threadId: main, text: NEWS_ASK }, person);
+  const jobsNow = async () => (await bots()).find((b) => b.id === bot.id).tasks.filter((t) => t.openedBy?.reportsBack && t.openedBy.botId === bot.id && t.createdAt >= t0 - 1_000);
+  const presence = [];
+  let jobs = [], final, doneAt;
+  while (Date.now() < DEADLINE) {
+    jobs = await jobsNow();
+    for (const line of await browser.evaluate(UI.presence).catch(() => [])) {
+      const phrase = line.split("·").map((part) => part.trim()).filter((part) => part && !/^#/.test(part) && !/^(\d+m\s*)?\d+s$|^\d+\s*min$/.test(part)).join(" · ");
+      if (phrase && !presence.includes(phrase)) presence.push(phrase);
+    }
+    doneAt = timingMarks().find((m) => m.mark === "job-done")?.at;
+    final = doneAt ? botText(await messages(main), t0).find((m) => m.at >= doneAt) : undefined;
+    if (final && jobs.every((j) => !j.busy)) break;
+    await sleep(1_500);
+  }
+  const rows = jobs.length ? await messages(jobs[0].threadId) : [];
+  const tools = rows.filter((m) => m.at >= t0 && m.tool && !m.tool.name.startsWith("notice:")).map((m) => m.tool.name);
+  const cap = Number(process.env.PROBE_JOB_CALLS ?? 10);
+  const web = tools.filter((name) => /web_fetch|web_search|research_/.test(name)).length;
+  const ack = botText(await messages(main), t0)[0];
+  const marks = timingMarks();
+  const toolMark = marks.find((m) => m.mark === "tool");
+  jobs.length === 1 ? pass("oneJob") : fail("oneJob", { jobs: jobs.length });
+  web > 0 ? pass("webToolUsed", { web, readText: tools.filter((name) => /data_sql|data_load/.test(name)).length }) : fail("webToolUsed", { tools: [...new Set(tools)].slice(0, 6) });
+  tools.length <= cap + 4 ? pass("callsWithinCap", { calls: tools.length, cap }) : fail("callsWithinCap", { calls: tools.length, cap });
+  const contextual = presence.filter((phrase) => /^(Reading|Searching the web for|Running data query|Reviewing) \S/.test(phrase));
+  contextual.length ? pass("statusLineContextual", { phrases: contextual.slice(0, 4).map((p) => p.slice(0, 40)) }) : fail("statusLineContextual", { phrases: presence.slice(0, 4) });
+  final ? pass("finalInMainChat", { len: final.text.length }) : fail("finalInMainChat", { jobs: jobs.length, busy: jobs.map((j) => Boolean(j.busy)) });
+  summary.timings = {
+    ackMs: ack ? ack.at - t0 : null, jobStartMs: jobs[0] ? jobs[0].createdAt - t0 : null,
+    firstToolMs: toolMark ? toolMark.at - toolMark.ms - t0 : null, jobDoneMs: doneAt ? doneAt - t0 : null, finalMs: final ? final.at - t0 : null,
+  };
+  summary.counts.sends = [`news:${sent.status}`];
+  writeFileSync(`${RUN_DIR}/digest.json`, JSON.stringify({ tools, presence: presence.slice(0, 12) }));
+  const shot = await browser.send("Page.captureScreenshot", { format: "png" });
+  writeFileSync(`${RUN_DIR}/final.png`, Buffer.from(shot.data, "base64"));
   summary.ok = Object.values(summary.checks).every((c) => c.pass);
 }
 
