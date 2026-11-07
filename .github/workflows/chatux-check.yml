@@ -16,7 +16,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: >-
           pnpm vitest run --bail 1
-          server/step-summary.test.ts
+          server/step-summary.test.ts server/routes/bot-messages.test.ts
           src/lib/transcript-derivations.test.ts src/lib/job-status.test.ts src/lib/peer-exchange.test.ts src/lib/job-threads.test.ts
           src/state/turn-status.test.ts src/state/thread-navigation.test.ts src/state/notification-open.test.ts
           src/components/JobPresence.test.ts src/components/JobViewFooter.test.ts src/components/ChatMoreMenu.test.ts

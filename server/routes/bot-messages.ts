@@ -178,6 +178,12 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
   /** widget -> sendId of a press on its way in: a second tap before acceptance must not send a second answer. */
   const pressesInFlight = new Map<string, string | undefined>();
   const appMessageRate = new AppMessageRate();
+  const jobThreadRefusal = (auth: RequestAuth, botId: string, threadId: string) => {
+    const opened = store.taskByThread(botId, threadId)?.openedBy;
+    return (auth.kind === "session" || DESKTOP_MANAGED) && opened?.reportsBack && opened.botId === botId
+      ? { error: "This is the bot's own background job, so it is read-only. Steer or stop it from the bot's main chat.", code: "job_thread_read_only" }
+      : null;
+  };
   const route: RouteHandler = async (ctx) => {
     const { req, res, path, method, auth, json, readBody } = ctx;
     let m: RegExpMatchArray | null = null;
@@ -227,6 +233,8 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const threadId = body.threadId ?? bot.threadId;
       const notYours = cloudGuestSendRefusal(auth, threadId);
       if (notYours) return json(res, 403, { error: notYours });
+      const jobOnly = pressed ? null : jobThreadRefusal(auth, bot.id, threadId);
+      if (jobOnly) return json(res, 409, jobOnly);
       if (body.mode !== undefined && body.mode !== "chat" && body.mode !== "goal") return json(res, 400, { error: "mode must be chat or goal" });
       if (body.mode === "goal") {
         if (guarded || pressed || fromAnApp || pointing) return json(res, 400, { error: "a goal is a plain typed message" });
@@ -470,6 +478,8 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const bot = requestedTaskBot(m[1], body.threadId);
       const notYours = cloudThreadRefusal(auth, bot.threadId);
       if (notYours) return json(res, 403, { error: notYours });
+      const jobOnly = jobThreadRefusal(auth, bot.id, bot.threadId);
+      if (jobOnly) return json(res, 409, jobOnly);
       const textRefused = messageTextRefusal(body.text);
       if (textRefused) return json(res, 400, { error: textRefused });
       const text = String(body.text ?? "").trim();

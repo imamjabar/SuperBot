@@ -160,7 +160,7 @@ async function fixture(over: Partial<Record<keyof BotMessageRouteDeps, unknown>>
   };
   const row = (id: string, thread = threadId): Message => store.messagesFor(thread).find((message) => message.id === id)!;
   const sent = (thread = threadId): Message[] => store.messagesFor(thread).filter((message) => message.role === "user");
-  return { store, bot, threadId, state, post, edit, cancelQueued, show, row, sent, patches: vi.spyOn(store, "patchMessage") };
+  return { store, bot, threadId, state, base, post, edit, cancelQueued, show, row, sent, patches: vi.spyOn(store, "patchMessage") };
 }
 
 describe("editing a message with no AI", () => {
@@ -561,5 +561,49 @@ describe("POST /api/bots/:id/messages from a registered phone", () => {
     state.fromPhone = true;
     expect((await post({ threadId: "someone-elses-thread", sendId: OTHER_SEND, text: "Hi" })).status).toBe(409);
     expect(state.phoneSends).toEqual([]);
+  });
+});
+
+describe("a bot's own background job thread", () => {
+  const openJob = (store: Store, bot: { id: string; name: string; threadId: string }) =>
+    store.createTask(bot.id, "Job", false, undefined, { botId: bot.id, name: bot.name, threadId: bot.threadId, kind: "work", reportsBack: true, at: 1 })!.threadId;
+
+  it("refuses a person's typed send, goal and edit there, and points them to the main chat", async () => {
+    const { store, bot, state, post, edit } = await fixture();
+    const job = openJob(store, bot);
+    const typed = await post({ threadId: job, sendId: SEND, text: "Also check the weekend" });
+    expect(typed).toMatchObject({ status: 409, body: { code: "job_thread_read_only" } });
+    expect(typed.body.error).toContain("main chat");
+    expect((await post({ threadId: job, text: "Finish it", mode: "goal" })).status).toBe(409);
+    const earlier = store.appendMessage(job, { role: "user", kind: "text", text: "Look it up" });
+    expect((await edit(earlier.id, { threadId: job, text: "Look it up again" })).body.code).toBe("job_thread_read_only");
+    expect(state.accepted).toEqual([]);
+    expect(state.started).toEqual([]);
+  });
+
+  it("still takes the bot's own shell writing into its job, and a press on a card the job shows", async () => {
+    const headless = await fixture({}, false);
+    const job = openJob(headless.store, headless.bot);
+    expect((await headless.post({ threadId: job, text: "progress: 3 of 5 pages read" })).status).toBe(202);
+    expect(headless.state.accepted.map((input) => input.threadId)).toEqual([job]);
+
+    const desktop = await fixture();
+    const card = openJob(desktop.store, desktop.bot);
+    const pressed = await desktop.post({ threadId: card, sendId: SEND, widgetAction: { messageId: desktop.show("routineForm", card), ref: "confirm", values: { days: "mon,tue,wed,thu,fri,sat,sun", report: "discord:releases" } } });
+    expect(pressed.status, JSON.stringify(pressed.body)).toBe(202);
+  });
+
+  it("lets the main chat steer while the job runs, and Stop from the main chat reach the job", async () => {
+    const stopped: string[] = [];
+    const { store, bot, threadId, state, base, post } = await fixture({
+      liveTurn: () => "turn-1",
+      stopThreadForPerson: async (_botId: string, thread: string) => { stopped.push(thread); },
+    });
+    const job = openJob(store, bot);
+    expect((await post({ threadId, sendId: SEND, text: "Only Jakarta, please", followUp: "steer" })).status).toBe(202);
+    expect(state.accepted.map((input) => input.threadId)).toEqual([threadId]);
+    const stop = await fetch(`${base}/api/bots/${bot.id}/interrupt`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ threadId: job }) });
+    expect(stop.status).toBe(200);
+    expect(stopped).toEqual([job]);
   });
 });
