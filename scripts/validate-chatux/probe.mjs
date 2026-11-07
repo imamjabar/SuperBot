@@ -6,7 +6,8 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 const PORT = Number(process.env.PROBE_PORT);
 const BASE = `http://127.0.0.1:${PORT}`;
 const RUN_DIR = "/probe-run";
-const DEADLINE = Date.now() + Number(process.env.PROBE_TIMEOUT_MS ?? 480_000);
+const DEADLINE = Date.now() + Number(process.env.PROBE_TIMEOUT_MS ?? 240_000);
+const JOB_CALLS = Number(process.env.PROBE_JOB_CALLS ?? 10);
 const MODEL = "deepseek/deepseek-v4.1-flash";
 const CHROME = process.env.AGENT_BROWSER_EXECUTABLE_PATH ?? "/opt/openmausbot-browser/chrome";
 const VPS_ASK = "Tolong riset harga VPS terkini: bandingkan paket termurah 2 vCPU / 4 GB di Hetzner, DigitalOcean dan Vultr dalam USD per bulan.";
@@ -67,6 +68,11 @@ function timingMarks() {
     const fields = Object.fromEntries([...hit[4].matchAll(/ (\w+)=(\S+)/g)].map((m) => [m[1], m[2]]));
     return [{ at, mark: hit[2], ms: Number(hit[3]), ...fields }];
   });
+}
+
+function toolCalls(rows, t0) {
+  const calls = rows.filter((m) => m.at >= t0 && m.tool && !m.tool.name.startsWith("notice:"));
+  return { tools: calls.map((m) => m.tool.name), ran: calls.filter((m) => m.tool.input || m.tool.ok !== false).length };
 }
 
 async function chrome() {
@@ -217,6 +223,9 @@ async function main() {
     const jobRows = await Promise.all(jobs.map((j) => messages(j.threadId)));
     const workerRows = jobRows.map((rows) => rows.filter((m) => m.role === "bot").length);
     workerRows.every((n) => n > 0) && settled ? pass("workerReportBack", { jobBotRows: workerRows }) : fail("workerReportBack", { jobBotRows: workerRows, settled });
+    const perJob = jobs.map((j, i) => ({ job: j, ...toolCalls(jobRows[i], t0), lastAt: jobRows[i].at(-1)?.at })).sort((a, b) => a.job.createdAt - b.job.createdAt);
+    const ranByJob = perJob.map((j) => j.ran);
+    ranByJob.every((ran) => ran <= JOB_CALLS) ? pass("callsWithinCap", { ran: ranByJob, cap: JOB_CALLS }) : fail("callsWithinCap", { ran: ranByJob, rows: perJob.map((j) => j.tools.length), cap: JOB_CALLS });
     const digest = (rows) => rows.filter((m) => m.at >= t0).slice(-40).map((m) => [Math.round((m.at - t0) / 1000), `${m.role[0]}:${m.kind}${m.steered ? ":steered" : ""}`,
       m.tool ? `${m.tool.name}${m.tool.ok === false ? "!" : ""} ${m.tool.input ?? ""}`.slice(0, 80) : (m.text ?? "").replace(/\s+/g, " ").slice(0, 80)]);
     writeFileSync(`${RUN_DIR}/digest.json`, JSON.stringify({ main: digest(mainRows), jobs: jobs.map((j, i) => ({ title: j.title, busy: Boolean(j.busy), rows: digest(jobRows[i]) })) }));
@@ -240,6 +249,11 @@ async function main() {
       firstToolMs: toolMarks.length ? Math.min(...toolMarks.map((m) => m.at - m.ms)) - firstSend : null,
       jobDoneMs: doneAt.map((at) => at - firstSend),
       finalsMs: finals.map((m) => m.at - firstSend),
+      jobs: perJob.map((j, i) => {
+        const final = j.job.busy || j.lastAt === undefined ? undefined : finals.find((m) => m.at >= j.lastAt);
+        return { title: j.job.title, ran: j.ran, ackMs: acks[i] ? acks[i].at - firstSend : null, startMs: j.job.createdAt - firstSend,
+          doneMs: j.job.busy || j.lastAt === undefined ? null : j.lastAt - firstSend, finalMs: final ? final.at - firstSend : null };
+      }),
       serverAckMs: marks.filter((m) => m.mark === "ack").map((m) => m.ms),
       deliveredMs: marks.filter((m) => m.mark === "delivered").map((m) => m.ms),
     };
@@ -273,10 +287,8 @@ async function singleJob(browser, bot, main, person) {
     await sleep(1_500);
   }
   const rows = jobs.length ? await messages(jobs[0].threadId) : [];
-  const calls = rows.filter((m) => m.at >= t0 && m.tool && !m.tool.name.startsWith("notice:"));
-  const tools = calls.map((m) => m.tool.name);
-  const ran = calls.filter((m) => m.tool.input || m.tool.ok !== false).length;
-  const cap = Number(process.env.PROBE_JOB_CALLS ?? 10);
+  const { tools, ran } = toolCalls(rows, t0);
+  const cap = JOB_CALLS;
   const web = tools.filter((name) => /web_fetch|web_search|research_/.test(name)).length;
   const ack = botText(await messages(main), t0)[0];
   const marks = timingMarks();

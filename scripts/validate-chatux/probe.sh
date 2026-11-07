@@ -12,7 +12,7 @@ LOG=/tmp/omb-chatux-probe.log
 SHOT=/tmp/omb-chatux-probe.png
 SCENARIO=${PROBE_SCENARIO:-overlap}
 JOB_CALLS=${PROBE_JOB_CALLS:-10}
-[ "$SCENARIO" = single ] && CLIENT_MS=180000 || CLIENT_MS=480000
+[ "$SCENARIO" = single ] && CLIENT_MS=${PROBE_WALL_MS:-180000} || CLIENT_MS=${PROBE_WALL_MS:-240000}
 
 avail=$(awk '/MemAvailable/ { print int($2 / 1024) }' /proc/meminfo)
 [ "$avail" -ge 2048 ] || { echo "abort: only ${avail} MB available"; exit 2; }
