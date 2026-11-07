@@ -133,7 +133,7 @@ describe("lazy host claim and pin on use (issue #1650)", () => {
       mode: "embedded", status: "ready", socketPath: join(home, "cua.sock"),
       mcpCommand: "/fixture/cua-driver", mcpArgs: ["mcp"], mcpEnv: {},
     }), { mode: 0o600 });
-    writeFileSync(join(data, "config.json"), JSON.stringify({ instances: { claude: {
+    writeFileSync(join(data, "config.json"), JSON.stringify({ features: { frontDesk: false }, instances: { claude: {
       driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
       environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile },
     } } }));

@@ -25,6 +25,7 @@ function install(home: string, boatPort: () => number) {
   let base = "";
   let output = "";
   mkdirSync(data, { recursive: true });
+  writeFileSync(join(data, "config.json"), JSON.stringify({ features: { frontDesk: false } }));
   mkdirSync(join(home, "static", "assets"), { recursive: true });
   writeFileSync(join(home, "static", "index.html"), "<title>Computer engine removal</title>");
   writeFileSync(join(home, "static", "assets", "test.css"), "body{}");

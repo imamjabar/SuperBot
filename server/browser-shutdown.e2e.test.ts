@@ -39,7 +39,7 @@ function engineHome(config: Record<string, unknown> = {}) {
     "exit 0",
   ].join("\n"), { mode: 0o755 });
   writeFileSync(join(home, "config.json"), JSON.stringify({
-    features: { browser: true },
+    features: { browser: true, frontDesk: false },
     instances: { claude: { driver: "claudeAgent", displayName: "Verification fixture", config: { cli: FAKE_CLI } } },
     ...config,
   }));

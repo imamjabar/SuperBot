@@ -125,8 +125,10 @@ process.env.FAKE_CLAUDE_VERSION = "2.1.284";
 if (process.argv[2] !== "--version") { process.env.FAKE_CLAUDE_DUMP = ${JSON.stringify(join(home, "turns"))} + "/" + process.pid + ".json"; process.env.FAKE_CLAUDE_TEXT_DUMP = ${JSON.stringify(join(home, "one-shot.json"))}; process.env.FAKE_CLAUDE_MODE = "hang"; }
 await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-claude-cli.ts")).href)});
 `, { mode: 0o755 });
-  // No `features` block: the maintainer flag is off, as on every Cloud home.
-  writeFileSync(join(dataDir, "config.json"), JSON.stringify({ instances: {
+  // Only front desk is set, off because these turns use the computer from the bot's main chat; the maintainer flag stays off, as on every Cloud home.
+  writeFileSync(join(dataDir, "config.json"), JSON.stringify({
+    features: { frontDesk: false },
+    instances: {
     ...Object.fromEntries(["codex", "cursor", "githubCopilot", "openaiCompat", "qwen", "hermes", "pi"].map((id) => [id, { driver: "not-a-real-driver" }])),
     claude: { driver: "claudeAgent", displayName: "Claude", config: { cli } },
     // A model that uses the Mac, asks a question, and uses it again once the

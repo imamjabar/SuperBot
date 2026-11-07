@@ -221,6 +221,7 @@ createServer(socket => socket.end()).listen(port, '127.0.0.1');
     writeFileSync(
       join(home, ".openmausbot", "config.json"),
       JSON.stringify({
+        features: { frontDesk: false },
         instances: {
           vps: {
             driver: "grokAgent",

@@ -91,7 +91,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-ac
     await new Promise<void>((resolve) => this.chat!.listen(0, "127.0.0.1", resolve));
     const chatUrl = `http://127.0.0.1:${(this.chat.address() as AddressInfo).port}/v1`;
     writeFileSync(join(this.dataDir, "config.json"), JSON.stringify({
-      features: { smartSetupChoices: false },
+      features: { frontDesk: false, smartSetupChoices: false },
       instances: {
         ...Object.fromEntries(["codex", "cursor", "githubCopilot", "qwen", "hermes", "pi"].map((id) => [id, { driver: "not-a-real-driver" }])),
         claude: { driver: "claudeAgent", displayName: "Claude", config: { cli: claude } },

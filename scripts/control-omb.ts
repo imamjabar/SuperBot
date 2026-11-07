@@ -304,7 +304,8 @@ export async function launchVerificationServer(
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({
     ...(boatFixtureApi ? { box: { token: "box_verification_fixture" } } : {}),
     // A setup card's answers would be one more engine call at every new bot, taking replies a test scripts for its turns.
-    features: { smartSetupChoices: false },
+    // Front desk is off: many tests drive the computer, browser and full prompt from a bot's main chat; front-desk tests turn it on.
+    features: { smartSetupChoices: false, frontDesk: false },
     instances: {
       ...(extraProviders.includes("codex") ? { codex: {
         driver: "codex", displayName: "Verification Codex", config: { cli: fileURLToPath(new URL("../server/testing/fake-codex-app-server.ts", import.meta.url)) },

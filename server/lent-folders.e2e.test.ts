@@ -72,6 +72,7 @@ if (process.argv[2] === "auth") {
 await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-claude-cli.ts")).href)});
 `, { mode: 0o755 });
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({
+    features: { frontDesk: false },
     instances: {
       ...Object.fromEntries(["codex", "cursor", "githubCopilot", "openaiCompat", "qwen", "hermes", "pi"].map((id) => [id, { driver: "not-a-real-driver" }])),
       claude: { driver: "claudeAgent", displayName: "Claude", config: { cli } },
