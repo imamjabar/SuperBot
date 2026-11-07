@@ -88,9 +88,11 @@ export function stoppedTurnOutcome(input: {
   return said ? `${parts.join(" ")}\nIts last message, quoted: ${JSON.stringify(said)}` : parts.join(" ");
 }
 
-const SHELL_TOOL = /^(?:mcp__[\w-]+?__)?(?:bash|shell|exec|run_command|execute_command|run_shell_command|run_terminal_cmd|terminal|COMPOSIO_REMOTE_BASH_TOOL)$/i;
+const SHELL_TOOL = /^(?:mcp__[\w-]+?__)?(?:bash|shell|exec|vm_exec|run_command|execute_command|run_shell_command|run_terminal_cmd|terminal|COMPOSIO_REMOTE_BASH_TOOL)$/i;
 const GIT_OUTWARD = /\bgit\s+(commit|push)\b/g;
-const MULTI_EXECUTE = /^(?:mcp__[\w-]+?__)?COMPOSIO_MULTI_EXECUTE_TOOL$/;
+const MULTI_EXECUTE = /^(?:mcp__[\w-]+?__)?COMPOSIO_MULTI_EXECUTE_TOOL$/i;
+/** Its code can call any app tool, and nothing here can read which: it counts as a send. */
+const WORKBENCH = /^(?:mcp__[\w-]+?__)?COMPOSIO_REMOTE_WORKBENCH$/i;
 const MONEY_OUTWARD = /\b(pay|payment|charge|refund|transfer)\b/gi;
 const ERROR_CHARS = 200;
 const ERRORS_KEPT = 3;
@@ -118,6 +120,7 @@ export function outwardActions(rows: readonly Message[]): string[] {
       for (const call of connectorCallsIn("COMPOSIO_MULTI_EXECUTE_TOOL", previewArguments(tool.input))) if (isOutboundTool(call.slug)) add(call.slug);
       continue;
     }
+    if (WORKBENCH.test(tool.name)) { add("COMPOSIO_REMOTE_WORKBENCH"); continue; }
     if (isOutboundTool(tool.name)) { add(tool.name); continue; }
     if (!SHELL_TOOL.test(tool.name)) continue;
     const command = [tool.input, tool.summary].filter((text): text is string => typeof text === "string").join("\n");

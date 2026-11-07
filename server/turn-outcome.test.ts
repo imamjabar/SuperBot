@@ -159,6 +159,8 @@ describe("outwardActions", () => {
     expect(outwardActions([call("COMPOSIO_MULTI_EXECUTE_TOOL", true, { input: '{\n  "tools": [\n[… preview shortened]' })])).toEqual(["COMPOSIO_PROXY_EXECUTE"]);
     expect(outwardActions([row({ name: "GMAIL_SEND_EMAIL", itemId: "i-started" }), row({ name: "Bash", itemId: "i-push", input: "git push" })]))
       .toEqual([`GMAIL_SEND_EMAIL${UNCONFIRMED}`, `git push${UNCONFIRMED}`]);
+    expect(outwardActions([call("mcp__composio__COMPOSIO_REMOTE_WORKBENCH", true, { input: "print('hi')" }), call("mcp__agents__vm_exec", true, { input: "git push origin main" })]))
+      .toEqual(["COMPOSIO_REMOTE_WORKBENCH", "git push"]);
   });
 });
 
