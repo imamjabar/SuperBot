@@ -42,7 +42,7 @@ Fixes on the branch, not yet verified:
 |---|---|---|---|---|
 | 1 Usable | Imam watches a bot open example.com and takes over the mouse | Not touched here; observed by Imam on `main` | Imam, 2026-11-06 | none on this branch |
 | 2 Grok-like | #2, #6, #19 pass with 2 jobs | Ack, 2 jobs, steer, Stop, read-only job view verified. Long research did not finish in 8 min; `web_fetch`, the job budget, the repeat guard, site-named steps and no resume after Stop are on the branch but not yet verified | CI + VPS | box specs pass, then the single-job VPS probe (`webToolUsed`, `callsWithinCap`, `statusLineContextual`, `finalInMainChat`), then the overlap scenario again |
-| 3 Phone | #4 passes | Not touched | none | phone-width check of a 5-column table |
+| 3 Phone | #4 passes | Automated check written; real-phone part deferred to Imam | none until the box run | box: `scripts/validate-chatux/box-phone.txt`, then Imam on a real phone |
 | 4 Imam's picks | #5, #7, login sharing, rebrand | Not touched | none | out of scope here |
 
 ## Parity tests
@@ -52,7 +52,7 @@ Fixes on the branch, not yet verified:
 | 1 | Reply UX: short, user's language | Acks 8–12 s, ≤154 chars, Indonesian for Indonesian asks | VPS | cut ack latency (front-desk turn still ~8 s) |
 | 2 | Long work: ack, progress, outcome | Ack and job line yes; outcome only for the shorter job within 8 min | VPS (partial) | gap 2, then gap 1 |
 | 3 | Choice card: tap continues | Card press into a job thread allowed by the route; not seen live | CI | a job that asks a card on the probe |
-| 4 | Phone | Unverified | none | phone-width check |
+| 4 | Phone | **Automated** (`phone-check.mjs`, box): the app's own `ChatMarkdown` renders a 5-column, 3-row VPS table in Advanced and Simple mode at 390×844 DPR 3 in headless Chrome; it checks no page or transcript sideways overflow, no table scroll, no clipped cell text, cell font ≥ 12 px, and that dist's manifest (name, 192/512 PNG icons, `standalone`, `start_url`, Chrome parses it) and `sw.js` (no fetch handler) are correct. Not run yet. **Deferred to Imam:** install the PWA on a real phone, pair, get a Web Push, read the same table | none | box run of `box-phone.txt`, then Imam's phone pass |
 | 6 | Local job: durable, app wakes | Finished job wakes the main chat with its result (news, 236–371 s) | VPS | restart-durability step in the probe |
 | 8 | Routine reminder | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
 | 11 | Safety: deletion blocked | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
