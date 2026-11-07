@@ -62,7 +62,7 @@ export interface Routine {
   continuity?: boolean;
   overlap?: "skip" | "queue";
   runOnStartup?: boolean;
-  checks?: RoutineCheck[];
+  checks?: RoutineCheck[]; github?: { repo: string; branch?: string };
   access?: RoutineAccess;
   deliver?: RoutineDelivery;
   checkedAt?: number;
@@ -177,7 +177,7 @@ export interface RoutineInput {
   continuity?: boolean;
   overlap?: "skip" | "queue";
   runOnStartup?: boolean;
-  checks?: RoutineCheck[] | null;
+  checks?: RoutineCheck[] | null; github?: { repo: string; branch?: string } | null;
   access?: RoutineAccess | null;
   deliver?: RoutineDelivery | null;
   resultsThreadId?: string | null;
