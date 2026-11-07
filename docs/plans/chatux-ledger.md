@@ -41,8 +41,8 @@ Fixes on the branch, not yet verified:
 | Phase | Done when | Status on this branch | Evidence | Next smallest deliverable |
 |---|---|---|---|---|
 | 1 Usable | Imam watches a bot open example.com and takes over the mouse | Not touched here; observed by Imam on `main` | Imam, 2026-11-06 | none on this branch |
-| 2 Grok-like | #2, #6, #19 pass with 2 jobs | Ack, 2 jobs, steer, Stop, read-only job view verified. Long research did not finish in 8 min; `web_fetch`, the job budget, the repeat guard, site-named steps and no resume after Stop are on the branch but not yet verified | CI + VPS | box specs pass, then the single-job VPS probe (`webToolUsed`, `callsWithinCap`, `statusLineContextual`, `finalInMainChat`), then the overlap scenario again |
-| 3 Phone | #4 passes | Automated check written; real-phone part deferred to Imam | none until the box run | box: `scripts/validate-chatux/box-phone.txt`, then Imam on a real phone |
+| 2 Grok-like | #2, #6, #19 pass with 2 jobs | #2 and #19 PASS (overlap probe #3 at `a2849b1`); #6 restart durability has a deterministic test, box run pending | CI + VPS | box run of `box-restart.txt` |
+| 3 Phone | #4 passes | Automated check PASS at `742ca2a`; real-phone part deferred to Imam | box | Imam on a real phone |
 | 4 Imam's picks | #5, #7, login sharing, rebrand | Not touched | none | out of scope here |
 
 ## Parity tests
@@ -50,11 +50,11 @@ Fixes on the branch, not yet verified:
 | # | Test | Status | Evidence | Next smallest deliverable |
 |---|---|---|---|---|
 | 1 | Reply UX: short, user's language | Acks 8–12 s, ≤154 chars, Indonesian for Indonesian asks | VPS | cut ack latency (front-desk turn still ~8 s) |
-| 2 | Long work: ack, progress, outcome | Ack and job line yes; outcome only for the shorter job within 8 min | VPS (partial) | gap 2, then gap 1 |
+| 2 | Long work: ack, progress, outcome | **PASS**: overlap probe #3 at `a2849b1` (artifact 42356543941): acks 9.1 / 10.4 s, both finals in the main chat at 91.0 / 104.0 s, 10/10 tool calls within the cap | VPS | none |
 | 3 | Choice card: tap continues | Card press into a job thread allowed by the route; not seen live | CI | a job that asks a card on the probe |
-| 4 | Phone | **Automated** (`phone-check.mjs`, box): the app's own `ChatMarkdown` renders a 5-column, 3-row VPS table in Advanced and Simple mode at 390×844 DPR 3 in headless Chrome; it checks no page or transcript sideways overflow, no table scroll, no clipped cell text, cell font ≥ 12 px, and that dist's manifest (name, 192/512 PNG icons, `standalone`, `start_url`, Chrome parses it) and `sw.js` (no fetch handler) are correct. Not run yet. **Deferred to Imam:** install the PWA on a real phone, pair, get a Web Push, read the same table | none | box run of `box-phone.txt`, then Imam's phone pass |
-| 6 | Local job: durable, app wakes | Finished job wakes the main chat with its result (news, 236–371 s) | VPS | restart-durability step in the probe |
+| 4 | Phone | **PASS (automated)** at `742ca2a`: `phone-check.mjs` on the box, Advanced and Simple mode. The app's own `ChatMarkdown` renders a 5-column, 3-row VPS table at 390×844 DPR 3 in headless Chrome with no page or transcript sideways overflow, no table scroll, no clipped cell text and cell font ≥ 12 px; dist's manifest (name, 192/512 PNG icons, `standalone`, `start_url`, parsed by Chrome) and `sw.js` (no fetch handler) are correct. **Deferred to Imam:** install the PWA on a real phone, pair, get a Web Push, read the same table | box | Imam's phone pass |
+| 6 | Local job: durable, app wakes | Finished job wakes the main chat with its result (news, 236–371 s, VPS). **Restart durability, deterministic** (`server/runtime/runtime.test.ts`, "a report-back job across process restarts"; one `runtime.db` file closed and reopened, fake turn runner): a job cut mid-turn reruns once with the restart note, reports into the main chat once and wakes it once; a job cut after an outward tool call (`GMAIL_SEND_EMAIL`) is not run again and ends `interrupted`, reported once; a stopped job and a failed job stay so across two more restarts with no run, report or main-chat turn. No runtime defect found reading the code; awaiting the box run of `box-restart.txt` | code + box (pending) | box run of `box-restart.txt` |
 | 8 | Routine reminder | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
 | 11 | Safety: deletion blocked | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
 | 17 | Browser: example.com visible | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
-| 19 | Parallel: 2 jobs, responsive chat, Stop | 2 jobs run together, chat acks while busy, steer reaches job, Stop ends a live job; second final misses 8 min | VPS (partial) | same as #2 |
+| 19 | Parallel: 2 jobs, responsive chat, Stop | **PASS**: overlap probe #3 at `a2849b1` (artifact 42356543941): 2 jobs run together, acks 9.1 / 10.4 s while busy, finals 91.0 / 104.0 s, 10/10 calls; Stop ended a live job within 20 s in the earlier runs | VPS | none |

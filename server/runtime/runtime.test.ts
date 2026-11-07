@@ -1,3 +1,7 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { checkInvariants } from "./invariants.ts";
@@ -1425,4 +1429,120 @@ describe("Runtime: at Full access a question is its requester's to answer, and o
     expect(w.store.get(root.id)?.status).toBe("completed");
     invariants(w);
   });
+});
+
+describe("Runtime: a report-back job across process restarts (one runtime.db file, reopened)", () => {
+  const runsOf = (w: World, id: string) => w.runner.runs.filter(r => r.a.id === id);
+  const reported = (w: World) => w.runner.reports.map(r => [r.a.id, r.parent?.id]);
+  const ownJob = (rootId: string, brief = "Compare VPS prices in Singapore"): EnqueueRequest => ({
+    parentId: rootId, origin: { kind: "person", source: "chat" },
+    requester: { kind: "bot_turn", botId: "chief", threadId: "chief-chat", chief: true },
+    assignee: { botId: "chief", destination: { kind: "work_thread", threadId: `job-${rootId}` } },
+    brief, reply: "resume", levels: { own: "auto" }, driverKind: "openaiChat",
+  });
+  const jobsHold: Script = a => a.parentId ? "hold" : undefined;
+  const withRuntimeFile = async (body: (boot: (script?: Script, ports?: Pick<TurnRunner, "outward">) => World) => Promise<void>) => {
+    const dir = mkdtempSync(join(tmpdir(), "omb-runtime-restart-"));
+    const open: World[] = [];
+    const boot = (script?: Script, ports: Pick<TurnRunner, "outward"> = {}) => {
+      for (const w of open.splice(0)) { w.runtime.close(); w.store.close(); }
+      const w = world(script, {}, openRuntimeStore(join(dir, "runtime.db")), ports);
+      open.push(w);
+      return w;
+    };
+    try { await body(boot); } finally {
+      for (const w of open) { w.runtime.close(); w.store.close(); }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  it("a job cut mid-turn reruns once, reports into the main chat once and wakes it once, and later restarts add nothing", () => withRuntimeFile(async boot => {
+    const first = boot(jobsHold);
+    const root = first.runtime.begin(beginReq({ brief: "Compare VPS prices in Singapore" }));
+    const job = ok(first.runtime.enqueue(ownJob(root.id)));
+    first.runtime.end(root.id, { ok: true, text: "On it, I'll report back." });
+    first.runtime.tick();
+    expect(first.store.get(job.id)?.status).toBe("running");
+
+    const second = boot(jobsHold, { outward: () => [] });
+    expect(second.store.get(job.id)).toMatchObject({ status: "queued", restart: "rerun", restarts: 1 });
+    expect(second.store.get(root.id)?.status).toBe("waiting");
+    expect(second.runner.reports).toEqual([]);
+    second.runtime.tick();
+    expect(runsOf(second, job.id)).toHaveLength(1);
+    expect(runsOf(second, job.id)[0]!.input.restartNote).toMatch(/restarted while your previous turn here was running/);
+    await second.runner.release(job.id, { kind: "completed", text: "Singapore: 3 VPS plans compared" });
+    expect(reported(second)).toEqual([[job.id, root.id]]);
+    second.runtime.tick(); await flush();
+    expect(runsOf(second, root.id)).toHaveLength(1);
+    expect(runsOf(second, root.id)[0]!.input.settled?.map(s => [s.id, s.result])).toEqual([[job.id, "Singapore: 3 VPS plans compared"]]);
+    expect(second.store.get(root.id)?.status).toBe("completed");
+    expect(second.store.get(job.id)).toMatchObject({ status: "completed", executions: 2, restarts: 1 });
+    invariants(second);
+
+    const third = boot();
+    third.runtime.tick(); await flush();
+    expect(third.runner.runs).toEqual([]);
+    expect(third.runner.reports).toEqual([]);
+    expect(third.store.get(job.id)).toMatchObject({ status: "completed", executions: 2 });
+  }));
+
+  it("a job cut after an outward tool call is not run again: it ends interrupted, reported once, and the main chat hears it once", () => withRuntimeFile(async boot => {
+    const first = boot(jobsHold);
+    const root = first.runtime.begin(beginReq({ brief: "Email the VPS shortlist" }));
+    const job = ok(first.runtime.enqueue(ownJob(root.id, "Email the VPS shortlist")));
+    first.runtime.end(root.id, { ok: true, text: "On it." });
+    first.runtime.tick();
+
+    const second = boot(jobsHold, { outward: a => a.id === job.id ? ["GMAIL_SEND_EMAIL"] : [] });
+    expect(second.store.get(job.id)).toMatchObject({ status: "failed", outcome: "interrupted", executions: 1, restarts: 0,
+      outcomeDetail: `${INTERRUPTED_OUTWARD} sent an email (GMAIL_SEND_EMAIL); not resumed, so nothing is done twice.` });
+    expect(reported(second)).toEqual([[job.id, root.id]]);
+    second.runtime.tick(); await flush();
+    expect(runsOf(second, job.id)).toEqual([]);
+    expect(runsOf(second, root.id).map(r => r.input.settled?.map(s => [s.id, s.outcome]))).toEqual([[[job.id, "interrupted"]]]);
+    expect(second.store.get(root.id)?.status).toBe("completed");
+
+    const third = boot(undefined, { outward: () => ["GMAIL_SEND_EMAIL"] });
+    third.runtime.tick(); await flush();
+    expect(third.runner.runs).toEqual([]);
+    expect(third.runner.reports).toEqual([]);
+  }));
+
+  it("a stopped job and a failed job stay so across restarts: never run, reported or answered again", () => withRuntimeFile(async boot => {
+    const first = boot(jobsHold);
+    const stoppedRoot = first.runtime.begin(beginReq({ brief: "Research VPS prices" }));
+    const stopped = ok(first.runtime.enqueue(ownJob(stoppedRoot.id, "Research VPS prices")));
+    first.runtime.end(stoppedRoot.id, { ok: true, text: "On it." });
+    first.runtime.tick();
+    first.runtime.cancel(stopped.id);
+    expect(runsOf(first, stopped.id)[0]!.signal.aborted).toBe(true);
+    first.runtime.tick(); await flush();
+    expect(first.store.get(stopped.id)).toMatchObject({ status: "cancelled", outcome: "stopped" });
+    expect(first.store.get(stoppedRoot.id)?.status).toBe("completed");
+    expect(runsOf(first, stoppedRoot.id)).toEqual([]);
+
+    const failedRoot = first.runtime.begin(beginReq({ brief: "Read the latest Kompas news" }));
+    const failed = ok(first.runtime.enqueue(ownJob(failedRoot.id, "Read the latest Kompas news")));
+    first.runtime.end(failedRoot.id, { ok: true, text: "On it." });
+    first.runtime.tick();
+    await first.runner.release(failed.id, { kind: "failed", outcome: "provider_error", text: "The model provider failed" });
+    first.runtime.tick(); await flush();
+    expect(first.store.get(failed.id)).toMatchObject({ status: "failed", outcome: "provider_error" });
+    expect(runsOf(first, failedRoot.id)).toHaveLength(1);
+    expect(first.store.get(failedRoot.id)?.status).toBe("completed");
+    const reportsBefore = reported(first);
+    expect(reportsBefore.filter(([id]) => id === stopped.id || id === failed.id)).toEqual([[stopped.id, stoppedRoot.id], [failed.id, failedRoot.id]]);
+
+    for (const restart of [1, 2]) {
+      const w = boot(jobsHold);
+      w.runtime.tick(); await flush();
+      expect(w.runner.runs, `restart ${restart}`).toEqual([]);
+      expect(w.runner.reports).toEqual([]);
+      expect(w.store.get(stopped.id)).toMatchObject({ status: "cancelled", outcome: "stopped", executions: 1, restarts: 0 });
+      expect(w.store.get(failed.id)).toMatchObject({ status: "failed", outcome: "provider_error", executions: 1, restarts: 0 });
+      expect(w.store.get(stoppedRoot.id)?.status).toBe("completed");
+      expect(w.store.get(failedRoot.id)?.status).toBe("completed");
+    }
+  }));
 });
