@@ -78,7 +78,7 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
       onSelect: () => requestChatFind(bot.threadId),
     },
     ...phoneScreen,
-    ...(!showThreads ? [] : [{
+    ...(showThreads || !advanced ? [] : [{
       key: "new-thread",
       heading: t("task.list"),
       separatorBefore: true,

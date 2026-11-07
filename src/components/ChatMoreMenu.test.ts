@@ -90,9 +90,9 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
     expect(menu.items.find((item) => item.key === "inspector")?.separatorBefore).toBe(false);
   });
 
-  it("starts a new thread with the bot when threads are enabled", () => {
+  it("starts a new thread with the bot in Advanced mode while threads are hidden", () => {
     fixture.advanced = true;
-    fixture.threadsChosen = true;
+    fixture.threadsChosen = false;
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
     menu.items.find((item) => item.key === "new-thread")!.onSelect();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "pepper" });
@@ -173,8 +173,7 @@ describe("ChatHeaderMenu, Advanced mode's header ⋯", () => {
     fixture.advanced = true;
     fixture.threadsChosen = false;
     const items = menuOf(createElement(ChatHeaderMenu, { bot })).items;
-    expect(keys(items)).toEqual(expect.arrayContaining(["threads"]));
-    expect(keys(items)).not.toContain("new-thread");
+    expect(keys(items)).toEqual(expect.arrayContaining(["new-thread", "threads"]));
     expect(items.find((item) => item.key === "threads")!.submenu).toHaveLength(3);
   });
 });
