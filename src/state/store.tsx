@@ -2263,10 +2263,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const wrapped: React.Dispatch<Action> = (action) => {
       if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showRoutines", "showTeamMap", "showFiles", "showWebPanel"].includes(action.type)) selectionRevision.current++;
       if (action.type === "newTask" && oneMainChat()) {
-        const main = stateRef.current.bots.find((bot) => bot.id === action.botId)?.mainThreadId;
+        const botId = action.botId, main = stateRef.current.bots.find((bot) => bot.id === botId)?.mainThreadId;
         action.onCreated?.();
         if (!main) return;
-        action = { type: "switchTask", botId: action.botId, threadId: main };
+        action = { type: "switchTask", botId, threadId: main };
       }
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);
