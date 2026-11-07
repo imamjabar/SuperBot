@@ -63,6 +63,9 @@ export const FINAL_ACTIONS: Readonly<Record<string, LanguageWords>> = {
   "zh-tw": { unspaced: true, words: ["傳送", "發送", "送出", "刪除", "清除", "移除", "丟棄", "放棄", "清空垃圾桶", "丟到垃圾桶", "移到垃圾桶", "不要儲存", "不儲存",
     "購買", "結帳", "下單", "付款", "支付", "預訂", "預約", "捐款", "捐贈", "訂閱", "發佈", "發布", "發表", "張貼", "分享", "共享", "回覆", "留言", "評論", "提交",
     "確認", "轉帳", "匯款", "提款", "上傳", "核准", "批准", "解除安裝", "重置", "重設", "關機", "重新開機", "重新啟動", "轉寄"] },
+  id: { words: ["kirim", "kirimkan", "kirim ulang", "hapus", "buang", "singkirkan", "bersihkan keranjang", "pindahkan ke sampah", "jangan simpan",
+    "beli", "checkout", "berlangganan", "berhenti berlangganan", "bayar", "buat pesanan", "pesan sekarang", "donasi", "unggah", "poskan", "bagikan",
+    "balas", "komentar", "konfirmasi", "transfer", "tarik", "setujui", "copot", "atur ulang", "matikan", "muat ulang"] },
 };
 
 /** Security invariant: a field labelled with one of these holds a secret, and a step on it is never saved. */
@@ -85,6 +88,8 @@ export const SECRET_FIELDS: Readonly<Record<string, LanguageWords>> = {
   ja: { unspaced: true, words: ["パスワード", "パスコード", "暗証番号", "pinコード", "セキュリティコード", "認証コード", "確認コード", "カード番号", "クレジットカード"] },
   zh: { unspaced: true, words: ["密码", "口令", "安全码", "验证码", "卡号", "信用卡"] },
   "zh-tw": { unspaced: true, words: ["密碼", "安全碼", "驗證碼", "卡號", "信用卡"] },
+  id: { words: ["kata sandi", "kata kunci", "pin", "kode pin", "kode keamanan", "kode verifikasi", "kode otp", "otp", "cvv", "cvc",
+    "nomor kartu", "kartu kredit", "kunci api", "rahasia", "kunci pribadi", "kunci pemulihan", "frasa pemulihan", "frasa benih"] },
 };
 
 const QUOTES = /[‘’ʼ`´]/g;

@@ -1,5 +1,5 @@
 import { productName } from "@/lib/brand";
-import { en, loadLocalePack, localeChoices, localePacks, locales, type LocaleKey, type LocalePack } from "@/locales";
+import { allLocaleChoices, en, loadLocalePack, localePacks, locales, type LocaleKey, type LocalePack } from "@/locales";
 
 export function resolveLocale(tag: string | undefined, available: ReadonlySet<string>): string {
   if (!tag) return "en";
@@ -48,7 +48,7 @@ function show(resolved: string): string {
 
 export function documentLanguage(code: string): string {
   const pack = localePacks[code];
-  const shown = (pack && localeChoices.find((choice) => localePacks[choice.code] === pack)?.code) || code;
+  const shown = (pack && allLocaleChoices.find((choice) => localePacks[choice.code] === pack)?.code) || code;
   return shown
     .split("-")
     .map((part, index) =>

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { applyBrand, DEFAULT_BRAND } from "./brand";
 import { documentLanguage, resolveLocale, setLocale, t, tFromServer } from "./i18n";
-import { en, localeChoices, locales } from "@/locales";
+import { allLocaleChoices, en, localeChoices, locales } from "@/locales";
 
 afterEach(() => {
   setLocale("en");
@@ -110,7 +110,7 @@ describe("t", () => {
       .map((path) => path.split("/").at(-1))
       .filter((file) => file !== "source-hashes.json")
       .sort();
-    const choices = localeChoices.map(({ code }) => `${code}.json`).sort();
+    const choices = allLocaleChoices.map(({ code }) => `${code}.json`).sort();
     expect(files).toEqual(choices);
   });
 
@@ -224,9 +224,7 @@ describe("page language", () => {
   });
 
   it("names every picker language with a valid BCP-47 tag", () => {
-    expect(localeChoices.map(({ code }) => documentLanguage(code))).toEqual([
-      "en", "de", "es", "fr", "hi", "ja", "pt-BR", "zh", "zh-TW", "uk", "vi", "tr", "pl", "ru", "it", "ko",
-    ]);
+    expect(localeChoices.map(({ code }) => documentLanguage(code))).toEqual(["en", "id"]);
     for (const { code } of localeChoices) {
       expect(Intl.getCanonicalLocales(documentLanguage(code))).toEqual([documentLanguage(code)]);
     }

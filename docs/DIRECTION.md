@@ -74,8 +74,9 @@ Each step is small. **Check with Imam before changing anything on the VPS or in 
 
 1. Keep the **"Ask" approval level** for shell commands and deletes.
 2. Imam must **not log the bot's Chrome into his main email or banking**. Use separate accounts.
-3. Confirm the EC2 instance has **no IAM role attached**, or that instance metadata uses IMDSv2 with hop limit 1. Then a prompt-injected bot cannot read AWS credentials. (This is an AWS setting, so it needs Imam's approval.)
-4. Keep backups of `/data` and `vm-home` before every deploy.
+3. Keep backups of `/data` and `vm-home` before every deploy.
+
+Imam decided on 2026-11-07 that the EC2 IAM role / IMDSv2 check is not needed.
 
 ## 7. The new roadmap (follow in order)
 
@@ -93,11 +94,9 @@ Each step is small. **Check with Imam before changing anything on the VPS or in 
 - An installable, responsive web app (PWA) over Tailscale. Skip DMG signing unless the Electron app actually needs it.
 - **Done when:** scorecard **#4 Phone** passes.
 
-### Phase 4: only when Imam feels the need
-- A second desktop seat, which first needs a VPS upgrade to at least **4 vCPU / 16 GB**. That's spending, so it needs Imam's yes.
-- Moving the VPS closer to Jakarta. The current Mac↔VPS round trip of ~325 ms makes the viewer laggy, and AWS has a Jakarta region. Infra change, so it needs Imam's yes.
-- Task 8 login sharing, if per-bot logins become annoying.
-- Rebrand / DMG / Mac-sharing tests (#5, #7).
+### Phase 4: Imam's picks (2026-11-07)
+- **Wanted:** Task 8 login sharing between bots, and the rebrand / Mac installer (plus the Mac-sharing tests #5, #7).
+- **Not wanted:** a second desktop seat (needs a 4 vCPU / 16 GB VPS) and moving the VPS to Jakarta.
 
 ### Parity target (revised)
 The original "all P0 + ≥90% of 20 tests" is replaced by: **the five behaviours in §1 work, and scorecard tests #1, #2, #3, #4, #6, #8, #11, #17 and #19 pass on observed behaviour.**

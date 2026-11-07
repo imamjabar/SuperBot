@@ -5,6 +5,7 @@ export type LocaleKey = keyof typeof en;
 export type LocalePack = Partial<Record<LocaleKey, string>>;
 
 const packLoaders = {
+  id: () => import("./id.json"),
   de: () => import("./de.json"),
   es: () => import("./es.json"),
   fr: () => import("./fr.json"),
@@ -27,6 +28,8 @@ export type PackName = "en" | keyof typeof packLoaders;
 /** Every language tag the app answers to, and the pack it shows. */
 export const localePacks: Readonly<Record<string, PackName>> = {
   en: "en",
+  id: "id",
+  in: "id",
   de: "de",
   es: "es",
   fr: "fr",
@@ -59,8 +62,9 @@ export async function loadLocalePack(tag: string): Promise<LocalePack | undefine
   return pack;
 }
 
-export const localeChoices: ReadonlyArray<{ code: string; label: string }> = [
+export const allLocaleChoices: ReadonlyArray<{ code: string; label: string }> = [
   { code: "en", label: "English" },
+  { code: "id", label: "Bahasa Indonesia" },
   { code: "de", label: "Deutsch" },
   { code: "es", label: "Español" },
   { code: "fr", label: "Français" },
@@ -76,4 +80,9 @@ export const localeChoices: ReadonlyArray<{ code: string; label: string }> = [
   { code: "ru", label: "Русский" },
   { code: "it", label: "Italiano" },
   { code: "ko", label: "한국어" },
+];
+
+export const localeChoices: ReadonlyArray<{ code: string; label: string }> = [
+  { code: "en", label: "English" },
+  { code: "id", label: "Bahasa Indonesia" },
 ];

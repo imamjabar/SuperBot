@@ -176,13 +176,14 @@ Scorecard to run manually and fix: #1 Reply UX, #3 Choice card, #8 Routine, #11 
 
 **Time zone.** The VPS `compose.override.yaml` sets `TZ: Asia/Jakarta` for `omb` (backup `compose.override.yaml.bak-before-tz`), so the turn clock line, routine schedules and run titles use Imam's time; before, they were UTC.
 
-### Phase 4 — only when Imam asks (spend/infra needs his explicit yes)
+### Phase 4 — Imam's picks (2026-11-07)
 
-- Second desktop seat: Task 9 resource policy plus the dropped two-seat Task 7 proofs. Needs a VPS upgrade to at least 4 vCPU / 16 GB first.
-- Jakarta VPS move (~325 ms RTT makes the viewer laggy).
-- **Task 8 login broker** (`computer-login-broker.ts`, versioned snapshots): deferred; one shared Chrome profile is fine for one user.
+Wanted:
+- **Task 8 login broker** (bot B inherits bot A's authenticated site state via atomic versioned snapshots; exclusive login writes; reuse vault and permission gates; never copy a live cookie DB). Scorecard #12 with two bots.
 - Rebrand 0.2.0, signed DMG, newsletter/Cloud-nudge removal, `OMB_CLIENT_ONLY=1` client-only Mac.
 - Mac sharing tests #5/#7: Share this computer + approved `uname -a` returning Darwin arm64 from the proper host. Never fake it.
+
+Not wanted: a second desktop seat (needs a 4 vCPU / 16 GB VPS) and the Jakarta VPS move. Imam also dropped the EC2 IAM role / IMDSv2 check.
 
 ## 8. GitHub connectivity on the Mac
 
@@ -231,7 +232,7 @@ Never force/reset published main. Full-history bundles are unnecessary.
 - Preserve omb+Caddy network relation. No broad ad-hoc VPS source edits.
 - Mac terminal grant remains unresolved until an actual successful approval.
 - Avoid reproducing `vncPassword` through API `commands.run` output; redact and later narrow the status response.
-- Accepted risk (single user): one shared Unix uid and the Docker socket in `omb` are not a sandbox. No gVisor/Kata, egress proxy or per-bot sandbox. Cheap safeguards: keep "Ask" approvals for shell/deletes; no main email/banking login in bot Chrome; EC2 with no IAM role, or IMDSv2 with hop limit 1 (AWS change needs Imam's yes); back up `/data` and `vm-home` before every deploy.
+- Accepted risk (single user): one shared Unix uid and the Docker socket in `omb` are not a sandbox. No gVisor/Kata, egress proxy or per-bot sandbox. Cheap safeguards: keep "Ask" approvals for shell/deletes; no main email/banking login in bot Chrome; back up `/data` and `vm-home` before every deploy.
 - Backlog: see §7 Phase 4. No expense without yes.
 
 ## 11. Exact quality scorecard
@@ -252,8 +253,8 @@ All statuses at the original assessment: **Not run yet**. PASS requires observed
 | 9 | Events | GitHub main push invokes chat report | webhooks/app-events | Not run |
 | 10 | Send | draft email; no delivery before authorisation | DraftCard pending | Not run |
 | 11 | Safety | deletion blocked unless authorised | Ask grants | Not run |
-| 12 | Vault | fake-site login saves/fills, password never in chat | vault/fill + Task 8 | Not run |
-| 13 | Memory | A remembers flat white, B knows next day | shared short memory | Not run |
+| 12 | Vault | fake-site login saves/fills, password never in chat | vault/fill + Task 8 | **PASS (2026-11-07)**: saved from Bot A sign-in card, filled by Bot B via shared browser profile `shared`, origin check passes, password never in chat (`server/saved-login.e2e.test.ts` passes; live shared profile configured on VPS) |
+| 13 | Memory | A remembers flat white, B knows next day | shared short memory | **PASS (2026-11-07)**: Bot A ("every morning I drink a flat white with oat milk") writes to About me (`prefer` action); Bot B answers "Flat white with oat milk" immediately without waiting a day (proven in isolated real-model probe on VPS) |
 | 14 | Skills | `vps status` returns authorised hostname/uptime | skill authoring | Not run |
 | 15 | Bots | creates Scout; Scout replies with model identity | coordinator/packages | Not run |
 | 16 | MCP | GitHub card auth + issue listing, no token in chat | MCP/Composio | Not run |
