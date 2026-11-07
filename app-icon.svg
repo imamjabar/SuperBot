@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">SuperBot</title>
+  <desc id="desc">A friendly white bot head with a yellow lightning bolt on a deep blue app tile.</desc>
+  <defs>
+    <clipPath id="tile"><rect width="1024" height="1024" rx="224" /></clipPath>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3B82F6" />
+      <stop offset="0.55" stop-color="#1D4ED8" />
+      <stop offset="1" stop-color="#0B1B4D" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#93C5FD" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#93C5FD" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="head" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#D5DEEC" />
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDE047" />
+      <stop offset="1" stop-color="#F59E0B" />
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="url(#sky)" />
+    <rect width="1024" height="1024" fill="url(#glow)" />
+    <rect x="482" y="196" width="60" height="120" rx="30" fill="#E2E8F0" />
+    <circle cx="512" cy="196" r="58" fill="url(#bolt)" />
+    <rect x="212" y="300" width="600" height="500" rx="170" fill="url(#head)" />
+    <rect x="362" y="452" width="92" height="150" rx="46" fill="#0B1B4D" />
+    <rect x="570" y="452" width="92" height="150" rx="46" fill="#0B1B4D" />
+    <path d="M 420 676 Q 512 732 604 676" fill="none" stroke="#0B1B4D" stroke-width="34" stroke-linecap="round" />
+    <path d="M 812 548 L 700 752 L 780 752 L 736 916 L 884 680 L 802 680 L 862 548 Z"
+      fill="url(#bolt)" stroke="#0B1B4D" stroke-width="22" stroke-linejoin="round" />
+  </g>
+</svg>
