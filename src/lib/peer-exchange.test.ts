@@ -325,7 +325,7 @@ describe("groupPeerExchanges", () => {
       at: 1000,
       role: "bot",
       kind: "activity",
-      from: { botId: "chief", name: "Chief Assistant Bot" },
+      from: { botId: "chief", name: "Chief Assistant Bot", color: "green" as const },
       tool: { name: "Sent to Designer Bot", ok: true },
       threadRef: { botId: "designer", threadId: "t-pending", title: "Teammate work" },
     };
@@ -340,7 +340,7 @@ describe("groupPeerExchanges", () => {
       at: 1000,
       role: "bot",
       kind: "activity",
-      from: { botId: "chief", name: "Chief Assistant Bot" },
+      from: { botId: "chief", name: "Chief Assistant Bot", color: "green" as const },
       tool: { name: "Sent to Designer Bot", ok: true },
       threadRef: { botId: "designer", threadId: "t-a", title: "Teammate work" },
       roomRequest: { id: "req-a", phase: "request" },
@@ -350,7 +350,7 @@ describe("groupPeerExchanges", () => {
       at: 2000,
       role: "bot",
       kind: "activity",
-      from: { botId: "chief", name: "Chief Assistant Bot" },
+      from: { botId: "chief", name: "Chief Assistant Bot", color: "green" as const },
       tool: { name: "Sent to Researcher Bot", ok: true },
       threadRef: { botId: "researcher", threadId: "t-b", title: "Teammate work" },
       roomRequest: { id: "req-b", phase: "request" },
@@ -360,7 +360,7 @@ describe("groupPeerExchanges", () => {
       at: 3000,
       role: "bot",
       kind: "activity",
-      from: { botId: "designer", name: "Designer Bot" },
+      from: { botId: "designer", name: "Designer Bot", color: "green" as const },
       tool: { name: "Designer Bot replied", ok: true },
       roomRequest: { id: "req-a", phase: "result" },
     };
@@ -369,7 +369,7 @@ describe("groupPeerExchanges", () => {
       at: 4000,
       role: "bot",
       kind: "activity",
-      from: { botId: "researcher", name: "Researcher Bot" },
+      from: { botId: "researcher", name: "Researcher Bot", color: "green" as const },
       tool: { name: "Researcher Bot replied", ok: true },
       roomRequest: { id: "req-b", phase: "result" },
     };
@@ -379,14 +379,14 @@ describe("groupPeerExchanges", () => {
     expect(items[0]).toEqual({
       kind: "peer-exchange",
       id: "peer:req-a",
-      from: { botId: "chief", name: "Chief Assistant Bot" },
+      from: { botId: "chief", name: "Chief Assistant Bot", color: "green" },
       toName: "Designer Bot",
       messages: [sent1, result1],
     });
     expect(items[1]).toEqual({
       kind: "peer-exchange",
       id: "peer:req-b",
-      from: { botId: "chief", name: "Chief Assistant Bot" },
+      from: { botId: "chief", name: "Chief Assistant Bot", color: "green" },
       toName: "Researcher Bot",
       messages: [sent2, result2],
     });
