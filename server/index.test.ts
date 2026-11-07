@@ -3748,6 +3748,7 @@ describe("harness HTTP API", () => {
     writeFileSync(join(isolatedStatic, "index.html"), "<!doctype html><title>Computer wait park test</title>");
     writeFileSync(join(isolatedStatic, "assets", "smoke.css"), "body{}");
     writeFileSync(join(isolatedData, "config.json"), JSON.stringify({
+      features: { frontDesk: false },
       instances: {
         claude: { driver: "claudeAgent", displayName: "Fixture Claude", config: { cli: FAKE_CLAUDE_CLI } },
       },
@@ -3955,6 +3956,7 @@ describe("harness HTTP API", () => {
     writeFileSync(join(isolatedStatic, "index.html"), "<!doctype html><title>Computer wait goal test</title>");
     writeFileSync(join(isolatedStatic, "assets", "smoke.css"), "body{}");
     writeFileSync(join(isolatedData, "config.json"), JSON.stringify({
+      features: { frontDesk: false },
       instances: {
         holder: {
           driver: "claudeAgent",

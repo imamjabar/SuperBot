@@ -497,7 +497,7 @@ it.each([["on", true], ["off", false]])("with front desk %s, a message sent whil
   const botLines = async () => (await chat()).filter((m: any) => m.role === "bot" && m.kind === "text").length;
   const linesBefore = await botLines();
   const sentAt = Date.now();
-  await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "TIME_PING what time is it?");
+  await f.api(`/api/bots/${f.chief.id}/messages`, { text: "TIME_PING what time is it?", threadId: f.chief.activeTaskId });
   await expect.poll(botLines, { timeout: 12_000 }).toBeGreaterThan(linesBefore);
   expect(Date.now() - sentAt, "the busy reply comes within seconds, not after the work").toBeLessThan(12_000);
   expect((await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready"), "the work is still running").toBe(false);
@@ -507,7 +507,7 @@ it.each([["on", true], ["off", false]])("with front desk %s, a message sent whil
   const chief = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id);
   expect(chief.mainThreadId).toBe(f.chief.activeTaskId);
   expect((await chat()).filter((m: any) => m.text === "LONG_WORK_RESULT ready")).toHaveLength(1);
-}), 60_000);
+}, { OMB_TEST_DESKTOP_OWNER_TOKEN: randomBytes(32).toString("base64url") }), 60_000);
 
 it("with front desk on, the person's chat has no computer tools and hands the work to a job that has them", () => fixture(async f => {
   expect((await f.api("/api/config", { features: { frontDesk: true } }, "PATCH")).features).toBeDefined();
