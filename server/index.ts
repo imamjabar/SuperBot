@@ -361,9 +361,7 @@ import {
   readSectionContext, writeSectionContext,
 } from "./section-context.ts";
 import {
-  applyStagedSkillWrite,
   applySkillWriteWithReceipt,
-  getStagedSkillWrite,
   installOrgSkill,
   installSkill,
   parseSkillMd,
@@ -380,7 +378,7 @@ import {
 import { fetchSkillFromSource } from "./skill-fetch.ts";
 import { ensureTaskWorkspaceWithSkills, harnessSkillLinks } from "./skill-task-links.ts"; import { changedWords, createLendingLifts, handedInSince } from "./host/lending-lifts.ts"; import { deviceWord } from "./lent-computers.ts";
 import { parseSkillManageReferences, previousSkillVersion, skillCardCopy, skillRequestReferences } from "./skill-request-card.ts";
-import { skillReferencesSha256 } from "./skill-storage.ts";
+import { resolveSkillRequest, sendSkillResolution } from "./skill-request-resolution.ts";
 import { createSkillsLibraryHost } from "./host/skills-library.ts";
 import { skillExport } from "./skill-export.ts";
 import { pickBotName } from "./names.ts";
@@ -11467,178 +11465,6 @@ function appendSkillRequestCard(args: {
   };
 }
 
-function resolveSkillRequest(args: {
-  botId: string;
-  botName?: string;
-  threadId: string;
-  requestId: string;
-  behavior: "allow" | "deny" | "answer";
-  reviewedSha256?: string;
-}):
-  | { claimed: false }
-  | { claimed: true; status: number; error: string }
-  | { claimed: true; outcome: "allowed-once" | "rejected"; alreadySettled?: true } {
-  const message = store.messagesFor(args.threadId).find(
-    (candidate) => candidate.card?.requestId === args.requestId && candidate.card.skillRequest,
-  );
-  const card = message?.card;
-  const request = card?.skillRequest;
-  if (!request || !card || !message) return { claimed: false };
-  if (request.botId !== args.botId) {
-    return { claimed: true, status: 403, error: "this skill request belongs to a different bot" };
-  }
-  if (card.answered || card.dismissed) {
-    const cleanup = rejectStagedSkillWrite(args.botId, request.stagedId);
-    if ("applied" in cleanup && cleanup.applied && card.answered !== "allow") {
-      store.patchMessage(args.threadId, message.id, {
-        card: { ...card, answered: "allow", dismissed: false, held: undefined },
-      });
-      return { claimed: true, outcome: "allowed-once", alreadySettled: true };
-    }
-    return { claimed: true, outcome: card.answered === "allow" ? "allowed-once" : "rejected", alreadySettled: true };
-  }
-  if (args.behavior !== "allow") {
-    const rejected = rejectStagedSkillWrite(args.botId, request.stagedId);
-    if ("error" in rejected && rejected.error !== "no such staged skill") {
-      return { claimed: true, status: 409, error: rejected.error };
-    }
-    if ("applied" in rejected) {
-      store.patchMessage(args.threadId, message.id, {
-        card: { ...card, answered: "allow", dismissed: false, held: undefined },
-      });
-      appendDecision(DATA_DIR, {
-        threadId: args.threadId,
-        requestId: args.requestId,
-        botId: args.botId,
-        botName: args.botName,
-        tool: card.tool,
-        summary: card.subtitle,
-        decision: "user-approved",
-        source: "user",
-      });
-      return { claimed: true, outcome: "allowed-once" };
-    }
-    store.patchMessage(args.threadId, message.id, {
-      card: { ...card, answered: "deny", dismissed: true, held: undefined },
-    });
-    appendDecision(DATA_DIR, {
-      threadId: args.threadId,
-      requestId: args.requestId,
-      botId: args.botId,
-      botName: args.botName,
-      tool: card.tool,
-      summary: card.subtitle,
-      decision: "user-denied",
-      source: "user",
-    });
-    return { claimed: true, outcome: "rejected" };
-  }
-  if (typeof request.preview !== "string" || typeof request.sha256 !== "string") {
-    return {
-      claimed: true,
-      status: 409,
-      error: "this proposal was created by an older build — deny it and ask the bot to create it again",
-    };
-  }
-  if (args.reviewedSha256 !== request.sha256) {
-    return {
-      claimed: true,
-      status: 409,
-      error: "reviewedSha256 must match the skill shown on the approval card",
-    };
-  }
-  const previewSha256 = createHash("sha256").update(request.preview).digest("hex");
-  if (previewSha256 !== request.sha256 || skillReferencesSha256(request.references ?? []) !== request.referencesSha256) {
-    return { claimed: true, status: 422, error: "the skill preview changed after review — deny and recreate it" };
-  }
-  const staged = getStagedSkillWrite(args.botId, request.stagedId);
-  if (!staged) {
-    const replayed = applyStagedSkillWrite(args.botId, request.stagedId, {
-      expectedSha256: request.sha256,
-      expectedReferencesSha256: request.referencesSha256 ?? null,
-    });
-    if (
-      "error" in replayed ||
-      replayed.name !== request.name ||
-      replayed.source !== request.source
-    ) {
-      return {
-        claimed: true,
-        status: 422,
-        error: "the staged skill no longer matches this approval card",
-      };
-    }
-    const patched = store.patchMessage(args.threadId, message.id, {
-      card: { ...card, answered: "allow", held: undefined },
-    });
-    if (!patched) {
-      return { claimed: true, status: 409, error: "the learned-skill approval card is no longer available" };
-    }
-    appendDecision(DATA_DIR, {
-      threadId: args.threadId,
-      requestId: args.requestId,
-      botId: args.botId,
-      botName: args.botName,
-      tool: card.tool,
-      summary: card.subtitle,
-      decision: "user-approved",
-      source: "user",
-    });
-    return { claimed: true, outcome: "allowed-once" };
-  }
-  if (
-    request.requestId !== args.requestId ||
-    request.threadId !== args.threadId ||
-    staged.action !== request.action ||
-    staged.name !== request.name ||
-    staged.source !== request.source ||
-    staged.sha256 !== request.sha256 ||
-    staged.referencesSha256 !== request.referencesSha256
-  ) {
-    return { claimed: true, status: 422, error: "the staged skill no longer matches this approval card" };
-  }
-  const applied = applyStagedSkillWrite(args.botId, request.stagedId, {
-    expectedSha256: request.sha256,
-    expectedReferencesSha256: request.referencesSha256 ?? null,
-    onApplied: () => {
-      const patched = store.patchMessage(args.threadId, message.id, {
-        card: { ...card, answered: "allow", held: undefined },
-      });
-      if (!patched) throw new Error("the learned-skill approval card is no longer available");
-    },
-  });
-  if ("error" in applied) {
-    store.patchMessage(args.threadId, message.id, {
-      card: { ...card, held: applied.error },
-    });
-    return { claimed: true, status: 422, error: applied.error };
-  }
-  appendDecision(DATA_DIR, {
-    threadId: args.threadId,
-    requestId: args.requestId,
-    botId: args.botId,
-    botName: args.botName,
-    tool: card.tool,
-    summary: card.subtitle,
-    decision: "user-approved",
-    source: "user",
-  });
-  return { claimed: true, outcome: "allowed-once" };
-}
-
-function sendSkillResolution(
-  res: ServerResponse,
-  result: ReturnType<typeof resolveSkillRequest>,
-): boolean {
-  if (!result.claimed) return false;
-  if ("error" in result) {
-    json(res, result.status, { error: result.error });
-    return true;
-  }
-  json(res, 200, { ok: true, outcome: result.outcome, alreadySettled: result.alreadySettled });
-  return true;
-}
-
 function connectorMessage(botId: string, threadId: string, messageId: string) {
   if (!connectorThread(botId, threadId)) return null;
   const message = store.messagesFor(threadId).find((candidate) => candidate.id === messageId);
@@ -12268,7 +12094,7 @@ ROUTES.push(createBotMessageRoutes({
   mainChat: personMainChat,
   botAtThreadCapacity, parksBehindCoordination, activeGroupTurnForBot, runningTurnInstance, engineSteersImages, resolveReplyTarget,
   turnSelection, policyModelRefusal, clearUnattended, drainQueuedSends, answeringCardAs, resolveAndSendTrust, resolveAndSendTeamSetup, resolveAndSendMcp,
-  resolveAndSendRoutine, resolveAndSendProfile, resolveAndSendModel, resolveSkillRequest, sendSkillResolution, answerRequest,
+  resolveAndSendRoutine, resolveAndSendProfile, resolveAndSendModel, resolveSkillRequest: (args) => resolveSkillRequest(store, args), sendSkillResolution, answerRequest,
   deliverLateQuestionAnswer, stopThreadForPerson, cancelDirectTurnDispatch, revokeInternalCapabilitiesForThread,
   cancelGroupTurnOperations, closeOpenApprovals, harnessCardOutcome, answeredIn: (threadId, requestId) => automationReports.answeredIn(teamMessages.inbox.answeredIn(threadId, requestId), requestId), pressRecords: proactive.brief.pressRecords, serverPress: proactive.brief.serverPress,
   goals: oneOnOneGoals, inboxReply: teamMessages.replyIn, typedCardAnswer: askCards.typed, ...(CLOUD_TEAM ? { teamAiOwnerName: () => teamAiOwner(teamOwners.people?.list() ?? [], teamHost.personName)?.name ?? "" } : {}),
@@ -13947,7 +13773,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             : !addressed ? `No bot with id "${target.botId}" — call list_bots and copy the exact id from the result`
             : addressed.hidden ? `The bot with id "${target.botId}" is no longer available — call list_bots for the ones you can reach`
             : roomHandoffProblem(target, address);
-          if (eligibility) return refuse(403, eligibility);
+          if (eligibility) return refuse(403, eligibility, eligibility === DELIVER_REPORTS_REFUSAL ? { deliverNow: true } : {});
         }
         let approvalGranted = false;
         if (peerReviewRequired(internalSender, address.threadId)) {
@@ -14354,7 +14180,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         }
         const sourceTitle = owner.group ? owner.group.name : (store.taskByThread(from.id, fromThreadId)?.title ?? "");
         const picked = body.modelSelection === undefined ? null : checkedModelSelection(body.modelSelection, undefined, true); const refused = !picked ? null : target.id !== from.id ? "model_selection is only for threads on yourself" : !picked.ok ? picked.error : validateModelProposal(picked.selection, from); if (refused) return json(res, 400, { error: refused }); if (typeof body.job === "string" && body.job.trim() && target.id === from.id) { const steered = await steerOwnJob({ store, canSteer: canSteerThread, steer: steerThread }, from, body.job.trim(), message, { threadId: fromThreadId, deliversReports: internalCapability.deliversReports }); return json(res, steered.status, steered.body); }
-        const selfRefused = target.id !== from.id ? null : selfThreadRefusal({ deliversReports: internalCapability.deliversReports, handoff: Boolean(internalCapability.roomHandoffId), requestLine: store.activePath(fromThreadId).findLast((line) => line.role === "user" && line.kind === "text") }); if (selfRefused) return json(res, 409, { error: selfRefused }); if (target.id === from.id && body.reportBack !== true) {
+        const selfRefused = target.id !== from.id ? null : selfThreadRefusal({ deliversReports: internalCapability.deliversReports, handoff: Boolean(internalCapability.roomHandoffId), requestLine: store.activePath(fromThreadId).findLast((line) => line.role === "user" && line.kind === "text") }); if (selfRefused) return json(res, 409, { error: selfRefused, ...(selfRefused === DELIVER_REPORTS_REFUSAL ? { deliverNow: true } : {}) }); if (target.id === from.id && body.reportBack !== true) {
           const inherited = picked?.ok ? { modelSelection: picked.selection, approvalMode: undefined } : parentThreadModel(from.id, fromThreadId);
           const task = store.createTask(from.id, title, false, projectId, { botId: from.id, name: from.name, at: Date.now() }, inherited.approvalMode, inherited.modelSelection);
           if (!task) return json(res, 500, { error: "couldn't create that thread" });

@@ -641,10 +641,10 @@ describe("§6 budgets and clocks", () => {
     const child = ok(enqueueFrom(w, root, workFor("dev", "Build")));
     w.rt.end(root.id, { ok: true, text: "" });
     expect(get(w, root.id).status).toBe("waiting");
-    w.rt.cancel(child.id, "not needed");
+    w.rt.cancel(child.id, "the machine went away", "failed");
     await drain(w);
 
-    expect(get(w, child.id)).toMatchObject({ status: "cancelled", outcome: "stopped" });
+    expect(get(w, child.id)).toMatchObject({ status: "failed", outcome: "interrupted" });
     expect(w.runner.runs(child.id)).toHaveLength(0);
     expect(w.runner.reports(child.id)).toHaveLength(1);
     const rootRuns = w.runner.runs(root.id);

@@ -8,7 +8,6 @@ import {
   api,
   ApiError,
   CLOUD_LINK_SETTINGS,
-  configStatusFromFrame,
   currentTaskBot,
   desktopApprovalBridge,
   initialState,
@@ -29,11 +28,11 @@ import {
   type AppState,
   type Bot,
   type BotAnnouncement,
-  type ConfigStatusFrame,
   type Group,
   type Message,
   type Action,
 } from "./store";
+import { configStatusFromFrame, type ConfigStatusFrame } from "./config-status";
 import { LAST_CONVERSATION_KEY } from "@/lib/last-conversation";
 import { cacheDesktopCapabilities, desktopCapabilitiesNow } from "@/lib/desktop";
 import { LAST_BOT_SECTION_KEY } from "@/lib/last-bot-section";
