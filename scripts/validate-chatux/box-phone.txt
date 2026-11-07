@@ -1,1 +1,0 @@
-pnpm install --frozen-lockfile && pnpm exec vite build && CHROME=/usr/bin/google-chrome node scripts/validate-chatux/phone-check.mjs

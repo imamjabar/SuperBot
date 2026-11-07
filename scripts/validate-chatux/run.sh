@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: scripts/validate-chatux/run.sh <run id>, where the run comes from
-#   gh workflow run check.yml --ref ux/main-chat-progress -f scope_only=true -f probe_dist=true
+#   gh workflow run check.yml --ref <branch> -f probe_dist=true
 # Downloads that run's chatux-probe-dist artifact (no local build), copies it and the probe client to the VPS,
 # and runs probe.sh there in a disposable container. PROBE_SCENARIO=single runs one Kompas job under a
 # PROBE_JOB_CALLS (default 10) tool-call budget and a 3-minute limit; the default is the two-request overlap

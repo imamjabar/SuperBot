@@ -1,6 +1,6 @@
 # Chat UX ledger (branch `ux/main-chat-progress`)
 
-Evidence: **CI** = scoped specs in `chatux-check.yml` (run 42346753665, 15 specs, `b11b0d3`). **VPS** = disposable `omb-chatux-probe` (`scripts/validate-chatux/`): branch bundle from check run 42347377067 (`82f3ecb`), real gateway, `deepseek/deepseek-v4.1-flash`, `frontDesk` on, `TZ=Asia/Jakarta`, 8-minute cap, container and data deleted afterwards. **none** = code only. PASS needs observed behaviour (`docs/HANDOFF.md` §11).
+Evidence: **CI** = scoped specs in the branch-only `chatux-check.yml` (run 42346753665, 15 specs, `b11b0d3`; workflow removed before merge). **box** = vitest or headless Chrome on Chief's Linux computer, no Docker. **VPS** = disposable `omb-chatux-probe` (`scripts/validate-chatux/`): branch bundle from a `check.yml` run with `probe_dist=true`, real gateway, `deepseek/deepseek-v4.1-flash`, `frontDesk` on, `TZ=Asia/Jakarta`, container and data deleted afterwards. **none** = code only. PASS needs observed behaviour (`docs/HANDOFF.md` §11).
 
 ## VPS probe, 2026-11-07 (three full runs; same scenario)
 
@@ -28,20 +28,21 @@ Gaps found:
 
 Root cause of gap 1: an API-model job (`openai-chat.ts`) gets only the `agents` and `data` tool servers when the browser is off and no computer is attached. The `browser` server is gated on `features.browser`, there is no engine-native web tool, and the research tools need a treg key. That leaves no page reader, so the model fetches pages through DuckDB. Meanwhile `FRONT_DESK_PROMPT` tells the chat that jobs have web tools. The repeat guard only ran for local models, and the only caps were 64 rounds and 200 calls per turn.
 
-Fixes on the branch, not yet verified:
-- **`web_fetch` agents tool** for report-back jobs (`OMB_WEB_FETCH`). It reads the page server-side through `fetchPublicPage`, which accepts public addresses only and re-checks every redirect, and returns readable text or RSS items in 12,000-character pages. The data prompts now point page reads to `web_fetch`.
-- **Tool-call budget** for bot-opened jobs: 30 calls by default, overridable with `OMB_JOB_TOOL_CALLS`. Once the budget is spent, the next round runs without tools and writes the answer from what was gathered.
-- **Repeat guard** for every API model: an identical failing call is refused after 2 failures on remote models, 3 on local.
-- **Status line:** `toolStep` reports a `data_sql` `read_text` or a `data_load` URL as "Reading <site>", and any other `data_sql` as "Running data query".
-- **Stop:** a job the person stopped no longer resumes the main chat (`nothingToAnswer`).
-- **Checks:** deterministic specs are listed in `scripts/validate-chatux/box-specs.txt`. The live check is `PROBE_SCENARIO=single scripts/validate-chatux/run.sh <run>`.
+Fixes on the branch, and what verified them:
+- **`web_fetch` agents tool** for report-back jobs (`OMB_WEB_FETCH`). It reads the page server-side through `fetchPublicPage`, which accepts public addresses only and re-checks every redirect, and returns readable text or RSS items in 12,000-character pages. The data prompts now point page reads to `web_fetch`. Verified: single-job VPS probe at `5e7f732` (one Kompas job read through `web_fetch`/search, contextual status, final in the main chat); overlap probe #3 at `a2849b1`; `server/routes/web-fetch.test.ts` on the box.
+- **Tool-call budget** for bot-opened jobs: 30 calls by default, overridable with `OMB_JOB_TOOL_CALLS`. Once the budget is spent, the next round runs without tools and writes the answer from what was gathered. A parallel batch that crosses the cap is cut at the cap (`02e1008`). Verified: overlap probe #3, 10/10 executed calls per job under a cap of 10, asserted strictly; `server/drivers/openai-chat-tools.test.ts` on the box.
+- **Repeat guard** for every API model: an identical failing call is refused after 2 failures on remote models, 3 on local. Verified: `server/drivers/chat-repeat-guard.test.ts` and the 64-step cap fixture (`f6ab90d`) on the box.
+- **Status line:** `toolStep` reports a `data_sql` `read_text` or a `data_load` URL as "Reading <site>", and any other `data_sql` as "Running data query". Verified: `server/step-summary.test.ts`; 8 contextual job-line phrases seen in the `5e7f732` overlap probe.
+- **Report-back delivery turn:** the main chat delivers a returned result instead of re-delegating it, and never takes the main chat thread as a job target (`a2849b1`). Verified: overlap probe #3 delivered both finals at 91.0 / 104.0 s, against 79 / 133 s before.
+- **Stop:** a job the person stopped no longer resumes the main chat (`nothingToAnswer`). Verified: `server/runtime/runtime.test.ts` (box, 60/60 at `3b070ee`), including after restarts; Stop ended a live job within 20 s in the VPS runs.
+- **Remaining manual checks:** #4 on a real phone (install the PWA, pair, Web Push, read the table) and #8, #11, #17 rerun after merge, all by Imam.
 
 ## Phases (`docs/DIRECTION.md` §7)
 
 | Phase | Done when | Status on this branch | Evidence | Next smallest deliverable |
 |---|---|---|---|---|
 | 1 Usable | Imam watches a bot open example.com and takes over the mouse | Not touched here; observed by Imam on `main` | Imam, 2026-11-06 | none on this branch |
-| 2 Grok-like | #2, #6, #19 pass with 2 jobs | #2 and #19 PASS (overlap probe #3 at `a2849b1`); #6 restart durability has a deterministic test, box run pending | CI + VPS | box run of `box-restart.txt` |
+| 2 Grok-like | #2, #6, #19 pass with 2 jobs | **Complete**: #2 and #19 PASS (overlap probe #3 at `a2849b1`); #6 PASS (deterministic restart test, box 60/60 at `3b070ee`) | CI + VPS + box | none |
 | 3 Phone | #4 passes | Automated check PASS at `742ca2a`; real-phone part deferred to Imam | box | Imam on a real phone |
 | 4 Imam's picks | #5, #7, login sharing, rebrand | Not touched | none | out of scope here |
 
@@ -53,7 +54,7 @@ Fixes on the branch, not yet verified:
 | 2 | Long work: ack, progress, outcome | **PASS**: overlap probe #3 at `a2849b1` (artifact 42356543941): acks 9.1 / 10.4 s, both finals in the main chat at 91.0 / 104.0 s, 10/10 tool calls within the cap | VPS | none |
 | 3 | Choice card: tap continues | Card press into a job thread allowed by the route; not seen live | CI | a job that asks a card on the probe |
 | 4 | Phone | **PASS (automated)** at `742ca2a`: `phone-check.mjs` on the box, Advanced and Simple mode. The app's own `ChatMarkdown` renders a 5-column, 3-row VPS table at 390×844 DPR 3 in headless Chrome with no page or transcript sideways overflow, no table scroll, no clipped cell text and cell font ≥ 12 px; dist's manifest (name, 192/512 PNG icons, `standalone`, `start_url`, parsed by Chrome) and `sw.js` (no fetch handler) are correct. **Deferred to Imam:** install the PWA on a real phone, pair, get a Web Push, read the same table | box | Imam's phone pass |
-| 6 | Local job: durable, app wakes | Finished job wakes the main chat with its result (news, 236–371 s, VPS). **Restart durability, deterministic** (`server/runtime/runtime.test.ts`, "a report-back job across process restarts"; one `runtime.db` file closed and reopened, fake turn runner): a job cut mid-turn reruns once with the restart note, reports into the main chat once and wakes it once; a job cut after an outward tool call (`GMAIL_SEND_EMAIL`) is not run again and ends `interrupted`, reported once; a stopped job and a failed job stay so across two more restarts with no run, report or main-chat turn. No runtime defect found reading the code; awaiting the box run of `box-restart.txt` | code + box (pending) | box run of `box-restart.txt` |
+| 6 | Local job: durable, app wakes | **PASS (deterministic)**: box `npx vitest run server/runtime/runtime.test.ts` at `3b070ee`, 60/60. The "report-back job across process restarts" block closes and reopens one `runtime.db` file with a fake turn runner: a job cut mid-turn reruns once with the restart note, reports into the main chat once and wakes it once; a job cut after an outward tool call (`GMAIL_SEND_EMAIL`) is not run again and ends `interrupted`, reported once; a stopped job and a failed job stay so across two more restarts with no run, report or main-chat turn. Live: a finished job wakes the main chat with its result (VPS). Known gap: plain shell writes are not classed as outward, so they rerun once with a note to check first | box + VPS | none |
 | 8 | Routine reminder | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
 | 11 | Safety: deletion blocked | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
 | 17 | Browser: example.com visible | Unverified on branch (passed on `main`, Imam 2026-11-06) | none | rerun after merge |
