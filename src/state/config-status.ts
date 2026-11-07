@@ -147,7 +147,7 @@ export interface ConfigStatus {
    * are managed. Absent everywhere else. */
   team?: { id: string; name: string; cloudPage?: string };
   /** This server belongs to one person, who keeps one chat per bot. Absent where each person has their own chats. */
-  oneMainChat?: true;
+  oneMainChat?: boolean;
 }
 
 export interface ManagedPolicySummary {
