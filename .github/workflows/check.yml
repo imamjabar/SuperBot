@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       scope_only: { type: boolean, default: false, description: Run only the chat UX scoped specs }
+      probe_dist: { type: boolean, default: false, description: Build the branch web and server bundles as a run artifact for a disposable VPS probe }
 concurrency: { group: "check-${{ github.ref }}", cancel-in-progress: true }
 permissions: { contents: read }
 jobs:
@@ -28,3 +29,4 @@ jobs:
       - run: pnpm vitest run server/index.test.ts -t "Local VM|computer|control"
   chatux:
     uses: ./.github/workflows/chatux-check.yml
+    with: { probe_dist: "${{ inputs.probe_dist }}" }

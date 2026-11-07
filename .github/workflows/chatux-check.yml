@@ -2,10 +2,33 @@ name: Chat UX scoped check
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      probe_dist: { type: boolean, default: false }
 concurrency: { group: "chatux-check-${{ github.ref }}", cancel-in-progress: true }
 permissions: { contents: read }
 jobs:
+  probe-dist:
+    if: ${{ inputs.probe_dist }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec vite build
+        env: { NODE_OPTIONS: --max-old-space-size=8192 }
+      - run: pnpm build:server
+      - run: |
+          test -f dist-server/index.js && test -f dist-server/server-launcher.js
+          find dist-server \( -name '.env*' -o -name '*.env' -o -name '*.pem' -o -name '*.key' \) -delete
+          printf '{"sha":"%s","ref":"%s","run":"%s"}\n' "$GITHUB_SHA" "$GITHUB_REF" "$GITHUB_RUN_ID" > dist-server/server-dist-manifest.json
+          tar -czf chatux-probe-dist.tgz dist dist-server
+      - uses: actions/upload-artifact@v4
+        with: { name: chatux-probe-dist, path: chatux-probe-dist.tgz, retention-days: 3 }
   scope:
+    if: ${{ !inputs.probe_dist }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
