@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Message } from "@/state/store";
-import { groupPeerExchanges } from "./peer-exchange";
+import { groupPeerExchanges, ownJobNoise } from "./peer-exchange";
 
 describe("groupPeerExchanges", () => {
   it("collapses request, activity, and terminal reply while keeping inbox message visible", () => {
@@ -390,5 +390,122 @@ describe("groupPeerExchanges", () => {
       toName: "Researcher Bot",
       messages: [sent2, result2],
     });
+  });
+});
+
+describe("ownJobNoise", () => {
+  const bot = {
+    id: "chief",
+    name: "Chief",
+    tasks: [
+      { threadId: "main", title: "Chief" },
+      { threadId: "job-1", title: "Research market", openedBy: { botId: "chief", reportsBack: true } },
+      { threadId: "job-quick", title: "Quick replies" },
+      { threadId: "normal-thread", title: "Other conversation" },
+    ],
+  };
+
+  it("hides own-job rows pointing to report-back job", () => {
+    const looseWorking: Message = {
+      id: "w1",
+      role: "bot",
+      kind: "activity",
+      tool: { name: "Still working on Research market (2m)", ok: true },
+      threadRef: { botId: "chief", threadId: "job-1", title: "Research market" },
+    };
+    expect(ownJobNoise(looseWorking, bot)).toBe(true);
+
+    const sentRow: Message = {
+      id: "s1",
+      role: "bot",
+      kind: "activity",
+      from: { botId: "chief", name: "Chief" },
+      tool: { name: "Sent to Chief", ok: true },
+      threadRef: { botId: "chief", threadId: "job-1", title: "Research market" },
+    };
+    expect(ownJobNoise(sentRow, bot)).toBe(true);
+
+    const backRow: Message = {
+      id: "b1",
+      role: "bot",
+      kind: "activity",
+      tool: { name: "Back with results", ok: true },
+      threadRef: { botId: "chief", threadId: "job-1", title: "Research market" },
+    };
+    expect(ownJobNoise(backRow, bot)).toBe(true);
+  });
+
+  it("hides rows pointing to Quick replies side lane", () => {
+    const quickRow: Message = {
+      id: "q1",
+      role: "bot",
+      kind: "activity",
+      tool: { name: "Sent to Quick replies", ok: true },
+      threadRef: { botId: "chief", threadId: "job-quick", title: "Quick replies" },
+    };
+    expect(ownJobNoise(quickRow, bot)).toBe(true);
+  });
+
+  it("hides peer exchange rows where sender and receiver are the same bot", () => {
+    const selfPeerMsg: Message = {
+      id: "sp1",
+      role: "bot",
+      kind: "activity",
+      from: { botId: "chief", name: "Chief" },
+      comm: { groupId: "g1", threadId: "t1", withBotId: "chief", withName: "Chief" },
+      tool: { name: "Chief replied", ok: true },
+    };
+    expect(ownJobNoise(selfPeerMsg, bot)).toBe(true);
+  });
+
+  it("keeps failure row visible even if pointing to an own job thread", () => {
+    const failedRow: Message = {
+      id: "f1",
+      role: "bot",
+      kind: "activity",
+      tool: { name: "Research failed with timeout", ok: false },
+      threadRef: { botId: "chief", threadId: "job-1", title: "Research market" },
+    };
+    expect(ownJobNoise(failedRow, bot)).toBe(false);
+  });
+
+  it("keeps rows about another bot's thread", () => {
+    const teammateRow: Message = {
+      id: "t1",
+      role: "bot",
+      kind: "activity",
+      tool: { name: "Sent to Designer", ok: true },
+      threadRef: { botId: "designer", threadId: "design-job", title: "Design mockup" },
+    };
+    expect(ownJobNoise(teammateRow, bot)).toBe(false);
+  });
+
+  it("keeps rows about normal non-job threads on the same bot", () => {
+    const normalRow: Message = {
+      id: "n1",
+      role: "bot",
+      kind: "activity",
+      tool: { name: "Opened thread", ok: true },
+      threadRef: { botId: "chief", threadId: "normal-thread", title: "Other conversation" },
+    };
+    expect(ownJobNoise(normalRow, bot)).toBe(false);
+  });
+
+  it("keeps text and user messages", () => {
+    const userMsg: Message = {
+      id: "u1",
+      role: "user",
+      kind: "text",
+      text: "Please do research",
+    };
+    expect(ownJobNoise(userMsg, bot)).toBe(false);
+
+    const botMsg: Message = {
+      id: "bm1",
+      role: "bot",
+      kind: "text",
+      text: "Here is your report",
+    };
+    expect(ownJobNoise(botMsg, bot)).toBe(false);
   });
 });

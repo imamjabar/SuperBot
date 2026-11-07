@@ -1,5 +1,6 @@
-import type { Message } from "@/state/store";
+import type { Bot, Message, Task } from "@/state/store";
 import { groupTranscript, type TranscriptItem } from "./activity-runs";
+import { isOwnJobThread } from "./job-threads";
 
 export interface PeerExchangeGroup {
   kind: "peer-exchange";
@@ -285,5 +286,44 @@ export function groupTranscriptWithPeerExchanges(
   flush();
 
   return items;
+}
+
+export function ownJobNoise(
+  message: Message,
+  bot: Pick<Bot, "id"> & { name?: string; tasks?: readonly Pick<Task, "threadId" | "title" | "openedBy">[] },
+): boolean {
+  if (message.tool && message.tool.ok === false) return false;
+  if (message.kind !== "activity") return false;
+
+  const threadRef = message.threadRef;
+  if (threadRef) {
+    if (threadRef.botId && threadRef.botId !== bot.id) {
+      return false;
+    }
+    const task = bot.tasks?.find((t) => t.threadId === threadRef.threadId);
+    if (isOwnJobThread(task ?? { title: threadRef.title }, bot.id)) {
+      return true;
+    }
+  }
+
+  const toBotId = threadRef?.botId ?? message.comm?.withBotId;
+  if (message.from?.botId === bot.id && toBotId === bot.id) {
+    return true;
+  }
+
+  if (bot.name) {
+    const peerName =
+      message.comm?.withName ??
+      message.sentDirectly?.name ??
+      extractPeerNameFromSentTool(message.tool?.name) ??
+      extractPeerNameFromResultTool(message.tool?.name);
+    if (peerName && peerName.toLowerCase() === bot.name.toLowerCase()) {
+      if (message.from?.botId === bot.id || !message.from?.botId) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 

@@ -684,6 +684,23 @@ describe("a guest's composer on a Cloud home", () => {
     expect(allowed).toContain('data-testid="citation-toolbar"');
     fixture.canWrite = null;
   });
+
+  it("renders JobViewFooter in place of the composer when viewing an own job thread", () => {
+    const jobBot: Bot = {
+      ...bot,
+      threadId: "job-1",
+      tasks: [
+        { threadId: "main", title: "Chief", createdAt: 1 },
+        { threadId: "job-1", title: "Subtask", createdAt: 2, openedBy: { botId: bot.id, name: bot.name, at: 2, reportsBack: true } },
+      ],
+    };
+    const markup = renderToStaticMarkup(createElement(ChatView, { bot: jobBot }));
+    expect(markup).toContain('data-testid="job-view-footer"');
+    expect(markup).toContain("Work view, read-only. Reply in your chat.");
+    expect(markup).toContain("Back to your chat");
+    expect(markup).not.toContain("<textarea");
+    expect(markup).not.toContain('data-testid="citation-toolbar"');
+  });
 });
 
 const { awayFromMainThread, openBot } = await import("@/state/store");
