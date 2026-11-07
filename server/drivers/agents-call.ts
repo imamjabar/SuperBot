@@ -185,6 +185,13 @@ function recallWhen(at: unknown, dateOnly: boolean): string {
   return dateOnly ? day : `${day} ${pad(said.getHours())}:${pad(said.getMinutes())}`;
 }
 
+async function postUnlessDeliverNow(apiResponse: HarnessClient["apiResponse"], path: string, body: Json): Promise<Json> {
+  const { ok, status, body: r } = await apiResponse(path, { method: "POST", body: JSON.stringify(body) });
+  if (r.deliverNow === true) return { deliverNow: String(r.error) };
+  if (!ok) throw new Error(String(r.error ?? `HTTP ${status}`));
+  return r;
+}
+
 export async function callTool(called: string, input: Json, context: ToolCallContext): Promise<ToolCallResult> {
   const { name, arguments: args } = resolveAgentsCall(called, input);
   const refused = outOfBounds(name, fullInputSchema(name), args);
@@ -277,7 +284,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
         isError: true,
       };
     }
-    const r = await api("/api/internal/coordinate-bots", { method: "POST", body: JSON.stringify({
+    const r = await postUnlessDeliverNow(apiResponse, "/api/internal/coordinate-bots", {
       groupId: canonical.group_id, botIds: ids, message: canonical.message,
       reason: typeof canonical.reason === "string" && canonical.reason.trim() ? canonical.reason.trim() : undefined,
       rework: canonical.rework,
@@ -285,8 +292,8 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       title: typeof canonical.title === "string" && canonical.title.trim() ? canonical.title.trim() : undefined, consult: canonical.consult, inMyFolder: canonical.in_my_folder,
       done_when: typeof canonical.done_when === "string" && canonical.done_when.trim() ? canonical.done_when.trim() : undefined,
       answers: typeof canonical.answers === "string" && canonical.answers.trim() ? canonical.answers.trim() : undefined,
-    }) });
-    if (r.deliverNow === true) return { text: String(r.error) };
+    });
+    if (typeof r.deliverNow === "string") return { text: r.deliverNow };
     return { text: JSON.stringify(r), ...(r.error ? { isError: true } : {}) };
   }
   if (name === "assignment_status") {
@@ -427,8 +434,8 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       }
       body.modelSelection = { instanceId: fields.instanceId.trim(), model: fields.model.trim() };
     }
-    const r = await api("/api/internal/threads", { method: "POST", body: JSON.stringify(body) });
-    if (r.deliverNow === true) return { text: String(r.error) };
+    const r = await postUnlessDeliverNow(apiResponse, "/api/internal/threads", body);
+    if (typeof r.deliverNow === "string") return { text: r.deliverNow };
     if (r.error && r.state !== "failed") return { text: `Couldn't open that thread: ${String(r.error)}`, isError: true };
     if (r.steered === true) return { text: `Sent to your running job #${String(r.title)}; it reads this at its next step and its one result still comes back here. If you already told the person, end your turn now and write nothing more; otherwise say so in one short line.` };
     const receipt = r.self !== true && Array.isArray(r.receipts) && jsonRecord(r.receipts[0]) ? r.receipts[0] : undefined;

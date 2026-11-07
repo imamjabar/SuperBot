@@ -88,9 +88,10 @@ describe("create_bot", () => {
 });
 
 describe("a turn delivering its jobs' reports", () => {
-  const refused = (error: string, deliverNow?: true) => context({
-    client: { api: async () => ({ error, ...(deliverNow ? { deliverNow } : {}) }), apiResponse: async () => ({ ok: false, status: 409, body: {} }) },
-  });
+  const refused = (error: string, deliverNow?: true) => {
+    const body = { error, ...(deliverNow ? { deliverNow } : {}) };
+    return context({ client: { api: async () => { throw new Error(error); }, apiResponse: async () => ({ ok: false, status: 409, body }) } });
+  };
 
   it("reads the deliver-now refusal of start_thread and coordinate_bots as guidance, so answering next does not fail the turn", async () => {
     const calls = [
@@ -99,7 +100,7 @@ describe("a turn delivering its jobs' reports", () => {
     ] as const;
     for (const [name, args] of calls) {
       expect(await callTool(name, args, refused("Answer the person now.", true)), name).toEqual({ text: "Answer the person now." });
-      expect((await callTool(name, args, refused("No bot with that id"))).isError, name).toBe(true);
+      await expect(callTool(name, args, refused("No bot with that id")), name).rejects.toThrow("No bot with that id");
     }
   });
 });
