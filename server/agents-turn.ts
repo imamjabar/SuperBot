@@ -13,6 +13,8 @@ export interface AgentsConversation {
   room: boolean;
   /** The bot works on its team's cloud computer, so it has no computer of its own to pick. */
   teamComputer: boolean;
+  /** The bot's own report-back job: it may post progress to the chat it reports to. */
+  reportsBack?: boolean;
   /** `x`: a research credential is held (a treg key or a plan's); `research`: research works for it too. */
   host: { skillAuthoring: boolean; sharedComputers: boolean; cloudHome: boolean; team: boolean; escalations: boolean; voiceNotes: boolean; x: boolean; research: boolean };
 }
@@ -41,7 +43,7 @@ export function agentsServerEnv(conversation: AgentsConversation, turn: AgentsTu
     OMB_SKILL_AUTHORING_ENABLED: flag(host.skillAuthoring),
     OMB_MEMORY_ENABLED: flag(bot.memoryEnabled !== false),
     OMB_SHARED_COMPUTERS_ENABLED: flag(host.sharedComputers),
-    OMB_CLOUD_HOME: flag(host.cloudHome), OMB_TEAM_PEOPLE: flag(host.team), OMB_ROOM: flag(conversation.room),
+    OMB_CLOUD_HOME: flag(host.cloudHome), OMB_TEAM_PEOPLE: flag(host.team), OMB_ROOM: flag(conversation.room), OMB_REPORTS_BACK: flag(conversation.reportsBack === true),
     OMB_VOICE_NOTES: flag(host.voiceNotes),
     OMB_X_RESEARCH: flag(host.x && bot.xResearch !== false),
     OMB_RESEARCH: flag(host.x && host.research && bot.xResearch !== false),

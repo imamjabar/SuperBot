@@ -250,7 +250,7 @@ export interface Task extends Pick<WireTask, "private" | "setupRequest" | "inbox
 export interface ThreadOpener {
   botId: string;
   name: string;
-  delegationId?: string;
+  delegationId?: string; threadId?: string; reportsBack?: true;
   at: number;
 }
 

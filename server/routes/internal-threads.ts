@@ -2,7 +2,7 @@ import { chiefTidies } from "../chief-of-staff.ts";
 import type { Coordinator, HandoffView } from "../coordinator.ts";
 import { reachablePeers } from "../peer-roster.ts";
 import type { BotRecord, Store, TaskRecord } from "../store.ts";
-import { PASS, type RouteHandler } from "./table.ts";
+import { PASS, type RouteContext, type RouteHandler } from "./table.ts";
 import { conversationLanguage, serverLine } from "../server-lines.ts";
 
 type ThreadState = "running" | "waiting-on-you" | "queued" | "idle" | "closed";
@@ -29,6 +29,8 @@ export function createInternalThreadRoutes(deps: {
   queuedThreadPosition(botId: string, threadId: string): number | null;
   /** `showTitle`: the caller is the receiver, so its own busy threads it may see can be named. */
   queuedReason(node: HandoffView, showTitle?: (threadId: string) => boolean): string;
+  readBody(): ReturnType<RouteContext["readBody"]>;
+  postProgress(text: string): { status: number; body: Record<string, unknown> };
 }): RouteHandler {
   const { store, coordinator, from, fromThreadId } = deps;
   return async ({ res, path, method, json }) => {
@@ -78,6 +80,13 @@ export function createInternalThreadRoutes(deps: {
       }
       rows.sort((a, b) => b.openedAt - a.openedAt);
       return json(res, 200, { threads: rows.slice(0, 100) });
+    }
+    if (method === "POST" && path === "/api/internal/threads/progress") {
+      if (!deps.ownsThread(from.id, fromThreadId)) return json(res, 403, { error: "source conversation does not belong to sender" });
+      const body = await deps.readBody();
+      const raw = body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>).message : undefined;
+      const outcome = deps.postProgress(typeof raw === "string" ? raw : "");
+      return json(res, outcome.status, outcome.body);
     }
     // close_thread folds a thread, never deletes it (a person's confirmed action), and never while it runs.
     const closeMatch = method === "POST" ? path.match(/^\/api\/internal\/threads\/([\w-]+)\/close$/) : null;

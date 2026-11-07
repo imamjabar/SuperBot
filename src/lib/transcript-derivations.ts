@@ -20,6 +20,15 @@ export function transcriptLookups(all: readonly Message[], branch: readonly Mess
     else forks.set(parent, [message]);
   }
   for (const siblings of forks.values()) siblings.sort((a, b) => a.at - b.at);
+  const implied = new Map<string, Message>();
+  let previous: Message | undefined;
+  for (const message of branch) {
+    if (message.kind !== "text") continue;
+    const asked = message.role === "bot" && !message.replyToId && message.requestMessageId ? byId.get(message.requestMessageId) : undefined;
+    const continues = previous?.id === message.requestMessageId || (previous?.role === "bot" && previous.requestMessageId === message.requestMessageId);
+    if (asked && asked.role === "user" && asked.kind === "text" && !asked.reaction && !continues) implied.set(message.id, asked);
+    previous = message;
+  }
   const retryableId = lastNonReceipt(branch)?.id;
   return {
     editVersions(message) {
@@ -27,7 +36,7 @@ export function transcriptLookups(all: readonly Message[], branch: readonly Mess
       const versions = forks.get(message.parentId ?? null);
       return versions && versions.length > 1 ? versions : undefined;
     },
-    replyTarget: (message) => (message.replyToId ? byId.get(message.replyToId) : undefined),
+    replyTarget: (message) => (message.replyToId ? byId.get(message.replyToId) : implied.get(message.id)),
     retryableId,
   };
 }

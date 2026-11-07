@@ -83,7 +83,7 @@ import { ChatErrorBanner, ChatNotice } from "./ChatErrorBanner";
 import { ThreadContextWarning } from "./ContextWarning";
 import { UsageAlert, useLimitResetContinue } from "./EngineUsage";
 import { ChatFindBar } from "./ChatFindBar";
-import { ReplyQuote } from "./ReplyQuote";
+import { ReplyQuote } from "./ReplyQuote"; import { JobPresence, ownRunningJobs } from "./JobPresence";
 import { ConnectorCard } from "./ConnectorCard";
 import { SecretRequestCard } from "./SecretRequestCard";
 import { SignInRequestCard } from "./SignInRequestCard";
@@ -953,7 +953,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
       setPopping((current) => current === messageId ? null : current);
     }, 520);
   }, [lastMessage?.id, lastMessage?.role, lastMessage?.kind]);
-  const teammatesWorking = !advanced && !bot.busy && Boolean(bot.waitingForTeammates);
+  const teammatesWorking = !advanced && !bot.busy && Boolean(bot.waitingForTeammates) && ownRunningJobs(bot).length === 0;
   const presenceVisible = waiting || popping !== null || teammatesWorking;
   const lastShownRow = windowedMessages.findLast((message) => !quietRow(message, showToolCalls));
   const presenceUnderBubble = Boolean(lastShownRow && isBotTextRow(lastShownRow, bot.id));
@@ -1232,7 +1232,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             seed={`${bot.id}:${bot.threadId ?? ""}:${busySince ?? ""}`}
             answering={popping !== null}
             since={busySince}
-          />
+          /><JobPresence bot={bot} className={cn(!advanced && presenceUnderBubble && !presenceVisible && SIMPLE_STACKED)} />
         </div>
       </div>
 

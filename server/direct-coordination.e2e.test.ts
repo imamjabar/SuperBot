@@ -446,6 +446,34 @@ it("sends a correction from the chat into the bot's own running job, which carri
   expect((await f.messages(f.chief.activeTaskId)).filter((message: any) => message.tool?.output === "STEER_JOB_RESULT")).toHaveLength(1);
 }), 60_000);
 
+it("a report-back job posts progress to the chat, and its progress and result quote the person's request after another message", () => fixture(async f => {
+  const gate = join(f.session.info.dataDir, "progress-job-gate");
+  f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Price check", message: "PROGRESS_JOB_BRIEF compare the prices", report_back: true } }],
+    reply: "On it",
+    byPrompt: [{ promptIncludes: "Your downstream room requests have settled.", plan: { resumeReply: "The prices are back" } },
+      { promptIncludes: "TIME_PING", plan: { reply: "It is 21:15" } },
+      { promptIncludes: "PROGRESS_JOB_BRIEF", plan: { steps: [{ tool: "report_progress", arguments: { message: "PROGRESS_LINE three providers checked" } }], gateFile: gate, reply: "PROGRESS_JOB_RESULT" } }] };
+  await f.start();
+  const job = () => f.nodes().find((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  await expect.poll(() => job()?.status, { timeout: 15_000 }).toBe("running");
+  await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "TIME_PING what time is it?");
+  await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).some((m: any) => m.text === "It is 21:15"), { timeout: 15_000 }).toBe(true);
+  writeFileSync(gate, "release");
+  await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).some((m: any) => m.text === "The prices are back"), { timeout: 20_000 }).toBe(true);
+  const chat = await f.messages(f.chief.activeTaskId);
+  const asked = chat.find((m: any) => m.role === "user" && m.text?.startsWith("Please have Engineering"));
+  const ping = chat.find((m: any) => m.role === "user" && m.text?.startsWith("TIME_PING"));
+  expect(chat.find((m: any) => m.role === "bot" && m.text === "PROGRESS_LINE three providers checked")?.requestMessageId).toBe(asked.id);
+  expect(chat.find((m: any) => m.text === "It is 21:15").requestMessageId).toBe(ping.id);
+  expect(chat.find((m: any) => m.text === "The prices are back").requestMessageId).toBe(asked.id);
+  const task = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id).tasks.find((t: any) => t.threadId === job().threadId);
+  expect(task.openedBy).toMatchObject({ reportsBack: true, threadId: f.chief.activeTaskId, requestMessageId: asked.id });
+  const turns = f.evidence();
+  const toolNames = (turn: any) => (turn.evidence.find((entry: any) => entry.result?.tools)?.result.tools ?? []).map((tool: any) => tool.name);
+  expect(toolNames(turns.find((turn: any) => turn.threadId === job().threadId))).toContain("report_progress");
+  expect(toolNames(turns.find((turn: any) => turn.threadId === f.chief.activeTaskId))).not.toContain("report_progress");
+}), 60_000);
+
 it("answers a message sent while the bot works at once in the same chat, and the work goes on and posts its result", () => fixture(async f => {
   const gate = join(f.session.info.dataDir, "long-work-gate");
   f.plan[f.chief.id] = { gateFile: gate, reply: "LONG_WORK_RESULT ready", byPrompt: [{ promptIncludes: "TIME_PING", plan: { reply: "It is 21:15" } }] };
@@ -455,6 +483,7 @@ it("answers a message sent while the bot works at once in the same chat, and the
   await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "TIME_PING what time is it?");
   await expect.poll(async () => (await chat()).some((message: any) => message.role === "bot" && message.text === "It is 21:15"), { timeout: 15_000 }).toBe(true);
   const asked = (await chat()).find((message: any) => message.role === "user" && message.text?.startsWith("TIME_PING"));
+  expect((await chat()).find((m: any) => m.role === "bot" && m.text === "It is 21:15").requestMessageId).toBe(asked.id);
   expect(asked.steered).toBeUndefined();
   expect((await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready")).toBe(false);
   writeFileSync(gate, "release");

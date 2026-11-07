@@ -14,7 +14,7 @@ export interface SideReplyInput {
   replyToId?: string;
   sendId?: string;
   sender?: Sender;
-  start: (laneId: string, context: string) => Promise<unknown>;
+  start: (laneId: string, context: string) => Promise<{ message?: { id: string }; queueId?: string }>;
 }
 
 function contextFor(messages: readonly Message[], botName: string): string {
@@ -29,6 +29,7 @@ function contextFor(messages: readonly Message[], botName: string): string {
  * the running turn is never interrupted or steered. */
 export function createSideReplies(store: Store) {
   const mirrors = new Map<string, string>();
+  const asks = new Map<string, string>();
 
   store.onChange((change) => {
     if (change.type === "message") {
@@ -36,7 +37,9 @@ export function createSideReplies(store: Store) {
       const { message } = change;
       if (!target || message.role !== "bot" || message.kind !== "text" || !message.text?.trim()) return;
       const botId = store.botByThread(change.threadId)?.id;
-      store.appendMessage(target, { role: "bot", kind: "text", text: message.text });
+      const asked = message.requestMessageId ? store.messagesFor(change.threadId).findLast((row) => row.id === message.requestMessageId) : undefined;
+      const requestMessageId = asked ? asks.get(asked.id) ?? (asked.queueId ? asks.get(asked.queueId) : undefined) : undefined;
+      store.appendMessage(target, { role: "bot", kind: "text", text: message.text, ...(requestMessageId ? { requestMessageId } : {}) });
       if (botId) store.patchTask(botId, target, { unread: true });
       return;
     }
@@ -67,7 +70,9 @@ export function createSideReplies(store: Store) {
       });
       store.setTaskAskedAt(input.botId, input.threadId, message.at);
       mirrors.set(laneId, input.threadId);
-      await input.start(laneId, context);
+      const started = await input.start(laneId, context);
+      const laneKey = started.message?.id ?? started.queueId;
+      if (laneKey) { asks.set(laneKey, message.id); if (asks.size > 50) asks.delete(asks.keys().next().value!); }
       store.setTaskAskedAt(input.botId, input.threadId, Date.now());
       return { ok: true, threadId: input.threadId, message };
     },

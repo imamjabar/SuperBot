@@ -52,8 +52,8 @@ function profiles(): Record<string, Profile> {
   all["skills+shared+voice+escalations"] = { env: { ...all["skills+shared+voice"]!.env, OMB_ESCALATIONS: "1" } };
   // Research is on only with a treg key or a Cloud plan and the bot's switch; the fullest profile carries it.
   all["skills+shared+voice+escalations+x"] = { env: { ...all["skills+shared+voice+escalations"]!.env, OMB_X_RESEARCH: "1", OMB_RESEARCH: "1" } };
-  // A Team Cloud mounts message_person; the fullest profile carries it.
-  all["skills+shared+voice+escalations+x+team"] = { env: { ...all["skills+shared+voice+escalations+x"]!.env, OMB_TEAM_PEOPLE: "1" } };
+  // A Team Cloud mounts message_person and a report-back job report_progress; the fullest profile carries both.
+  all["skills+shared+voice+escalations+x+team"] = { env: { ...all["skills+shared+voice+escalations+x"]!.env, OMB_TEAM_PEOPLE: "1", OMB_REPORTS_BACK: "1" } };
   all["default+legacy-switches"] = {
     env: { ...all.default!.env, OMB_ROOM_TURN: "1", OMB_OWN_THREAD_CREATION: "1", OMB_EXTERNAL_RUNTIME: "1", OMB_ACTIVE_WAITS: "0" },
   };

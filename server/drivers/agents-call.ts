@@ -392,6 +392,13 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     });
     return { text: `Threads, newest first:\n${lines.join("\n")}` };
   }
+  if (name === "report_progress") {
+    const message = String(args.message ?? "").trim();
+    if (!message) return { text: "report_progress needs message: one to three sentences for the person.", isError: true };
+    const r = await api("/api/internal/threads/progress", { method: "POST", body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, message }) });
+    if (r.error) return { text: String(r.error), isError: true };
+    return { text: "Posted to the person's chat. Carry on with the job; your final answer still goes back by itself." };
+  }
   if (name === "close_thread") {
     const threadId = String(args.thread_id ?? "").trim();
     if (!threadId) return { text: "close_thread needs the thread_id from list_threads or start_thread.", isError: true };

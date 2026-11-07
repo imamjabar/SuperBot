@@ -82,6 +82,28 @@ describe("transcriptLookups", () => {
     expect(transcriptLookups([root, digest, record], [root, digest, record]).retryableId).toBe("root");
     expect(transcriptLookups([record], [record]).retryableId).toBeUndefined();
   });
+
+  it("quotes the request above an answer that is not right under it", () => {
+    const u1 = msg("u1", { role: "user", text: "research VPS", at: 100 });
+    const b1 = msg("b1", { role: "bot", text: "Starting VPS research", requestMessageId: "u1", at: 101 });
+    const u2 = msg("u2", { role: "user", text: "Kompas?", at: 102 });
+    const b2 = msg("b2", { role: "bot", text: "Checking Kompas", requestMessageId: "u2", at: 103 });
+    const b3 = msg("b3", { role: "bot", text: "Found 3 VPS options", requestMessageId: "u1", at: 104 });
+    const b4 = msg("b4", { role: "bot", text: "Comparing VPS pricing", requestMessageId: "u1", at: 105 });
+    const b5 = msg("b5", { role: "bot", text: "Top Kompas headlines", requestMessageId: "u2", at: 106 });
+    const r = msg("r", { role: "user", text: "👍", reaction: "👍", replyToId: "b5", at: 107 });
+    const b6 = msg("b6", { role: "bot", text: "Glad you liked it", requestMessageId: "r", at: 108 });
+    const x = msg("x", { role: "bot", text: "More Kompas details", requestMessageId: "u2", replyToId: "b1", at: 109 });
+    const interleaved = [u1, b1, u2, b2, b3, b4, b5, r, b6, x];
+    const lookups = transcriptLookups(interleaved, interleaved);
+    expect(lookups.replyTarget(b1)).toBeUndefined();
+    expect(lookups.replyTarget(b2)).toBeUndefined();
+    expect(lookups.replyTarget(b3)).toBe(u1);
+    expect(lookups.replyTarget(b4)).toBeUndefined();
+    expect(lookups.replyTarget(b5)).toBe(u2);
+    expect(lookups.replyTarget(b6)).toBeUndefined();
+    expect(lookups.replyTarget(x)).toBe(b1);
+  });
 });
 
 describe("formatTime", () => {

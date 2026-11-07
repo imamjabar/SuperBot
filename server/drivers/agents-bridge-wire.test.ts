@@ -62,7 +62,7 @@ function profiles(): Record<string, Record<string, string>> {
   }
   all["skills+shared+voice+escalations"] = { ...all["skills+shared+voice"]!, OMB_ESCALATIONS: "1" };
   all["skills+shared+voice+escalations+x"] = { ...all["skills+shared+voice+escalations"]!, OMB_X_RESEARCH: "1", OMB_RESEARCH: "1" };
-  all["skills+shared+voice+escalations+x+team"] = { ...all["skills+shared+voice+escalations+x"]!, OMB_TEAM_PEOPLE: "1" };
+  all["skills+shared+voice+escalations+x+team"] = { ...all["skills+shared+voice+escalations+x"]!, OMB_TEAM_PEOPLE: "1", OMB_REPORTS_BACK: "1" };
   all["default+legacy-switches"] = { ...all.default!, OMB_ROOM_TURN: "1", OMB_OWN_THREAD_CREATION: "1", OMB_EXTERNAL_RUNTIME: "1", OMB_ACTIVE_WAITS: "0" };
   for (const name of ["default", "skills+shared+voice"]) all[`${name}+mausbot`] = { ...all[name]!, OMB_MAUSBOT: "1" };
   all["default+no-computer-pick"] = { ...all.default!, OMB_COMPUTER_SELECTION: "0" };
@@ -101,7 +101,7 @@ const BUDGET_BASELINE: Record<string, number> = {
   "skills+shared+voice+non-chief+cloud-home": 18233,
   "skills+shared+voice+escalations": 18008,
   "skills+shared+voice+escalations+x": 18069,
-  "skills+shared+voice+escalations+x+team": 18085,
+  "skills+shared+voice+escalations+x+team": 18985,
   "default+legacy-switches": 17486,
   "default+mausbot": 17538,
   "skills+shared+voice+mausbot": 18042,
@@ -279,8 +279,9 @@ describe("agents proxy tools/list golden with the tool bridge on", () => {
     expect(base).toEqual(["tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"]);
     for (const name of Object.keys(PROFILES)) {
       const selects = PROFILES[name]!.OMB_COMPUTER_SELECTION === "1";
-      expect(hotOf(name).filter((tool) => tool !== "send_voice_note"), name).toEqual(selects ? base : base.filter((tool) => tool !== "select_computer"));
+      expect(hotOf(name).filter((tool) => tool !== "send_voice_note" && tool !== "report_progress"), name).toEqual(selects ? base : base.filter((tool) => tool !== "select_computer"));
       expect(hotOf(name).includes("send_voice_note"), name).toBe(PROFILES[name]!.OMB_VOICE_NOTES === "1");
+      expect(hotOf(name).includes("report_progress"), name).toBe(PROFILES[name]!.OMB_REPORTS_BACK === "1");
     }
   });
 

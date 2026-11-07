@@ -326,6 +326,17 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "report_progress",
+    description:
+      "Post a short update to the person's chat while this job runs, without ending the job: a real finding, a finished stage, or a blocker, in one to three sentences and in the language the person writes in (your brief says which). Say what you found or decided, never only that you are working. At most one a minute and six per job. Your final answer still goes back by itself, so do not repeat it here.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { message: { type: "string", maxLength: 600, description: "The update, as the person will read it." } },
+      required: ["message"],
+    },
+  },
+  {
     name: "vm_exec",
     description:
       "Run a shell command inside your own Local VM (as the desktop user, starting in /home/cua/workspace) and get its exit code, stdout and stderr back as text. Use this for all command-line work in the VM: pip install --user, running a script, generating or converting a file, checking that a file exists. Do not type commands into a terminal window and read screenshots: that is slow and unreliable. GUI programs you start appear on the VM desktop. For a long job raise timeout_seconds (default 60, at most 300). Only available while you have a Local VM desktop.",
@@ -926,6 +937,7 @@ function catalogTools(profile: CatalogProfile) {
     (profile.botId === WATCHER_OPTIONS_CARD_BOT_ID || !WATCHER_TOOL_NAMES.has(tool.name)) &&
     (profile.memoryEnabled !== false || (tool.name !== "memory_update" && tool.name !== "memory_log")) &&
     (profile.escalations === true || tool.name !== "raise_escalation") &&
+    (profile.reportsBack === true || tool.name !== "report_progress") &&
     (profile.computerSelection === true || tool.name !== "select_computer") &&
     (profile.room !== true || !ROOM_REFUSED_TOOL_NAMES.has(tool.name)));
   const AUTHORING_TOOLS = profile.skillAuthoring

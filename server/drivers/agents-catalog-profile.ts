@@ -30,6 +30,8 @@ export interface CatalogProfile {
   /** A room's thread: the widget and page tools, which rooms refuse, and the wait tools, since a room holds no wait,
    * are not mounted. */
   room?: boolean;
+  /** A job the bot opened on itself that reports back to a chat: report_progress is mounted. */
+  reportsBack?: boolean;
 }
 
 /** Everything is off unless the harness says "1". */
@@ -49,5 +51,6 @@ export function catalogProfileFromEnv(env: NodeJS.ProcessEnv): CatalogProfile {
     mausbot: env.OMB_MAUSBOT === "1",
     computerSelection: env.OMB_COMPUTER_SELECTION === "1",
     room: env.OMB_ROOM === "1",
+    reportsBack: env.OMB_REPORTS_BACK === "1",
   };
 }

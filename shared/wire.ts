@@ -86,13 +86,13 @@ export interface TaskOpenedBy {
   botId: string;
   name: string;
   delegationId?: string;
-  /** What kind of conversation the opener made this: "pair" is the one
-   * durable conversation between two bots; "work" closes itself once its
-   * result has been reported. */
+  /** What kind of conversation the opener made this: "pair" is the one durable conversation between two bots; "work" closes itself once its result has been reported. */
   kind?: "pair" | "work";
-  /** The opener's own conversation this "work" thread was opened from.
-   * Everything that conversation later sends this bot continues here. */
+  /** The opener's own conversation this "work" thread was opened from. Everything that conversation later sends this bot continues here. */
   threadId?: string;
+  /** A job the bot opened on itself with report_back: its progress updates and its result go back to `threadId`. */ reportsBack?: true;
+  /** The person's message in `threadId` that this job answers; its updates and its result quote it there. */
+  requestMessageId?: string;
   /** A parallel room job's thread: `threadId` is the room thread it came from, and the member must stay in that room. */
   roomLane?: true;
   at: number;

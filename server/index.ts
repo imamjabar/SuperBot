@@ -1835,7 +1835,7 @@ function agentsIntegration(
   // Only advertises the tools; the routes behind them refuse regardless.
   const host = { skillAuthoring: skillAuthoringEnabled(cfg), sharedComputers: lendingEnabled(), cloudHome: Boolean(CLOUD_HOME), team: Boolean(CLOUD_TEAM), escalations: chiefEscalationsEnabled(cfg),
     voiceNotes: tts.voiceReady(cfg, speaking?.voice) && speaking?.voiceNotes !== false, x: Boolean(researchCredential(cfg.treg?.key)), research: researchAvailability.available() };
-  return { ...agentsProxyLaunch(), env: agentsServerEnv({ threadId, bot: bot ?? { id: botId }, room: Boolean(store.groupByThread(threadId)), teamComputer: Boolean(bot && inheritedTeamComputer(bot)), host },
+  return { ...agentsProxyLaunch(), env: agentsServerEnv({ threadId, bot: bot ?? { id: botId }, room: Boolean(store.groupByThread(threadId)), teamComputer: Boolean(bot && inheritedTeamComputer(bot)), reportsBack: Boolean(store.taskByThread(botId, threadId)?.openedBy?.reportsBack), host },
     { generation, depth, skillAuthoring, roomHandoffId, ...(hostFiles && !CLOUD_HOME && !HOSTED_WORKSPACE ? { deliversSavedFiles: true } : {}) },
     (turn) => mintInternalCapability({ botId, threadId, kind: "agents", createdBots: 0, openedThreads: 0, ...turn }), `http://127.0.0.1:${PORT}`) };
 }
@@ -4072,8 +4072,8 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
         if (signal.aborted) { abort(); return; }
         void startTurn(bot.id, turnText, {
           threadId: node.threadId, cardContinuation: true, commsDepth: MAX_COMMS_DEPTH,
-          requestMessageId: directRequestOwners.get(node.threadId)?.generations.has(node.rootId)
-            ? directRequestOwners.get(node.threadId)?.messageId : undefined,
+          requestMessageId: directRequestOwners.get(node.threadId)?.generations.has(node.rootId) ? directRequestOwners.get(node.threadId)?.messageId
+            : coordinator.children(node.id).map((child) => store.taskByThread(child.botId, child.threadId)?.openedBy).find((by) => by?.reportsBack && by.threadId === node.threadId)?.requestMessageId,
           origin: actingPeople.handedOrigin(coordinator.node(node.rootId)?.origin ?? OUTSIDE, node.id),
           unattended: isUnattended(bot.id, node.threadId),
           coordination: { id: node.id, resumed, settle: finish },
@@ -7454,7 +7454,7 @@ async function acceptDirectSend(
     },
   );
 }
-const sideReplies = createSideReplies(store); createJobProgress(coordinator, store);
+const sideReplies = createSideReplies(store), jobProgress = createJobProgress(coordinator, store);
 const personReplies = createPersonReplies({
   store, sendSequencer, messageSender, usageTriggerFor, groupThreadIsWorking, startGroupTurn, startOrQueueDirectMessage,
   assertWithinBudget: () => assertWithinBudget(cfg, DATA_DIR),
@@ -13410,7 +13410,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         store, coordinator, from: internalSender, fromThreadId: internalCapability.threadId,
         ownsThread: (botId, threadId) => Boolean(connectorThread(botId, threadId)),
         shown: (id) => !proactive.fence.confines(id) && !botApiThread(id) && (CLOUD_TEAM ? teamHost.readableFrom(internalCapability.threadId)(id) : cloudLendingView(internalCapability) ? cloudOwnerOnlyThread(id) : true),
-        threadBusy, queuedThreadPosition, queuedReason: queuedStatus,
+        threadBusy, queuedThreadPosition, queuedReason: queuedStatus, readBody: readInternalBody, postProgress: (text) => jobProgress.post(internalSender.id, internalCapability.threadId, text),
       }), createToolTimingRoute(usageTrace, internalCapability.threadId)], { req, res, url, path, method, auth, json, readBody })) return;
       if (method === "POST" && path === "/api/internal/attach-file") {
         const from = internalSender;
@@ -13971,7 +13971,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             if (lane?.created) createdThread = lane.threadId;
             if (lane) delegatedLevel.apply(internalSender, internalCapability.threadId, internalCapability.roomHandoffId ?? generation, recipient, lane.threadId);
             if (!room) {
-              const opened = { botId: internalSender.id, name: internalSender.name, threadId: address.threadId, at: Date.now() };
+              const opened = { botId: internalSender.id, name: internalSender.name, threadId: address.threadId, at: Date.now(), ...(fresh && reply === "resume" && target.botId === internalSender.id ? { reportsBack: true as const, ...(directRequestOwners.get(address.threadId)?.generations.has(generation) && directRequestOwners.get(address.threadId)?.messageId ? { requestMessageId: directRequestOwners.get(address.threadId)!.messageId } : {}) } : {}) };
               const task = continued ?? (fresh
                 ? store.createTask(target.botId, call.title ?? (call.message.replace(/\s+/g, " ").trim().slice(0, 60) || `From ${internalSender.name}`), false, call.projectId, opened, undefined, undefined, folder.cwd)
                 : store.createTask(target.botId, `@${internalSender.name} · work`, false, undefined, { ...opened, kind: "work" }, undefined, undefined, folder.cwd));
