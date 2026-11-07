@@ -386,6 +386,26 @@ it("names a fresh teammate thread with coordinate_bots title", () => fixture(asy
   expect(lead.tasks.find((task: any) => task.threadId === child.threadId)).toMatchObject({ title: "CSV export: verify", openedBy: { botId: f.chief.id, name: "Clive" } });
 }), 45_000);
 
+it("coordinate_bots shows the bot-to-bot exchange read-only: the ask and the teammate's reply land in the main chat as rows, and the teammate thread refuses a person's write", () => fixture(async f => {
+  f.plan[f.chief.id] = { steps: [{ arguments: { bot_ids: [f.lead.id], message: "B7_BRIEF verify the CSV export yourself", thread: "new", title: "CSV export: B7 check" } }],
+    reply: "Opened a B7 thread", resumeReply: "The B7 thread reported back" };
+  f.plan[f.lead.id] = { reply: "B7_MARKER verified" };
+  await f.start();
+  expect((await f.wait()).status).toBe("settled");
+  const child = f.nodes().find((node: any) => node.botId === f.lead.id);
+  const chat = await f.messages(f.chief.activeTaskId);
+  expect(chat.find((m: any) => m.kind === "activity" && m.from?.botId === f.chief.id && m.threadRef?.threadId === child.threadId))
+    .toMatchObject({ role: "bot", threadRef: { botId: f.lead.id, threadId: child.threadId } });
+  expect(chat.filter((m: any) => m.roomRequest?.id === child.id && m.roomRequest.phase === "result"))
+    .toEqual([expect.objectContaining({ role: "bot", kind: "activity", from: expect.objectContaining({ botId: f.lead.id }), tool: expect.objectContaining({ output: expect.stringContaining("B7_MARKER verified") }) })]);
+  const lead = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.lead.id);
+  expect(lead.mainThreadId).toBeTruthy();
+  expect(lead.mainThreadId).not.toBe(child.threadId);
+  const before = await f.messages(child.threadId);
+  expect(await refusal(f.api(`/api/bots/${f.lead.id}/messages`, { threadId: child.threadId, text: "Can a person write here?" }))).toMatchObject({ code: "main_chat_only", mainThreadId: lead.mainThreadId });
+  expect(await f.messages(child.threadId)).toEqual(before);
+}, { OMB_TEST_DESKTOP_OWNER_TOKEN: randomBytes(32).toString("base64url") }), 60_000);
+
 it("runs a report-back job on the bot itself in a fresh thread and resumes the chat with its result", () => fixture(async f => {
   const job = { promptIncludes: "OWN_JOB_BRIEF", plan: { reply: "OWN_JOB_RESULT ready", resumeReply: "The job reported back" } };
   f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Long check", message: "OWN_JOB_BRIEF check the CSV export end to end", report_back: true } }],
@@ -424,6 +444,31 @@ it("runs two of its own jobs at once, keeps the chat answering, and Stop in the 
   for (const node of startedJobs()) expect((await f.cli("wait", "--bot", f.chief.id, "--task", node.threadId, "--timeout", "20")).status).toBe("settled");
   expect((await f.wait()).status).toBe("settled");
   expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Both jobs reported back")).toBe(false);
+}), 60_000);
+
+it("with the cap at 2, a third report-back job queues and starts only when one of the first two finishes; the chat still answers and each job reports once", () => fixture(async f => {
+  await f.api("/api/config", { threads: { maxConcurrentPerBot: 2 } }, "PUT");
+  const names = ["JOB_A", "JOB_B", "JOB_C"], gate = (name: string) => join(f.session.info.dataDir, `${name}.gate`);
+  const job = (name: string) => ({ promptIncludes: `${name}_BRIEF`, plan: { gateFile: gate(name), reply: `${name} done`, resumeReply: "All jobs reported back" } });
+  const start = (name: string) => ({ tool: "start_thread", arguments: { title: `Job ${name}`, message: `${name}_BRIEF do the long part`, report_back: true } });
+  f.plan[f.chief.id] = { steps: names.map(start), reply: "Started three jobs", resumeReply: "All jobs reported back",
+    byPrompt: [{ promptIncludes: "STATUS_PING", plan: { reply: "Two run, one waits" } }, ...names.map(job)] };
+  await f.start();
+  const jobs = () => f.nodes().filter((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  const statuses = () => jobs().map((node: any) => node.status).sort();
+  const nameOf = (node: any) => names.find((name) => JSON.stringify(node).includes(`${name}_BRIEF`))!;
+  await expect.poll(statuses, { timeout: 15_000 }).toEqual(["queued", "running", "running"]);
+  const waiting = jobs().find((node: any) => node.status === "queued").id;
+  await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "STATUS_PING how is it going?");
+  await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Two run, one waits"), { timeout: 15_000 }).toBe(true);
+  expect(statuses()).toEqual(["queued", "running", "running"]);
+  writeFileSync(gate(nameOf(jobs().find((node: any) => node.status === "running"))), "release");
+  await expect.poll(() => jobs().find((node: any) => node.id === waiting).status, { timeout: 15_000 }).not.toBe("queued");
+  await expect.poll(statuses, { timeout: 15_000 }).toContain("completed");
+  for (const name of names) writeFileSync(gate(name), "release");
+  await expect.poll(statuses, { timeout: 30_000 }).toEqual(["completed", "completed", "completed"]);
+  const results = async () => { const chat = await f.messages(f.chief.activeTaskId); return jobs().map((node: any) => chat.filter((message: any) => message.roomRequest?.id === node.id && message.roomRequest.phase === "result").length); };
+  await expect.poll(results, { timeout: 30_000 }).toEqual([1, 1, 1]);
 }), 60_000);
 
 it("sends a correction from the chat into the bot's own running job, which carries on and reports once", () => fixture(async f => {

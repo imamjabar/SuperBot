@@ -160,6 +160,7 @@ async function main() {
   summary.model = bot.modelSelection?.model;
   const main = bot.mainThreadId ?? bot.threadId;
   const person = await personToken();
+  if (SCENARIO === "restart") return await restartScenario(bot, main, person);
 
   const browser = await chrome();
   try {
@@ -174,7 +175,6 @@ async function main() {
     if (SINGLE) return await singleJob(browser, bot, main, person);
     if (SCENARIO === "language") return await languageScenario(bot, main, person);
     if (SCENARIO === "busyseat") return await busySeat(bot, main, person);
-    if (SCENARIO === "restart") return await restartScenario(bot, main, person);
 
     const t0 = Date.now();
     const sends = [];
@@ -471,11 +471,14 @@ async function restartScenario(bot, main, person) {
   const pong = await replyAfter(main, back, 45_000);
   if (pong) pass("chatAnswersAfterRestart", { ackMs: pong.at - back }); else fail("chatAnswersAfterRestart", {});
   const idle = await idleJob(bot, t0, job.threadId);
+  const jobLast = (await messages(job.threadId)).at(-1)?.at ?? cutAt;
+  const finalsNow = async () => botText(await messages(main), Math.max(cutAt, jobLast)).filter((m) => !isProgressNote(m) && m.id !== pong?.id);
+  await waitFor("the result in the main chat", async () => (await finalsNow()).length > 0, 120_000, 2_000).catch(() => undefined);
   await sleep(20_000);
   const record = assignmentOf(job.threadId);
-  const jobLast = (await messages(job.threadId)).at(-1)?.at ?? cutAt;
-  const finals = botText(await messages(main), Math.max(cutAt, jobLast)).filter((m) => !isProgressNote(m) && m.id !== pong?.id);
+  const finals = await finalsNow();
   summary.timings = { finalAfterRestartMs: finals[0] ? finals[0].at - back : null };
+  summary.digest = (await messages(main)).filter((m) => m.at >= t0).map((m) => [Math.round((m.at - back) / 1000), `${m.role[0]}:${m.kind}`, (m.tool?.name ?? m.text ?? "").replace(/\s+/g, " ").slice(0, 50)]);
   summary.counts.record = record;
   if (record && (record.restarts >= 1 || record.events.filter((k) => k === "started").length >= 2)) pass("jobRanAgainAfterRestart", { restarts: record.restarts, executions: record.executions }); else fail("jobRanAgainAfterRestart", { record: record ?? null });
   if (idle && record?.status === "completed") pass("jobCompleted"); else fail("jobCompleted", { idle: Boolean(idle), status: record?.status ?? null });
