@@ -3,6 +3,7 @@ import { Bug, Copy, Cpu, Download, Gauge, ListChecks, MessagesSquare, Monitor, M
 import { currentTaskBot, openBotThread, useStore, visibleMessages, type Bot } from "@/state/store";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { useShowThreads } from "@/lib/thread-preferences";
+import { useOneMainChat } from "@/lib/one-main-chat";
 import { requestChatFind, useChatFindOpen } from "@/lib/chat-find";
 import { usageSummary } from "@/lib/chat-usage-summary";
 import {
@@ -30,6 +31,7 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
   const { state, dispatch } = useStore();
   const advanced = useAdvancedMode();
   const showThreads = useShowThreads();
+  const oneChat = useOneMainChat();
   const findOpen = useChatFindOpen(bot.threadId);
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
   const remoteClient = window.ogb?.remoteClient?.active === true;
@@ -78,7 +80,7 @@ export function useChatMoreItems(profile: Bot, phoneHeader = false): { items: Si
       onSelect: () => requestChatFind(bot.threadId),
     },
     ...phoneScreen,
-    ...(showThreads || !advanced ? [] : [{
+    ...(showThreads || !advanced || oneChat ? [] : [{
       key: "new-thread",
       heading: t("task.list"),
       separatorBefore: true,

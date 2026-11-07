@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Search, SquarePen } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { llmThreadTitlesEnabled } from "@/lib/feature-flags";
+import { useOneMainChat } from "@/lib/one-main-chat";
 import { activeLocale, t } from "@/lib/i18n";
 import { SIDEBAR_INLINE, useMediaQuery } from "@/lib/use-media-query";
 import { api, currentTaskBot, openBotThread, useStore, visibleMessages, type Bot, type Message } from "@/state/store";
@@ -91,6 +92,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
   const shown = needle ? matches : expanded ? conversations : collapsed;
   const hidden = conversations.length - collapsed.length;
   const project = bot.projects?.find((folder) => folder.id === bot.tasks?.find((task) => task.threadId === bot.threadId)?.projectId);
+  const oneChat = useOneMainChat();
 
   const closeOnPhone = () => {
     if (phone) dispatch({ type: "toggleSettings", open: false });
@@ -121,7 +123,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
   return (
     <section data-panel-card="conversations" aria-label={t("botPanel.conversations.title")} className="mt-3.5">
       <div className={cn("flex items-center gap-2", listed && "mb-2")}>
-        {bot.yourAccess !== "view" && (
+        {bot.yourAccess !== "view" && !oneChat && (
           <button
             type="button"
             data-conversations-new

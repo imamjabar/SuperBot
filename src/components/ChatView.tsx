@@ -108,7 +108,7 @@ import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import { COMPACT_BUBBLE } from "@/lib/compact-chip";
 import { isStatusActivity, turnDurations, workedLabel } from "@/lib/activity-runs";
-import { groupTranscriptWithPeerExchanges, ownJobNoise } from "@/lib/peer-exchange"; import { isOwnJobThread } from "@/lib/job-threads";
+import { groupTranscriptWithPeerExchanges, ownJobNoise } from "@/lib/peer-exchange"; import { isOwnJobThread } from "@/lib/job-threads"; import { personWritesHere, useOneMainChat } from "@/lib/one-main-chat";
 import { PeerExchangeRow } from "./PeerExchangeRow";
 import { StatusActivityRow } from "@/components/StatusActivityRow";
 import { CancelledTurnRow } from "./CancelledTurnRow";
@@ -895,7 +895,8 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
   const hasMore = Boolean(bot.hasMore);
   const reactor = useReactor();
   const speakerViewer = state.config?.team && reactor !== "user" ? reactor : null;
-  const currentTask = bot.tasks?.find((task) => task.threadId === bot.threadId), jobView = isOwnJobThread(currentTask, bot.id);
+  const oneChat = useOneMainChat();
+  const currentTask = bot.tasks?.find((task) => task.threadId === bot.threadId), jobView = isOwnJobThread(currentTask, bot.id) || !personWritesHere({ threadId: bot.threadId, mainThreadId: profile.mainThreadId }, oneChat);
   const rows = useMemo<ChatRows>(
     () => ({ botId: bot.id, threadId: bot.threadId, botName: bot.name, botColor: bot.color, voiceId: bot.voice, tts, localVoice, hasMore, bots, mentionPeers, mentionPerson: { profileName: state.config?.profile?.name }, focus, showToolCalls, locale, dispatch, onBranch, bubbleStyle, conversational: isConversational(bot.replyStyle), simple: !advanced, canReact: canWrite !== false, openedAt, speakerViewer, readOnlyJob: jobView }),
     [bot.id, bot.threadId, bot.name, bot.color, bot.voice, tts, localVoice, hasMore, bots, mentionPeers, state.config?.profile?.name, focus, showToolCalls, locale, dispatch, onBranch, bubbleStyle, bot.replyStyle, advanced, canWrite, openedAt, speakerViewer, jobView],

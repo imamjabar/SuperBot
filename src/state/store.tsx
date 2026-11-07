@@ -64,6 +64,7 @@ import { readLastBotSection, rememberBotSection } from "@/lib/last-bot-section";
 import { showNotification } from "@/lib/notify";
 import { randomUuid } from "@/lib/random-uuid";
 import { useShowThreads } from "@/lib/thread-preferences";
+import { oneMainChat, oneMainChatEnabled, setOneMainChat } from "@/lib/one-main-chat";
 import { speechOwner, spokenReplyStream } from "@/lib/spoken-reply-stream";
 import { t } from "@/lib/i18n";
 import { createBotPatchQueue, flushWhenLeaving, keepaliveFits, type BotUpdatePatch } from "./bot-patch-queue"; import { createNewTaskOnce } from "./new-task-once";
@@ -2121,6 +2122,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     rawDispatch({ type: "error", message: null });
   }, []);
   useChatErrorClear(state.error, clearChatError);
+  useEffect(() => setOneMainChat(oneMainChatEnabled(state.config)), [state.config]);
   useEffect(() => {
     if (state.selectedId) rememberConversation(state.selectedId);
   }, [state.selectedId]);
@@ -2260,6 +2262,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const wrapped: React.Dispatch<Action> = (action) => {
       if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showRoutines", "showTeamMap", "showFiles", "showWebPanel"].includes(action.type)) selectionRevision.current++;
+      if (action.type === "newTask" && oneMainChat()) {
+        const main = stateRef.current.bots.find((bot) => bot.id === action.botId)?.mainThreadId;
+        action.onCreated?.();
+        if (!main) return;
+        action = { type: "switchTask", botId: action.botId, threadId: main };
+      }
       // Pin before any await or optimistic state change.
       action = pinBotThreadAction(action, stateRef.current.bots);
       if (action.type === "taskSwitched") action = { ...action, bot: withTaskWrites(action.bot) as Bot };

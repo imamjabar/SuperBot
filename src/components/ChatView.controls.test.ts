@@ -704,6 +704,7 @@ describe("a guest's composer on a Cloud home", () => {
 });
 
 const { awayFromMainThread, openBot } = await import("@/state/store");
+const { setOneMainChat } = await import("@/lib/one-main-chat");
 
 describe("the way back to the bot's own conversation", () => {
   const visiting: Bot = {
@@ -731,5 +732,30 @@ describe("the way back to the bot's own conversation", () => {
     expect(header(true, visiting)).not.toContain("data-chathead-back");
     expect(header(false, { ...visiting, threadId: "main" })).not.toContain("data-chathead-back");
     expect(header(false, { ...visiting, mainThreadId: "unknown" })).not.toContain("data-chathead-back");
+  });
+});
+
+describe("a bot with one main chat", () => {
+  const opened: Bot = {
+    ...bot, threadId: "older", mainThreadId: "main",
+    tasks: [
+      { threadId: "main", title: "Our chat", createdAt: 1, busy: false, activity: "idle" },
+      { threadId: "older", title: "Older chat", createdAt: 2, busy: false, activity: "idle" },
+    ],
+  };
+  const render = (of: Bot) => {
+    setOneMainChat(true);
+    try { return renderToStaticMarkup(createElement(ChatView, { bot: of })); } finally { setOneMainChat(false); }
+  };
+
+  it("opens any other thread, from a link or a list, read-only with the way back to the main chat", () => {
+    const markup = render(opened);
+    expect(markup).toContain('data-testid="job-view-footer"');
+    expect(markup).toContain("Back to your chat");
+    expect(markup).not.toContain("<textarea");
+  });
+
+  it("keeps the composer in the main chat", () => {
+    expect(render({ ...opened, threadId: "main" })).toContain("<textarea");
   });
 });

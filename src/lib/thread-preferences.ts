@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import { useAdvancedMode } from "./interface-mode";
+import { useOneMainChat } from "./one-main-chat";
 
 export const SHOW_THREADS_KEY = "omb-show-threads";
 
@@ -63,5 +64,6 @@ export function useShowThreadsChoice(): boolean {
 
 export function useShowThreads(): boolean {
   const chosen = useShowThreadsChoice();
-  return useAdvancedMode() && chosen;
+  const oneChat = useOneMainChat();
+  return useAdvancedMode() && chosen && !oneChat;
 }
