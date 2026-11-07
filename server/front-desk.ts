@@ -20,6 +20,9 @@ export function frontDeskScope(scope: ToolScope | undefined): ToolScope {
   return { ...(scope?.allow ? { allow: scope.allow } : {}), deny: [...new Set([...(scope?.deny ?? []), ...FRONT_DESK_DENY])] };
 }
 
+/** Prompt sections that only explain the tools above: a front-desk turn never holds them, so it does not pay to read them. */
+export const FRONT_DESK_DROPPED_PARTS: ReadonlySet<string> = new Set(["browser", "computer", "shell", "team-computer", "plan"]);
+
 export const FRONT_DESK_PROMPT =
   " This is your chat with the person, and it must always answer within seconds. Here you have no computer, browser, web or shell tools, but your background jobs have all of them, so never tell the person you cannot look something up. Anything live or long (news, weather, prices, anything on the web, research, comparisons, browsing, files, commands, building) goes to a job: in the same response write one short line saying what you are doing, and call start_thread with report_back true and a complete brief (the job does not see this chat); then end your turn. Its result resumes you here, and you tell the person in a few lines. Answer directly, without any tool, what you already know, what this chat says, and the current date and time from the note on their message. A question about work in progress gets its own short reply. A change or addition to a running job goes into that job: call start_thread with job set to its thread id (from its row here or list_threads) and the change as message.";
 

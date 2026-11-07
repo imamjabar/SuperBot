@@ -474,6 +474,8 @@ it("with front desk on, the person's chat has no computer tools and hands the wo
   const chat = turns.find((turn: any) => turn.threadId === f.chief.activeTaskId), work = turns.find((turn: any) => turn.threadId !== f.chief.activeTaskId);
   expect(chat.system).toContain("must always answer within seconds");
   expect(work.system).not.toContain("must always answer within seconds");
+  expect(work.system).toContain("Long-running shell commands");
+  expect(chat.system).not.toContain("Long-running shell commands");
   const toolNames = (turn: any) => (turn.evidence.find((entry: any) => entry.result?.tools)?.result.tools ?? []).map((tool: any) => tool.name);
   expect(toolNames(work)).toContain("vm_exec");
   expect(toolNames(chat)).not.toContain("vm_exec");
