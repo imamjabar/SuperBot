@@ -15,20 +15,24 @@ function fixture() {
   const bot = store.createBot({ name: "Scout" });
   const sideReplies = createSideReplies(store);
   const answers = (threadId: string, text: string) => store.messagesFor(threadId).filter((row) => row.role === "bot" && row.text === text);
-  const ask = (text: string, reply: (lane: string) => void) => sideReplies.answer({
-    botId: bot.id, threadId: bot.threadId, text,
-    start: async (lane) => { const asked = store.appendMessage(lane, { role: "user", kind: "text", text }); reply(lane); return { message: asked }; },
-  });
+  const ask = async (text: string, reply: (lane: string, askedId: string) => void) => {
+    let lane = "";
+    let askedId = "";
+    const answered = await sideReplies.answer({
+      botId: bot.id, threadId: bot.threadId, text,
+      start: async (id) => { lane = id; askedId = store.appendMessage(id, { role: "user", kind: "text", text }).id; return { message: { id: askedId } }; },
+    });
+    reply(lane, askedId);
+    return { ...answered, lane };
+  };
   return { store, bot, answers, ask };
 }
 
 describe("the Quick replies lane", () => {
   it("lands each answer in the main chat that asked, exactly once, tied to the person's message", async () => {
     const { store, bot, answers, ask } = fixture();
-    let lane = "";
-    const { message } = await ask("What time is it?", (id) => {
-      lane = id;
-      store.appendMessage(id, { role: "bot", kind: "text", text: "It is 21:15", requestMessageId: store.messagesFor(id).at(-1)!.id });
+    const { message, lane } = await ask("What time is it?", (id, askedId) => {
+      store.appendMessage(id, { role: "bot", kind: "text", text: "It is 21:15", requestMessageId: askedId });
     });
     expect(store.taskByThread(bot.id, lane)?.title).toBe(SIDE_LANE_TITLE);
     expect(answers(bot.threadId, "It is 21:15")).toEqual([expect.objectContaining({ requestMessageId: message.id })]);
