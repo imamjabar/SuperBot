@@ -13,7 +13,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { createComputerSharing } from "../electron/computer-sharing.mjs";
 import { itemKey } from "../electron/cloud-send-parts.mjs";
 import { launchCloudSendFixture, type CloudSendFixture } from "../scripts/testing/cloud-send-fixture.ts";
-import { startBrokerFake, type BrokerFake } from "./testing/broker-fake.ts";
+import { brokerHarnessPresent, startBrokerFake, type BrokerFake } from "./testing/broker-fake.ts";
 import { FAKE_LOCATION_ID, startFakeHighLevel, startFakeRelay, type FakeHighLevel, type FakeRelay } from "./testing/fake-highlevel.ts";
 import { hostTimeout } from "./testing/host-timeout.ts";
 
@@ -30,6 +30,7 @@ const ACCESS = `fake-access-${hex(8)}`, REFRESH = `fake-refresh-${hex(8)}`;
 const SECRETS = [TOKEN, PASSWORD, DODO_KEY, DOCS_TOKEN, CLIENT_SECRET, OPENROUTER_KEY, PIT, ACCESS, REFRESH];
 const LINEAR_URL = "https://mcp.linear.example.test/mcp";
 
+const withBroker = it.skipIf(!brokerHarnessPresent);
 let broker: BrokerFake;
 let hl: FakeHighLevel;
 let relay: FakeRelay;
@@ -140,7 +141,7 @@ async function turnDump(botId: string, threadId: string, seen: Set<string>) {
   return dump!;
 }
 
-it("lines My Cloud already held of this computer's become its owner's when the move names them, at once for what its bots recall", async () => {
+withBroker("lines My Cloud already held of this computer's become its owner's when the move names them, at once for what its bots recall", async () => {
   const { local, onCloud } = fx;
   // Kai's and Lux's conversations reached My Cloud before My Cloud kept its owner's lines as theirs, as an older app's send
   // or Bring left them. The move (next) names Kai's; Lux's are named here, over the owner's own session.
@@ -178,7 +179,7 @@ it("lines My Cloud already held of this computer's become its owner's when the m
   expect(await recentWork(), "once its lines are the owner's, at once: nothing else in it changed").toContain(said);
 }, hostTimeout(180_000));
 
-it("a move carries everything, apps and keys first, and its check finds every row, path, attachment and credential there", async () => {
+withBroker("a move carries everything, apps and keys first, and its check finds every row, path, attachment and credential there", async () => {
   const { local, onCloud } = fx;
   // Archie, as the real-app run found it: a long tool-heavy conversation with 22 context summaries along it.
   archie = await newBot("Archie");
@@ -262,7 +263,7 @@ it("a move carries everything, apps and keys first, and its check finds every ro
   for (const where of [...fx.answers, fx.logs()]) for (const value of SECRETS) expect(where).not.toContain(value);
 }, hostTimeout(900_000));
 
-it("a move run again changes nothing on My Cloud, and its check still finds everything there", async () => {
+withBroker("a move run again changes nothing on My Cloud, and its check still finds everything there", async () => {
   const manifest = async () => (await fx.onCloud("GET", "/api/cloud-send/manifest")).body;
   const before = await manifest();
   const again = await fx.move({ final: true });
@@ -288,7 +289,7 @@ async function agentsFor(botId: string, threadId: string, seen: Set<string>) {
   return (name: string, args: unknown = {}) => request("tools/call", { name, arguments: args });
 }
 
-it("a moved conversation may use the lent Mac and feeds its bot's memory on My Cloud", async () => {
+withBroker("a moved conversation may use the lent Mac and feeds its bot's memory on My Cloud", async () => {
   const folderPath = realpathSync(mkdtempSync(join(tmpdir(), "omb-moved-lent-")));
   writeFileSync(join(folderPath, "plan.md"), "from the Mac");
   const env = { id: "my-cloud", name: "My Cloud", origin: fx.cloudBase };
@@ -338,7 +339,7 @@ it("a moved conversation may use the lent Mac and feeds its bot's memory on My C
   }
 }, hostTimeout(180_000));
 
-it("lines the owner wrote on this computer arrive as the same owner as the lines they write on My Cloud", async () => {
+withBroker("lines the owner wrote on this computer arrive as the same owner as the lines they write on My Cloud", async () => {
   const before = (await history(fx.onCloud, kai.threadId)).rows.filter((row) => row.role === "user").map((row) => row.sender?.id);
   expect(before.length).toBeGreaterThan(0);
   const [here, there] = [await history(fx.local, cleo.threadId), await history(fx.onCloud, cleo.threadId)];
