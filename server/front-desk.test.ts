@@ -50,7 +50,7 @@ describe("frontDeskScope", () => {
 
   it("keeps the person's chat off the desktop, the browser and page reads, and leaves it the job tools", () => {
     const chat = frontDeskScope({ deny: ["mcp:data:data_sql"] });
-    for (const seat of [tool("computer", "click"), tool("browser", "browser_navigate"), tool("agents", "vm_exec"), tool("agents", "shared_computer"), tool("agents", "web_fetch"), tool("agents", "web_search")]) {
+    for (const seat of [tool("computer", "click"), tool("browser", "browser_navigate"), tool("agents", "vm_exec"), tool("agents", "shared_computer"), tool("agents", "select_computer"), tool("agents", "web_fetch"), tool("agents", "web_search")]) {
       expect(allowsTool(chat, seat), `${seat.server}:${seat.name}`).toBe(false);
     }
     expect(allowsTool(chat, tool("data", "data_sql"))).toBe(false);

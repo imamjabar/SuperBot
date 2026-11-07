@@ -23,7 +23,7 @@ const GENERIC_STATUS = /^(Starting|Planning the steps|Writing (the )?answer)$/;
 const STALE_REPLAY = /\b(earlier|previously|already (shared|sent|answered|reported))\b|sebelumnya|tadi sudah|sudah (saya )?(kirim|sampaikan)/i;
 const isProgressNote = (m) => /^(Still working|Masih (bekerja|mengerjakan))/i.test(m.text);
 const ID_WORDS = /\b(yang|dan|di|ke|dari|ini|itu|untuk|dengan|tolong|apa|bisa|sudah|saya|kamu|anda|berapa|kali|adalah|hasil|sedang|akan|cek|berita|terkini|ya|tidak|ada|sekarang|jam|hari|nanti|sebentar|baik|oke)\b/gi;
-const EN_WORDS = /\b(the|and|is|are|what|please|can|you|to|of|for|with|this|that|how|it|i|will|here|news|latest|times|result|now|be|on|in|time|today|i'll|it's|let|me|check|checking)\b/gi;
+const EN_WORDS = /\b(the|and|is|are|what|please|can|you|to|of|for|with|this|that|how|it|i|will|here|news|latest|times|result|now|be|on|in|time|today|i'll|it's|let|me|check|checking|equals|divided|by)\b/gi;
 
 /** Which of the two languages the probe sends a reply is written in, by common short words; "unknown" on a tie. */
 export function languageOf(text) {
@@ -348,12 +348,12 @@ const finished = () => { summary.ok = Object.values(summary.checks).every((c) =>
 async function idleJob(bot, since, threadId) {
   return waitFor("job idle", async () => {
     const job = (await ownJobs(bot, since)).find((t) => t.threadId === threadId);
-    return job && !job.busy ? job : undefined;
+    return job && !job.busy && (await messages(threadId)).some((m) => m.role === "bot") ? job : undefined;
   }, Math.max(10_000, DEADLINE - Date.now() - 60_000), 2_000).catch(() => undefined);
 }
 
 async function finalAfterJob(main, jobThreadId) {
-  const lastAt = (await messages(jobThreadId)).at(-1)?.at ?? 0;
+  const lastAt = (await messages(jobThreadId)).at(-1)?.at ?? Date.now();
   return waitFor("job final", async () => botText(await messages(main), lastAt).find((m) => !isProgressNote(m)), 60_000, 1_000).catch(() => undefined);
 }
 
@@ -370,10 +370,15 @@ function assignmentOf(threadId) {
   }
 }
 
+/** Production's Chief carries this standing note, and before the front-desk language rule it answered English asks in Indonesian. */
+const PRODUCTION_LANGUAGE_NOTE = "Lasting rules:\n- Reply in the language Imam uses (often casual Indonesian); he addresses the assistant as \"Chief\".";
+
 async function languageScenario(bot, main, person) {
+  const soul = await call("PATCH", `/api/bots/${bot.id}`, { soul: PRODUCTION_LANGUAGE_NOTE }, person);
+  summary.counts.soulPatch = soul.status;
   const asks = [
-    { label: "id-quick", text: "Halo Chief, berapa 17 kali 23? Jawab satu kalimat.", want: "id" },
-    { label: "en-quick", text: "And what is 45 divided by 9? Answer in one sentence.", want: "en" },
+    { label: "en-quick", text: "Hey Chief, what is 45 divided by 9? Answer in a full sentence.", want: "en" },
+    { label: "id-quick", text: "Halo Chief, berapa 17 kali 23? Jawab dengan satu kalimat lengkap.", want: "id" },
     { label: "en-job", text: "Please check the latest Kompas headlines for me.", want: "en", job: true },
     { label: "id-quick-after", text: "Oke makasih. Sekarang jam berapa di Jakarta?", want: "id" },
   ];

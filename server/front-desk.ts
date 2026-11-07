@@ -27,6 +27,7 @@ export const FRONT_DESK_DENY: readonly string[] = [
   "mcp:browser:*",
   "mcp:agents:vm_exec",
   "mcp:agents:shared_computer",
+  "mcp:agents:select_computer",
   "mcp:agents:web_fetch",
   "mcp:agents:web_search",
 ];
