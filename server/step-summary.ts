@@ -235,6 +235,8 @@ function firstChangedPath(parsed: Record<string, unknown> | string | undefined):
 
 const WEB_SEARCH = /web.?search|search.?(?:the.?)?web|google.?search|brave.?search|bing.?search|tavily|exa.?search|duckduckgo|perplexity|internet.?search/i;
 const FETCH = /fetch|read.?page|read.?url|get.?page|scrape|crawl/i;
+const BROWSE = /^(?:agent_browser_(?:open|navigate|read)|open_url|browser_navigate)$/;
+const SHELL = /^(?:vm_exec|run_command|exec|shell|bash)$/i;
 const WRITE = /^(?:write|write.?file|create.?file)$/i;
 const EDIT = /^(?:edit|multi.?edit|notebook.?edit|str.?replace|replace|apply.?patch)$/i;
 const READ = /^(?:read|read.?file|view|open.?file)$/i;
@@ -245,11 +247,19 @@ function withDetail(step: LiveStep, detail: string | undefined): LiveStep {
 }
 
 export function toolStep(call: { title?: string; summary?: string; input?: string }): LiveStep | undefined {
-  const title = (call.title ?? "").replace(/^mcp__.+?__/, "").trim();
-  const parsed = parsedInput(call.input);
+  const named = (call.title ?? "").replace(/^mcp__.+?__/, "").trim();
+  const outer = parsedInput(call.input);
+  const bridged = named === "use_tool" && outer && typeof outer === "object" && typeof outer.name === "string" ? outer : undefined;
+  const title = bridged ? (bridged.name as string).replace(/^mcp__.+?__/, "").trim() : named;
+  const parsed = bridged ? (bridged.arguments && typeof bridged.arguments === "object" ? bridged.arguments as Record<string, unknown> : undefined) : outer;
   if (call.summary?.trim()) {
     const target = commandTarget(call.summary);
     return target ? withDetail({ activity: "command", target }, maskAssignments(call.summary)) : undefined;
+  }
+  const command = SHELL.test(title) ? inputField(parsed, ["command", "cmd"]) : undefined;
+  if (command) {
+    const target = commandTarget(command);
+    return target ? withDetail({ activity: "command", target }, maskAssignments(command)) : undefined;
   }
   if (WEB_SEARCH.test(title)) {
     const query = typeof parsed === "string" && !parsed.trimStart().startsWith("{") ? parsed : inputField(parsed, ["query", "q", "search_query", "searchQuery"]);
@@ -258,7 +268,7 @@ export function toolStep(call: { title?: string; summary?: string; input?: strin
     return target ? withDetail({ activity: "web", target }, query) : undefined;
   }
   const url = inputField(parsed, ["url", "uri", "href", "link"]);
-  if (url && FETCH.test(title)) {
+  if (url && (FETCH.test(title) || BROWSE.test(title))) {
     const site = siteOf(url.trim());
     if (!site) return undefined;
     const { hostname, pathname } = new URL(url.trim());

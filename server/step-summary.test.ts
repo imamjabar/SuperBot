@@ -98,6 +98,14 @@ describe("toolStep", () => {
       .toEqual({ activity: "edit", target: "index.html" });
   });
 
+  it("reads the agents tools: a VM command, a browser page and a call made through use_tool", () => {
+    expect(toolStep({ title: "mcp__agents__vm_exec", input: toolDetailPreview({ command: "python3 scrape.py --pages 4" }) })?.target).toBe("scrape.py");
+    expect(toolStep({ title: "agent_browser_open", input: toolDetailPreview({ url: "https://www.kompas.com/tren" }) })).toEqual({ activity: "fetch", target: "kompas.com", detail: "kompas.com/tren" });
+    expect(toolStep({ title: "mcp__agents__use_tool", input: toolDetailPreview({ name: "web_fetch", arguments: { url: "https://kompas.com/" } }) })).toEqual({ activity: "fetch", target: "kompas.com" });
+    expect(toolStep({ title: "use_tool", input: toolDetailPreview({ name: "vm_exec", arguments: { command: "pnpm test" } }) })).toEqual({ activity: "command", target: "pnpm test" });
+    expect(toolStep({ title: "agent_browser_click", input: toolDetailPreview({ ref: "e4" }) })).toBeUndefined();
+  });
+
   it("cuts a long query to the cap and keeps the rest for the hover", () => {
     const query = "Acme construction leads with building permits filed this quarter, application deadlines 2026";
     const step = toolStep({ title: "WebSearch", input: toolDetailPreview({ query }) })!;
