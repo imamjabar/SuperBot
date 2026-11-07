@@ -6,6 +6,8 @@ Evidence: **CI** = scoped specs in the branch-only `chatux-check.yml` (run 42346
 
 Order for any web task (own design, not Grok's private mechanism): a connected app, then search or a public GET, then the built-in browser, then the one desktop seat. Desktop and browser work run in delegated jobs on that one seat. Mac rule for this package: no tests, builds or installs on the Mac; the specs below are for the box. Box list: `scripts/validate-chatux/box-tools.txt`.
 
+READY: Package 2 (tools) at `34b26d3` — D1/D4 `web_fetch` everywhere except the front desk; D2 `web_search` via the Command Code gateway with the existing key; D3 connector first; D5 sign-in/script pages go to the built-in browser; D6 one shared seat; C3 one busy-chat policy in the main chat with front desk on by default; C9 logical job id. Test fixtures start with front desk off. Reviews: no blockers. Box list: `scripts/validate-chatux/box-tools.txt`.
+
 | Item | Commits | Status | Evidence |
 |---|---|---|---|
 | D1/D4: a public URL or news is read through `web_fetch`, never the desktop, from a chat or a job. `web_fetch` is mounted in every conversation (the `OMB_WEB_FETCH` gate is gone). The front desk denies it and hands the read to a job, so the main chat stays fast. The surface prompt puts `web_fetch` before any screen | `34127e6` | Box run pending | `server/drivers/agents-usage-tool.test.ts`, `server/front-desk.test.ts` |
