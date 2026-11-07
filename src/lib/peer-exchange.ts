@@ -230,7 +230,7 @@ export function groupPeerExchanges(messages: readonly Message[]): PeerExchangeIt
           consumedIndices.add(resumedIdx);
         }
 
-        const from = message.from ?? { botId: "", name: "" };
+        const from = message.from ?? { botId: "", name: "", color: "blue" as const };
         const exchangeId = targetRequestId
           ? `peer:${targetRequestId}`
           : resultMsg.roomRequest?.id
