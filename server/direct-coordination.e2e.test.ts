@@ -433,6 +433,7 @@ it("sends a correction from the chat into the bot's own running job, which carri
   await f.start();
   const job = () => f.nodes().find((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
   await expect.poll(() => job()?.status, { timeout: 15_000 }).toBe("running");
+  const jobId = job().id;
   f.plan[f.chief.id].byPrompt.unshift({ promptIncludes: "CHANGE_PING", plan: { steps: [{ tool: "start_thread", arguments: { title: "Long job", message: "Also include Vultr", job: job().threadId } }], reply: "Added Vultr to the job" } });
   f.save();
   await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "CHANGE_PING add Vultr too");
@@ -450,6 +451,9 @@ it("sends a correction from the chat into the bot's own running job, which carri
   expect(main.filter((line) => line.tool?.output === "STEER_JOB_RESULT")).toHaveLength(1);
   expect(main.filter((line) => line.text === "Added Vultr to the job"), "the steer ack is the chat's own answer").toHaveLength(1);
   expect(jobLines.some((line) => line.text === "Added Vultr to the job"), "the ack never lands in the job").toBe(false);
+  const steered = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id).tasks.find((t: any) => t.threadId === job().threadId);
+  expect(steered.openedBy.delegationId, "a steer keeps the job's id").toBe(jobId);
+  expect(f.nodes().filter((node: any) => node.threadId === job().threadId).map((node: any) => node.id)).toEqual([jobId]);
 }), 60_000);
 
 it("a report-back job posts progress to the chat, and its progress and result quote the person's request after another message", () => fixture(async f => {
@@ -473,7 +477,8 @@ it("a report-back job posts progress to the chat, and its progress and result qu
   expect(chat.find((m: any) => m.text === "It is 21:15").requestMessageId).toBe(ping.id);
   expect(chat.find((m: any) => m.text === "The prices are back").requestMessageId).toBe(asked.id);
   const task = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id).tasks.find((t: any) => t.threadId === job().threadId);
-  expect(task.openedBy).toMatchObject({ reportsBack: true, threadId: f.chief.activeTaskId, requestMessageId: asked.id });
+  expect(task.openedBy).toMatchObject({ reportsBack: true, threadId: f.chief.activeTaskId, requestMessageId: asked.id, delegationId: job().id });
+  expect([asked.id, ping.id], "the job's id is not the id of a request it answers").not.toContain(task.openedBy.delegationId);
   const turns = f.evidence();
   const toolNames = (turn: any) => (turn.evidence.find((entry: any) => entry.result?.tools)?.result.tools ?? []).map((tool: any) => tool.name);
   expect(toolNames(turns.find((turn: any) => turn.threadId === job().threadId))).toContain("report_progress");

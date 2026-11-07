@@ -14010,6 +14010,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             else if (createdThread) {
               threadStarters.set(createdThread, opener);
               if (fresh && !EXTERNAL) internalCapability.openedThreads += 1;
+              const openedBy = store.taskByThread(target.botId, createdThread)?.openedBy;
+              if (openedBy?.reportsBack) store.setTaskOpenedBy(target.botId, createdThread, { ...openedBy, delegationId: node.id });
             }
             createdThread = undefined;
             const title = via === "room" ? undefined : store.taskByThread(node.botId, node.threadId)?.title;

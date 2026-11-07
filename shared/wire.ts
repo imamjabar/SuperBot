@@ -85,6 +85,8 @@ export type BotActivity = "working" | "waiting-on-you" | "idle" | "no-signal" | 
 export interface TaskOpenedBy {
   botId: string;
   name: string;
+  /** A report-back job's logical id (its coordinator assignment): one per job, kept across its turns, steers, duplicate
+   * sends and restarts. Never a request or turn id: the person's message it answers is `requestMessageId`. */
   delegationId?: string;
   /** What kind of conversation the opener made this: "pair" is the one durable conversation between two bots; "work" closes itself once its result has been reported. */
   kind?: "pair" | "work";
