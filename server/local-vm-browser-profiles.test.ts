@@ -6,7 +6,7 @@ import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { VM_WORKSPACE_GUEST, managedImageDockerfile, type LocalVmTarget } from "./container-computer.ts";
+import { VM_WORKSPACE_GUEST, managedImageDockerfile, type ContainerComputerStatus, type LocalVmTarget } from "./container-computer.ts";
 import { keepFirefoxProfileBeforeRemove, keepInstalledAppsBeforeRemove, rescueFirefoxProfile, rescueInstalledApps } from "./local-vm-profiles.ts";
 
 const temporary: string[] = [];
