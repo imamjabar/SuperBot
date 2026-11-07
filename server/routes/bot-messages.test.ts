@@ -16,6 +16,8 @@ import { acceptedSendMatch, sendFingerprint, SendSequencer } from "../send-idemp
 import { _queuedCount, drainSteeredMessages, queuedSteeredMessage, queueSteeredMessage } from "../steer-queue.ts";
 import { Store, type Message } from "../store.ts";
 import { typedWords } from "../typed-sends.ts";
+import type { AppConfig } from "../config.ts";
+import { outsideMainChat } from "../front-desk.ts";
 import { createBotMessageRoutes, type BotMessageRouteDeps } from "./bot-messages.ts";
 import { dispatchRoutes } from "./table.ts";
 
@@ -112,6 +114,7 @@ async function fixture(over: Partial<Record<keyof BotMessageRouteDeps, unknown>>
     parksBehindCoordination: () => false,
     activeGroupTurnForBot: () => null,
     cloudThreadRefusal: () => null,
+    outsideMainChat: () => false,
     phoneSecretSubmissions: { hasThread: () => false },
     turnSelection: () => undefined,
     registry: { get: () => ({ instanceId: "claude", driverKind: "claudeAgent" }) },
@@ -605,5 +608,42 @@ describe("a bot's own background job thread", () => {
     const stop = await fetch(`${base}/api/bots/${bot.id}/interrupt`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ threadId: job }) });
     expect(stop.status).toBe(200);
     expect(stopped).toEqual([job]);
+  });
+});
+
+describe("a bot with one main chat (front desk on)", () => {
+  const frontDesk = { features: { frontDesk: true } } as AppConfig;
+  const oneChat = async (desktopManaged = true) => {
+    let main = "";
+    const f = await fixture({ outsideMainChat: (_botId: string, thread: string) => outsideMainChat(frontDesk, main, thread) }, desktopManaged);
+    main = f.threadId;
+    return { ...f, legacy: f.store.createTask(f.bot.id, "Older chat", false)!.threadId };
+  };
+
+  it("takes the person's send in the main chat", async () => {
+    const { threadId, state, post } = await oneChat();
+    expect((await post({ threadId, sendId: SEND, text: "Hello" })).status).toBe(202);
+    expect(state.accepted.map((input) => input.threadId)).toEqual([threadId]);
+  });
+
+  it("refuses the person's send, goal and edit in any other thread and names the main chat", async () => {
+    const { store, state, post, edit, legacy } = await oneChat();
+    const typed = await post({ threadId: legacy, sendId: SEND, text: "Still here?" });
+    expect(typed).toMatchObject({ status: 409, body: { code: "main_chat_only" } });
+    expect(typed.body.error).toContain("main chat");
+    expect((await post({ threadId: legacy, text: "Finish it", mode: "goal" })).body.code).toBe("main_chat_only");
+    const earlier = store.appendMessage(legacy, { role: "user", kind: "text", text: "Old question" });
+    expect((await edit(earlier.id, { threadId: legacy, text: "New question" })).body.code).toBe("main_chat_only");
+    expect(state.accepted).toEqual([]);
+    expect(state.started).toEqual([]);
+  });
+
+  it("still takes a card press there, and a bot's shell writing into its own thread", async () => {
+    const desktop = await oneChat();
+    const pressed = await desktop.post({ threadId: desktop.legacy, sendId: SEND, widgetAction: { messageId: desktop.show("routineForm", desktop.legacy), ref: "confirm", values: { days: "mon,tue,wed,thu,fri,sat,sun", report: "discord:releases" } } });
+    expect(pressed.status, JSON.stringify(pressed.body)).toBe(202);
+    const headless = await oneChat(false);
+    expect((await headless.post({ threadId: headless.legacy, text: "progress: 2 of 4" })).status).toBe(202);
+    expect(headless.state.accepted.map((input) => input.threadId)).toEqual([headless.legacy]);
   });
 });

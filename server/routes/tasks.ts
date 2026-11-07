@@ -19,6 +19,7 @@ import { bulkDeleteThreadIds, type BulkDeleteRefusal } from "./bulk-delete.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 import { sawThread } from "../thread-presence.ts";
 import { readThreadNotifications } from "./notifications.ts";
+import { NEW_CHAT_REFUSED } from "../front-desk.ts";
 
 type HostedModels = NonNullable<ReturnType<typeof hostedModelPolicy>>;
 
@@ -45,6 +46,8 @@ export interface TaskRouteDeps {
   directTurnGenerationByThread: ReadonlyMap<string, string>;
   actorKey(auth: RequestAuth & { kind: "session" }): string;
   cloudOwnerSession(auth: RequestAuth): boolean;
+  /** Front desk: the person keeps one chat per bot, so they never open another. */
+  oneMainChat(): boolean;
   cloudThreadRefusal(auth: RequestAuth, threadId: string): string | null;
   sharedWorkspaceFullAccessEnabled(): boolean;
   supportsApprovalMode(selection: ModelSelection, mode: ApprovalMode): boolean;
@@ -166,6 +169,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       if (body.select !== undefined && typeof body.select !== "boolean") return json(res, 400, { error: "select must be a boolean" });
       const bot = store.bot(m[1]);
       if (!bot) return json(res, 404, { error: "no such bot" });
+      if (deps.oneMainChat() && (auth.kind === "session" || DESKTOP_MANAGED)) return json(res, 409, NEW_CHAT_REFUSED);
       let cwd: string | undefined;
       if (body.cwd !== undefined) {
         // Choosing where its file tools run takes the same authority as editing the bot's folder.

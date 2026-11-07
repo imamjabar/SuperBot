@@ -509,7 +509,12 @@ it("with front desk on, the person's chat has no computer tools and hands the wo
   expect(toolNames(work)).toContain("vm_exec");
   expect(toolNames(chat)).not.toContain("vm_exec");
   expect(toolNames(chat)).toContain("start_thread");
-  expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "The job is back")).toBe(true);
+  const main: Array<{ text?: string; roomRequest?: { phase?: string } }> = await f.messages(f.chief.activeTaskId);
+  const jobLines: Array<{ text?: string }> = await f.messages(work.threadId);
+  expect(main.filter((message) => message.text === "The job is back")).toHaveLength(1);
+  expect(main.filter((message) => message.roomRequest?.phase === "result")).toHaveLength(1);
+  expect(jobLines.some((message) => message.text === "DESK_JOB_RESULT ready"), "the job writes its own work into its thread").toBe(true);
+  expect(jobLines.some((message) => message.text === "The job is back"), "the person's answer never lands in the job").toBe(false);
 }), 60_000);
 
 it("lets the opener find and close the completed task", () => fixture(async f => {

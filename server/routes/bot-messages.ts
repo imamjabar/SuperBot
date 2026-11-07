@@ -14,6 +14,7 @@ import { AppMessageRate, appContextBlock, prepareAppMessage } from "../chat-apps
 import { prepareWidgetPress, reopenCancelledPress } from "../chat-widgets.ts";
 import type { ModelSelection, RequestOutcome, SteerOutcome } from "../contracts.ts";
 import { parseDataContext, type DataContext } from "../data-context.ts";
+import { MAIN_CHAT_ONLY } from "../front-desk.ts";
 import { preparePointed } from "../pointed.ts";
 import type { Handoffs } from "../delta-context.ts";
 import type { OneOnOneGoals } from "../host/one-on-one-goals.ts";
@@ -76,6 +77,7 @@ export interface BotMessageRouteDeps {
   messageSender(auth: RequestAuth): ResolvedSender | undefined;
   cloudGuestSendRefusal(auth: RequestAuth, threadId: string): string | null;
   cloudThreadRefusal(auth: RequestAuth, threadId: string): string | null;
+  outsideMainChat(botId: string, threadId: string): boolean;
   cardAnswerRefusal(auth: RequestAuth, threadId: string, requestId: string, behavior: string): string | null;
   commandRememberRefusal(auth: RequestAuth, threadId: string, requestId: string, behavior: string): string | null;
   requestBehavior(value: unknown): Behavior | null;
@@ -178,11 +180,11 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
   /** widget -> sendId of a press on its way in: a second tap before acceptance must not send a second answer. */
   const pressesInFlight = new Map<string, string | undefined>();
   const appMessageRate = new AppMessageRate();
-  const jobThreadRefusal = (auth: RequestAuth, botId: string, threadId: string) => {
+  const personThreadRefusal = (auth: RequestAuth, botId: string, threadId: string) => {
+    if (auth.kind !== "session" && !DESKTOP_MANAGED) return null;
     const opened = store.taskByThread(botId, threadId)?.openedBy;
-    return (auth.kind === "session" || DESKTOP_MANAGED) && opened?.reportsBack && opened.botId === botId
-      ? { error: "This is the bot's own background job, so it is read-only. Steer or stop it from the bot's main chat.", code: "job_thread_read_only" }
-      : null;
+    if (opened?.reportsBack && opened.botId === botId) return { error: "This is the bot's own background job, so it is read-only. Steer or stop it from the bot's main chat.", code: "job_thread_read_only" };
+    return deps.outsideMainChat(botId, threadId) ? MAIN_CHAT_ONLY : null;
   };
   const route: RouteHandler = async (ctx) => {
     const { req, res, path, method, auth, json, readBody } = ctx;
@@ -233,7 +235,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const threadId = body.threadId ?? bot.threadId;
       const notYours = cloudGuestSendRefusal(auth, threadId);
       if (notYours) return json(res, 403, { error: notYours });
-      const jobOnly = pressed ? null : jobThreadRefusal(auth, bot.id, threadId);
+      const jobOnly = pressed ? null : personThreadRefusal(auth, bot.id, threadId);
       if (jobOnly) return json(res, 409, jobOnly);
       if (body.mode !== undefined && body.mode !== "chat" && body.mode !== "goal") return json(res, 400, { error: "mode must be chat or goal" });
       if (body.mode === "goal") {
@@ -478,7 +480,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const bot = requestedTaskBot(m[1], body.threadId);
       const notYours = cloudThreadRefusal(auth, bot.threadId);
       if (notYours) return json(res, 403, { error: notYours });
-      const jobOnly = jobThreadRefusal(auth, bot.id, bot.threadId);
+      const jobOnly = personThreadRefusal(auth, bot.id, bot.threadId);
       if (jobOnly) return json(res, 409, jobOnly);
       const textRefused = messageTextRefusal(body.text);
       if (textRefused) return json(res, 400, { error: textRefused });

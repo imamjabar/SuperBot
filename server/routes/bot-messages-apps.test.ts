@@ -84,6 +84,7 @@ async function fixture() {
     store,
     routines: () => null,
     desktopManaged: true,
+    outsideMainChat: () => false,
     cloudHome: false,
     DirectSendRefused,
     acceptDirectSend: accept,

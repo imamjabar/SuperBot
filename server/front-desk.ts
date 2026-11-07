@@ -9,6 +9,15 @@ export function frontDeskTurn(cfg: AppConfig, store: Pick<Store, "taskByThread">
   return cfg.features?.frontDesk === true && (threadId === mainThreadId || store.taskByThread(botId, threadId)?.title === SIDE_LANE_TITLE);
 }
 
+export const MAIN_CHAT_ONLY = { error: "Only this bot's main chat takes your messages, so this thread is read-only. Use the main chat.", code: "main_chat_only" } as const;
+
+/** With front desk on, a person writes to a bot only in its main chat: every other thread is the bot's own work, read-only for them. */
+export function outsideMainChat(cfg: AppConfig, mainThreadId: string | undefined, threadId: string): boolean {
+  return cfg.features?.frontDesk === true && mainThreadId !== undefined && threadId !== mainThreadId;
+}
+
+export const NEW_CHAT_REFUSED = { error: "This bot keeps one chat with you. Use its main chat.", code: "main_chat_only" } as const;
+
 /** Tools that make a turn slow: the computer, the browser and shells. The person's chat never holds them, so it always answers fast. */
 export const FRONT_DESK_DENY: readonly string[] = [
   "mcp:computer:*",
