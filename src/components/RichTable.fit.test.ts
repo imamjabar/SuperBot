@@ -85,6 +85,32 @@ describe("a table in a reply", () => {
     }
   });
 
+  it("on a phone, shares the message width between up to six columns so the widest word cannot push the table past it", () => {
+    const vps = ["Provider", "Plan", "Price", "Specs", "Region Singapura"];
+    const offer = ["Vultr", "Regular Cloud Compute", "US$20,00/bulan", "1 vCPU, 2 GB", "Tidak (terdekat: Ashburn, Hillsboro)"];
+    let report: () => void = () => undefined;
+    vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { report = callback; } observe() {} disconnect() {} });
+    const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute("role") === "region" ? 340 : 0;
+    });
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    try {
+      flushSync(() => root.render(createElement(RichTable, { columns: vps.map((text) => ({ text })), rows: Array.from({ length: 3 }, () => offer.map((text) => ({ text }))) })));
+      flushSync(() => report());
+      const table = host.querySelector("table")!;
+      expect(host.querySelector<HTMLElement>("[role=region]")!.dataset.fit).toBe("true");
+      expect(table.className).toContain("table-fixed");
+      expect(table.className).toContain("w-full");
+      expect(table.getAttribute("style")).toBeNull();
+      expect(host.querySelector("colgroup")).toBeNull();
+    } finally {
+      root.unmount();
+      width.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("floors a column at its longest word, within bounds", () => {
     expect(columnMinimums(["ID", "Notes"], [["7", "a"], ["12", "Extraordinarily-long-identifier here"]])).toEqual([
       COLUMN_MIN_CHARS * CHAR_PX, COLUMN_MAX_CHARS * CHAR_PX,
