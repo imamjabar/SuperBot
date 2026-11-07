@@ -185,8 +185,13 @@ async function main() {
     const ELAPSED = /^(\d+m\s*)?\d+s$|^\d+\s*min$/;
     const split = (rows) => {
       const replies = botText(rows, t0).filter((m) => !isProgressNote(m));
+      const closing = replies.filter((m) => rows.slice(rows.indexOf(m) + 1).find((n) => n.role === "bot")?.kind !== "activity");
       const done = timingMarks().filter((m) => m.mark === "job-done" && m.status !== "cancelled").map((m) => m.at).sort((a, b) => a - b);
-      const finals = done.map((at) => replies.find((m) => m.at >= at)).filter((m, i, all) => m && all.indexOf(m) === i);
+      const finals = [];
+      for (const at of done) {
+        const next = closing.find((m) => m.at >= at && !finals.includes(m));
+        if (next) finals.push(next);
+      }
       return { replies, acks: replies.slice(0, 2), finals, done };
     };
     while (Date.now() < DEADLINE) {
@@ -250,9 +255,10 @@ async function main() {
       jobDoneMs: doneAt.map((at) => at - firstSend),
       finalsMs: finals.map((m) => m.at - firstSend),
       jobs: perJob.map((j, i) => {
-        const final = j.job.busy || j.lastAt === undefined ? undefined : finals.find((m) => m.at >= j.lastAt);
+        const settledJobs = perJob.filter((p) => !p.job.busy && p.lastAt !== undefined).sort((a, b) => a.lastAt - b.lastAt);
+        const final = finals[settledJobs.indexOf(j)];
         return { title: j.job.title, ran: j.ran, ackMs: acks[i] ? acks[i].at - firstSend : null, startMs: j.job.createdAt - firstSend,
-          doneMs: j.job.busy || j.lastAt === undefined ? null : j.lastAt - firstSend, finalMs: final ? final.at - firstSend : null };
+          doneMs: settledJobs.includes(j) ? j.lastAt - firstSend : null, finalMs: final ? final.at - firstSend : null };
       }),
       serverAckMs: marks.filter((m) => m.mark === "ack").map((m) => m.ms),
       deliveredMs: marks.filter((m) => m.mark === "delivered").map((m) => m.ms),
