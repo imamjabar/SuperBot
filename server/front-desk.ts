@@ -9,14 +9,17 @@ export function frontDeskTurn(cfg: AppConfig, store: Pick<Store, "taskByThread">
   return cfg.features?.frontDesk === true && (threadId === mainThreadId || store.taskByThread(botId, threadId)?.title === SIDE_LANE_TITLE);
 }
 
-export const MAIN_CHAT_ONLY = { error: "Only this bot's main chat takes your messages, so this thread is read-only. Use the main chat.", code: "main_chat_only" } as const;
+export interface MainChat { threadId: string; title?: string }
 
-/** With front desk on, a person writes to a bot only in its main chat: every other thread is the bot's own work, read-only for them. */
-export function outsideMainChat(cfg: AppConfig, mainThreadId: string | undefined, threadId: string): boolean {
-  return cfg.features?.frontDesk === true && mainThreadId !== undefined && threadId !== mainThreadId;
+const named = (main: MainChat) => main.title ? `its main chat "${main.title}"` : "its main chat";
+
+export function mainChatOnly(main: MainChat) {
+  return { error: `This thread is read-only: this bot takes your messages only in ${named(main)}.`, code: "main_chat_only", mainThreadId: main.threadId } as const;
 }
 
-export const NEW_CHAT_REFUSED = { error: "This bot keeps one chat with you. Use its main chat.", code: "main_chat_only" } as const;
+export function newChatRefused(main: MainChat) {
+  return { error: `This bot keeps one chat with you: use ${named(main)}.`, code: "main_chat_only", mainThreadId: main.threadId } as const;
+}
 
 /** Tools that make a turn slow: the computer, the browser and shells. The person's chat never holds them, so it always answers fast. */
 export const FRONT_DESK_DENY: readonly string[] = [

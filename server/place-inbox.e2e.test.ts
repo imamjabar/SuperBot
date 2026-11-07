@@ -54,7 +54,12 @@ function place(call: Call, home: () => string) {
     expect((await call("PATCH", `/api/bots/${created.body.bot.id}`, { approvalMode: "ask", applyToAllThreads: true })).status).toBe(200);
     return created.body.bot as Bot;
   };
-  const thread = async (botId: string, title: string) => {
+  const thread = async (owner: Bot, title: string) => {
+    const renamed = await call("PATCH", `/api/bots/${owner.id}/tasks/${owner.threadId}`, { title });
+    expect(renamed.status, JSON.stringify(renamed.body)).toBe(200);
+    return owner.threadId;
+  };
+  const open = async (botId: string, title: string) => {
     const opened = await call("POST", `/api/bots/${botId}/tasks`, { title });
     expect(opened.status, JSON.stringify(opened.body)).toBe(201);
     return opened.body.task.threadId as string;
@@ -63,7 +68,7 @@ function place(call: Call, home: () => string) {
     const sent = await call("POST", `/api/bots/${botId}/messages`, { text, threadId, ...more });
     expect(sent.status, JSON.stringify(sent.body)).toBe(202);
   };
-  return { script, turns, inbox, count, listed, notes, messages, bot, thread, say };
+  return { script, turns, inbox, count, listed, notes, messages, bot, thread, open, say };
 }
 
 beforeAll(async () => {
@@ -89,14 +94,14 @@ describe.each([
   it("lists a bot's approval and question with the right count and their threads, and an answer from the inbox reaches the bot, whose turn goes on", async () => {
     const h = here();
     const eli = await h.bot(`Eli ${role}`);
-    const pricing = await h.thread(eli.id, "Pricing work");
-    const launch = await h.thread(eli.id, "Launch work");
-    h.script(eli.id,
-      { key: "P1", match: ["P1-GO"], timeoutMs: 120_000, approve: { tool: "Bash", input: { command: "echo hi" } }, reply: "P1: approved and ran", replyIfDenied: "P1: denied" },
-      { key: "Q1", match: ["Q1-GO"], timeoutMs: 120_000, steps: [{ server: "ogb", tool: "ask_user", arguments: { question: "Which page?", choices: ["Home", "Pricing"] }, capture: { answer: "([\\s\\S]+)" } }], reply: "Q1: going with {{answer}}" });
+    const ivy = await h.bot(`Ivy ${role}`);
+    const pricing = await h.thread(eli, "Pricing work");
+    const launch = await h.thread(ivy, "Launch work");
+    h.script(eli.id, { key: "P1", match: ["P1-GO"], timeoutMs: 120_000, approve: { tool: "Bash", input: { command: "echo hi" } }, reply: "P1: approved and ran", replyIfDenied: "P1: denied" });
+    h.script(ivy.id, { key: "Q1", match: ["Q1-GO"], timeoutMs: 120_000, steps: [{ server: "ogb", tool: "ask_user", arguments: { question: "Which page?", choices: ["Home", "Pricing"] }, capture: { answer: "([\\s\\S]+)" } }], reply: "Q1: going with {{answer}}" });
     const before = (await h.notes()).length;
     await h.say(eli.id, pricing, "P1-GO");
-    await h.say(eli.id, launch, "Q1-GO");
+    await h.say(ivy.id, launch, "Q1-GO");
 
     await until(async () => (await h.listed()).length === 2, "the approval and the question in the inbox");
     expect(await h.count()).toBe(2);
@@ -104,7 +109,7 @@ describe.each([
     const approval = rows.find((row) => row.card?.tool)!;
     const question = rows.find((row) => !row.card?.tool)!;
     expect(approval).toMatchObject({ kind: "ask", tab: "needs-you", from: { name: eli.name }, origin: { threadId: pricing, title: "Pricing work" } });
-    expect(question).toMatchObject({ kind: "ask", tab: "needs-you", from: { name: eli.name }, origin: { threadId: launch, title: "Launch work" } });
+    expect(question).toMatchObject({ kind: "ask", tab: "needs-you", from: { name: ivy.name }, origin: { threadId: launch, title: "Launch work" } });
     expect((await h.inbox()).threadId, "nothing was copied into a conversation of its own").toBeNull();
 
     const notified = (await h.notes()).slice(0, (await h.notes()).length - before);
@@ -131,7 +136,7 @@ describe.each([
   it("gets a bot's message_person to the person once, and their reply reaches the bot", async () => {
     const h = here();
     const eli = await h.bot(`Mel ${role}`);
-    const work = await h.thread(eli.id, "Background work");
+    const work = await h.thread(eli, "Background work");
     h.script(eli.id,
       { key: "M1", match: ["M1-GO"], steps: [{ server: "agents", tool: "message_person", arguments: { message: "The report is ready." } }], reply: "M1: told them" },
       { key: "M2", match: ["Send it to Ada"], reply: "M2: sending it" });
@@ -197,8 +202,8 @@ describe("on a Cloud someone else once used", () => {
     expect(shell.ok ? seen?.rows : [], `status ${shell.status}`).toEqual([]);
 
     const zed = await h.bot("Zed");
-    const theirs = await h.thread(zed.id, "Sam's work");
-    const owners = await h.thread(zed.id, "My work");
+    const theirs = await h.open(zed.id, "Sam's work");
+    const owners = await h.open(zed.id, "My work");
     h.script(zed.id,
       { key: "G1", match: ["G1-GO"], timeoutMs: 120_000, steps: [{ server: "agents", tool: "message_person", arguments: { message: "For the guest" } }, { server: "ogb", tool: "ask_user", arguments: { question: "Guest's question?", choices: ["A", "B"] }, capture: { answer: "([\\s\\S]+)" } }], reply: "G1: {{answer}}" },
       { key: "G2", match: ["G2-GO"], timeoutMs: 120_000, steps: [{ server: "ogb", tool: "ask_user", arguments: { question: "Owner's question?", choices: ["A", "B"] }, capture: { answer: "([\\s\\S]+)" } }], reply: "G2: {{answer}}" },

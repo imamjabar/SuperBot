@@ -72,7 +72,8 @@ it("pins an explicitly chosen new-thread folder without moving existing sessions
     expect((await api("POST", `/api/bots/${bot.id}/tasks`, { cwd: chosen }, session.token)).status).toBe(403);
     expect((await api("POST", `/api/bots/${bot.id}/tasks`, { cwd: "missing" }, session.token)).status).toBe(403);
     expect(persisted().tasks).toHaveLength(beforeClient);
-    expect((await api("POST", `/api/bots/${bot.id}/tasks`, {}, session.token)).status).toBe(201);
+    expect(await api("POST", `/api/bots/${bot.id}/tasks`, {}, session.token)).toMatchObject({ status: 409, body: { code: "main_chat_only" } });
+    expect(persisted().tasks).toHaveLength(beforeClient);
   } finally {
     const evidencePath = `${fixture.info.logPath}.task-cwd.json`;
     writeFileSync(evidencePath, JSON.stringify({ fixture: fixture.info, evidence }, null, 2));

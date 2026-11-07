@@ -222,16 +222,15 @@ it("only the owner's own sessions hold a phone or lend their turn to one", async
   // A paired device without the owner's scopes cannot make itself one of the owner's phones.
   const desk = await pair("Front desk iPad", ["client"]);
   expect(await api("PUT", "/api/phones/self", registration("install-0002", "Front desk iPad"), desk.token)).toMatchObject({ status: 403 });
-  // A conversation the owner opened and wrote in from their paired phone is the owner's: its lines carry that session.
-  const mine = (await api("POST", `/api/bots/${chief.id}/tasks`, { title: "From my phone" }, pairing.token)).body.task;
+  // In the bot's one chat, a turn the owner wrote from their paired phone is the owner's: its lines carry that session.
   await settle();
-  const launch = await turn({ id: chief.id, threadId: mine.threadId }, "Am I free at four?", pairing.token);
+  const launch = await turn(chief, "Am I free at four?", pairing.token);
   expect(launch.mcpConfig.mcpServers).toHaveProperty(PHONE_MCP_SERVER);
-  // One opened and written from the front desk is not.
-  const theirs = (await api("POST", `/api/bots/${chief.id}/tasks`, { title: "From the desk" }, desk.token)).body.task;
+  // One written there from the front desk is not.
   await settle();
-  const other = await turn({ id: chief.id, threadId: theirs.threadId }, "Is the boss free at four?", desk.token);
+  const other = await turn(chief, "Is the boss free at four?", desk.token);
   expect(other.mcpConfig.mcpServers[PHONE_MCP_SERVER]).toBeUndefined();
+  await settle();
 }, 60_000);
 
 it("a conversation a routine reported into keeps the phone", async () => {

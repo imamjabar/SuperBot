@@ -95,8 +95,9 @@ it("a move carries the automations, files, memory, fields and skills, and its ch
   old = (await local("POST", "/api/bots", { name: "Old" })).body.bot;
   expect((await local("PATCH", `/api/bots/${old.id}`, { soul: "Retired.", hidden: true })).status).toBe(200);
 
-  // A conversation with its own project, model, approval and snooze; a room conversation with its own time limit.
-  plan = (await local("POST", `/api/bots/${nova.id}/tasks`, { title: "Plan", projectId: project })).body.task;
+  // The person's one conversation with its own project, model, approval and snooze; a room conversation with its own time limit.
+  plan = { threadId: nova.threadId };
+  expect((await local("PATCH", `/api/bots/${nova.id}/tasks/${plan.threadId}`, { projectId: project })).status).toBe(200);
   await turn(local, nova, plan.threadId, "Plan the launch.");
   const snooze = Date.now() + 86_400_000;
   expect((await local("PATCH", `/api/bots/${nova.id}/tasks/${plan.threadId}`, { snoozedUntil: snooze, approvalMode: "edits", modelSelection: { instanceId: "claude", model: "claude-opus-5" } })).status).toBe(200);

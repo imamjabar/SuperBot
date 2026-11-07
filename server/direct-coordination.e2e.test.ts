@@ -413,13 +413,15 @@ it("runs two of its own jobs at once, keeps the chat answering, and Stop in the 
   await f.start();
   const jobs = () => f.nodes().filter((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
   await expect.poll(() => jobs().map((node: any) => node.status), { timeout: 15_000 }).toEqual(["running", "running"]);
+  const started = jobs().map((node: any) => node.id);
+  const startedJobs = () => f.nodes().filter((node: any) => started.includes(node.id));
   await f.cli("send", "--bot", f.chief.id, "--task", f.chief.activeTaskId, "--text", "STATUS_PING how is it going?");
   await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Both are still running"), { timeout: 15_000 }).toBe(true);
-  expect(jobs().map((node: any) => node.status)).toEqual(["running", "running"]);
+  expect(startedJobs().map((node: any) => node.status)).toEqual(["running", "running"]);
   await f.api(`/api/bots/${f.chief.id}/interrupt`, { threadId: f.chief.activeTaskId });
-  await expect.poll(() => jobs().map((node: any) => node.status), { timeout: 15_000 }).toEqual(["cancelled", "cancelled"]);
+  await expect.poll(() => startedJobs().map((node: any) => node.status), { timeout: 15_000 }).toEqual(["cancelled", "cancelled"]);
   writeFileSync(gate, "release");
-  for (const node of jobs()) expect((await f.cli("wait", "--bot", f.chief.id, "--task", node.threadId, "--timeout", "20")).status).toBe("settled");
+  for (const node of startedJobs()) expect((await f.cli("wait", "--bot", f.chief.id, "--task", node.threadId, "--timeout", "20")).status).toBe("settled");
   expect((await f.wait()).status).toBe("settled");
   expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.text === "Both jobs reported back")).toBe(false);
 }), 60_000);
@@ -568,6 +570,31 @@ it("with front desk on, the person's Stop of a job tells the main chat once, and
   expect(results(jobLines)).toEqual([]);
   expect(jobLines.some((line) => line.text === "Answer after the stop")).toBe(false);
 }), 60_000);
+
+const refusal = async (call: Promise<unknown>) => {
+  const error: any = await call.then(() => undefined, (cause) => cause);
+  expect(error?.status, "the call was refused").toBe(409);
+  return JSON.parse(error.message.slice(error.message.indexOf("{")));
+};
+
+it.each([["on", true], ["off", false]])("with front desk %s, the desktop person keeps one chat per bot: a new chat or a write elsewhere is refused naming it, and the thread keeps its history", (_mode, frontDesk) => fixture(async f => {
+  await f.api("/api/config", { features: { frontDesk } }, "PATCH");
+  await f.start();
+  expect((await f.wait()).status).toBe("settled");
+  const work = f.nodes().find((node: any) => node.botId === f.lead.id).threadId;
+  const lead = () => f.api("/api/bots").then((body: any) => body.bots.find((bot: any) => bot.id === f.lead.id));
+  const { mainThreadId } = await lead();
+  expect(mainThreadId).not.toBe(work);
+  const history = await f.messages(work);
+  expect(history.length, "the bots wrote into the work thread").toBeGreaterThan(0);
+  const tasks = (await lead()).tasks.map((task: any) => task.threadId);
+
+  expect(await refusal(f.api(`/api/bots/${f.lead.id}/tasks`, {}))).toMatchObject({ code: "main_chat_only", mainThreadId });
+  expect(await refusal(f.api(`/api/bots/${f.lead.id}/messages`, { threadId: work, text: "Still there?" }))).toMatchObject({ code: "main_chat_only", mainThreadId });
+  expect(await refusal(f.api(`/api/bots/${f.lead.id}/messages`, { threadId: work, text: "Finish it", mode: "goal" }))).toMatchObject({ code: "main_chat_only", mainThreadId });
+  expect((await lead()).tasks.map((task: any) => task.threadId)).toEqual(tasks);
+  expect(await f.messages(work)).toEqual(history);
+}, { OMB_TEST_DESKTOP_OWNER_TOKEN: randomBytes(32).toString("base64url") }), 60_000);
 
 it("lets the opener find and close the completed task", () => fixture(async f => {
   await f.start();

@@ -146,6 +146,8 @@ export interface ConfigStatus {
   /** A Team Cloud: the team this server is the home of, and the Plan page (MausBot Cloud) where its people and plan
    * are managed. Absent everywhere else. */
   team?: { id: string; name: string; cloudPage?: string };
+  /** This server belongs to one person, who keeps one chat per bot. Absent where each person has their own chats. */
+  oneMainChat?: true;
 }
 
 export interface ManagedPolicySummary {

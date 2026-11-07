@@ -1,3 +1,13 @@
-npx vitest run server/routes/bot-messages.test.ts server/routes/tasks-main-chat.test.ts src/components/ChatView.controls.test.ts server/direct-coordination.e2e.test.ts
+server/routes/bot-messages.test.ts
+server/routes/bot-messages-apps.test.ts
+server/routes/tasks-main-chat.test.ts
+src/components/ChatView.controls.test.ts
+src/state/store.test.ts
 server/direct-coordination.e2e.test.ts
 server/runtime/runtime.test.ts
+server/task-cwd-api.test.ts
+server/steer-e2e.test.ts
+server/phones.e2e.test.ts
+server/place-inbox.e2e.test.ts
+server/cloud-send-kinds.e2e.test.ts
+scripts/testing/thinking-timer-ui.e2e.test.ts

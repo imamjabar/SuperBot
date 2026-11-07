@@ -96,18 +96,6 @@ function elapsedSeconds(text: string): number {
   return -1;
 }
 
-/** Selection can already expand a thread list. Click only its collapsed DOM
- * chevron, avoiding both accidental collapse and transient duplicate AX names. */
-async function expandThreads(handle: string, name: string): Promise<void> {
-  const collapsed = JSON.stringify(`button[aria-label="Expand ${name} threads"]`);
-  const expanded = JSON.stringify(`button[aria-label="Collapse ${name} threads"]`);
-  await waitUntil(async () => (await ui("eval", handle, "--js", `(() => {
-    if (document.querySelector(${expanded})) return true;
-    document.querySelector(${collapsed})?.click();
-    return false;
-  })()`)).result, 10_000, `${name}'s thread list to expand`);
-}
-
 async function waitUntil<T>(probe: () => Promise<T>, timeoutMs: number, what: string): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   let last: T;
@@ -150,20 +138,18 @@ describe("the thinking timer stays anchored across a thread switch", () => {
     const api = fixtureApi(info.url);
     const evaluate = async (js: string) => (await ui("eval", info.ui, "--js", js)).result;
     const timerText = () => evaluate(`document.querySelector('.turn-presence .tabular-nums')?.textContent ?? null`);
-    const selectThread = (threadId: string) => evaluate(`document.querySelector('[data-sidebar-thread-row="${threadId}"]')?.click(); true`);
-    const isCurrent = (threadId: string) => evaluate(`Boolean(document.querySelector('[data-sidebar-thread-row="${threadId}"][aria-current="page"]'))`);
+    const selectRow = (selector: string) => evaluate(`document.querySelector('${selector}')?.click(); true`);
+    const isCurrentRow = (selector: string) => evaluate(`Boolean(document.querySelector('${selector}[aria-current="page"]'))`);
     const taskOf = async (threadId: string) =>
       (await api("GET", "/api/bots")).bots.find((bot: any) => bot.id === info.botId).tasks.find((task: any) => task.threadId === threadId);
 
-    // The second thread comes through the same POST the sidebar's "New thread" uses.
     const busyThread = (await api("GET", "/api/bots")).bots.find((bot: any) => bot.id === info.botId).threadId;
-    const otherThread = (await api("POST", `/api/bots/${info.botId}/tasks`, {})).task.threadId;
-    await expandThreads(info.ui, "Pepper");
-    await waitUntil(() => evaluate(`Boolean(document.querySelector('[data-sidebar-thread-row="${otherThread}"]'))`), 10_000, "the new thread's sidebar row to appear");
-    // Creating a thread selects it on the server. Pin the original thread in
-    // the renderer before sending the turn whose stamp this case observes.
-    await selectThread(busyThread);
-    await waitUntil(() => isCurrent(busyThread), 10_000, "the original thread to become current");
+    const soloRow = `[data-sidebar-bot-row="${info.botId}"]`;
+    const other = (await api("POST", "/api/groups", { memberIds: [info.botId], name: "Elsewhere", setup: { bulletin: "", defaultResponder: { kind: "member", botId: info.botId } } })).group;
+    const elsewhere = `[data-sidebar-group-row="${other.id}"]`;
+    await waitUntil(() => evaluate(`Boolean(document.querySelector('${elsewhere}'))`), 10_000, "the other conversation's sidebar row to appear");
+    await selectRow(soloRow);
+    await waitUntil(() => isCurrentRow(soloRow), 10_000, "the bot's chat to become current");
 
     await ui("type", info.ui, "--name", "Message Pepper", "--text", "hello");
     await ui("press", info.ui, "--keys", "Enter");
@@ -183,11 +169,11 @@ describe("the thinking timer stays anchored across a thread switch", () => {
     const beforeSwitch = await timerText();
     expect(elapsedSeconds(beforeSwitch)).toBeGreaterThanOrEqual(Math.floor((Date.now() - stamp) / 1000) - 2);
 
-    await selectThread(otherThread);
-    await waitUntil(() => isCurrent(otherThread), 10_000, "the other thread to become current");
+    await selectRow(elsewhere);
+    await waitUntil(() => isCurrentRow(elsewhere), 10_000, "the other conversation to become current");
     await new Promise((done) => setTimeout(done, 3_000));
-    await selectThread(busyThread);
-    await waitUntil(() => isCurrent(busyThread), 10_000, "the busy thread to become current again");
+    await selectRow(soloRow);
+    await waitUntil(() => isCurrentRow(soloRow), 10_000, "the bot's chat to become current again");
 
     // A restart would show single digits after a 13+ second turn.
     const resumed = await waitUntil(timerText, 10_000, "the thinking readout to appear again");

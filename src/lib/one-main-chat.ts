@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from "react";
 
-import type { FeatureFlagConfig } from "./feature-flags";
+import type { ConfigStatus } from "@/state/config-status";
 
-/** Front desk: each bot keeps one chat with the person, and every other thread is the bot's own work, read-only. The server enforces it. */
-export function oneMainChatEnabled(config: FeatureFlagConfig | null | undefined): boolean {
-  return config?.features?.frontDesk === true;
+/** Each bot keeps one chat with the person, and every other thread is the bot's own work, read-only. The server decides where it holds and enforces it. */
+export function oneMainChatEnabled(config: Pick<ConfigStatus, "oneMainChat"> | null | undefined): boolean {
+  return config?.oneMainChat === true;
 }
 
 let enabled = false;

@@ -619,39 +619,6 @@ posixOnly("mid-turn steering e2e", () => {
     await waitFor(async () => (await getBot(created.id)).busy === false, "the queued turn to settle");
   }, 30_000);
 
-  it("a message waiting for a free slot still names the paired person once it runs", async () => {
-    const created = (await api("POST", "/api/bots")).body.bot;
-    await api("PATCH", `/api/bots/${created.id}`, { modelSelection: { instanceId: "acp", model: "fake-model" } });
-    const limit = (await api("GET", "/api/config")).body.threads.maxConcurrentPerBot as number;
-    const threads: string[] = [created.threadId];
-    for (let i = 0; i < limit; i++) {
-      threads.push((await api("POST", `/api/bots/${created.id}/tasks`, { title: `Slot ${i + 2}` })).body.task.threadId);
-    }
-    const waiting = threads.at(-1)!;
-    const busy = async () =>
-      (await getBot(created.id)).tasks.filter((task: any) => task.busy).map((task: any) => task.threadId) as string[];
-    try {
-      for (const threadId of threads.slice(0, limit)) {
-        expect((await api("POST", `/api/bots/${created.id}/messages`, { threadId, text: "hold a slot" })).status).toBe(202);
-      }
-      await waitFor(async () => (await busy()).length === limit, "every slot to be taken");
-
-      const person = await asPairedPerson();
-      const queued = await person("POST", `/api/bots/${created.id}/messages`, { threadId: waiting, text: "when a slot frees up" });
-      expect(queued.status).toBe(202);
-      expect(queued.body).toMatchObject({ queued: true, reason: "capacity", threadId: waiting });
-
-      await api("POST", `/api/bots/${created.id}/interrupt`, { threadId: threads[0] });
-      const line = async () =>
-        (await api("GET", `/api/threads/${waiting}/messages?limit=20`)).body.messages.find((m: any) => m.text === "when a slot frees up");
-      await waitFor(async () => Boolean(await line()), "the waiting message to start its turn");
-      expect((await line()).sender).toEqual(PAIRED);
-    } finally {
-      for (const threadId of threads) await api("POST", `/api/bots/${created.id}/interrupt`, { threadId });
-      await waitFor(async () => (await busy()).length === 0, "every slot to settle");
-    }
-  }, 40_000);
-
   it("a codex message during a live turn is steered into it via turn/steer, and Stop never reports SIGTERM", async () => {
     const created = (await api("POST", "/api/bots")).body.bot;
     const instances = (await api("GET", "/api/instances")).body.instances;
