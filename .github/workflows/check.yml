@@ -26,6 +26,7 @@ jobs:
           server/surface.test.ts src/components/QuestionCard.answer.test.ts
           server/memory-stage.test.ts server/workspace.test.ts server/memory-forget.test.ts server/memory-journal.test.ts
           server/drivers/agents-call.test.ts server/independent-threads-api.test.ts
+          server/turn-outcome.test.ts server/runtime/runtime.test.ts server/runtime/scenarios.test.ts server/runtime-roots.e2e.test.ts
       - run: pnpm vitest run server/index.test.ts -t "Local VM|computer|control"
   probe-dist:
     if: ${{ inputs.probe_dist }}

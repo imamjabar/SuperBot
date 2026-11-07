@@ -1,8 +1,9 @@
 import { errorTranscript } from "../shared/client-cancel.ts";
-import { isOutboundTool } from "../shared/outbound.ts";
+import { connectorCallsIn, isOutboundTool } from "../shared/outbound.ts";
 import type { RuntimeEvent } from "./contracts.ts";
 import { buildTurnDigest, digestTools } from "./digest.ts";
 import { stopCause } from "./drivers/engine-errors.ts";
+import { UNCONFIRMED } from "./runtime/tree.ts";
 import type { TurnEvidence } from "./runtime/types.ts";
 import type { Message } from "./store.ts";
 
@@ -89,6 +90,7 @@ export function stoppedTurnOutcome(input: {
 
 const SHELL_TOOL = /^(?:mcp__[\w-]+?__)?(?:bash|shell|exec|run_command|execute_command|run_shell_command|run_terminal_cmd|terminal|COMPOSIO_REMOTE_BASH_TOOL)$/i;
 const GIT_OUTWARD = /\bgit\s+(commit|push)\b/g;
+const MULTI_EXECUTE = /^(?:mcp__[\w-]+?__)?COMPOSIO_MULTI_EXECUTE_TOOL$/;
 const MONEY_OUTWARD = /\b(pay|payment|charge|refund|transfer)\b/gi;
 const ERROR_CHARS = 200;
 const ERRORS_KEPT = 3;
@@ -96,13 +98,26 @@ const ERRORS_KEPT = 3;
 const toolRows = (rows: readonly Message[]) =>
   rows.filter((row) => row.role === "bot" && row.kind === "activity" && row.tool !== undefined);
 
-/** The one outward-action classifier: the restart policy uses it so a cut turn that already acted never reruns. */
+/** A bounded preview that no longer parses gives no arguments, which counts the call as a send. */
+function previewArguments(preview: string | undefined): unknown {
+  try { return preview === undefined ? undefined : JSON.parse(preview); } catch { return undefined; }
+}
+
+/** The one outward-action classifier: the restart policy uses it so a cut turn that may already have acted never reruns.
+ * A row is written when its call starts, so a call cut before its result still counts, marked UNCONFIRMED. */
 export function outwardActions(rows: readonly Message[]): string[] {
   const labels: string[] = [];
-  const add = (label: string) => { if (!labels.includes(label)) labels.push(label); };
   for (const row of toolRows(rows)) {
     const tool = row.tool!;
     if (tool.ok === false) continue;
+    const add = (label: string) => {
+      const marked = tool.ok === undefined ? `${label}${UNCONFIRMED}` : label;
+      if (!labels.includes(marked)) labels.push(marked);
+    };
+    if (MULTI_EXECUTE.test(tool.name)) {
+      for (const call of connectorCallsIn("COMPOSIO_MULTI_EXECUTE_TOOL", previewArguments(tool.input))) if (isOutboundTool(call.slug)) add(call.slug);
+      continue;
+    }
     if (isOutboundTool(tool.name)) { add(tool.name); continue; }
     if (!SHELL_TOOL.test(tool.name)) continue;
     const command = [tool.input, tool.summary].filter((text): text is string => typeof text === "string").join("\n");

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { RuntimeEvent } from "./contracts.ts";
 import { classifyError } from "./drivers/retry.ts";
+import { UNCONFIRMED } from "./runtime/tree.ts";
 import type { Message } from "./store.ts";
+import { toolDetailPreview } from "./tool-summary.ts";
 import { TurnStops, outwardActions, stoppedTurnOutcome, turnEvidence } from "./turn-outcome.ts";
 
 const event = (fields: Record<string, unknown>): RuntimeEvent =>
@@ -147,6 +149,16 @@ describe("outwardActions", () => {
     const said = { id: "s", role: "bot", kind: "text", at: 1, text: "I ran GMAIL_SEND_EMAIL" } as Message;
     expect(outwardActions([call("GMAIL_SEND_EMAIL", false), call("Bash", false, { input: "git push" }), user, said])).toEqual([]);
     expect(outwardActions([])).toEqual([]);
+  });
+
+  it("reads the sends inside a Composio multi-execute, counts one it cannot read as a send, and marks a call cut before its result", () => {
+    const multi = (tools: unknown[]) => toolDetailPreview({ tools });
+    expect(outwardActions([call("mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL", true, { input: multi([{ tool_slug: "GMAIL_FETCH_EMAILS" }, { tool_slug: "GMAIL_SEND_EMAIL", arguments: { to: "a@example.com" } }]) })]))
+      .toEqual(["GMAIL_SEND_EMAIL"]);
+    expect(outwardActions([call("COMPOSIO_MULTI_EXECUTE_TOOL", true, { input: multi([{ tool_slug: "GMAIL_FETCH_EMAILS" }]) })])).toEqual([]);
+    expect(outwardActions([call("COMPOSIO_MULTI_EXECUTE_TOOL", true, { input: '{\n  "tools": [\n[… preview shortened]' })])).toEqual(["COMPOSIO_PROXY_EXECUTE"]);
+    expect(outwardActions([row({ name: "GMAIL_SEND_EMAIL", itemId: "i-started" }), row({ name: "Bash", itemId: "i-push", input: "git push" })]))
+      .toEqual([`GMAIL_SEND_EMAIL${UNCONFIRMED}`, `git push${UNCONFIRMED}`]);
   });
 });
 

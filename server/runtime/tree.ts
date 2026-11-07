@@ -6,10 +6,14 @@ export const CUT_TWICE = "Interrupted by another OpenMausBot restart after resum
 
 export const INTERRUPTED_OUTWARD = "Interrupted by an OpenMausBot restart after it already";
 
+/** Ends an outward label whose call never answered before the turn was cut: it may or may not have taken effect. */
+export const UNCONFIRMED = " (no result recorded)";
+
 const OUTWARD_SHOWN = 4;
 const OUTWARD_LABEL_MAX = 48;
 
 function describeOutward(label: string): string {
+  if (label.endsWith(UNCONFIRMED)) return `started ${label.slice(0, -UNCONFIRMED.length)} with no result recorded, so it may or may not have taken effect`;
   // Tool slugs join words with underscores (word characters), so these match without \b.
   if (/\bgit\s+push\b/i.test(label)) return `pushed (${label})`;
   if (/\bgit\s+commit\b/i.test(label)) return `committed (${label})`;
@@ -23,8 +27,9 @@ function describeOutward(label: string): string {
 export function outwardDetail(labels: readonly string[]): string {
   const seen = new Set<string>();
   for (const label of labels) {
-    const short = clip(label.replace(/\s+/g, " ").trim(), OUTWARD_LABEL_MAX);
-    if (short) seen.add(short);
+    const unconfirmed = label.endsWith(UNCONFIRMED);
+    const short = clip((unconfirmed ? label.slice(0, -UNCONFIRMED.length) : label).replace(/\s+/g, " ").trim(), OUTWARD_LABEL_MAX);
+    if (short) seen.add(unconfirmed ? `${short}${UNCONFIRMED}` : short);
   }
   const all = [...seen];
   const shown = all.slice(0, OUTWARD_SHOWN).map(describeOutward);

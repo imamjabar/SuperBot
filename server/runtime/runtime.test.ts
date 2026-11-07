@@ -4,6 +4,9 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { Message } from "../store.ts";
+import { toolDetailPreview } from "../tool-summary.ts";
+import { outwardActions } from "../turn-outcome.ts";
 import { checkInvariants } from "./invariants.ts";
 import { Runtime, type BeginRequest } from "./runtime.ts";
 import { openRuntimeStore, type RuntimeStore } from "./store.ts";
@@ -1504,6 +1507,34 @@ describe("Runtime: a report-back job across process restarts (one runtime.db fil
     expect(second.store.get(root.id)?.status).toBe("completed");
 
     const third = boot(undefined, { outward: () => ["GMAIL_SEND_EMAIL"] });
+    third.runtime.tick(); await flush();
+    expect(third.runner.runs).toEqual([]);
+    expect(third.runner.reports).toEqual([]);
+  }));
+
+  it("a crash after a job's send went out, before its result was recorded: not run again, and the main chat hears once that it may have sent", () => withRuntimeFile(async boot => {
+    const first = boot(jobsHold);
+    const root = first.runtime.begin(beginReq({ brief: "Email the VPS shortlist" }));
+    const job = ok(first.runtime.enqueue(ownJob(root.id, "Email the VPS shortlist")));
+    first.runtime.end(root.id, { ok: true, text: "On it." });
+    first.runtime.tick();
+    expect(runsOf(first, job.id)).toHaveLength(1);
+    // What the host had persisted when the process died: the call's row from its start, and no result.
+    const rowsAtCrash = [{ id: "m1", role: "bot", kind: "activity", at: 1, tool: {
+      name: "mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL", itemId: "call-1",
+      input: toolDetailPreview({ tools: [{ tool_slug: "GMAIL_SEND_EMAIL", arguments: { to: "ops@example.com", subject: "VPS shortlist" } }] }),
+    } }] as Message[];
+    const crashed = { outward: (a: Assignment) => a.id === job.id ? outwardActions(rowsAtCrash) : [] };
+
+    const second = boot(jobsHold, crashed);
+    expect(second.store.get(job.id)).toMatchObject({ status: "failed", outcome: "interrupted", executions: 1, restarts: 0,
+      outcomeDetail: `${INTERRUPTED_OUTWARD} started GMAIL_SEND_EMAIL with no result recorded, so it may or may not have taken effect; not resumed, so nothing is done twice.` });
+    expect(reported(second)).toEqual([[job.id, root.id]]);
+    second.runtime.tick(); await flush();
+    expect(runsOf(second, job.id)).toEqual([]);
+    expect(runsOf(second, root.id).map(r => r.input.settled?.map(s => [s.id, s.outcome]))).toEqual([[[job.id, "interrupted"]]]);
+
+    const third = boot(undefined, crashed);
     third.runtime.tick(); await flush();
     expect(third.runner.runs).toEqual([]);
     expect(third.runner.reports).toEqual([]);
