@@ -225,7 +225,7 @@ describe.skipIf(process.platform === "win32")("rescueFirefoxProfile", () => {
     const workspace = join(dir, "workspace");
     mkdirSync(workspace, { mode: 0o000 });
     const { runtime, log } = fakeRuntime(dir, container, { layer: "12" });
-    const old = { runtime, container: "running", managed: true, imageMatches: false } as const;
+    const old = { runtime: runtime as unknown as ContainerComputerStatus["runtime"], container: "running" as const, managed: true, imageMatches: false };
     let stopped = false;
     const stop = async () => { stopped = true; };
     try {

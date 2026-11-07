@@ -127,10 +127,11 @@ describe("the brief on a non-Claude engine, sorted by the helper models", () => 
     const inbox: EmailHeader[] = [];
     const runs: RoutineRun[] = [];
     const reads: ConnectedReads = {
-      connected: async () => ({ gmail: true, googlecalendar: true }),
+      connected: async () => ({ gmail: true, googlecalendar: true, github: false }),
       session: () => ({
         address: async () => "me@x.test", events: async () => [], message: async () => null, thread: async () => [],
         emails: async (since) => ({ emails: inbox.filter((one) => one.at >= since), more: false }),
+        commits: async () => [],
       }),
     };
     const brief = createBrief({
