@@ -1330,11 +1330,9 @@ describe("structured tool execution boundaries", () => {
         return;
       }
       sse(response, [chunk({
-        tool_calls: [
-          toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`),
-          toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`),
-          toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`),
-        ],
+        tool_calls: Array.from({ length: 3 }, (_, index) => ({
+          ...toolCall("audit_write", `{"name":"call","value":"${++callId}"}`, `call_${callId}`), index,
+        })),
       }, "tool_calls")]);
     });
     await f.start({ approvalMode: "full", toolCallBudget: 2 });
