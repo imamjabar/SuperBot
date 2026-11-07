@@ -1,1 +1,3 @@
 npx vitest run server/routes/bot-messages.test.ts server/routes/tasks-main-chat.test.ts src/components/ChatView.controls.test.ts server/direct-coordination.e2e.test.ts
+server/direct-coordination.e2e.test.ts
+server/runtime/runtime.test.ts

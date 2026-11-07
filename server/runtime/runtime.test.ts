@@ -1545,4 +1545,31 @@ describe("Runtime: a report-back job across process restarts (one runtime.db fil
       expect(w.store.get(failedRoot.id)?.status).toBe("completed");
     }
   }));
+
+  it("a job that finished but whose report failed before a restart reports into the main chat once after it, and the chat answers once", () => withRuntimeFile(async boot => {
+    const first = boot(jobsHold);
+    const root = first.runtime.begin(beginReq({ brief: "Compare VPS prices in Singapore" }));
+    const job = ok(first.runtime.enqueue(ownJob(root.id)));
+    first.runtime.end(root.id, { ok: true, text: "On it, I'll report back." });
+    first.runtime.tick();
+    first.runner.reportThrows = 1;
+    await first.runner.release(job.id, { kind: "completed", text: "Singapore: 3 VPS plans compared" });
+    expect(first.store.get(job.id)).toMatchObject({ status: "completed" });
+    expect(first.store.get(job.id)?.reportedAt).toBeUndefined();
+    expect(first.runner.reports).toEqual([]);
+
+    const second = boot();
+    second.runtime.tick(); await flush();
+    expect(reported(second)).toEqual([[job.id, root.id]]);
+    second.runtime.tick(); await flush();
+    expect(runsOf(second, job.id)).toEqual([]);
+    expect(runsOf(second, root.id)).toHaveLength(1);
+    expect(second.store.get(root.id)?.status).toBe("completed");
+    invariants(second);
+
+    const third = boot();
+    third.runtime.tick(); await flush();
+    expect(third.runner.runs).toEqual([]);
+    expect(third.runner.reports).toEqual([]);
+  }));
 });

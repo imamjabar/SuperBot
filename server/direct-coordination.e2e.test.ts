@@ -443,7 +443,11 @@ it("sends a correction from the chat into the bot's own running job, which carri
   writeFileSync(gate, "release");
   await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).filter((message: any) => message.tool?.output === "STEER_JOB_RESULT").length, { timeout: 20_000 }).toBe(1);
   expect((await f.wait()).status).toBe("settled");
-  expect((await f.messages(f.chief.activeTaskId)).filter((message: any) => message.tool?.output === "STEER_JOB_RESULT")).toHaveLength(1);
+  const main: Line[] = await f.messages(f.chief.activeTaskId);
+  const jobLines: Line[] = await f.messages(job().threadId);
+  expect(main.filter((line) => line.tool?.output === "STEER_JOB_RESULT")).toHaveLength(1);
+  expect(main.filter((line) => line.text === "Added Vultr to the job"), "the steer ack is the chat's own answer").toHaveLength(1);
+  expect(jobLines.some((line) => line.text === "Added Vultr to the job"), "the ack never lands in the job").toBe(false);
 }), 60_000);
 
 it("a report-back job posts progress to the chat, and its progress and result quote the person's request after another message", () => fixture(async f => {
@@ -515,6 +519,54 @@ it("with front desk on, the person's chat has no computer tools and hands the wo
   expect(main.filter((message) => message.roomRequest?.phase === "result")).toHaveLength(1);
   expect(jobLines.some((message) => message.text === "DESK_JOB_RESULT ready"), "the job writes its own work into its thread").toBe(true);
   expect(jobLines.some((message) => message.text === "The job is back"), "the person's answer never lands in the job").toBe(false);
+}), 60_000);
+
+type Line = { text?: string; roomRequest?: { id?: string; phase?: string }; tool?: { ok?: boolean; output?: string } };
+const results = (lines: Line[]) => lines.filter((line) => line.roomRequest?.phase === "result");
+
+it("with front desk on, a failed job tells the main chat once and answers nothing inside the job", () => fixture(async f => {
+  await f.api("/api/config", { features: { frontDesk: true } }, "PATCH");
+  f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Look it up", message: "DESK_FAIL_BRIEF look up the prices", report_back: true } }],
+    reply: "On it",
+    byPrompt: [{ promptIncludes: "Your downstream room requests have settled.", plan: { resumeReply: "The job failed, here is why" } },
+      { promptIncludes: "DESK_FAIL_BRIEF", plan: { fail: true } }] };
+  await f.start();
+  expect((await f.wait()).status).toBe("settled");
+  const job = f.nodes().find((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  expect(job.status).toBe("failed");
+  const main: Line[] = await f.messages(f.chief.activeTaskId);
+  const jobLines: Line[] = await f.messages(job.threadId);
+  expect(results(main)).toHaveLength(1);
+  expect(results(main)[0]).toMatchObject({ roomRequest: { id: job.id }, tool: { ok: false } });
+  expect(main.filter((line) => line.text === "The job failed, here is why")).toHaveLength(1);
+  expect(results(jobLines)).toEqual([]);
+  expect(jobLines.some((line) => line.text === "The job failed, here is why")).toBe(false);
+}), 60_000);
+
+it("with front desk on, the person's Stop of a job tells the main chat once, and nothing answers in the job", () => fixture(async f => {
+  await f.api("/api/config", { features: { frontDesk: true } }, "PATCH");
+  const gate = join(f.session.info.dataDir, "desk-stop-gate");
+  f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Look it up", message: "DESK_STOP_BRIEF look up the prices", report_back: true } }],
+    reply: "On it",
+    byPrompt: [{ promptIncludes: "Your downstream room requests have settled.", plan: { resumeReply: "Answer after the stop" } },
+      { promptIncludes: "DESK_STOP_BRIEF", plan: { gateFile: gate, reply: "DESK_STOP_RESULT" } }] };
+  await f.start();
+  const job = () => f.nodes().find((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  await expect.poll(() => job()?.status, { timeout: 15_000 }).toBe("running");
+  await f.api(`/api/bots/${f.chief.id}/interrupt`, { threadId: job().threadId });
+  await expect.poll(() => job().status, { timeout: 15_000 }).toBe("cancelled");
+  writeFileSync(gate, "release");
+  expect((await f.cli("wait", "--bot", f.chief.id, "--task", job().threadId, "--timeout", "20")).status).toBe("settled");
+  expect((await f.wait()).status).toBe("settled");
+  const root = () => f.nodes().find((node: any) => node.id === job().parentId);
+  await expect.poll(() => root()?.status, { timeout: 15_000 }).toBe("completed");
+  const main: Line[] = await f.messages(f.chief.activeTaskId);
+  const jobLines: Line[] = await f.messages(job().threadId);
+  expect(results(main)).toHaveLength(1);
+  expect(results(main)[0]).toMatchObject({ roomRequest: { id: job().id }, tool: { ok: false } });
+  expect(main.some((line) => line.text === "Answer after the stop" || line.text === "DESK_STOP_RESULT")).toBe(false);
+  expect(results(jobLines)).toEqual([]);
+  expect(jobLines.some((line) => line.text === "Answer after the stop")).toBe(false);
 }), 60_000);
 
 it("lets the opener find and close the completed task", () => fixture(async f => {
