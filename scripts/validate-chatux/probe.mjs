@@ -2,6 +2,7 @@
 // loopback HTTP and a headless Chrome over CDP, then prints one compact JSON summary.
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const PORT = Number(process.env.PROBE_PORT);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -57,6 +58,22 @@ async function personToken() {
 const bots = async () => (await call("GET", "/api/bots?messages=0")).body.bots;
 const messages = async (threadId) => (await call("GET", `/api/threads/${threadId}/messages?limit=200`)).body.messages ?? [];
 const botText = (rows, after) => rows.filter((m) => m.role === "bot" && m.kind === "text" && m.text && m.at >= after);
+
+/** Pairs each finished job, in `done` order, with the first later reply that closes its turn: a reply its own turn
+ * goes on from with a tool step is narration. A step from another turn (the next job's hand-back) does not reopen it. */
+export function pairFinals(rows, replies, done) {
+  const continued = (m) => {
+    const next = rows.slice(rows.indexOf(m) + 1).find((n) => n.role === "bot");
+    return next?.kind === "activity" && next.turnId !== undefined && next.turnId === m.turnId;
+  };
+  const closing = replies.filter((m) => !continued(m));
+  const finals = [];
+  for (const at of done) {
+    const next = closing.find((m) => m.at >= at && !finals.includes(m));
+    if (next) finals.push(next);
+  }
+  return finals;
+}
 
 function timingMarks() {
   const file = `${RUN_DIR}/server.log`;
@@ -185,13 +202,8 @@ async function main() {
     const ELAPSED = /^(\d+m\s*)?\d+s$|^\d+\s*min$/;
     const split = (rows) => {
       const replies = botText(rows, t0).filter((m) => !isProgressNote(m));
-      const closing = replies.filter((m) => rows.slice(rows.indexOf(m) + 1).find((n) => n.role === "bot")?.kind !== "activity");
       const done = timingMarks().filter((m) => m.mark === "job-done" && m.status !== "cancelled").map((m) => m.at).sort((a, b) => a - b);
-      const finals = [];
-      for (const at of done) {
-        const next = closing.find((m) => m.at >= at && !finals.includes(m));
-        if (next) finals.push(next);
-      }
+      const finals = pairFinals(rows, replies, done);
       return { replies, acks: replies.slice(0, 2), finals, done };
     };
     while (Date.now() < DEADLINE) {
@@ -316,5 +328,7 @@ async function singleJob(browser, bot, main, person) {
   summary.ok = Object.values(summary.checks).every((c) => c.pass);
 }
 
-main().catch((error) => { summary.error = String(error?.message ?? error).slice(0, 300); })
-  .finally(() => { console.log(JSON.stringify(summary)); process.exit(0); });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => { summary.error = String(error?.message ?? error).slice(0, 300); })
+    .finally(() => { console.log(JSON.stringify(summary)); process.exit(0); });
+}

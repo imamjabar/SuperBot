@@ -19,3 +19,4 @@ server/agents-turn.test.ts
 server/data/tools.test.ts
 server/routes/bot-messages.test.ts
 src/lib/job-status.test.ts
+scripts/validate-chatux/probe.test.mjs
