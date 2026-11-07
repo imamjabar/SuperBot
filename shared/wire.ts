@@ -449,9 +449,13 @@ export type CardAnswerer = (
 /** Opens every compaction summary written without a model (recent excerpts only); the chat labels stored records by it. */
 export const EXCERPT_SUMMARY_HEADER = "Historical excerpts in chronological order; newer corrections override older requests. These excerpts may omit earlier details.";
 
+/** How a piece of work's result reached the chat that asked for it: `delivered` only when the work completed and its result is in the row;
+ * `interrupted` when the person stopped it or a restart cut it; `failed` otherwise. */
+export type MainChatDelivery = "delivered" | "failed" | "interrupted";
+
 /** One transcript line, serialized as stored. */
 export interface WireMessage extends HelperIntroField, SetupCardFields, WaitLineField, BugReportField {
-  roomRequest?: { id: string; phase: "request" | "result" };
+  roomRequest?: { id: string; phase: "request" | "result"; delivery?: MainChatDelivery };
   id: string;
   role: "bot" | "user";
   kind: "text" | "options" | "activity" | "screen" | "connector" | "secret" | "signin" | "routine.run" | "goal.run" | "digest" | "compaction" | "call" | "widget" | "app";

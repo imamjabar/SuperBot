@@ -480,7 +480,8 @@ it("a report-back job posts progress to the chat, and its progress and result qu
   expect(toolNames(turns.find((turn: any) => turn.threadId === f.chief.activeTaskId))).not.toContain("report_progress");
 }), 60_000);
 
-it("answers a message sent while the bot works at once in the same chat, and the work goes on and posts its result", () => fixture(async f => {
+it.each([["on", true], ["off", false]])("with front desk %s, answers a message sent while the bot works at once in the same chat, and the work goes on and posts its result", (_mode, frontDesk) => fixture(async f => {
+  await f.api("/api/config", { features: { frontDesk } }, "PATCH");
   const gate = join(f.session.info.dataDir, "long-work-gate");
   f.plan[f.chief.id] = { gateFile: gate, reply: "LONG_WORK_RESULT ready", byPrompt: [{ promptIncludes: "TIME_PING", plan: { reply: "It is 21:15" } }] };
   await f.start();
@@ -496,6 +497,8 @@ it("answers a message sent while the bot works at once in the same chat, and the
   await expect.poll(async () => (await chat()).some((message: any) => message.text === "LONG_WORK_RESULT ready"), { timeout: 15_000 }).toBe(true);
   const chief = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id);
   expect(chief.mainThreadId).toBe(f.chief.activeTaskId);
+  expect((await chat()).filter((m: any) => m.role === "bot" && m.text === "It is 21:15"), "the side answer lands once").toHaveLength(1);
+  expect((await chat()).filter((m: any) => m.text === "LONG_WORK_RESULT ready")).toHaveLength(1);
 }), 60_000);
 
 it("with front desk on, the person's chat has no computer tools and hands the work to a job that has them", () => fixture(async f => {
@@ -523,11 +526,35 @@ it("with front desk on, the person's chat has no computer tools and hands the wo
   expect(jobLines.some((message) => message.text === "The job is back"), "the person's answer never lands in the job").toBe(false);
 }), 60_000);
 
-type Line = { text?: string; roomRequest?: { id?: string; phase?: string }; tool?: { ok?: boolean; output?: string } };
+type Line = { role?: string; text?: string; roomRequest?: { id?: string; phase?: string; delivery?: string }; tool?: { ok?: boolean; output?: string } };
 const results = (lines: Line[]) => lines.filter((line) => line.roomRequest?.phase === "result");
+const MODES: Array<[string, boolean]> = [["on", true], ["off", false]];
 
-it("with front desk on, a failed job tells the main chat once and answers nothing inside the job", () => fixture(async f => {
-  await f.api("/api/config", { features: { frontDesk: true } }, "PATCH");
+it.each(MODES)("with front desk %s, a report-back job and a teammate's work each deliver their result into the main chat once, and nothing answers inside them", (_mode, frontDesk) => fixture(async f => {
+  await f.api("/api/config", { features: { frontDesk } }, "PATCH");
+  f.plan[f.chief.id] = { steps: [
+    { tool: "start_thread", arguments: { title: "Look it up", message: "LANE_JOB_BRIEF look up the prices", report_back: true } },
+    { arguments: { bot_ids: [f.lead.id], message: "LANE_PEER_BRIEF check the export" } },
+  ], reply: "On it", resumeReply: "Both are back", byPrompt: [{ promptIncludes: "LANE_JOB_BRIEF", plan: { reply: "LANE_JOB_RESULT", resumeReply: "Both are back" } }] };
+  f.plan[f.lead.id] = { reply: "LANE_PEER_RESULT" };
+  await f.start();
+  expect((await f.wait()).status).toBe("settled");
+  const job = f.nodes().find((node: any) => node.botId === f.chief.id && node.parentId);
+  const peer = f.nodes().find((node: any) => node.botId === f.lead.id);
+  const main: Line[] = await f.messages(f.chief.activeTaskId);
+  for (const work of [job, peer]) {
+    expect(work.status).toBe("completed");
+    expect(results(main).filter((line) => line.roomRequest?.id === work.id)).toEqual([expect.objectContaining({ roomRequest: { id: work.id, phase: "result", delivery: "delivered" }, tool: expect.objectContaining({ ok: true }) })]);
+    const lines: Line[] = await f.messages(work.threadId);
+    expect(results(lines), "no result row inside the work's own thread").toEqual([]);
+    expect(lines.some((line) => line.text === "Both are back"), "the person's answer never lands in the work's thread").toBe(false);
+  }
+  expect(results(main)).toHaveLength(2);
+  expect(main.filter((line) => line.role === "bot" && line.text === "Both are back").length).toBeGreaterThan(0);
+}), 60_000);
+
+it.each(MODES)("with front desk %s, a failed job tells the main chat once as failed and answers nothing inside the job", (_mode, frontDesk) => fixture(async f => {
+  await f.api("/api/config", { features: { frontDesk } }, "PATCH");
   f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Look it up", message: "DESK_FAIL_BRIEF look up the prices", report_back: true } }],
     reply: "On it",
     byPrompt: [{ promptIncludes: "Your downstream room requests have settled.", plan: { resumeReply: "The job failed, here is why" } },
@@ -539,14 +566,14 @@ it("with front desk on, a failed job tells the main chat once and answers nothin
   const main: Line[] = await f.messages(f.chief.activeTaskId);
   const jobLines: Line[] = await f.messages(job.threadId);
   expect(results(main)).toHaveLength(1);
-  expect(results(main)[0]).toMatchObject({ roomRequest: { id: job.id }, tool: { ok: false } });
+  expect(results(main)[0]).toMatchObject({ roomRequest: { id: job.id, delivery: "failed" }, tool: { ok: false } });
   expect(main.filter((line) => line.text === "The job failed, here is why")).toHaveLength(1);
   expect(results(jobLines)).toEqual([]);
   expect(jobLines.some((line) => line.text === "The job failed, here is why")).toBe(false);
 }), 60_000);
 
-it("with front desk on, the person's Stop of a job tells the main chat once, and nothing answers in the job", () => fixture(async f => {
-  await f.api("/api/config", { features: { frontDesk: true } }, "PATCH");
+it.each(MODES)("with front desk %s, the person's Stop of a job tells the main chat once as interrupted, and nothing answers in the job", (_mode, frontDesk) => fixture(async f => {
+  await f.api("/api/config", { features: { frontDesk } }, "PATCH");
   const gate = join(f.session.info.dataDir, "desk-stop-gate");
   f.plan[f.chief.id] = { steps: [{ tool: "start_thread", arguments: { title: "Look it up", message: "DESK_STOP_BRIEF look up the prices", report_back: true } }],
     reply: "On it",
@@ -565,7 +592,7 @@ it("with front desk on, the person's Stop of a job tells the main chat once, and
   const main: Line[] = await f.messages(f.chief.activeTaskId);
   const jobLines: Line[] = await f.messages(job().threadId);
   expect(results(main)).toHaveLength(1);
-  expect(results(main)[0]).toMatchObject({ roomRequest: { id: job().id }, tool: { ok: false } });
+  expect(results(main)[0]).toMatchObject({ roomRequest: { id: job().id, delivery: "interrupted" }, tool: { ok: false } });
   expect(main.some((line) => line.text === "Answer after the stop" || line.text === "DESK_STOP_RESULT")).toBe(false);
   expect(results(jobLines)).toEqual([]);
   expect(jobLines.some((line) => line.text === "Answer after the stop")).toBe(false);
