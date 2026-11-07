@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { MemoryWriter } from "./memory-stage.ts";
 import { memoryLogPath, readMemoryFile, workspaceDir } from "./workspace.ts";
@@ -22,6 +22,9 @@ async function restarted() {
   vi.resetModules();
   return import("./memory-stage.ts");
 }
+
+// A reloaded module opens its own message database, which the shared setup never closes.
+afterEach(async () => (await import("./message-db.ts")).closeMessageDb());
 
 async function turn(threadId: string, layer: string, facts: { note: string; logged: string }) {
   const stages = await import("./memory-stage.ts");

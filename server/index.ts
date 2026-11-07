@@ -5144,7 +5144,7 @@ const memoryRowsByThread = new Map<string, MemoryJournalEntry[]>();
 bus.subscribe((event: RuntimeEvent) => {
   if (shouldIgnoreProviderEvent(event)) return;
   if (event.type === "turn.completed" || event.type === "session.exited") {
-    runningTurnEngines.delete(event.threadId); settleMemoryStage(event.threadId, event.type === "turn.completed" && event.ok && event.stopReason !== "interrupted" && !stoppedByClient(event.threadId, event.turnId));
+    runningTurnEngines.delete(event.threadId); settleMemoryStage(event.threadId, event.type === "turn.completed" && event.ok && event.stopReason !== "interrupted" && event.stopReason !== "cancelled" && !directRequestOwners.get(event.threadId)?.stopped && !stoppedByClient(event.threadId, event.turnId) && !goalTurns.mayBeDiscarded(event));
     const rows = endMemoryTurn(event.threadId);
     if (rows.length && (store.botByThread(event.threadId) || store.groupByThread(event.threadId))) {
       memoryRowsByThread.set(event.threadId, rows);
@@ -10753,7 +10753,7 @@ async function runClaimedGroupMemberTurn(
     revokeInternalCapabilityGeneration(threadId, internalGeneration);
     settleDirectCoordination(internalGeneration, { ok: roomOutcome === "settled", ...(roomOutcome === "stalled" || setupStallReason !== undefined ? { stalled: true } : {}),
       text: roomOutcome === "settled" ? roomReply : orchestration?.result.stopReason || setupStallReason || roomFailure || roomReply || roomOutcome || "The turn did not run" });
-    if (!retainRoomVmLease) releaseRoomVmLease();
+    if (!retainRoomVmLease) releaseRoomVmLease(); if (!providerDispatched) settleMemoryStage(threadId, false);
     if (!providerDispatched && roomSpeaker && groupSpeakers.get(threadId) === roomSpeaker) {
       groupSpeakers.delete(threadId);
       watchdog.settle(threadId);

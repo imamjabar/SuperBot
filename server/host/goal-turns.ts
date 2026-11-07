@@ -93,6 +93,8 @@ export function createGoalTurns(deps: { retireProviderTurn(turnId: string): void
     forEvent,
     hasUnboundDiscarded,
     count: (threadId: string): number => turnsByThread.get(threadId)?.size ?? 0,
+    /** Whether `event` may belong to a turn the room gave up on. Read only: unlike forEvent it never binds or retires a turn. */
+    mayBeDiscarded: (event: RuntimeEvent): boolean => [...turnsByThread.get(event.threadId) ?? []].some((turn) => turn.discard && (!turn.turnId || turn.turnId === event.turnId)),
   };
 }
 
