@@ -5,6 +5,7 @@ import { stripVTControlCharacters } from "node:util";
 import { classifyQuiet, quietNoticeMs, quietTickMs, sampleProcessTree, type ProcessSample } from "../drivers/acp/quiet-status.ts";
 import { redactSecretsInText } from "../redact.ts";
 import { toolStep } from "../step-summary.ts";
+import { logTiming } from "../timing-marks.ts";
 import { newId, type RuntimeEvent } from "../contracts.ts";
 import type { StepQuiet } from "../../shared/turn-progress.ts";
 import type { ProgressEvent } from "./progress-gate.ts";
@@ -91,7 +92,10 @@ export class LiveSteps {
     if (event.type === "item.completed" && event.itemType === "tool" && event.itemId) {
       const calls = this.threads.get(event.threadId);
       const call = calls?.get(event.itemId);
-      if (call) this.drop(call);
+      if (call) {
+        logTiming("tool", this.now() - call.startedAt, { thread: event.threadId, activity: call.frame.activity, site: call.frame.activity === "fetch" ? call.frame.target : undefined });
+        this.drop(call);
+      }
       calls?.delete(event.itemId);
       if (calls?.size === 0) this.threads.delete(event.threadId);
       this.idleCheck();

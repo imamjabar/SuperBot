@@ -36,6 +36,7 @@ import { noteTypedSend } from "../typed-sends.ts";
 import { parseMentionPicks } from "../../shared/room-mentions.ts";
 import { pinnedClientThreadGuard } from "./pinned-client-thread.ts";
 import { PASS, type RouteHandler } from "./table.ts";
+import { logTiming } from "../timing-marks.ts";
 
 type RunningInstance = ReturnType<ProviderRegistry["get"]>;
 
@@ -184,7 +185,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
     const routines = deps.routines();
     m = path.match(/^\/api\/bots\/([\w-]+)\/messages(?:\/(guarded))?$/);
     if (m && method === "POST") {
-      const guarded = m[2] === "guarded";
+      const receivedAt = Date.now(), guarded = m[2] === "guarded";
       const body = await readBody(req);
       if (!body || typeof body !== "object" || Array.isArray(body)) {
         return json(res, 400, { error: "body must be a JSON object" });
@@ -334,6 +335,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
         press?.settle("queueId" in receipt ? receipt.queueId : undefined);
         appContext?.deliver();
         if (relayed && target && onBehalfOf) relayedReaction(threadId, target.id, onBehalfOf, relayed);
+        logTiming("ack", Date.now() - receivedAt, { bot: bot.id, thread: threadId, queued: "queueId" in receipt ? 1 : undefined });
         return json(res, 202, receipt);
       } catch (error) {
         slot?.release();

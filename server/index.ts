@@ -631,7 +631,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
-import { createPersonReplies } from "./person-replies.ts"; import { createSideReplies, SIDE_LANE_TITLE } from "./side-replies.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts";
+import { createPersonReplies } from "./person-replies.ts"; import { createSideReplies, SIDE_LANE_TITLE } from "./side-replies.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { logTiming } from "./timing-marks.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
@@ -2224,7 +2224,7 @@ function parksBehindCoordination(botId: string, threadId: string): boolean {
 
 function botAtThreadCapacity(botId: string, personThreadId?: string, startedByABot = false): boolean {
   // The person's main chat is never at capacity. threadBusy, not the stored flag: a reservation holds its slot after an early completion clears the flag.
-  return (!personThreadId || (personThreadId !== botMainThread(botId) && store.taskByThread(botId, personThreadId)?.title !== SIDE_LANE_TITLE)) && store.tasks(botId).filter((task) => threadBusy(botId, task.threadId) && (startedByABot || !cloudPlanTier.starter() || directRequestOwners.get(task.threadId)?.kind !== "handoff")).length >= (startedByABot ? maxConcurrentChildThreads : maxConcurrentBotThreads)(cfg, botThreadsHost(cloudPlanTier.starter()));
+  const main = botMainThread(botId); return (!personThreadId || (personThreadId !== main && store.taskByThread(botId, personThreadId)?.title !== SIDE_LANE_TITLE)) && store.tasks(botId).filter((task) => threadBusy(botId, task.threadId) && !(startedByABot && frontDeskTurn(cfg, store, main, botId, task.threadId)) && (startedByABot || !cloudPlanTier.starter() || directRequestOwners.get(task.threadId)?.kind !== "handoff")).length >= (startedByABot ? maxConcurrentChildThreads : maxConcurrentBotThreads)(cfg, botThreadsHost(cloudPlanTier.starter()));
 }
 
 function hasDirectDispatch(botId: string): boolean {
@@ -2235,7 +2235,7 @@ function hasDirectDispatch(botId: string): boolean {
 function canAdmitDirectTurn(botId: string, threadId: string): boolean {
   return admit("peer", {}, {
     threadBusy: threadBusy(botId, threadId),
-    atCapacity: botAtThreadCapacity(botId, undefined, true),
+    atCapacity: botAtThreadCapacity(botId, threadId, true),
     groupTurn: Boolean(activeGroupTurnForBot(botId)),
   }).action === "start";
 }
@@ -3985,7 +3985,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
       if (parent.groupId ? !group || !store.groupTaskByThread(group.id, parent.threadId) : !store.taskByThread(parent.botId, parent.threadId)) return;
       const bot = store.bot(child.botId);
       if (store.messagesFor(parent.threadId).some(m => m.roomRequest?.id === child.id && m.roomRequest.phase === "result")) return;
-      const problem = roomHandoffProblem(child, parent);
+      const problem = roomHandoffProblem(child, parent); logTiming("job-done", Date.now() - (child.startedAt ?? child.createdAt), { bot: child.botId, job: child.id, status: child.status, queuedMs: child.startedAt !== undefined ? child.startedAt - child.createdAt : undefined });
       store.appendMessage(parent.threadId, {
         role: "bot", kind: "activity",
         roomRequest: { id: child.id, phase: "result" },
@@ -4020,7 +4020,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
       if (!node.parentId && group && !resumed) return runRoomRootTurn(node, group, bot, signal, composed);
       const parent = node.parentId ? coordinator.node(node.parentId) : undefined;
       const sender = parent ? store.bot(parent.botId) : undefined;
-      const brief = composed.text;
+      const brief = composed.text; if (node.parentId && !resumed) logTiming("job-start", Date.now() - node.createdAt, { bot: node.botId, job: node.id });
       const liveRoster = resumed ? undefined : coordinationLiveRosterBlock(bot);
       const turnText = liveRoster ? `${brief}\n\n${liveRoster}` : brief;
       const systemInstructions = node.parentId ? coordinationSystemInstructions() : "";
@@ -4062,7 +4062,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
           if (done) return;
           // Work that ran in one person's private chat hands back to a chat others read only where its result is.
           const person = teamHost.privateTo(node.threadId);
-          done = true; signal.removeEventListener("abort", abort); resolve(privateHandBack(outcome, { child: person, parent: parent ? teamHost.privateTo(parent.threadId) : null, bot: bot.name, person: (person && teamHost.personName(person)) || "them" }));
+          done = true; signal.removeEventListener("abort", abort); if (resumed && !node.parentId) logTiming("delivered", Date.now() - (coordinator.node(node.rootId)?.createdAt ?? node.createdAt), { bot: bot.id, thread: node.threadId, ok: outcome.ok ? 1 : 0 }); resolve(privateHandBack(outcome, { child: person, parent: parent ? teamHost.privateTo(parent.threadId) : null, bot: bot.name, person: (person && teamHost.personName(person)) || "them" }));
         };
         const abort = () => {
           void interruptDirectThread(bot.id, node.threadId).catch(() => {});
@@ -8047,7 +8047,7 @@ async function beginTurn(
       const checkpointCwd = cwd && cwd !== privateWorkspace ? cwd : undefined;
       const dwebUrl = process.env.DWEB_URL?.trim();
       if (dwebUrl) integrations.dweb = { url: dwebUrl };
-      let teamComputer = computerSkipped || proactive.fence.confines(threadId) || botApiThread(threadId) ? undefined : inheritedTeamComputer(bot);
+      const frontDesk = frontDeskTurn(cfg, store, botMainThread(bot.id), bot.id, threadId); let teamComputer = computerSkipped || frontDesk || proactive.fence.confines(threadId) || botApiThread(threadId) ? undefined : inheritedTeamComputer(bot);
       const cloudBackend = teamComputer || opts?.runOn === "cloud" || bot.cloudBackend !== "vps" ? "box" : "vps";
       const mountsComputerMcp = instance.adapter.capabilities.computerMcp === true;
       const mountsLocalComputer = instance.adapter.capabilities.localComputerMcp === true;
@@ -8055,7 +8055,7 @@ async function beginTurn(
       const handoffMayUseCloud = !computerSkipped && plan.computer === undefined && isHandedWork(opts?.coordination ? coordinator.node(opts.coordination.id) : undefined) && !teamComputer && cloudBackend === "box" && boat.boatConfigured(cfg)
         && canWorkOnCloud(cloudEngine(instance)) && !computerPlaceRefusal("box") && !cloudPlaceRefusal(cloudEngine(instance, bot.modelSelection.model), "works-on", bot.name) && !computerToolsRefusal(toolScope, "works-on", bot.name);
       const ownCloud = handoffMayUseCloud ? await ownCloudStateWithin(boat.boatStatus(cfg, bot.id)) : undefined, handoffOwnCloud = handoffUsesOwnCloud({ plan, handoffWork: Boolean(ownCloud), ownCloudState: ownCloud?.state });
-      let wants: ComputerWant = computerSkipped ? "off" : handoffOwnCloud ? "cloud" : plan.computer;
+      let wants: ComputerWant = computerSkipped || frontDesk ? "off" : handoffOwnCloud ? "cloud" : plan.computer;
       const skipComputer = (error: unknown) => {
         if (!answer.incident || error instanceof DirectTurnSetupCancelled || error instanceof ComputerWaitParked) throw error;
         computerSkipped ??= error instanceof Error ? error.message : String(error);
@@ -8403,7 +8403,7 @@ async function beginTurn(
         : integrations.agents && sectionPeers.length > 0
           ? peerRosterSystemPrompt(sectionPeers, bot)
           : "";
-      const frontDesk = frontDeskTurn(cfg, store, botMainThread(bot.id), bot.id, threadId), credentialPrompt = integrations.agents ? CREDENTIAL_PROMPT + (frontDesk ? FRONT_DESK_PROMPT : "") + THREADS_PROMPT + WIDGET_PROMPT : "";
+      const credentialPrompt = integrations.agents ? CREDENTIAL_PROMPT + (frontDesk ? FRONT_DESK_PROMPT : "") + THREADS_PROMPT + WIDGET_PROMPT : "";
       const routinePrompt = integrations.agents ? TRIGGER_PROMPT : "";
       const profilePrompt = integrations.agents ? PROFILE_PROMPT : "";
       const recallPrompt = integrations.agents && bot.memoryEnabled !== false ? SESSION_SEARCH_SYSTEM_PROMPT : "";
@@ -8776,7 +8776,7 @@ function routineSourceOwner(run: Pick<RoutineRun, "botId" | "sourceThreadId" | "
   return group?.memberIds.includes(bot.id) ? { bot, group, threadId } : null;
 }
 
-function mainThreadTasks(botId: string) { const tasks = store.tasks(botId), own = store.bot(botId)?.defaultBot?.person ? [...tasks].sort((a, b) => a.createdAt - b.createdAt)[0]?.threadId : undefined; return CLOUD_TEAM ? tasks.filter((task) => teamHost.audienceOf(task.threadId) === "team" || task.threadId === own) : CLOUD_HOME ? tasks.filter((task) => !cloudGuestOpened(task.threadId)) : tasks; }
+function mainThreadTasks(botId: string) { const all = store.tasks(botId), chats = all.filter((task) => !task.openedBy?.reportsBack && task.title !== SIDE_LANE_TITLE), tasks = chats.length ? chats : all, own = store.bot(botId)?.defaultBot?.person ? [...tasks].sort((a, b) => a.createdAt - b.createdAt)[0]?.threadId : undefined; return CLOUD_TEAM ? tasks.filter((task) => teamHost.audienceOf(task.threadId) === "team" || task.threadId === own) : CLOUD_HOME ? tasks.filter((task) => !cloudGuestOpened(task.threadId)) : tasks; }
 function botMainThread(botId: string): string | undefined {
   return mainThread(mainThreadTasks(botId), store.bot(botId)?.threadId, store.bot(botId)?.mainThreadChoice);
 }
