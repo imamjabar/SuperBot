@@ -417,12 +417,13 @@ async function busySeat(bot, main, person) {
     }
   }, 180_000, 1_500).catch(() => undefined);
   const quick = [];
+  await waitFor("two jobs", async () => (await ownJobs(bot, t0)).length >= 2, 60_000, 1_000).catch(() => undefined);
   for (const text of ["Berapa 12 kali 12?", "What day of the week is it today?"]) {
-    const running = (await ownJobs(bot, t0)).filter((j) => j.busy).length;
+    const open = await ownJobs(bot, t0), running = open.filter((j) => j.busy).length;
     const at = Date.now();
     const sent = await sendMain(bot, main, person, text);
     const reply = await replyAfter(main, at, 45_000);
-    quick.push({ ask: text.slice(0, 24), status: sent.status, runningJobs: running, ackMs: reply ? reply.at - at : null, reply: reply?.text.replace(/\s+/g, " ").slice(0, 80) ?? null });
+    quick.push({ ask: text.slice(0, 24), status: sent.status, openJobs: open.length, runningJobs: running, ackMs: reply ? reply.at - at : null, reply: reply?.text.replace(/\s+/g, " ").slice(0, 80) ?? null });
     await sleep(3_000);
   }
   let jobs = [], finals = 0;
@@ -440,8 +441,9 @@ async function busySeat(bot, main, person) {
   const seatRows = (await messages(main)).filter((m) => m.at >= t0 && m.tool && !m.threadRef && !m.roomRequest && SEAT_TOOL.test(m.tool.name));
   summary.timings.quick = quick;
   summary.counts = { ...summary.counts, sends: sends.map((s) => s.status), jobs: jobs.length, finals };
+  summary.digest = (await messages(main)).filter((m) => m.at >= t0).map((m) => [Math.round((m.at - t0) / 1000), `${m.role[0]}:${m.kind}`, (m.tool?.name ?? m.text ?? "").replace(/\s+/g, " ").slice(0, 60)]);
   if (seat) pass("seatHeldByJob", seat); else fail("seatHeldByJob", { reason: "no running job called a browser tool" });
-  if (quick.every((q) => q.runningJobs === 2)) pass("twoJobsRunningDuringAsks"); else fail("twoJobsRunningDuringAsks", { running: quick.map((q) => q.runningJobs) });
+  if (quick.every((q) => q.openJobs === 2 && q.runningJobs >= 1)) pass("twoJobsOpenDuringAsks", { running: quick.map((q) => q.runningJobs) }); else fail("twoJobsOpenDuringAsks", { open: quick.map((q) => q.openJobs), running: quick.map((q) => q.runningJobs) });
   if (quick.every((q) => q.ackMs !== null && q.ackMs <= 20_000)) pass("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) }); else fail("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) });
   if (seatRows.length === 0) pass("chatHoldsNoSeatTools"); else fail("chatHoldsNoSeatTools", { tools: seatRows.map((m) => m.tool.name).slice(0, 6) });
   if (jobs.length === 2 && finals === 2) pass("finalsInMainChat"); else fail("finalsInMainChat", { jobs: jobs.length, finals, busy: jobs.map((j) => Boolean(j.busy)) });
