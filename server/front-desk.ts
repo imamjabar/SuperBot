@@ -52,7 +52,7 @@ interface SteerJobDeps {
 
 /** A correction or addition for a bot's own running job, read by that job at its next step. `from`: the turn asking. */
 export async function steerOwnJob(deps: SteerJobDeps, bot: { id: string; name: string }, jobThreadId: string, message: string, from: { threadId: string; deliversReports?: boolean }): Promise<{ status: number; body: Record<string, unknown> }> {
-  if (from.deliversReports) return { status: 409, body: { error: DELIVER_REPORTS_REFUSAL } };
+  if (from.deliversReports) return { status: 409, body: { error: DELIVER_REPORTS_REFUSAL, deliverNow: true } };
   if (jobThreadId === from.threadId) return { status: 400, body: { error: "That thread id is this chat itself, not a job. Answer the person here; list_threads shows your jobs' ids." } };
   const job = deps.store.taskByThread(bot.id, jobThreadId);
   if (!job || job.openedBy?.botId !== bot.id) return { status: 404, body: { error: "No job of yours has that thread id; use list_threads." } };

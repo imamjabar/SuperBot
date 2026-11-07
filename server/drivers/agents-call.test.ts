@@ -87,6 +87,23 @@ describe("create_bot", () => {
   });
 });
 
+describe("a turn delivering its jobs' reports", () => {
+  const refused = (error: string, deliverNow?: true) => context({
+    client: { api: async () => ({ error, ...(deliverNow ? { deliverNow } : {}) }), apiResponse: async () => ({ ok: false, status: 409, body: {} }) },
+  });
+
+  it("reads the deliver-now refusal of start_thread and coordinate_bots as guidance, so answering next does not fail the turn", async () => {
+    const calls = [
+      ["start_thread", { title: "Again", message: "Rework it", report_back: true }],
+      ["coordinate_bots", { bot_ids: ["bot-voice"], message: "Rework it", reply: "resume" }],
+    ] as const;
+    for (const [name, args] of calls) {
+      expect(await callTool(name, args, refused("Answer the person now.", true)), name).toEqual({ text: "Answer the person now." });
+      expect((await callTool(name, args, refused("No bot with that id"))).isError, name).toBe(true);
+    }
+  });
+});
+
 describe("mcp_server", () => {
   it("posts the action and fields and returns the route's text for the model", async () => {
     const calls: Array<{ path: string; method?: string; body: unknown }> = [];

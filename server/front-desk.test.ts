@@ -40,7 +40,7 @@ describe("steerOwnJob", () => {
   it("refuses any steer on a turn delivering its jobs' reports, telling it to answer now", async () => {
     const { deps: d, steered } = deps();
     const result = await steerOwnJob(d, bot, "job", "Rework Hetzner", { threadId: "chat", deliversReports: true });
-    expect(result).toEqual({ status: 409, body: { error: DELIVER_REPORTS_REFUSAL } });
+    expect(result).toEqual({ status: 409, body: { error: DELIVER_REPORTS_REFUSAL, deliverNow: true } });
     expect(steered).toEqual([]);
   });
 });
