@@ -38,7 +38,7 @@ const pass = (name, detail = {}) => { summary.checks[name] = { pass: true, ...de
 
 async function call(method, path, body, token) {
   const headers = { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) };
-  const res = await fetch(`${BASE}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const res = await fetch(`${BASE}${path}`, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const text = await res.text();
   let json = null;
   try { json = JSON.parse(text); } catch { json = { raw: text.slice(0, 200) }; }
@@ -121,7 +121,7 @@ async function chrome() {
     if (msg.id && pending.has(msg.id)) {
       const { resolve, reject } = pending.get(msg.id);
       pending.delete(msg.id);
-      msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
+      if (msg.error) reject(new Error(msg.error.message)); else resolve(msg.result);
     }
   };
   const send = (method, params = {}) => new Promise((resolve, reject) => {
@@ -170,7 +170,7 @@ async function main() {
     await browser.go(`${BASE}/`);
     const row = await waitFor("sidebar bot row", () => browser.evaluate(`(() => { const el = document.querySelector('[data-sidebar-bot-row=${JSON.stringify(bot.id)}]'); if (!el) return false; el.click(); return true; })()`), 30_000, 500);
     const opened = await waitFor("main chat", async () => { const s = await browser.evaluate(UI.mainChat); return s.composer ? s : undefined; }, 20_000, 500).catch(() => undefined);
-    opened && !opened.jobFooter && !opened.conversationPill ? pass("botRowOpensMainChat") : fail("botRowOpensMainChat", { row: Boolean(row), state: opened ?? null });
+    if (opened && !opened.jobFooter && !opened.conversationPill) pass("botRowOpensMainChat"); else fail("botRowOpensMainChat", { row: Boolean(row), state: opened ?? null });
     if (SINGLE) return await singleJob(browser, bot, main, person);
     if (SCENARIO === "language") return await languageScenario(bot, main, person);
     if (SCENARIO === "busyseat") return await busySeat(bot, main, person);
@@ -189,7 +189,7 @@ async function main() {
     await send("news", { text: NEWS_ASK });
     await sleep(800);
     const steer = await send("steer", { text: STEER, followUp: "steer" });
-    steer.status === 202 ? pass("mainChatSteerAccepted") : fail("mainChatSteerAccepted", { status: steer.status });
+    if (steer.status === 202) pass("mainChatSteerAccepted"); else fail("mainChatSteerAccepted", { status: steer.status });
 
     const jobsNow = async () => (await bots()).find((b) => b.id === bot.id).tasks.filter((t) => t.openedBy?.reportsBack && t.openedBy.botId === bot.id && t.createdAt >= t0 - 1_000);
     const firstJob = await waitFor("first job", async () => (await jobsNow())[0], 120_000, 1_000).catch(() => undefined);
@@ -200,12 +200,11 @@ async function main() {
       const anyRow = (await messages(firstJob.threadId)).find((m) => m.role === "user") ?? { id: "probe-missing" };
       const edit = await call("POST", `/api/bots/${bot.id}/messages/${anyRow.id}/edit`, { threadId: firstJob.threadId, text: "edited" }, person);
       const refused = [typed, goal, edit].every((r) => r.status === 409 && r.body.code === "job_thread_read_only");
-      refused ? pass("apiRefusesPersonInJob", { statuses: [typed.status, goal.status, edit.status] })
-        : fail("apiRefusesPersonInJob", { statuses: [typed.status, goal.status, edit.status], codes: [typed.body.code, goal.body.code, edit.body.code] });
+      if (refused) pass("apiRefusesPersonInJob", { statuses: [typed.status, goal.status, edit.status] }); else fail("apiRefusesPersonInJob", { statuses: [typed.status, goal.status, edit.status], codes: [typed.body.code, goal.body.code, edit.body.code] });
 
       await browser.go(`${BASE}/?open-bot=${bot.id}&open-thread=${firstJob.threadId}`);
       const job = await waitFor("job view", async () => { const s = await browser.evaluate(UI.mainChat); return s.jobFooter ? s : undefined; }, 20_000, 500).catch(() => undefined);
-      job && !job.composer ? pass("jobViewReadOnly") : fail("jobViewReadOnly", { state: job ?? null });
+      if (job && !job.composer) pass("jobViewReadOnly"); else fail("jobViewReadOnly", { state: job ?? null });
       await browser.go(`${BASE}/?open-bot=${bot.id}&open-thread=${main}`);
     } else {
       fail("apiRefusesPersonInJob", { reason: "no job opened" });
@@ -225,7 +224,7 @@ async function main() {
       jobs = await jobsNow();
       const lines = await browser.evaluate(UI.presence).catch(() => []);
       for (const line of lines) {
-        const phrase = line.split("·").map((part) => part.trim()).filter((part) => part && !/^#/.test(part) && !ELAPSED.test(part)).join(" · ");
+        const phrase = line.split("·").map((part) => part.trim()).filter((part) => part && !part.startsWith("#") && !ELAPSED.test(part)).join(" · ");
         if (phrase && !presence.includes(phrase)) presence.push(phrase);
       }
       const mainBusy = (await bots()).find((b) => b.id === bot.id).tasks.find((t) => t.threadId === main)?.busy;
@@ -236,7 +235,7 @@ async function main() {
     summary.counts.jobs = jobs.length;
     summary.presencePhrases = presence.slice(0, 8).map((line) => line.slice(0, 60));
     const contextual = presence.filter((phrase) => !GENERIC_STATUS.test(phrase));
-    contextual.length ? pass("statusLineContextual", { phrases: contextual.length }) : fail("statusLineContextual", { phrases: presence.length });
+    if (contextual.length) pass("statusLineContextual", { phrases: contextual.length }); else fail("statusLineContextual", { phrases: presence.length });
 
     const marks = timingMarks();
     const mainRows = await messages(main);
@@ -247,17 +246,16 @@ async function main() {
     const doneAt = marks.filter((m) => m.mark === "job-done").map((m) => m.at).sort((a, b) => a - b);
     summary.counts.jobsCompleted = done.length;
     const stale = finals.filter((m) => STALE_REPLAY.test(m.text)).length;
-    jobs.length >= 1 && jobs.length <= 2 ? pass("atMostTwoJobs", { jobs: jobs.length }) : fail("atMostTwoJobs", { jobs: jobs.length });
-    acks.length === 2 && acks.every((m) => m.text.length <= 400) ? pass("twoShortAcks", { lens: acks.map((m) => m.text.length) })
-      : fail("twoShortAcks", { acks: acks.length, lens: acks.map((m) => m.text.length) });
-    settled ? pass("finalsInMainChat", { finals: finals.length }) : fail("finalsInMainChat", { settled, finals: finals.length, jobs: jobs.length, busy: jobs.map((j) => Boolean(j.busy)) });
-    stale === 0 ? pass("noStaleReplay") : fail("noStaleReplay", { hits: stale });
+    if (jobs.length >= 1 && jobs.length <= 2) pass("atMostTwoJobs", { jobs: jobs.length }); else fail("atMostTwoJobs", { jobs: jobs.length });
+    if (acks.length === 2 && acks.every((m) => m.text.length <= 400)) pass("twoShortAcks", { lens: acks.map((m) => m.text.length) }); else fail("twoShortAcks", { acks: acks.length, lens: acks.map((m) => m.text.length) });
+    if (settled) pass("finalsInMainChat", { finals: finals.length }); else fail("finalsInMainChat", { settled, finals: finals.length, jobs: jobs.length, busy: jobs.map((j) => Boolean(j.busy)) });
+    if (stale === 0) pass("noStaleReplay"); else fail("noStaleReplay", { hits: stale });
     const jobRows = await Promise.all(jobs.map((j) => messages(j.threadId)));
     const workerRows = jobRows.map((rows) => rows.filter((m) => m.role === "bot").length);
-    workerRows.every((n) => n > 0) && settled ? pass("workerReportBack", { jobBotRows: workerRows }) : fail("workerReportBack", { jobBotRows: workerRows, settled });
+    if (workerRows.every((n) => n > 0) && settled) pass("workerReportBack", { jobBotRows: workerRows }); else fail("workerReportBack", { jobBotRows: workerRows, settled });
     const perJob = jobs.map((j, i) => ({ job: j, ...toolCalls(jobRows[i], t0), lastAt: jobRows[i].at(-1)?.at })).sort((a, b) => a.job.createdAt - b.job.createdAt);
     const ranByJob = perJob.map((j) => j.ran);
-    ranByJob.every((ran) => ran <= JOB_CALLS) ? pass("callsWithinCap", { ran: ranByJob, cap: JOB_CALLS }) : fail("callsWithinCap", { ran: ranByJob, rows: perJob.map((j) => j.tools.length), cap: JOB_CALLS });
+    if (ranByJob.every((ran) => ran <= JOB_CALLS)) pass("callsWithinCap", { ran: ranByJob, cap: JOB_CALLS }); else fail("callsWithinCap", { ran: ranByJob, rows: perJob.map((j) => j.tools.length), cap: JOB_CALLS });
     const digest = (rows) => rows.filter((m) => m.at >= t0).slice(-40).map((m) => [Math.round((m.at - t0) / 1000), `${m.role[0]}:${m.kind}${m.steered ? ":steered" : ""}`,
       m.tool ? `${m.tool.name}${m.tool.ok === false ? "!" : ""} ${m.tool.input ?? ""}`.slice(0, 80) : (m.text ?? "").replace(/\s+/g, " ").slice(0, 80)]);
     writeFileSync(`${RUN_DIR}/digest.json`, JSON.stringify({ main: digest(mainRows), jobs: jobs.map((j, i) => ({ title: j.title, busy: Boolean(j.busy), rows: digest(jobRows[i]) })) }));
@@ -267,8 +265,7 @@ async function main() {
       const live = Boolean(jobs.find((j) => j.threadId === stopTarget)?.busy);
       const stop = await call("POST", `/api/bots/${bot.id}/interrupt`, { threadId: stopTarget }, person);
       const idle = live ? await waitFor("stopped job", async () => !(await jobsNow()).find((j) => j.threadId === stopTarget)?.busy, 20_000, 1_000).catch(() => false) : true;
-      stop.status === 200 && idle ? pass("stopRouteReachesJob", { outcome: stop.body.outcome ?? "stopped", live })
-        : fail("stopRouteReachesJob", { status: stop.status, live, idle });
+      if (stop.status === 200 && idle) pass("stopRouteReachesJob", { outcome: stop.body.outcome ?? "stopped", live }); else fail("stopRouteReachesJob", { status: stop.status, live, idle });
     }
     summary.notes.push("card press not exercised live: no card appeared; covered by CI route test");
 
@@ -311,7 +308,7 @@ async function singleJob(browser, bot, main, person) {
   while (Date.now() < DEADLINE) {
     jobs = await jobsNow();
     for (const line of await browser.evaluate(UI.presence).catch(() => [])) {
-      const phrase = line.split("·").map((part) => part.trim()).filter((part) => part && !/^#/.test(part) && !/^(\d+m\s*)?\d+s$|^\d+\s*min$/.test(part)).join(" · ");
+      const phrase = line.split("·").map((part) => part.trim()).filter((part) => part && !part.startsWith("#") && !/^(\d+m\s*)?\d+s$|^\d+\s*min$/.test(part)).join(" · ");
       if (phrase && !presence.includes(phrase)) presence.push(phrase);
     }
     doneAt = timingMarks().find((m) => m.mark === "job-done")?.at;
@@ -326,12 +323,12 @@ async function singleJob(browser, bot, main, person) {
   const ack = botText(await messages(main), t0)[0];
   const marks = timingMarks();
   const toolMark = marks.find((m) => m.mark === "tool");
-  jobs.length === 1 ? pass("oneJob") : fail("oneJob", { jobs: jobs.length });
-  web > 0 ? pass("webToolUsed", { web, readText: tools.filter((name) => /data_sql|data_load/.test(name)).length }) : fail("webToolUsed", { tools: [...new Set(tools)].slice(0, 6) });
-  ran <= cap ? pass("callsWithinCap", { ran, rows: tools.length, cap }) : fail("callsWithinCap", { ran, rows: tools.length, cap });
+  if (jobs.length === 1) pass("oneJob"); else fail("oneJob", { jobs: jobs.length });
+  if (web > 0) pass("webToolUsed", { web, readText: tools.filter((name) => /data_sql|data_load/.test(name)).length }); else fail("webToolUsed", { tools: [...new Set(tools)].slice(0, 6) });
+  if (ran <= cap) pass("callsWithinCap", { ran, rows: tools.length, cap }); else fail("callsWithinCap", { ran, rows: tools.length, cap });
   const contextual = presence.filter((phrase) => /^(Reading|Searching the web for|Running data query|Reviewing) \S/.test(phrase));
-  contextual.length ? pass("statusLineContextual", { phrases: contextual.slice(0, 4).map((p) => p.slice(0, 40)) }) : fail("statusLineContextual", { phrases: presence.slice(0, 4) });
-  final ? pass("finalInMainChat", { len: final.text.length }) : fail("finalInMainChat", { jobs: jobs.length, busy: jobs.map((j) => Boolean(j.busy)) });
+  if (contextual.length) pass("statusLineContextual", { phrases: contextual.slice(0, 4).map((p) => p.slice(0, 40)) }); else fail("statusLineContextual", { phrases: presence.slice(0, 4) });
+  if (final) pass("finalInMainChat", { len: final.text.length }); else fail("finalInMainChat", { jobs: jobs.length, busy: jobs.map((j) => Boolean(j.busy)) });
   summary.timings = {
     ackMs: ack ? ack.at - t0 : null, jobStartMs: jobs[0] ? jobs[0].createdAt - t0 : null,
     firstToolMs: toolMark ? toolMark.at - toolMark.ms - t0 : null, jobDoneMs: doneAt ? doneAt - t0 : null, finalMs: final ? final.at - t0 : null,
@@ -396,10 +393,10 @@ async function languageScenario(bot, main, person) {
   }
   summary.timings.language = rows;
   const wrong = rows.filter((r) => r.got !== r.want || ("finalLang" in r && r.finalLang !== r.want));
-  wrong.length === 0 ? pass("replyInUserLanguage") : fail("replyInUserLanguage", { wrong: wrong.map((r) => r.label) });
-  rows.every((r) => r.ackMs !== null && r.ackMs <= 20_000) ? pass("acksWithinSeconds", { ackMs: rows.map((r) => r.ackMs) }) : fail("acksWithinSeconds", { ackMs: rows.map((r) => r.ackMs) });
+  if (wrong.length === 0) pass("replyInUserLanguage"); else fail("replyInUserLanguage", { wrong: wrong.map((r) => r.label) });
+  if (rows.every((r) => r.ackMs !== null && r.ackMs <= 20_000)) pass("acksWithinSeconds", { ackMs: rows.map((r) => r.ackMs) }); else fail("acksWithinSeconds", { ackMs: rows.map((r) => r.ackMs) });
   const jobRow = rows.find((r) => "job" in r);
-  jobRow?.finalMs ? pass("jobFinalInMainChat", { finalMs: jobRow.finalMs }) : fail("jobFinalInMainChat", { job: jobRow?.job ?? false });
+  if (jobRow?.finalMs) pass("jobFinalInMainChat", { finalMs: jobRow.finalMs }); else fail("jobFinalInMainChat", { job: jobRow?.job ?? false });
   finished();
 }
 
@@ -438,11 +435,11 @@ async function busySeat(bot, main, person) {
   const seatRows = (await messages(main)).filter((m) => m.at >= t0 && m.tool && !m.threadRef && !m.roomRequest && SEAT_TOOL.test(m.tool.name));
   summary.timings.quick = quick;
   summary.counts = { ...summary.counts, sends: sends.map((s) => s.status), jobs: jobs.length, finals };
-  seat ? pass("seatHeldByJob", seat) : fail("seatHeldByJob", { reason: "no running job called a browser tool" });
-  quick.every((q) => q.runningJobs === 2) ? pass("twoJobsRunningDuringAsks") : fail("twoJobsRunningDuringAsks", { running: quick.map((q) => q.runningJobs) });
-  quick.every((q) => q.ackMs !== null && q.ackMs <= 20_000) ? pass("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) }) : fail("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) });
-  seatRows.length === 0 ? pass("chatHoldsNoSeatTools") : fail("chatHoldsNoSeatTools", { tools: seatRows.map((m) => m.tool.name).slice(0, 6) });
-  jobs.length === 2 && finals === 2 ? pass("finalsInMainChat") : fail("finalsInMainChat", { jobs: jobs.length, finals, busy: jobs.map((j) => Boolean(j.busy)) });
+  if (seat) pass("seatHeldByJob", seat); else fail("seatHeldByJob", { reason: "no running job called a browser tool" });
+  if (quick.every((q) => q.runningJobs === 2)) pass("twoJobsRunningDuringAsks"); else fail("twoJobsRunningDuringAsks", { running: quick.map((q) => q.runningJobs) });
+  if (quick.every((q) => q.ackMs !== null && q.ackMs <= 20_000)) pass("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) }); else fail("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) });
+  if (seatRows.length === 0) pass("chatHoldsNoSeatTools"); else fail("chatHoldsNoSeatTools", { tools: seatRows.map((m) => m.tool.name).slice(0, 6) });
+  if (jobs.length === 2 && finals === 2) pass("finalsInMainChat"); else fail("finalsInMainChat", { jobs: jobs.length, finals, busy: jobs.map((j) => Boolean(j.busy)) });
   for (const job of jobs.filter((j) => j.busy)) await call("POST", `/api/bots/${bot.id}/interrupt`, { threadId: job.threadId }, person);
   finished();
 }
@@ -459,7 +456,7 @@ async function restartScenario(bot, main, person) {
       }
     }, 150_000, 1_000).catch(() => undefined);
     writeFileSync(state, JSON.stringify({ t0, job, cutAt: Date.now() }));
-    job ? pass("jobMidTurnBeforeRestart", { toolRows: job.tools, record: assignmentOf(job.threadId) }) : fail("jobMidTurnBeforeRestart", { status: sent.status });
+    if (job) pass("jobMidTurnBeforeRestart", { toolRows: job.tools, record: assignmentOf(job.threadId) }); else fail("jobMidTurnBeforeRestart", { status: sent.status });
     return finished();
   }
   const { t0, job, cutAt } = JSON.parse(readFileSync(state, "utf8"));
@@ -467,7 +464,7 @@ async function restartScenario(bot, main, person) {
   const back = Date.now();
   await sendMain(bot, main, person, "Masih jalan? Jawab singkat saja.");
   const pong = await replyAfter(main, back, 45_000);
-  pong ? pass("chatAnswersAfterRestart", { ackMs: pong.at - back }) : fail("chatAnswersAfterRestart", {});
+  if (pong) pass("chatAnswersAfterRestart", { ackMs: pong.at - back }); else fail("chatAnswersAfterRestart", {});
   const idle = await idleJob(bot, t0, job.threadId);
   await sleep(20_000);
   const record = assignmentOf(job.threadId);
@@ -475,10 +472,9 @@ async function restartScenario(bot, main, person) {
   const finals = botText(await messages(main), Math.max(cutAt, jobLast)).filter((m) => !isProgressNote(m) && m.id !== pong?.id);
   summary.timings = { finalAfterRestartMs: finals[0] ? finals[0].at - back : null };
   summary.counts.record = record;
-  record && (record.restarts >= 1 || record.events.filter((k) => k === "started").length >= 2) ? pass("jobRanAgainAfterRestart", { restarts: record.restarts, executions: record.executions })
-    : fail("jobRanAgainAfterRestart", { record: record ?? null });
-  idle && record?.status === "completed" ? pass("jobCompleted") : fail("jobCompleted", { idle: Boolean(idle), status: record?.status ?? null });
-  finals.length === 1 ? pass("finalOnceInMainChat", { len: finals[0].text.length }) : fail("finalOnceInMainChat", { finals: finals.length });
+  if (record && (record.restarts >= 1 || record.events.filter((k) => k === "started").length >= 2)) pass("jobRanAgainAfterRestart", { restarts: record.restarts, executions: record.executions }); else fail("jobRanAgainAfterRestart", { record: record ?? null });
+  if (idle && record?.status === "completed") pass("jobCompleted"); else fail("jobCompleted", { idle: Boolean(idle), status: record?.status ?? null });
+  if (finals.length === 1) pass("finalOnceInMainChat", { len: finals[0].text.length }); else fail("finalOnceInMainChat", { finals: finals.length });
   finished();
 }
 
