@@ -46,15 +46,14 @@ export function installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, ap
 
   return {
     /** `remote()`: this desktop is a remote client of another computer. `away()`: this computer's bots moved to My Cloud,
-     * so its own copy is frozen. `starting()`: this computer's server is on its way up. `dataDir()`: the data folder
-     * this process runs. */
-    start({ globalShortcut, screen, prefs, remote, away, starting, localRequest, dataDir }) {
+     * so its own copy is frozen. `starting()`: this computer's server is on its way up. */
+    start({ globalShortcut, screen, prefs, remote, away, starting, localRequest }) {
       const request = (route, init) => (packaged ? localRequest(route, init) : fetch(new URL(route, devUrl), init));
       try {
         panel = createTalkPanel({ BrowserWindow, screen, nativeImage, iconPath, theme, onOpen: logged("open", () => session.open()), onDismiss: logged("dismiss", () => session.dismiss()) });
         session = createTalkSession({
           speech,
-          server: createTalkServer({ request, prefs, starting, serverKey: () => (packaged ? dataDir() : devUrl) ?? "local" }),
+          server: createTalkServer({ request, starting }),
           panel,
           voiceInUse: () => speech.busy() || callPresence.active(),
           release: () => shortcut.releaseModifiers(),

@@ -16,9 +16,9 @@ const CHAT = { botId: "m", threadId: "t1" };
 
 const MOVED = { error: "This bot lives on My Cloud now.", code: "moved" };
 
-function fakeServer({ bots, saved = null, sendStatus = 202, sendBody = { ok: true }, made = null, starting }) {
+function fakeServer({ bots, sendStatus = 202, sendBody = { ok: true }, starting }) {
   const encoder = new TextEncoder();
-  const server = { calls: [], saves: [], events: null, listing: { down: false, status: 200 } };
+  const server = { calls: [], events: null, listing: { down: false, status: 200 } };
   const request = async (route, init = {}) => {
     const method = init.method ?? "GET";
     server.calls.push([method, route, init.body === undefined ? undefined : JSON.parse(init.body)]);
@@ -26,7 +26,6 @@ function fakeServer({ bots, saved = null, sendStatus = 202, sendBody = { ok: tru
       if (server.listing.down) throw new TypeError("fetch failed");
       return Response.json({ bots }, { status: server.listing.status });
     }
-    if (method === "POST" && /^\/api\/bots\/[\w-]+\/tasks$/.test(route)) return made ? Response.json(made.body, { status: made.status }) : Response.json({ task: { threadId: "t-new", title: "Quick asks" } }, { status: 201 });
     if (method === "GET" && route === "/api/events?screens=off") {
       let stream;
       const body = new ReadableStream({ start: controller => { stream = controller; }, cancel: () => { server.events.cancelled = true; } });
@@ -36,7 +35,7 @@ function fakeServer({ bots, saved = null, sendStatus = 202, sendBody = { ok: tru
     if (method === "POST" && /^\/api\/bots\/[\w-]+\/messages$/.test(route)) return Response.json(sendBody, { status: sendStatus });
     return new Response(null, { status: 404 });
   };
-  server.talk = createTalkServer({ request, serverKey: () => "server-a", starting, prefs: { quickAsksChat: () => saved, setQuickAsksChat: (key, chat) => server.saves.push([key, chat]) } });
+  server.talk = createTalkServer({ request, starting });
   return server;
 }
 
@@ -50,60 +49,42 @@ test("findMausBot picks this computer's MausBot, else the Chief of Staff", () =>
   assert.equal(findMausBot([{ id: "x" }, { ...chief, hidden: true }]), null);
 });
 
-test("prepare reuses the saved Quick asks chat while MausBot still has it", async () => {
-  const server = fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [{ threadId: "t0" }, { threadId: "t1" }] }], saved: { botId: "m", threadId: "t1" } });
-  assert.deepEqual(await server.talk.prepare(), { botId: "m", threadId: "t1" });
+test("prepare asks in MausBot's main chat and makes no other chat", async () => {
+  const server = fakeServer({ bots: [{ id: "m", threadId: "main", defaultBot: {}, tasks: [{ threadId: "main" }, { threadId: "t-job" }] }] });
+  assert.deepEqual(await server.talk.prepare(), { botId: "m", threadId: "main" });
   assert.deepEqual(server.calls.map(([method]) => method), ["GET"]);
-  assert.deepEqual(server.saves, []);
 });
 
-test("prepare makes a Quick asks chat without selecting it when the saved one is gone, and keeps it", async () => {
-  const server = fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [] }], saved: { botId: "m", threadId: "t-gone" } });
-  assert.deepEqual(await server.talk.prepare(), { botId: "m", threadId: "t-new" });
-  assert.deepEqual(server.calls.at(-1), ["POST", "/api/bots/m/tasks", { title: "Quick asks", select: false }]);
-  assert.deepEqual(server.saves, [["server-a", { botId: "m", threadId: "t-new" }]]);
-});
-
-test("prepare makes a new chat when the saved one belongs to another bot", async () => {
-  const server = fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [{ threadId: "t1" }] }], saved: { botId: "old", threadId: "t1" } });
-  assert.deepEqual(await server.talk.prepare(), { botId: "m", threadId: "t-new" });
-});
-
-test("two prepares at once make one chat", async () => {
-  const server = fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [] }] });
+test("two prepares at once read the bots once", async () => {
+  const server = fakeServer({ bots: [{ id: "m", threadId: "main", defaultBot: {} }] });
   const first = server.talk.prepare(), second = server.talk.prepare();
   assert.equal(first, second);
-  assert.deepEqual(await Promise.all([first, second]), [{ botId: "m", threadId: "t-new" }, { botId: "m", threadId: "t-new" }]);
-  assert.equal(server.calls.filter(([method]) => method === "POST").length, 1);
+  assert.deepEqual(await Promise.all([first, second]), [{ botId: "m", threadId: "main" }, { botId: "m", threadId: "main" }]);
+  assert.equal(server.calls.length, 1);
 });
 
 test("prepare says why it cannot ask", async () => {
-  const server = fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [] }] });
+  const server = fakeServer({ bots: [{ id: "m", threadId: "main", defaultBot: {} }] });
   server.listing.down = true;
   await assert.rejects(server.talk.prepare(), { name: "TalkServerError", code: "server-down" });
   server.listing = { down: false, status: 503 };
   await assert.rejects(server.talk.prepare(), { code: "server-down" });
   server.listing.status = 200;
-  assert.deepEqual(await server.talk.prepare(), { botId: "m", threadId: "t-new" });
+  assert.deepEqual(await server.talk.prepare(), { botId: "m", threadId: "main" });
   await assert.rejects(fakeServer({ bots: [] }).talk.prepare(), { code: "no-mausbot" });
-  await assert.rejects(fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [] }], made: { status: 500, body: {} } }).talk.prepare(), { code: "refused" });
+  await assert.rejects(fakeServer({ bots: [{ id: "m", defaultBot: {} }] }).talk.prepare(), { code: "refused" });
 });
 
 test("a server still on its way up says starting, not down", async () => {
   let starting = true;
-  const server = fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [] }], starting: () => starting });
+  const server = fakeServer({ bots: [{ id: "m", threadId: "main", defaultBot: {} }], starting: () => starting });
   server.listing.down = true;
   await assert.rejects(server.talk.prepare(), { code: "starting" });
   starting = false;
   await assert.rejects(server.talk.prepare(), { code: "server-down" });
 });
 
-test("a computer whose bots moved to My Cloud says so, on making the chat and on sending", async () => {
-  const frozen = fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [] }], made: { status: 409, body: MOVED } });
-  await assert.rejects(frozen.talk.prepare(), { name: "TalkServerError", code: "moved" });
-  assert.deepEqual(frozen.saves, []);
-  await assert.rejects(fakeServer({ bots: [{ id: "m", defaultBot: {}, tasks: [] }], made: { status: 409, body: { code: "thread_busy" } } }).talk.prepare(), { code: "refused" });
-
+test("a computer whose bots moved to My Cloud says so on sending", async () => {
   const sending = fakeServer({ bots: [], sendStatus: 409, sendBody: MOVED });
   const refusing = asking(sending);
   await flush();
@@ -156,7 +137,17 @@ test("a waiting card or an opened request means MausBot needs the person", () =>
   assert.deepEqual(track(opened("t1")), { kind: "needs-you" });
 });
 
-test("ask listens before it sends, posts to the Quick asks chat, and ends with the turn", async () => {
+test("an ask answered aside while the main chat is busy ends with the answer that names it, not with the running turn", () => {
+  const track = createReplyTracker({ threadId: "t1", sendId: "s2" });
+  assert.equal(track(delta("t1", "i1", "Still researching", "turn-1")), null);
+  assert.deepEqual(track(userMessage("t1", "s2")), { kind: "thinking" });
+  assert.equal(track(botText("t1", "Prices so far", "turn-1")), null);
+  assert.notEqual(track({ kind: "message", threadId: "t1", message: { id: "b-other", role: "bot", kind: "text", text: "Earlier aside", requestMessageId: "u-s0" } })?.kind, "done");
+  assert.deepEqual(track({ kind: "message", threadId: "t1", message: { id: "b-aside", role: "bot", kind: "text", text: "It is 21:15", requestMessageId: "u-s2" } }),
+    { kind: "done", ok: true, text: "It is 21:15" });
+});
+
+test("ask listens before it sends, posts to the main chat, and ends with the turn", async () => {
   const server = fakeServer({ bots: [] });
   const updates = [];
   const asking = server.talk.ask({ chat: { botId: "m", threadId: "t1" }, text: "hi", sendId: "s1", signal: new AbortController().signal, onUpdate: u => updates.push(u) });

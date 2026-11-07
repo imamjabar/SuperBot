@@ -1,5 +1,3 @@
-export const QUICK_ASKS_TITLE = "Quick asks";
-
 export class TalkServerError extends Error {
   constructor(code) {
     super(code);
@@ -50,7 +48,7 @@ const waitingCard = card => !(card?.answered || card?.dismissed || card?.expired
 
 export function createReplyTracker({ threadId, sendId }) {
   const earlierTurns = new Set();
-  let echoed = false, steered = false, turnId = null;
+  let echoed = false, steered = false, turnId = null, askedId;
   let itemId, streamed = "", shown = "";
   const show = text => { shown = text; return { kind: "reply", text }; };
   const answersThisAsk = frameTurn => {
@@ -68,6 +66,7 @@ export function createReplyTracker({ threadId, sendId }) {
     if (!echoed) {
       if (message?.role === "user" && message.sendId === sendId) {
         echoed = true;
+        askedId = message.id;
         steered = message.steered === true;
         return { kind: "thinking" };
       }
@@ -87,6 +86,7 @@ export function createReplyTracker({ threadId, sendId }) {
       return null;
     }
     if (message.role !== "bot") return null;
+    if (message.kind === "text" && frameTurn === undefined && askedId !== undefined && message.requestMessageId === askedId) return { kind: "done", ok: true, text: show(message.text ?? "").text };
     if (message.kind === "text") return show(message.text ?? "");
     if (message.kind === "options" && waitingCard(message.card)) return { kind: "needs-you" };
     return null;
@@ -102,28 +102,18 @@ async function refusal(response) {
   return new TalkServerError(body?.code === "moved" ? "moved" : "refused");
 }
 
-export function createTalkServer({ request, prefs, serverKey, starting = () => false }) {
+export function createTalkServer({ request, starting = () => false }) {
   let preparing = null;
   const down = () => new TalkServerError(starting() ? "starting" : "server-down");
 
-  const quickAsksChat = async () => {
+  const mainChat = async () => {
     const listing = await request("/api/bots?messages=0").catch(() => null);
     const bots = listing?.ok ? (await listing.json().catch(() => null))?.bots : null;
     if (!Array.isArray(bots)) throw down();
     const bot = findMausBot(bots);
     if (!bot) throw new TalkServerError("no-mausbot");
-    const server = serverKey();
-    const saved = prefs.quickAsksChat(server);
-    if (saved?.botId === bot.id && bot.tasks?.some(task => task.threadId === saved.threadId)) return saved;
-    const made = await request(`/api/bots/${encodeURIComponent(bot.id)}/tasks`, {
-      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ title: QUICK_ASKS_TITLE, select: false }),
-    }).catch(() => { throw down(); });
-    if (!made.ok) throw await refusal(made);
-    const threadId = (await made.json().catch(() => null))?.task?.threadId;
-    if (typeof threadId !== "string") throw new TalkServerError("refused");
-    const chat = { botId: bot.id, threadId };
-    prefs.setQuickAsksChat(server, chat);
-    return chat;
+    if (typeof bot.threadId !== "string") throw new TalkServerError("refused");
+    return { botId: bot.id, threadId: bot.threadId };
   };
 
   const ask = ({ chat, text, sendId, signal, onUpdate }) => new Promise((resolve, reject) => {
@@ -175,7 +165,7 @@ export function createTalkServer({ request, prefs, serverKey, starting = () => f
 
   return {
     prepare() {
-      preparing ??= quickAsksChat().finally(() => { preparing = null; });
+      preparing ??= mainChat().finally(() => { preparing = null; });
       return preparing;
     },
     ask,

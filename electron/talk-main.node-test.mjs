@@ -66,7 +66,7 @@ function harness({ packaged = true, appleSpeech = true, remote = false, register
   const screen = { getCursorScreenPoint: () => ({ x: 0, y: 0 }), getDisplayNearestPoint: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }) };
   h.start = () => h.talk.start({ globalShortcut, screen, prefs: createDesktopPrefs({ read: () => null, write: () => {} }), remote: () => remote,
     away: failing("away", () => h.away), starting: () => h.starting,
-    localRequest: route => { h.requests.push(["local", route]); return answer(route); }, dataDir: () => "/Users/a/.openmausbot" });
+    localRequest: route => { h.requests.push(["local", route]); return answer(route); } });
   h.handle = (channel, event, ...args) => h.handlers.get(channel)(event, ...args);
   h.press = () => h.registered.get("Control+Alt+Space")();
   h.page = name => new FakeBrowserWindow({ name });
@@ -86,7 +86,7 @@ test("every list of the app's windows leaves the talk box out", () => {
 test("main hands the talk wiring its speech sinks, this computer's own server and window, and closes it first on quit", () => {
   assert.match(main, /const talk = installTalk\(\{ ipcMain, localOnly, localOrHome, BrowserWindow, appleSpeech: nativeActions\.appleSpeech,\s*speech: \{ start: startSpeech, stop: stopSpeech, finish: finishSpeech, busy: speechBusy \},/);
   assert.match(main, /packaged: app\.isPackaged, devUrl: DEV_URL, nativeImage, iconPath: APP_ICON, openLink: queueChatLink, reveal: revealForLink, log: slog \}\);/);
-  assert.match(main, /talk\.start\(\{ globalShortcut, screen, prefs: desktopPrefs, remote: \(\) => Boolean\(desktopRemoteAccess\), away: \(\) => homeWindow\.current\(\)\.kind !== "computer", starting: \(\) => !serverReady, localRequest: localServerRequest, dataDir: \(\) => runningDataDir \}\);/);
+  assert.match(main, /talk\.start\(\{ globalShortcut, screen, prefs: desktopPrefs, remote: \(\) => Boolean\(desktopRemoteAccess\), away: \(\) => homeWindow\.current\(\)\.kind !== "computer", starting: \(\) => !serverReady, localRequest: localServerRequest \}\);/);
   assert.match(main, /app\.on\("before-quit", \(e\) => \{\s*talk\.close\(\);/);
   assert.doesNotMatch(main, /ipcMain\.handle\("(?:speech|talk-shortcut|call):/);
 });
@@ -227,8 +227,7 @@ test("a press, an open or a dismiss that throws is logged, never thrown at Elect
 
 test("clicking the box opens its chat by a link with both ids escaped, or else just shows MausBot", async () => {
   const h = harness({ serve: route => {
-    if (route === "/api/bots?messages=0") return json({ bots: [{ id: "b?1&x", defaultBot: {}, tasks: [] }] });
-    if (route === "/api/bots/b%3F1%26x/tasks") return json({ task: { threadId: "t 1/x" } });
+    if (route === "/api/bots?messages=0") return json({ bots: [{ id: "b?1&x", threadId: "t 1/x", defaultBot: {}, tasks: [] }] });
     return undefined;
   } });
   h.start();

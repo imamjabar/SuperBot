@@ -46,9 +46,6 @@ export interface DesktopPrefs {
   talkKey(): import("./talk-shortcut.mjs").TalkKeyId;
   /** False, and nothing saved, for anything but a key id in talk-keys.mjs. */
   setTalkKey(id: unknown): boolean;
-  /** The Quick asks chat made on this server (keyed by its data folder), null until one is saved. */
-  quickAsksChat(server: string): { botId: string; threadId: string } | null;
-  setQuickAsksChat(server: string, chat: { botId: string; threadId: string }): void;
   /** False until the person hides the window's rail of places. */
   railHidden(): boolean;
   setRailHidden(hidden: boolean): void;

@@ -15,7 +15,6 @@ const WHATS_NEW = DESKTOP_NOTICES[0];
 /** A locale code such as "de" or "pt-br", or "" for following the system. */
 const LANGUAGE = /^(?:[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2})?$/i;
 const isLanguage = value => typeof value === "string" && value.length <= 24 && LANGUAGE.test(value);
-const CHAT_ID = /^[\w-]{1,128}$/;
 const INSTALL_ID = /^[A-Za-z0-9_-]{22,64}$/;
 
 /** Security: a write that fails (a full disk, a kill mid-write) leaves the last whole record, analytics opt-out included.
@@ -36,16 +35,10 @@ export function jsonFile(file, files = fs) {
   };
 }
 
-const parseChat = value => value && typeof value === "object" && typeof value.botId === "string" && typeof value.threadId === "string"
-  && CHAT_ID.test(value.botId) && CHAT_ID.test(value.threadId) ? { botId: value.botId, threadId: value.threadId } : null;
-
 function parse(raw) {
   const record = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   const seen = Array.isArray(record.seen) ? DESKTOP_NOTICES.filter(id => record.seen.includes(id)) : [];
   const updatesConsent = parseUpdatesConsent(record.updatesConsent);
-  const quickAsks = record.quickAsks && typeof record.quickAsks === "object" && !Array.isArray(record.quickAsks)
-    ? Object.fromEntries(Object.entries(record.quickAsks).flatMap(([server, chat]) => { const parsed = parseChat(chat); return parsed ? [[server, parsed]] : []; }))
-    : {};
   return { seen, ...(typeof record.analytics === "boolean" ? { analytics: record.analytics } : {}),
     ...(isLanguage(record.language) ? { language: record.language } : {}),
     ...(typeof record.installId === "string" && INSTALL_ID.test(record.installId) ? { installId: record.installId } : {}),
@@ -53,8 +46,7 @@ function parse(raw) {
     ...(typeof record.talkShortcut === "boolean" ? { talkShortcut: record.talkShortcut } : {}),
     ...(isTalkKey(record.talkKey) ? { talkKey: record.talkKey } : {}),
     ...(typeof record.railHidden === "boolean" ? { railHidden: record.railHidden } : {}),
-    ...(typeof record.windowFrame === "boolean" ? { windowFrame: record.windowFrame } : {}),
-    ...(Object.keys(quickAsks).length ? { quickAsks } : {}) };
+    ...(typeof record.windowFrame === "boolean" ? { windowFrame: record.windowFrame } : {}) };
 }
 
 /** A record that cannot be written is still kept for this launch. */
@@ -105,14 +97,6 @@ export function createDesktopPrefs({ read, write }) {
       if (!isTalkKey(id)) return false;
       if (current().talkKey !== id) save({ ...current(), talkKey: id });
       return true;
-    },
-    quickAsksChat(server) {
-      const quickAsks = current().quickAsks;
-      return quickAsks && Object.hasOwn(quickAsks, server) ? { ...quickAsks[server] } : null;
-    },
-    setQuickAsksChat(server, chat) {
-      const parsed = typeof server === "string" ? parseChat(chat) : null;
-      if (parsed) save({ ...current(), quickAsks: { ...current().quickAsks, [server]: parsed } });
     },
     /** The window's rail of places is shown until the person hides it. */
     railHidden: () => current().railHidden === true,

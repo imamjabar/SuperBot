@@ -69,7 +69,7 @@ test("a press listens with the key's release modifiers and shows the live words"
   assert.equal(h.prepares, 1);
 });
 
-test("letting go sends the words to the Quick asks chat and shows the reply, which hides 12 s later", async () => {
+test("letting go sends the words to the main chat and shows the reply, which hides 12 s later", async () => {
   const h = harness(); h.session.press(); say(h, "what's on my calendar"); release(h); await flush();
   assert.deepEqual(pick(h.asks[0], ["chat", "text", "sendId"]), { chat: CHAT, text: "what's on my calendar", sendId: "send-1" });
   assert.deepEqual([...new Set(h.views.map(v => v.state))], ["listening", "sending", "thinking", "reply"]);

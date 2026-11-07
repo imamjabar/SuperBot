@@ -338,18 +338,6 @@ test("the talk shortcut is on with ⌃⌥Space until changed, and the choice sur
   assert.equal(junk.talkKey(), "ctrl-opt-space");
 });
 
-test("each server keeps its own Quick asks chat; nothing malformed is read back", () => {
-  let saved = null;
-  const prefs = createDesktopPrefs({ read: () => saved, write: value => { saved = structuredClone(value); } });
-  prefs.setQuickAsksChat("/Users/a/.openmausbot", { botId: "bot-1", threadId: "t-1" });
-  assert.deepEqual(createDesktopPrefs({ read: () => saved, write: () => {} }).quickAsksChat("/Users/a/.openmausbot"), { botId: "bot-1", threadId: "t-1" });
-  assert.equal(prefs.quickAsksChat("/Users/a/.openmausbot-aprs"), null);
-  const broken = createDesktopPrefs({ read: () => ({ quickAsks: { a: { botId: "../x", threadId: "t" }, b: "t-1", c: { botId: "b", threadId: "t", extra: 1 } } }), write: () => {} });
-  assert.equal(broken.quickAsksChat("a"), null);
-  assert.equal(broken.quickAsksChat("b"), null);
-  assert.deepEqual(broken.quickAsksChat("c"), { botId: "b", threadId: "t" });
-});
-
 test("registerDesktopPrefs works on the store main hands it", async () => {
   const prefs = createDesktopPrefs({ read: () => null, write: () => {} });
   const handlers = new Map();
