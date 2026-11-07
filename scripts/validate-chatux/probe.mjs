@@ -22,7 +22,7 @@ const SEAT_TOOL = /browser|computer|vm_exec|shared_computer|web_fetch|web_search
 const GENERIC_STATUS = /^(Starting|Planning the steps|Writing (the )?answer)$/;
 const STALE_REPLAY = /\b(earlier|previously|already (shared|sent|answered|reported))\b|sebelumnya|tadi sudah|sudah (saya )?(kirim|sampaikan)/i;
 const isProgressNote = (m) => /^(Still working|Masih (bekerja|mengerjakan))/i.test(m.text);
-const ID_WORDS = /\b(yang|dan|di|ke|dari|ini|itu|untuk|dengan|tolong|apa|bisa|sudah|saya|kamu|anda|berapa|kali|adalah|hasil|sedang|akan|cek|berita|terkini|ya|tidak|ada|sekarang|jam|hari|nanti|sebentar|baik|oke)\b/gi;
+const ID_WORDS = /\b(yang|dan|di|ke|dari|ini|itu|untuk|dengan|tolong|apa|bisa|sudah|saya|kamu|anda|berapa|kali|dikali|hasil|hasilnya|sama|adalah|sedang|akan|cek|berita|terkini|ya|tidak|ada|sekarang|jam|hari|nanti|sebentar|baik|oke)\b/gi;
 const EN_WORDS = /\b(the|and|is|are|what|please|can|you|to|of|for|with|this|that|how|it|i|will|here|news|latest|times|result|now|be|on|in|time|today|i'll|it's|let|me|check|checking|equals|divided|by)\b/gi;
 
 /** Which of the two languages the probe sends a reply is written in, by common short words; "unknown" on a tie. */
