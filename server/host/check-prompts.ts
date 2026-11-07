@@ -1,7 +1,7 @@
 // What a routine's run is told about the items its checks found, and how a watch run's answer is read back. Mail and
 // invite text reach the model only inside records blocks; the answer is one small JSON object the server parses, and an
 // answer it cannot parse is a failure, never posted.
-import type { CalendarEvent, EmailHeader } from "../connected-reads.ts";
+import type { CalendarEvent, Commit, EmailHeader } from "../connected-reads.ts";
 import type { RoutineRun } from "../routines.ts";
 import { clean, recordsBlock } from "../records-block.ts";
 import { PICKS_PER_TRIAGE } from "./check-plan.ts";
@@ -10,10 +10,18 @@ import { clip } from "./text-clip.ts";
 export const PREP_MAX = 1_200;
 const NEVER_ACT = "Never send, forward, reply, book, accept, decline, delete or change anything, and do not search the web or open links: read, and nothing else.";
 
+export interface CheckCommits {
+  repo: string;
+  branch: string;
+  commits: Commit[];
+  more?: boolean;
+}
+
 export interface CheckItems {
   mail: EmailHeader[];
   prep: Array<{ key: string; event: CalendarEvent; short: boolean }>;
   runs: RoutineRun[];
+  commits?: CheckCommits;
 }
 
 function when(ms: number, timeZone: string | undefined): string {
@@ -77,6 +85,12 @@ export function checkedPrompt(input: { instructions: string; items: CheckItems; 
     ...(items.mail.length ? ["New emails:", emailRecords(items.mail)] : []),
     ...(items.prep.length ? ["Meetings with other people starting soon:", meetingRecords(items.prep, input.timeZone)] : []),
     ...(items.runs.length ? ["Other routines that finished:", runRecords(items.runs)] : []),
+    ...(items.commits && items.commits.commits.length ? [
+      `New commits on ${items.commits.repo} (${items.commits.branch}):`,
+      ...items.commits.commits.map((commit) => `${commit.sha.slice(0, 7)} · ${clean(commit.author, 80)} · ${when(commit.at, input.timeZone)} · ${clean(commit.message, 200)} · ${commit.url}`),
+      ...(items.commits.more ? ["More commits may exist."] : []),
+      "Report what changed in a short message.",
+    ] : []),
   ].join("\n");
 }
 

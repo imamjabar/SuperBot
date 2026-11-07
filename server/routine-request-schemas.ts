@@ -50,13 +50,18 @@ export const routineToolDefinitionSchema = z.object({
   continuity: z.boolean().optional(),
   overlap: z.enum(["skip", "queue"]).optional(),
   runOnStartup: z.boolean().optional(),
+  checks: z.array(z.enum(["calendar", "mail", "runs", "github"])).optional(),
+  github: z.object({ repo: z.string(), branch: z.string().optional() }).optional(),
 }).strict();
 
 export const routineToolChangesSchema = routineToolDefinitionSchema
   .omit({ timeoutMinutes: true })
   .partial()
-  .extend({ timeoutMinutes: z.number().nullable().optional() })
-  .strict()
+  .extend({
+    timeoutMinutes: z.number().nullable().optional(),
+    checks: z.array(z.enum(["calendar", "mail", "runs", "github"])).nullable().optional(),
+    github: z.object({ repo: z.string(), branch: z.string().optional() }).nullable().optional(),
+  })
   .refine(
   (changes) => Object.values(changes).some((value) => value !== undefined),
   "Choose at least one routine field to update",
@@ -179,6 +184,8 @@ export const storedDefinitionSchema = z.object({
   continuity: z.boolean().optional(),
   overlap: z.enum(["skip", "queue"]).optional(),
   runOnStartup: z.boolean().optional(),
+  checks: z.array(z.enum(["calendar", "mail", "runs", "github"])).optional(),
+  github: z.object({ repo: z.string(), branch: z.string().optional() }).optional(),
 }).strict();
 export const storedChangesSchema = storedDefinitionSchema
   .omit({ schedule: true, timeoutMinutes: true })
@@ -186,6 +193,8 @@ export const storedChangesSchema = storedDefinitionSchema
   .extend({
     schedule: storedScheduleChangesSchema.optional(),
     timeoutMinutes: z.number().int().min(5).max(240).nullable().optional(),
+    checks: z.array(z.enum(["calendar", "mail", "runs", "github"])).nullable().optional(),
+    github: z.object({ repo: z.string(), branch: z.string().optional() }).nullable().optional(),
   })
   .strict()
   .refine(

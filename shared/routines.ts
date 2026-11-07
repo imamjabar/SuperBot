@@ -64,9 +64,10 @@ export interface RoutineContextAttachment {
 export type RoutineRunTrigger = "schedule" | "manual" | "webhook" | "startup" | "api";
 
 /** A check a routine runs on each tick before any AI turn, in plain code: `calendar` reads the next 36 hours, `mail`
- * new inbox mail since the last check, `runs` other routines' finished runs. Nothing new means no AI turn. */
-export type RoutineCheck = "calendar" | "mail" | "runs";
-export const ROUTINE_CHECKS: readonly RoutineCheck[] = ["calendar", "mail", "runs"];
+ * new inbox mail since the last check, `runs` other routines' finished runs, `github` commits on one repo branch.
+ * Nothing new means no AI turn. */
+export type RoutineCheck = "calendar" | "mail" | "runs" | "github";
+export const ROUTINE_CHECKS: readonly RoutineCheck[] = ["calendar", "mail", "runs", "github"];
 
 /** What a routine's runs may do. `read-and-draft`: read Gmail and Google Calendar and write reply drafts; every other
  * tool is refused outright, never turned into a card. Missing means the bot's own level. */
@@ -135,6 +136,8 @@ export interface Routine {
   /** Also run once each time OpenMausBot starts. */
   runOnStartup?: boolean;
   checks?: RoutineCheck[];
+  /** When checks includes "github": the repository ("owner/name") and optional branch (default "main") to watch. */
+  github?: { repo: string; branch?: string };
   access?: RoutineAccess;
   deliver?: RoutineDelivery;
   /** When its checks last read everything and found nothing for the AI. */
@@ -227,6 +230,8 @@ export interface RoutineInput {
   runOnStartup?: boolean;
   /** `null` explicitly removes them on updates; omission preserves them. */
   checks?: RoutineCheck[] | null;
+  /** When checks includes "github": the repository and optional branch. `null` explicitly removes it on updates; omission preserves it. */
+  github?: { repo: string; branch?: string } | null;
   access?: RoutineAccess | null;
   deliver?: RoutineDelivery | null;
   attachments?: RoutineContextAttachment[];

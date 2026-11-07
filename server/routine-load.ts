@@ -58,13 +58,24 @@ export function loadChecks(value: unknown): RoutineCheck[] | undefined {
   const checks = ROUTINE_CHECKS.filter((check) => value.includes(check));
   return checks.length ? checks : undefined;
 }
+function loadGithub(value: unknown): { repo: string; branch?: string } | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const repo = "repo" in value && typeof value.repo === "string" ? value.repo.trim() : "";
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return undefined;
+  const branch = "branch" in value && typeof value.branch === "string" ? value.branch.trim() : undefined;
+  if (branch !== undefined && !/^[\w./-]{1,100}$/.test(branch)) return undefined;
+  return { repo, ...(branch ? { branch } : {}) };
+}
+
 
 /** A routine's checks, access and delivery as it may hold them; a field out of range is left out. */
-export function withCheckFields<T extends Pick<Routine, "target" | "checks" | "access" | "deliver">>(routine: T): T {
-  const clean = { ...routine, checks: routine.target === "bot" ? loadChecks(routine.checks) : undefined,
+export function withCheckFields<T extends Pick<Routine, "target" | "checks" | "access" | "deliver"> & { github?: Routine["github"] }>(routine: T): T {
+  const clean = { ...routine,
+    checks: routine.target === "bot" ? loadChecks(routine.checks) : undefined,
+    github: routine.target === "bot" ? loadGithub(routine.github) : undefined,
     access: routine.access === "read-and-draft" ? "read-and-draft" as const : undefined,
     deliver: routine.target === "bot" && routine.deliver === "brief" ? "brief" as const : undefined };
-  return withoutUndefined(clean, ["checks", "access", "deliver"]);
+  return withoutUndefined(clean, ["checks", "github", "access", "deliver"]);
 }
 
 const instant = (value: unknown): number | undefined =>

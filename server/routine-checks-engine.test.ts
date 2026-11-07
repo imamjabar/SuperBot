@@ -424,7 +424,7 @@ describe("routines with checks", () => {
 
   it("refuses checks it does not know, and checks on a routine that runs once", () => {
     const h = harness();
-    expect(() => h.watch({ checks: ["mail", "weather" as never] })).toThrow("Choose checks from calendar, mail and runs");
+    expect(() => h.watch({ checks: ["mail", "weather" as never] })).toThrow("Choose checks from calendar, mail, runs and github");
     expect(() => h.watch({ schedule: { type: "once", at: h.now() + MINUTE } })).toThrow("Checks need a bot routine that repeats");
     expect(() => h.watch({ access: "everything" as never })).toThrow("Choose read-and-draft access or none");
   });

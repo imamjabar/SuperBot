@@ -3,7 +3,7 @@
 import { cronScheduleLabel } from "../../shared/cron-label";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { isRoutineProblemRun, type Routine, type RoutineRun, type RoutineSchedule } from "@/lib/routines";
+import { isRoutineProblemRun, type Routine, type RoutineCheck, type RoutineRun, type RoutineSchedule } from "@/lib/routines";
 import type { WebhookAttempt, WebhookTrigger } from "@/lib/webhooks";
 import type { AppTrigger } from "@/lib/app-triggers";
 import { appProblem, appStatusParts, appWhen, skippedToday } from "@/lib/app-automations";
@@ -32,6 +32,8 @@ export interface Automation {
   checkTrouble?: string;
   /** Its runs read and draft only. */
   readsAndDrafts?: boolean;
+  checks?: RoutineCheck[];
+  github?: Routine["github"];
 }
 
 const runTime = (run: RoutineRun) => run.startedAt ?? run.scheduledFor ?? run.createdAt;
@@ -47,6 +49,8 @@ export function automationsFrom(sources: { routines: readonly Routine[]; webhook
       schedule: routine.schedule, nextRunAt: routine.enabled ? routine.nextRunAt : null, runs: runsOf(routine.id),
       ...(routine.checkedAt !== undefined ? { checkedAt: routine.checkedAt } : {}), ...(routine.checkTrouble ? { checkTrouble: routine.checkTrouble } : {}),
       ...(routine.access === "read-and-draft" ? { readsAndDrafts: true } : {}),
+      ...(routine.checks ? { checks: routine.checks } : {}),
+      ...(routine.github ? { github: routine.github } : {}),
     })),
     ...sources.webhooks.map((webhook): Automation => ({
       kind: "webhook", id: webhook.id, name: webhook.name, botId: webhook.botId, instructions: webhook.prompt, enabled: webhook.enabled,

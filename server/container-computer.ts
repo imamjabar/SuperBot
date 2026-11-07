@@ -1061,7 +1061,7 @@ export async function ensureVmWorkspace(
   const entry = await lstat(target.workspaceDir);
   const real = await realpath(target.workspaceDir);
   if (!entry.isDirectory() || !real.startsWith(`${await realpath(dirname(target.workspaceDir))}${sep}`)) {
-    throw new Error(`The Local VM workspace ${target.workspaceDir} must be a real directory, not a link`);
+    throw new Error(`The Local VM's folder ${target.workspaceDir} must be a real directory, not a link`);
   }
   if (entry.uid !== appUid) return;
   await chmod(target.workspaceDir, platform !== "linux" || appUid === GUEST_UID ? 0o700 : 0o755);

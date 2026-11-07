@@ -1,4 +1,5 @@
 import type { HandoffView } from "./coordinator.ts";
+import { serverLine } from "./server-lines.ts";
 import type { Store } from "./store.ts";
 
 const CHECK_EVERY_MS = 60_000;
@@ -24,10 +25,10 @@ export function createJobProgress(coordinator: Coordinator, store: Pick<Store, "
       const due = NOTE_AT_MINUTES.filter((mark) => mark <= minutes).at(-1);
       if (due === undefined || (noted.get(job.id) ?? 0) >= due) continue;
       noted.set(job.id, due);
-      const title = store.taskByThread(job.botId, job.threadId)?.title ?? "Background job";
+      const title = store.taskByThread(job.botId, job.threadId)?.title ?? serverLine(undefined, "server.jobProgress.untitled");
       store.appendMessage(parent.threadId, {
         role: "bot", kind: "activity",
-        tool: { name: `Still working on #${title} · ${minutes} min`, ok: true },
+        tool: { name: serverLine(undefined, "server.jobProgress.stillWorking", { title, minutes }), ok: true },
         threadRef: { botId: job.botId, threadId: job.threadId, title },
       });
     }

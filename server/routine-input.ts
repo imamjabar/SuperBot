@@ -4,6 +4,18 @@ import { cleanAttachments, cleanTimeoutMinutes } from "./routine-attachments.ts"
 import { loadChecks } from "./routine-load.ts";
 import { cleanSchedule } from "./routine-schedules.ts";
 import type { Routine, RoutineInput } from "./routines.ts";
+const GITHUB_REPO = /^[\w.-]+\/[\w.-]+$/;
+const GITHUB_BRANCH = /^[\w./-]{1,100}$/;
+
+export function cleanGithub(value: RoutineInput["github"]): { repo: string; branch?: string } | undefined {
+  if (value == null) return undefined;
+  if (typeof value !== "object") throw new Error("Choose a GitHub repository like owner/repo");
+  const repo = typeof value.repo === "string" ? value.repo.trim() : "";
+  if (!GITHUB_REPO.test(repo)) throw new Error("Choose a GitHub repository like owner/repo");
+  const branch = typeof value.branch === "string" ? value.branch.trim() : undefined;
+  if (branch !== undefined && !GITHUB_BRANCH.test(branch)) throw new Error("Choose a valid GitHub branch");
+  return { repo, ...(branch ? { branch } : {}) };
+}
 
 export function sanitizeInput(input: RoutineInput, after: number): Omit<Routine, "id" | "createdAt" | "updatedAt" | "nextRunAt"> {
   const name = String(input.name ?? "").trim().slice(0, 80);
@@ -38,7 +50,9 @@ export function sanitizeInput(input: RoutineInput, after: number): Omit<Routine,
   const schedule = cleanSchedule(input.schedule, after);
   const asked = Array.isArray(input.checks) && input.checks.length === 0 ? null : input.checks;
   const checks = asked == null ? undefined : loadChecks(asked);
-  if (asked != null && (!checks || checks.length !== new Set(asked).size)) throw new Error("Choose checks from calendar, mail and runs");
+  if (asked != null && (!checks || checks.length !== new Set(asked).size)) throw new Error("Choose checks from calendar, mail, runs and github");
+  const github = cleanGithub(input.github);
+  if (checks?.includes("github") && !github?.repo) throw new Error("Choose a GitHub repository like owner/repo");
   if (checks && (target !== "bot" || runsOnce(schedule))) throw new Error("Checks need a bot routine that repeats");
   if (input.access != null && input.access !== "read-and-draft") throw new Error("Choose read-and-draft access or none");
   if (input.deliver != null && (input.deliver !== "brief" || target !== "bot")) throw new Error("Only a bot routine can deliver to the brief");
@@ -58,6 +72,7 @@ export function sanitizeInput(input: RoutineInput, after: number): Omit<Routine,
     ...(input.overlap === "queue" ? { overlap: "queue" as const } : {}),
     ...(input.runOnStartup === true && !runsOnce(schedule) ? { runOnStartup: true } : {}),
     ...(checks ? { checks } : {}),
+    ...(github ? { github } : {}),
     ...(input.access === "read-and-draft" ? { access: "read-and-draft" as const } : {}),
     ...(input.deliver === "brief" ? { deliver: "brief" as const } : {}),
   };

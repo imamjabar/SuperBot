@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { SourceError, type CalendarEvent, type ConnectedReads, type EmailHeader, type ReadApp } from "../connected-reads.ts";
+import { SourceError, type CalendarEvent, type Commit, type ConnectedReads, type EmailHeader, type ReadApp } from "../connected-reads.ts";
 import type { Routine, RoutineRun } from "../routines.ts";
 import { CHECKS_FILE, createRoutineChecks, type CheckReport } from "./routine-checks.ts";
 
@@ -18,11 +18,12 @@ function setup(options: { fenced?: boolean; may?: (app: ReadApp) => boolean } = 
   const inbox: EmailHeader[] = [];
   const events: CalendarEvent[] = [];
   const failing: Partial<Record<ReadApp, string>> = {};
+  const commits: Commit[] = [];
   const calls: string[] = [];
   const runs: RoutineRun[] = [];
   const reports: CheckReport[] = [];
   const reads: ConnectedReads = {
-    connected: async () => ({ gmail: true, googlecalendar: true }),
+    connected: async () => ({ gmail: true, googlecalendar: true, github: true }),
     session: () => ({
       async address() { calls.push("address"); if (failing.gmail) throw new SourceError("gmail", failing.gmail); return "me@x.test"; },
       async events() { calls.push("events"); if (failing.googlecalendar) throw new SourceError("googlecalendar", failing.googlecalendar); return events; },
@@ -34,6 +35,11 @@ function setup(options: { fenced?: boolean; may?: (app: ReadApp) => boolean } = 
       },
       async message() { return null; },
       async thread() { return []; },
+      async commits() {
+        calls.push("commits");
+        if (failing.github) throw new SourceError("github", failing.github);
+        return commits;
+      },
     }),
   };
   const sorted: Array<[string, number]> = [];
@@ -58,7 +64,12 @@ function setup(options: { fenced?: boolean; may?: (app: ReadApp) => boolean } = 
     events.push(event);
     return event;
   };
-  return { checks, routine, mail, meeting, failing, calls, runs, reports, inbox, sorted, advance: (ms: number) => { now += ms; }, now: () => now, file: join(dir, CHECKS_FILE) };
+  const commit = (sha: string, message: string, agoMinutes = 0): Commit => {
+    const c: Commit = { sha, message, author: "Alice", at: now - agoMinutes * MINUTE, url: `https://github.com/owner/repo/commit/${sha}` };
+    commits.unshift(c);
+    return c;
+  };
+  return { checks, routine, mail, meeting, commit, failing, calls, runs, reports, inbox, sorted, advance: (ms: number) => { now += ms; }, now: () => now, file: join(dir, CHECKS_FILE) };
 }
 
 const run = (key: string, status: RoutineRun["status"], deliver?: "brief"): RoutineRun => ({
@@ -207,5 +218,48 @@ describe("a routine's checks", () => {
     s.advance(15 * MINUTE);
     expect((await s.checks.check(own, { manual: false })).run).toBeUndefined();
     expect(s.reports).toEqual([]);
+  });
+
+  it("GitHub checks: first check records head with no run, new commit starts run, commit keeps it, release gives it back, signed-out returns trouble", async () => {
+    const s = setup();
+    const ghRoutine = s.routine({
+      checks: ["github"],
+      github: { repo: "owner/repo", branch: "main" },
+      deliver: undefined,
+      access: undefined,
+    });
+
+    // 1. First check with an existing commit: records head, starts NO run
+    s.commit("1111111111111111111111111111111111111111", "Initial commit", 10);
+    const first = await s.checks.check(ghRoutine, { manual: false });
+    expect(first.run).toBeUndefined();
+
+    // 2. A new commit arrives: starts one run with short sha and message in prompt
+    s.advance(15 * MINUTE);
+    s.commit("2222222222222222222222222222222222222222", "Fix login bug", 5);
+    const second = await s.checks.check(ghRoutine, { manual: false });
+    expect(second.run).toBeDefined();
+    expect(second.run!.prompt).toContain("2222222");
+    expect(second.run!.prompt).toContain("Fix login bug");
+    expect(second.run!.prompt).toContain("owner/repo (main)");
+
+    // 3. A failed run (release) hands the commit again on next check
+    s.checks.release(second.run!.key);
+    s.advance(15 * MINUTE);
+    const retry = await s.checks.check(ghRoutine, { manual: false });
+    expect(retry.run).toBeDefined();
+    expect(retry.run!.prompt).toContain("2222222");
+    expect(retry.run!.prompt).toContain("Fix login bug");
+
+    // 4. After commit(key), the same commit does not start another run
+    s.checks.commit(retry.run!.key);
+    s.advance(15 * MINUTE);
+    const afterCommit = await s.checks.check(ghRoutine, { manual: false });
+    expect(afterCommit.run).toBeUndefined();
+
+    // 5. A signed-out read returns trouble "Couldn't read GitHub. Reconnect it in Connected apps."
+    s.failing.github = "Connected account is not ACTIVE";
+    const failedCheck = await s.checks.check(ghRoutine, { manual: false });
+    expect(failedCheck.trouble).toBe("Couldn't read GitHub. Reconnect it in Connected apps.");
   });
 });

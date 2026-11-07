@@ -31,6 +31,7 @@ export function RoutineList({ routines, runs, bots, loading, error, onOpen, onLo
           <button type="button" onClick={() => onOpen(routine)} className="min-w-0 flex-1 text-left hover:text-accent">
             <span className="block truncate text-[13px] font-semibold text-ink">{routine.name}</span>
             <span className="mt-1 block text-[12px] leading-relaxed text-ink-secondary">{bot && `${bot.name} · `}{scheduleLabel(routine.schedule)}</span>
+            {routine.github && <span className="mt-1 block text-[12px] text-ink-secondary">GitHub: {routine.github.repo}{routine.github.branch ? ` (${routine.github.branch})` : ""}</span>}
           </button>
           {switched
             ? <Switch checked={routine.enabled} aria-label={t("routines.toggle", { name: routine.name })} onClick={() => onToggle(routine)} />

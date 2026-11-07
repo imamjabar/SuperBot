@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
-  calendarsFromData, createConnectedReads, emailsFromData, eventsFromData, messageFromData, profileFromData, SourceError, threadFromData, toolData,
+  calendarsFromData, commitsFromData, createConnectedReads, emailsFromData, eventsFromData, messageFromData, profileFromData, SourceError, threadFromData, toolData,
 } from "./connected-reads.ts";
 
 const fixture = (name: string): unknown => JSON.parse(readFileSync(new URL(`./testing/fixtures/${name}.json`, import.meta.url), "utf8"));
@@ -12,7 +12,7 @@ function relay(answers: Record<string, (args: Record<string, unknown>) => { succ
   const frames: Array<{ method: string; session?: string; slug?: string; args?: Record<string, unknown>; item?: Record<string, unknown> }> = [];
   let sessions = 0;
   const deps = {
-    connected: async () => ({ gmail: true, googlecalendar: true }),
+    connected: async () => ({ gmail: true, googlecalendar: true, github: true }),
     relay: async (payload: unknown, session: string | undefined) => {
       const frame = payload as { method: string; params?: { arguments?: { tools?: Array<Record<string, unknown>> } } };
       const item = frame.params?.arguments?.tools?.[0];
@@ -58,6 +58,31 @@ describe("reading Composio's answers", () => {
     expect(() => toolData("GMAIL_FETCH_EMAILS", { result: { content: [{ type: "text", text: "<html>" }] } })).toThrow("not JSON");
     expect(emailsFromData({ messages: [] })).toEqual([]);
   });
+
+  it("reads GitHub commits from an array or an object holding them under details, commits, items or data", () => {
+    const sample = {
+      sha: "0123456789abcdef0123456789abcdef01234567",
+      commit: { message: "feat: add something\n\nFull description", author: { name: "Alice", date: "2026-11-01T12:00:00Z" } },
+      author: { login: "alice" },
+      html_url: "https://github.com/owner/repo/commit/0123456789abcdef0123456789abcdef01234567",
+    };
+    const expected = [{
+      sha: "0123456789abcdef0123456789abcdef01234567",
+      message: "feat: add something",
+      author: "Alice",
+      at: Date.parse("2026-11-01T12:00:00Z"),
+      url: "https://github.com/owner/repo/commit/0123456789abcdef0123456789abcdef01234567",
+    }];
+    expect(commitsFromData([sample])).toEqual(expected);
+    expect(commitsFromData({ details: [sample] })).toEqual(expected);
+    expect(commitsFromData({ commits: [sample] })).toEqual(expected);
+    expect(commitsFromData({ items: [sample] })).toEqual(expected);
+    expect(commitsFromData({ data: [sample] })).toEqual(expected);
+    // Falls back to author.login when commit.author.name is missing
+    expect(commitsFromData([{ ...sample, commit: { ...sample.commit, author: { date: "2026-11-01T12:00:00Z" } } }])[0]!.author).toBe("alice");
+    expect(() => commitsFromData({ wrong: [] })).toThrow("the GitHub answer had no commit list");
+    expect(() => commitsFromData([{ sha: "" }])).toThrow("none of the GitHub commits could be read");
+  });
 });
 
 describe("a check's reads", () => {
@@ -100,5 +125,18 @@ describe("a check's reads", () => {
     expect(mail).toMatchObject({ app: "gmail", signedOut: true });
     const calendar = await session.events(0, 1).catch((error: unknown) => error);
     expect(calendar).toMatchObject({ app: "googlecalendar", signedOut: false });
+  });
+
+  it("reads commits through the GitHub tool", async () => {
+    const { deps, frames } = relay({
+      GITHUB_LIST_COMMITS: (args) => {
+        frames.push({ method: "GITHUB_LIST_COMMITS", args });
+        return { successful: true, data: [{ sha: "c1", commit: { message: "init", author: { name: "Bob", date: "2026-11-02T00:00:00Z" } }, html_url: "https://gh/c1" }] };
+      },
+    });
+    const session = createConnectedReads(deps).session();
+    const commits = await session.commits("owner/repo", "main");
+    expect(commits).toEqual([{ sha: "c1", message: "init", author: "Bob", at: Date.parse("2026-11-02T00:00:00Z"), url: "https://gh/c1" }]);
+    expect(frames.find((f) => f.method === "GITHUB_LIST_COMMITS")?.args).toEqual({ owner: "owner", repo: "repo", sha: "main", per_page: 20 });
   });
 });

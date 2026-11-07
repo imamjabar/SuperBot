@@ -32,6 +32,7 @@ const id = z.string().min(1).max(512);
 const pendingSchema = z.object({
   at,
   mailCursor: at.optional(), mail: z.array(id).max(200), prep: z.array(id).max(50), runsCursor: at.optional(),
+  githubSeen: z.string().max(64).optional(),
   /** The threads a draft may answer, each to its own sender: the run's emails, nothing else. */
   replies: z.array(z.object({ threadId: id, to: z.string().max(320) })).max(200),
   drafted: z.array(id).max(200).optional(),
@@ -42,9 +43,10 @@ const routineStateSchema = z.object({
   judged: z.array(id).max(MAX_JUDGED).optional(),
   meetings: z.record(id, z.object({ start: at, fingerprint: z.string().max(64), prepStartedAt: at.optional(), preppedAt: at.optional(), remindedAt: at.optional() })).optional(),
   runsCursor: at.optional(),
+  githubSeen: z.string().max(64).optional(),
   address: z.string().max(320).optional(),
   pending: z.record(id, pendingSchema).optional(),
-  failures: z.object({ gmail: failureSchema.optional(), googlecalendar: failureSchema.optional() }).optional(),
+  failures: z.object({ gmail: failureSchema.optional(), googlecalendar: failureSchema.optional(), github: failureSchema.optional() }).optional(),
 });
 const fileSchema = z.object({ version: z.literal(1), routines: z.record(id, routineStateSchema) });
 type RoutineState = z.infer<typeof routineStateSchema>;
@@ -98,7 +100,7 @@ export interface RoutineChecksDeps {
 }
 
 const ACTIVE = new Set(["queued", "running", "waiting"]);
-const appName: Record<ReadApp, string> = { gmail: "Gmail", googlecalendar: "Google Calendar" };
+const appName: Record<ReadApp, string> = { gmail: "Gmail", googlecalendar: "Google Calendar", github: "GitHub" };
 const addressOf = (from: string): string => (/<([^<>\s]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
 
 export function troubleSentence(trouble: ReadonlyArray<{ app: ReadApp; signedOut: boolean }>): string | undefined {
@@ -169,6 +171,7 @@ export function createRoutineChecks(deps: RoutineChecksDeps): RoutineChecks & {
     if (pending.replies.length) deps.sorted?.(routineId, pending.replies.length);
     if (pending.mailCursor !== undefined) entry.mailCursor = Math.max(entry.mailCursor ?? 0, pending.mailCursor);
     if (pending.runsCursor !== undefined) entry.runsCursor = Math.max(entry.runsCursor ?? 0, pending.runsCursor);
+    if (pending.githubSeen !== undefined) entry.githubSeen = pending.githubSeen;
     entry.judged = keepNewest([...new Set([...(entry.judged ?? []), ...pending.mail])], MAX_JUDGED);
     for (const meeting of pending.prep) {
       const record = entry.meetings?.[meeting];
@@ -214,7 +217,7 @@ export function createRoutineChecks(deps: RoutineChecksDeps): RoutineChecks & {
     const pending: Omit<Pending, "at"> = { mail: [], prep: [], replies: [] };
     const held = new Set(Object.values(entry.pending ?? {}).flatMap((one) => [...one.mail, ...one.prep]));
     let wakeAt: number | undefined;
-    const apps = checks.includes("calendar") || checks.includes("mail") ? await deps.reads.connected().catch(() => null) : null;
+    const apps = checks.includes("calendar") || checks.includes("mail") || checks.includes("github") ? await deps.reads.connected().catch(() => null) : null;
     const session = deps.reads.session();
     report.session = session;
     const readable = (app: ReadApp): boolean => apps?.[app] === true && deps.mayRead(routine.botId, app) && !trouble.some((one) => one.app === app) &&
@@ -310,11 +313,37 @@ export function createRoutineChecks(deps: RoutineChecksDeps): RoutineChecks & {
         pending.runsCursor = at;
       } else if (!finished.length) entry.runsCursor = at;
     }
+    if (checks.includes("github") && routine.github?.repo && readable("github")) {
+      try {
+        const repo = routine.github.repo;
+        const branch = routine.github.branch || "main";
+        const commits = await session.commits(repo, branch);
+        succeeded(entry, "github");
+        const headSha = commits[0]?.sha;
+        if (entry.githubSeen === undefined) {
+          if (headSha) entry.githubSeen = headSha;
+        } else if (commits.length > 0 && headSha !== entry.githubSeen) {
+          const heldGithub = Object.values(entry.pending ?? {}).some((one) => one.githubSeen !== undefined);
+          if (!heldGithub) {
+            const seenIndex = commits.findIndex((c) => c.sha === entry.githubSeen);
+            const newCommits = seenIndex >= 0 ? commits.slice(0, seenIndex) : commits;
+            const more = seenIndex < 0 && commits.length >= 20;
+            if (newCommits.length > 0 && aiAllowed) {
+              items.commits = { repo, branch, commits: newCommits, ...(more ? { more: true } : {}) };
+              if (headSha) pending.githubSeen = headSha;
+            }
+          }
+        }
+      } catch (error) {
+        trouble.push(failed(entry, "github", error));
+      }
+    }
+
 
     if (apps) report.gmail = { connected: apps.gmail === true, ...(entry.address ? { address: entry.address } : {}) };
     if (trouble.length) report.trouble = trouble;
     let run: RoutineCheckResult["run"];
-    const work = brief ? items.mail.length + items.prep.length : items.mail.length + items.prep.length + items.runs.length;
+    const work = brief ? items.mail.length + items.prep.length : items.mail.length + items.prep.length + items.runs.length + (items.commits?.commits.length ? 1 : 0);
     if (work > 0) {
       const key = `chk-${randomUUID()}`;
       entry.pending = { ...entry.pending, [key]: { at, ...pending } };

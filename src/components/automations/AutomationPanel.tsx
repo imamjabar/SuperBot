@@ -111,6 +111,12 @@ export function AutomationPanel({ automation, sentence, onClose, onEdit, onDelet
             </details>
           </section>
         )}
+        {automation.github && (
+          <section className="rounded-xl border border-hairline/45 bg-inset/50 p-3.5">
+            <h3 className="text-[13px] font-medium text-ink">{t("automations.github.title")}</h3>
+            <p className="mt-1 text-[13px] text-ink-secondary">{automation.github.repo}{automation.github.branch ? ` (${automation.github.branch})` : ""}</p>
+          </section>
+        )}
 
         {name && instructions && <p data-testid="automation-instructions" className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">{instructions}</p>}
 

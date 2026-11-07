@@ -3,8 +3,16 @@
 // fixtures are not yet checked against the live service, so an answer of any other shape is an error, never an empty list.
 import { parseMcpResponse } from "./connector-tools-list.ts";
 
-export const READ_APPS = ["gmail", "googlecalendar"] as const;
+export const READ_APPS = ["gmail", "googlecalendar", "github"] as const;
 export type ReadApp = (typeof READ_APPS)[number];
+
+export interface Commit {
+  sha: string;
+  message: string;
+  author: string;
+  at: number;
+  url: string;
+}
 
 export interface CalendarEvent {
   id: string;
@@ -62,6 +70,7 @@ export const GMAIL_FETCH_TOOL = "GMAIL_FETCH_EMAILS";
 export const GMAIL_PROFILE_TOOL = "GMAIL_GET_PROFILE";
 export const GMAIL_MESSAGE_TOOL = "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID";
 export const GMAIL_THREAD_TOOL = "GMAIL_FETCH_MESSAGE_BY_THREAD_ID";
+export const GITHUB_COMMITS_TOOL = "GITHUB_LIST_COMMITS";
 const CALENDAR_READS_AT_ONCE = 4;
 const CALENDAR_NAME_MAX = 80;
 const GOOGLE_NOT_FOUND = /\brequested entity was not found\b/i;
@@ -307,6 +316,36 @@ export function calendarsFromData(data: unknown): Array<{ id: string; name: stri
   if (list.length > 0 && calendars.length === 0) throw new Error("none of the calendars could be read");
   return calendars;
 }
+function parseCommit(raw: unknown): Commit | null {
+  const item = record(raw);
+  if (!item || typeof item.sha !== "string" || !item.sha) return null;
+  const commitObj = record(item.commit);
+  const authorObj = record(commitObj?.author);
+  const topAuthor = record(item.author);
+  const rawMessage = commitObj?.message;
+  const firstLine = typeof rawMessage === "string" ? rawMessage.split(/\r?\n/)[0] ?? "" : "";
+  const author = flat(authorObj?.name) || flat(topAuthor?.login) || "";
+  const dateStr = authorObj?.date;
+  const at = typeof dateStr === "string" ? Date.parse(dateStr) : Number.NaN;
+  return {
+    sha: item.sha,
+    message: oneLine(firstLine, 200),
+    author,
+    at: Number.isFinite(at) ? at : 0,
+    url: typeof item.html_url === "string" ? item.html_url.trim() : "",
+  };
+}
+
+export function commitsFromData(data: unknown): Commit[] {
+  const list = listIn(data, ["details", "commits", "items", "data"]);
+  if (!list) throw new Error("the GitHub answer had no commit list");
+  const commits = list.flatMap((raw) => {
+    const commit = parseCommit(raw);
+    return commit ? [commit] : [];
+  });
+  if (list.length > 0 && commits.length === 0) throw new Error("none of the GitHub commits could be read");
+  return commits;
+}
 
 export const READ_TIMEOUT_MS = 60_000;
 
@@ -327,6 +366,7 @@ export interface ReadSession {
   thread(threadId: string): Promise<ThreadMessage[]>;
   /** The connected Gmail account's own address. */
   address(): Promise<string>;
+  commits(repo: string, branch: string): Promise<Commit[]>;
 }
 
 export interface ConnectedReads {
@@ -337,7 +377,7 @@ export interface ConnectedReads {
 const GMAIL_PAGE = 50;
 const GMAIL_PAGES = 6;
 
-const appOf = (slug: string): ReadApp => (slug.startsWith("GMAIL_") ? "gmail" : "googlecalendar");
+const appOf = (slug: string): ReadApp => (slug.startsWith("GMAIL_") ? "gmail" : slug.startsWith("GITHUB_") ? "github" : "googlecalendar");
 
 export function createConnectedReads(deps: ConnectedReadDeps): ConnectedReads {
   const readTimeoutMs = deps.readTimeoutMs ?? READ_TIMEOUT_MS;
@@ -446,6 +486,12 @@ export function createConnectedReads(deps: ConnectedReadDeps): ConnectedReads {
       async address() {
         const data = await call(GMAIL_PROFILE_TOOL, { user_id: "me" });
         return parsed("gmail", () => profileFromData(data));
+      },
+      async commits(repoSpec, branch) {
+        const [owner, repo] = repoSpec.split("/");
+        if (!owner || !repo) throw new SourceError("github", "the repository must be owner/name");
+        const data = await call(GITHUB_COMMITS_TOOL, { owner, repo, sha: branch, per_page: 20 });
+        return parsed("github", () => commitsFromData(data));
       },
     };
   }

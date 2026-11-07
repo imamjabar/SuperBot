@@ -264,6 +264,8 @@ function routineFields(args: Json): { fields: Json; error?: string } {
   if (typeof args.continuity === "boolean") fields.continuity = args.continuity;
   if (args.overlap !== undefined) fields.overlap = args.overlap;
   if (typeof runOnStartup === "boolean") fields.runOnStartup = runOnStartup;
+  if (args.checks !== undefined) fields.checks = args.checks;
+  if (args.github !== undefined) fields.github = args.github;
   return { fields };
 }
 

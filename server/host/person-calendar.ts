@@ -33,7 +33,7 @@ export function createPersonCalendar(deps: PersonCalendarDeps) {
       const access = deps.access(person);
       if (!access || !(await deps.connected(access))) return null;
       const reads = createConnectedReads({
-        connected: async () => ({ gmail: false, googlecalendar: true }),
+        connected: async () => ({ gmail: false, googlecalendar: true, github: false }),
         relay: (payload, session, signal) => deps.relay(payload, session, signal, access),
       });
       return busyTimes(await reads.session().events(fromMs, toMs));

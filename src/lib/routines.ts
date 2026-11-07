@@ -11,5 +11,6 @@ export type {
   Routine,
   RoutineRun,
   RoutineInput,
+  RoutineCheck,
 } from "../../shared/routines";
-export { ROUTINE_PROBLEM_STATUSES, isRoutineProblemRun, type RoutineRunStatusFilter } from "../../shared/routines";
+export { ROUTINE_PROBLEM_STATUSES, ROUTINE_CHECKS, isRoutineProblemRun, type RoutineRunStatusFilter } from "../../shared/routines";

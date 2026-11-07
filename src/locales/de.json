@@ -41,6 +41,8 @@
   "notice.dismiss": "Dauerhaft ausblenden",
   "notice.notNow": "Jetzt nicht",
   "notice.openFailed": "Dein Browser konnte nicht geöffnet werden. Bitte versuche es erneut.",
+  "server.jobProgress.untitled": "Hintergrundaufgabe",
+  "server.jobProgress.stillWorking": "Arbeite noch an #{title} · {minutes} Min.",
   "server.moves.connectorStayedMail": "{name} ist auf {computer} geblieben, als deine Bots zu My Cloud umgezogen sind. Bots hier können darüber also keine Mails lesen oder senden: Es speichert seine Konten auf {computer} und erreicht von hier keinen Mailserver. Um Mails von My Cloud aus zu lesen und zu senden, verbinde dein Postfach unter Verbundene Apps.",
   "server.moves.connectorStayedProgram": "{name} ist auf {computer} geblieben, als deine Bots zu My Cloud umgezogen sind. Bots hier können es also nicht nutzen: Es braucht {program}, das My Cloud nicht hat.",
   "server.moves.connectorStayedHere": "{name} ist auf {computer} geblieben, als deine Bots zu My Cloud umgezogen sind. Bots hier können es also nicht nutzen: Es verwendet Dateien oder eine Adresse, die nur {computer} hat.",
