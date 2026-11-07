@@ -1,6 +1,7 @@
 name: Chat UX scoped check
 on:
   workflow_dispatch:
+  workflow_call:
 concurrency: { group: "chatux-check-${{ github.ref }}", cancel-in-progress: true }
 permissions: { contents: read }
 jobs:

@@ -23,3 +23,5 @@ jobs:
           server/computer-control-release.test.ts server/card-dismissal.test.ts server/routes/bot-messages.test.ts
           server/surface.test.ts src/components/QuestionCard.answer.test.ts
       - run: pnpm vitest run server/index.test.ts -t "Local VM|computer|control"
+  chatux:
+    uses: ./.github/workflows/chatux-check.yml
