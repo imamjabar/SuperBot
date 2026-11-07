@@ -33,7 +33,11 @@ export class ChatRepeatGuard {
   private refusals = 0;
   private stuck: string | null = null;
 
-  constructor(private readonly refuseAfterFailures = DEFAULT_REFUSE_AFTER_FAILURES) {}
+  private readonly refuseAfterFailures: number;
+
+  constructor(refuseAfterFailures = DEFAULT_REFUSE_AFTER_FAILURES) {
+    this.refuseAfterFailures = refuseAfterFailures;
+  }
 
   /** Why this call must not run again, or null. Asked before it runs. */
   refuses(name: string, args: string): string | null {

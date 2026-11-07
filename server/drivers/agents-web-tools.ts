@@ -3,7 +3,7 @@ import type { Json } from "./agents-client.ts";
 
 export const WEB_TOOL_NAMES: ReadonlySet<string> = new Set(["web_fetch"]);
 
-export async function callWebTool(name: string, args: Json, context: ToolCallContext): Promise<ToolCallResult> {
+export async function callWebTool(args: Json, context: ToolCallContext): Promise<ToolCallResult> {
   const { ok, body } = await context.client.apiResponse("/api/internal/web/fetch", {
     method: "POST",
     body: JSON.stringify(args),
