@@ -2,6 +2,7 @@
 // loopback HTTP and a headless Chrome over CDP, then prints one compact JSON summary.
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { pathToFileURL } from "node:url";
 
 const PORT = Number(process.env.PROBE_PORT);
@@ -14,9 +15,21 @@ const CHROME = process.env.AGENT_BROWSER_EXECUTABLE_PATH ?? "/opt/openmausbot-br
 const VPS_ASK = "Tolong riset harga VPS terkini: bandingkan paket termurah 2 vCPU / 4 GB di Hetzner, DigitalOcean dan Vultr dalam USD per bulan.";
 const NEWS_ASK = "berita kompas terkini";
 const STEER = "Untuk riset VPS: prioritaskan yang punya region Singapura.";
-const SINGLE = process.env.PROBE_SCENARIO === "single";
+const SCENARIO = process.env.PROBE_SCENARIO ?? "overlap";
+const SINGLE = SCENARIO === "single";
+const BROWSER_ASK = "Buka https://example.com di browser (pakai browser, bukan web_fetch), lalu buka https://www.iana.org/help/example-domains di browser juga, dan ringkas isi kedua halaman itu.";
+const SEAT_TOOL = /browser|computer|vm_exec|shared_computer|web_fetch|web_search|shell|bash/i;
 const GENERIC_STATUS = /^(Starting|Planning the steps|Writing (the )?answer)$/;
 const STALE_REPLAY = /\b(earlier|previously|already (shared|sent|answered|reported))\b|sebelumnya|tadi sudah|sudah (saya )?(kirim|sampaikan)/i;
+const isProgressNote = (m) => /^(Still working|Masih (bekerja|mengerjakan))/i.test(m.text);
+const ID_WORDS = /\b(yang|dan|di|ke|dari|ini|itu|untuk|dengan|tolong|apa|bisa|sudah|saya|kamu|anda|berapa|kali|adalah|hasil|sedang|akan|cek|berita|terkini|ya|tidak|ada|sekarang|jam|hari|nanti|sebentar|baik|oke)\b/gi;
+const EN_WORDS = /\b(the|and|is|are|what|please|can|you|to|of|for|with|this|that|how|it|i|will|here|news|latest|times|result|now|be|on|in|time|today|i'll|it's|let|me|check|checking)\b/gi;
+
+/** Which of the two languages the probe sends a reply is written in, by common short words; "unknown" on a tie. */
+export function languageOf(text) {
+  const id = (text.match(ID_WORDS) ?? []).length, en = (text.match(EN_WORDS) ?? []).length;
+  return id > en ? "id" : en > id ? "en" : "unknown";
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const summary = { ok: false, checks: {}, timings: {}, counts: {}, notes: [] };
@@ -159,6 +172,9 @@ async function main() {
     const opened = await waitFor("main chat", async () => { const s = await browser.evaluate(UI.mainChat); return s.composer ? s : undefined; }, 20_000, 500).catch(() => undefined);
     opened && !opened.jobFooter && !opened.conversationPill ? pass("botRowOpensMainChat") : fail("botRowOpensMainChat", { row: Boolean(row), state: opened ?? null });
     if (SINGLE) return await singleJob(browser, bot, main, person);
+    if (SCENARIO === "language") return await languageScenario(bot, main, person);
+    if (SCENARIO === "busyseat") return await busySeat(bot, main, person);
+    if (SCENARIO === "restart") return await restartScenario(bot, main, person);
 
     const t0 = Date.now();
     const sends = [];
@@ -198,7 +214,6 @@ async function main() {
 
     let jobs = [];
     let settled = false;
-    const isProgressNote = (m) => /^(Still working|Masih (bekerja|mengerjakan))/i.test(m.text);
     const ELAPSED = /^(\d+m\s*)?\d+s$|^\d+\s*min$/;
     const split = (rows) => {
       const replies = botText(rows, t0).filter((m) => !isProgressNote(m));
@@ -326,6 +341,145 @@ async function singleJob(browser, bot, main, person) {
   const shot = await browser.send("Page.captureScreenshot", { format: "png" });
   writeFileSync(`${RUN_DIR}/final.png`, Buffer.from(shot.data, "base64"));
   summary.ok = Object.values(summary.checks).every((c) => c.pass);
+}
+
+const sendMain = (bot, main, person, text) => call("POST", `/api/bots/${bot.id}/messages`, { threadId: main, text }, person);
+const ownJobs = async (bot, since) => (await bots()).find((b) => b.id === bot.id).tasks.filter((t) => t.openedBy?.reportsBack && t.openedBy.botId === bot.id && t.createdAt >= since - 1_000);
+const replyAfter = (main, at, ms = 60_000) => waitFor("a reply", async () => botText(await messages(main), at).find((m) => !isProgressNote(m)), ms, 500).catch(() => undefined);
+const finished = () => { summary.ok = Object.values(summary.checks).every((c) => c.pass); };
+
+async function idleJob(bot, since, threadId) {
+  return waitFor("job idle", async () => {
+    const job = (await ownJobs(bot, since)).find((t) => t.threadId === threadId);
+    return job && !job.busy ? job : undefined;
+  }, Math.max(10_000, DEADLINE - Date.now() - 60_000), 2_000).catch(() => undefined);
+}
+
+async function finalAfterJob(main, jobThreadId) {
+  const lastAt = (await messages(jobThreadId)).at(-1)?.at ?? 0;
+  return waitFor("job final", async () => botText(await messages(main), lastAt).find((m) => !isProgressNote(m)), 60_000, 1_000).catch(() => undefined);
+}
+
+function assignmentOf(threadId) {
+  const db = new DatabaseSync(`${process.env.OMB_DATA_DIR ?? "/data/.openmausbot"}/runtime.db`, { readOnly: true });
+  try {
+    const row = db.prepare("SELECT id, status, json FROM assignments WHERE assignee_thread_id = ? ORDER BY created_at DESC").get(threadId);
+    if (!row) return undefined;
+    const { restarts, executions, outcome, restart } = JSON.parse(row.json);
+    const events = db.prepare("SELECT kind FROM assignment_events WHERE assignment_id = ? ORDER BY id").all(row.id).map((e) => e.kind);
+    return { status: row.status, restarts, executions, outcome, restart, events };
+  } finally {
+    db.close();
+  }
+}
+
+async function languageScenario(bot, main, person) {
+  const asks = [
+    { label: "id-quick", text: "Halo Chief, berapa 17 kali 23? Jawab satu kalimat.", want: "id" },
+    { label: "en-quick", text: "And what is 45 divided by 9? Answer in one sentence.", want: "en" },
+    { label: "en-job", text: "Please check the latest Kompas headlines for me.", want: "en", job: true },
+    { label: "id-quick-after", text: "Oke makasih. Sekarang jam berapa di Jakarta?", want: "id" },
+  ];
+  const rows = [];
+  for (const ask of asks) {
+    const at = Date.now();
+    const sent = await sendMain(bot, main, person, ask.text);
+    const reply = await replyAfter(main, at);
+    const row = { label: ask.label, status: sent.status, want: ask.want, got: reply ? languageOf(reply.text) : null, ackMs: reply ? reply.at - at : null, reply: reply?.text.replace(/\s+/g, " ").slice(0, 80) ?? null };
+    if (ask.job) {
+      const job = await waitFor("language job", async () => (await ownJobs(bot, at))[0], 60_000, 1_000).catch(() => undefined);
+      const final = job && await idleJob(bot, at, job.threadId) ? await finalAfterJob(main, job.threadId) : undefined;
+      Object.assign(row, { job: Boolean(job), finalMs: final ? final.at - at : null, finalLang: final ? languageOf(final.text) : null });
+    }
+    rows.push(row);
+    await sleep(1_000);
+  }
+  summary.timings.language = rows;
+  const wrong = rows.filter((r) => r.got !== r.want || ("finalLang" in r && r.finalLang !== r.want));
+  wrong.length === 0 ? pass("replyInUserLanguage") : fail("replyInUserLanguage", { wrong: wrong.map((r) => r.label) });
+  rows.every((r) => r.ackMs !== null && r.ackMs <= 20_000) ? pass("acksWithinSeconds", { ackMs: rows.map((r) => r.ackMs) }) : fail("acksWithinSeconds", { ackMs: rows.map((r) => r.ackMs) });
+  const jobRow = rows.find((r) => "job" in r);
+  jobRow?.finalMs ? pass("jobFinalInMainChat", { finalMs: jobRow.finalMs }) : fail("jobFinalInMainChat", { job: jobRow?.job ?? false });
+  finished();
+}
+
+async function busySeat(bot, main, person) {
+  const t0 = Date.now();
+  const sends = [await sendMain(bot, main, person, BROWSER_ASK)];
+  await sleep(800);
+  sends.push(await sendMain(bot, main, person, VPS_ASK));
+  const seat = await waitFor("a job on the browser seat", async () => {
+    for (const job of await ownJobs(bot, t0)) {
+      const hit = (await messages(job.threadId)).find((m) => m.at >= t0 && m.tool && /browser/i.test(m.tool.name));
+      if (hit && job.busy) return { tool: hit.tool.name, atMs: hit.at - t0 };
+    }
+  }, 180_000, 1_500).catch(() => undefined);
+  const quick = [];
+  for (const text of ["Berapa 12 kali 12?", "What day of the week is it today?"]) {
+    const running = (await ownJobs(bot, t0)).filter((j) => j.busy).length;
+    const at = Date.now();
+    const sent = await sendMain(bot, main, person, text);
+    const reply = await replyAfter(main, at, 45_000);
+    quick.push({ ask: text.slice(0, 24), status: sent.status, runningJobs: running, ackMs: reply ? reply.at - at : null, reply: reply?.text.replace(/\s+/g, " ").slice(0, 80) ?? null });
+    await sleep(3_000);
+  }
+  let jobs = [], finals = 0;
+  while (Date.now() < DEADLINE) {
+    jobs = await ownJobs(bot, t0);
+    const mainBusy = (await bots()).find((b) => b.id === bot.id).tasks.find((t) => t.threadId === main)?.busy;
+    if (jobs.length && jobs.every((j) => !j.busy) && !mainBusy) {
+      const rows = await messages(main);
+      const lasts = await Promise.all(jobs.map(async (j) => (await messages(j.threadId)).at(-1)?.at ?? t0));
+      finals = lasts.filter((lastAt) => botText(rows, lastAt).some((m) => !isProgressNote(m))).length;
+      if (finals >= jobs.length) break;
+    }
+    await sleep(2_000);
+  }
+  const seatRows = (await messages(main)).filter((m) => m.at >= t0 && m.tool && !m.threadRef && !m.roomRequest && SEAT_TOOL.test(m.tool.name));
+  summary.timings.quick = quick;
+  summary.counts = { ...summary.counts, sends: sends.map((s) => s.status), jobs: jobs.length, finals };
+  seat ? pass("seatHeldByJob", seat) : fail("seatHeldByJob", { reason: "no running job called a browser tool" });
+  quick.every((q) => q.runningJobs === 2) ? pass("twoJobsRunningDuringAsks") : fail("twoJobsRunningDuringAsks", { running: quick.map((q) => q.runningJobs) });
+  quick.every((q) => q.ackMs !== null && q.ackMs <= 20_000) ? pass("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) }) : fail("chatAnswersWhileBusy", { ackMs: quick.map((q) => q.ackMs) });
+  seatRows.length === 0 ? pass("chatHoldsNoSeatTools") : fail("chatHoldsNoSeatTools", { tools: seatRows.map((m) => m.tool.name).slice(0, 6) });
+  jobs.length === 2 && finals === 2 ? pass("finalsInMainChat") : fail("finalsInMainChat", { jobs: jobs.length, finals, busy: jobs.map((j) => Boolean(j.busy)) });
+  for (const job of jobs.filter((j) => j.busy)) await call("POST", `/api/bots/${bot.id}/interrupt`, { threadId: job.threadId }, person);
+  finished();
+}
+
+async function restartScenario(bot, main, person) {
+  const state = `${RUN_DIR}/restart.json`;
+  if (process.env.PROBE_PHASE !== "after") {
+    const t0 = Date.now();
+    const sent = await sendMain(bot, main, person, VPS_ASK);
+    const job = await waitFor("job mid-turn", async () => {
+      for (const j of await ownJobs(bot, t0)) {
+        const tools = (await messages(j.threadId)).filter((m) => m.tool && !m.tool.name.startsWith("notice:")).length;
+        if (j.busy && tools >= 2) return { threadId: j.threadId, tools };
+      }
+    }, 150_000, 1_000).catch(() => undefined);
+    writeFileSync(state, JSON.stringify({ t0, job, cutAt: Date.now() }));
+    job ? pass("jobMidTurnBeforeRestart", { toolRows: job.tools, record: assignmentOf(job.threadId) }) : fail("jobMidTurnBeforeRestart", { status: sent.status });
+    return finished();
+  }
+  const { t0, job, cutAt } = JSON.parse(readFileSync(state, "utf8"));
+  if (!job) return fail("jobMidTurnBeforeRestart", { reason: "the first phase opened no job" });
+  const back = Date.now();
+  await sendMain(bot, main, person, "Masih jalan? Jawab singkat saja.");
+  const pong = await replyAfter(main, back, 45_000);
+  pong ? pass("chatAnswersAfterRestart", { ackMs: pong.at - back }) : fail("chatAnswersAfterRestart", {});
+  const idle = await idleJob(bot, t0, job.threadId);
+  await sleep(20_000);
+  const record = assignmentOf(job.threadId);
+  const jobLast = (await messages(job.threadId)).at(-1)?.at ?? cutAt;
+  const finals = botText(await messages(main), Math.max(cutAt, jobLast)).filter((m) => !isProgressNote(m) && m.id !== pong?.id);
+  summary.timings = { finalAfterRestartMs: finals[0] ? finals[0].at - back : null };
+  summary.counts.record = record;
+  record && (record.restarts >= 1 || record.events.filter((k) => k === "started").length >= 2) ? pass("jobRanAgainAfterRestart", { restarts: record.restarts, executions: record.executions })
+    : fail("jobRanAgainAfterRestart", { record: record ?? null });
+  idle && record?.status === "completed" ? pass("jobCompleted") : fail("jobCompleted", { idle: Boolean(idle), status: record?.status ?? null });
+  finals.length === 1 ? pass("finalOnceInMainChat", { len: finals[0].text.length }) : fail("finalOnceInMainChat", { finals: finals.length });
+  finished();
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

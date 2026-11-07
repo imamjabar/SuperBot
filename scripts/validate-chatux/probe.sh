@@ -12,7 +12,14 @@ LOG=/tmp/omb-chatux-probe.log
 SHOT=/tmp/omb-chatux-probe.png
 SCENARIO=${PROBE_SCENARIO:-overlap}
 JOB_CALLS=${PROBE_JOB_CALLS:-10}
-[ "$SCENARIO" = single ] && CLIENT_MS=${PROBE_WALL_MS:-180000} || CLIENT_MS=${PROBE_WALL_MS:-240000}
+case "$SCENARIO" in
+  single) CLIENT_MS=${PROBE_WALL_MS:-180000} ;;
+  language|restart) CLIENT_MS=${PROBE_WALL_MS:-300000} ;;
+  busyseat) CLIENT_MS=${PROBE_WALL_MS:-420000} ;;
+  *) CLIENT_MS=${PROBE_WALL_MS:-240000} ;;
+esac
+BROWSER=false
+[ "$SCENARIO" = busyseat ] && BROWSER=true
 
 avail=$(awk '/MemAvailable/ { print int($2 / 1024) }' /proc/meminfo)
 [ "$avail" -ge 2048 ] || { echo "abort: only ${avail} MB available"; exit 2; }
@@ -31,9 +38,10 @@ trap cleanup EXIT
 
 tar -xzf "$DIST" -C "$TMP"
 mkdir -p "$TMP/data/.openmausbot" "$TMP/run"
-cat > "$TMP/data/.openmausbot/config.json" <<'JSON'
+cat > "$TMP/data/.openmausbot/config.json" <<JSON
 { "defaultModelSelection": { "instanceId": "openaiCompat", "model": "deepseek/deepseek-v4.1-flash" }, "openaiCompat": { "model": "deepseek/deepseek-v4.1-flash" },
-  "features": { "frontDesk": true, "browser": false }, "onboarding": { "completedAt": "2026-11-07T00:00:00.000Z", "version": 1 } }
+  "threads": { "maxConcurrentPerBot": 2 },
+  "features": { "frontDesk": true, "browser": $BROWSER }, "onboarding": { "completedAt": "2026-11-07T00:00:00.000Z", "version": 1 } }
 JSON
 chmod -R a+rwX "$TMP/data" "$TMP/run"
 cp "$CLIENT" "$TMP/run/probe.mjs"
@@ -49,7 +57,20 @@ docker logs -f -t "$NAME" > "$TMP/run/server.log" 2>&1 &
 LOGGER=$!
 
 started=$(date +%s)
-summary=$(timeout 600 docker exec -e PROBE_PORT=$PORT -e PROBE_TIMEOUT_MS=$CLIENT_MS -e PROBE_SCENARIO=$SCENARIO -e PROBE_JOB_CALLS=$JOB_CALLS "$NAME" node /probe-run/probe.mjs || echo '{"ok":false,"error":"probe client exited or timed out"}')
+client() {
+  timeout $(( CLIENT_MS / 1000 + 120 )) docker exec -e PROBE_PORT=$PORT -e PROBE_TIMEOUT_MS=$CLIENT_MS -e PROBE_SCENARIO=$SCENARIO -e PROBE_JOB_CALLS=$JOB_CALLS -e PROBE_PHASE="$1" "$NAME" node /probe-run/probe.mjs || echo '{"ok":false,"error":"probe client exited or timed out"}'
+}
+if [ "$SCENARIO" = restart ]; then
+  before=$(client before)
+  cut=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  docker restart -t 10 "$NAME" >/dev/null
+  kill "$LOGGER" 2>/dev/null || true
+  docker logs -f -t --since "$cut" "$NAME" >> "$TMP/run/server.log" 2>&1 &
+  LOGGER=$!
+  summary="{\"before\":$before,\"after\":$(client after)}"
+else
+  summary=$(client "")
+fi
 {
   echo "branch build: $(cat "$TMP/dist-server/server-dist-manifest.json" 2>/dev/null)"
   echo "wall: $(( $(date +%s) - started )) s"
