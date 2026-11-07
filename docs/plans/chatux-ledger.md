@@ -2,7 +2,17 @@
 
 Evidence: **CI** = scoped specs in the branch-only `chatux-check.yml` (run 42346753665, 15 specs, `b11b0d3`; workflow removed before merge). **box** = vitest or headless Chrome on Chief's Linux computer, no Docker. **VPS** = disposable `omb-chatux-probe` (`scripts/validate-chatux/`): branch bundle from a `check.yml` run with `probe_dist=true`, real gateway, `deepseek/deepseek-v4.1-flash`, `frontDesk` on, `TZ=Asia/Jakarta`, container and data deleted afterwards. **none** = code only. PASS needs observed behaviour (`docs/HANDOFF.md` §11).
 
-## Branch `feat/tools-routing` (on `268363d`)
+## Branch `feat/package-3` (on `e9cddd6`)
+
+Package 2 is closed: box GREEN at `ca1bd96` and merged to `main` as `e9cddd6` (PR #1). Known pre-existing failures: `parallel-threads.e2e` fixture flakes; `cloud-send-move.e2e` needs the composio-broker harness.
+
+BLOCKED: Package 3 (B7, B8, C1, C2, C4–C8, C11, G1, S1). The brief names only the item ids, and none of their content is available to the agent:
+- It is not in the repo, `docs/HANDOFF.md`, PR #1, the earlier `/tmp` briefs or the local session history. The only `G1` found there is an older "stable main chat links" item, not this batch.
+- The comparison Page (the Cursor canvas) shows a sign-in page.
+
+Guessing scope would be invention, so no code has changed. To unblock, give one line per item, with the outcome and its acceptance, as the Package 2 brief did for D1–D6.
+
+## Branch `feat/tools-routing` (on `268363d`, merged as `e9cddd6`)
 
 Order for any web task (own design, not Grok's private mechanism): a connected app, then search or a public GET, then the built-in browser, then the one desktop seat. Desktop and browser work run in delegated jobs on that one seat. Mac rule for this package: no tests, builds or installs on the Mac; the specs below are for the box. Box list: `scripts/validate-chatux/box-tools.txt`.
 
