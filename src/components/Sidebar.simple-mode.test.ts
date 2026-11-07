@@ -415,7 +415,7 @@ describe("bot-first sidebar", () => {
     expect(disabled).toContain("Move to department");
   });
 
-  it("gives the Simple bot menu New thread, View threads and Set as main thread", () => {
+  it("gives the Simple bot menu View threads and Set as main thread, and no New thread", () => {
     let tree: ReactNode;
     function Capture() {
       tree = BotContextMenu({
@@ -439,13 +439,7 @@ describe("bot-first sidebar", () => {
     fixture.state = { ...fixture.state, bots: [{ ...bot, mainThreadId: "idle-history" }], selectedId: bot.id };
     renderToStaticMarkup(createElement(Capture));
 
-    named("New thread")!.props.onClick!({} as MouseEvent);
-    expect(fixture.dispatch.mock.calls).toEqual([[{ type: "newTask", botId: bot.id }]]);
-
-    fixture.showThreads = false;
-    renderToStaticMarkup(createElement(Capture));
     expect(named("New thread")).toBeUndefined();
-    fixture.showThreads = true;
 
     fixture.dispatch.mockClear();
     named("View threads")!.props.onClick!({} as MouseEvent);

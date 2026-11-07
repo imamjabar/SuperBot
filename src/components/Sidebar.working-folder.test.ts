@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot } from "@/state/store";
+import { setShowThreads } from "@/lib/thread-preferences";
 
 const access = vi.hoisted(() => ({ admin: true, advanced: true }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => access.admin }));
@@ -36,10 +37,10 @@ const render = () => flushSync(() => root.render(createElement(BotEditorStore, {
 })));
 const openMenu = () => flushSync(() => document.querySelector<HTMLButtonElement>('button[aria-label="Actions for Pepper"]')!.click());
 const menuItem = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find((button) => button.textContent === label);
-
 beforeEach(() => {
   access.admin = true;
   access.advanced = true;
+  setShowThreads(true);
   dispatch.mockReset();
   vi.stubGlobal("fetch", () => new Promise(() => {}));
   setLocale("en");
@@ -51,6 +52,7 @@ afterEach(() => {
   flushSync(() => root.unmount());
   host.remove();
   vi.unstubAllGlobals();
+  setShowThreads(false);
 });
 
 describe("working folder through the rendered sidebar", () => {
