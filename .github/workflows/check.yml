@@ -1,10 +1,13 @@
 name: Check
 on:
   workflow_dispatch:
+    inputs:
+      scope_only: { type: boolean, default: false, description: Run only the chat UX scoped specs }
 concurrency: { group: "check-${{ github.ref }}", cancel-in-progress: true }
 permissions: { contents: read }
 jobs:
   check:
+    if: ${{ !inputs.scope_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

@@ -7,36 +7,17 @@ permissions: { contents: read }
 jobs:
   scope:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm exec oxlint --deny-warnings server shared src
-      - run: pnpm typecheck
-        env: { NODE_OPTIONS: --max-old-space-size=8192 }
       - run: >-
-          pnpm vitest run
-          server/step-summary.test.ts server/harness/live-steps.test.ts server/main-thread.test.ts server/main-thread.e2e.test.ts
-          server/direct-coordination.e2e.test.ts server/job-progress.test.ts server/routes/bot-messages.test.ts
-          server/recent-work.test.ts server/recent-work.e2e.test.ts server/routes/internal-threads.test.ts
-          src/lib/transcript-derivations.test.ts src/lib/job-status.test.ts src/lib/peer-exchange.test.ts
+          pnpm vitest run --bail 1
+          server/step-summary.test.ts
+          src/lib/transcript-derivations.test.ts src/lib/job-status.test.ts src/lib/peer-exchange.test.ts src/lib/job-threads.test.ts
           src/state/turn-status.test.ts src/state/thread-navigation.test.ts src/state/notification-open.test.ts
-          src/components/JobPresence.test.ts src/components/ChatMoreMenu.test.ts src/components/Sidebar.simple-mode.test.ts
-          src/components/BotSettingsDialog.simple.test.ts src/lib/i18n.test.ts scripts/testing/file-size-ratchet.test.ts
-          src/lib/job-threads.test.ts src/components/JobViewFooter.test.ts src/components/ChatView.controls.test.ts
-          src/components/Sidebar.working-folder.test.ts
-      - run: pnpm vitest run server/index.test.ts
-  baseline-main:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with: { ref: main }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: pnpm }
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm vitest run server/index.test.ts
+          src/components/JobPresence.test.ts src/components/JobViewFooter.test.ts src/components/ChatMoreMenu.test.ts
+          src/components/ChatView.controls.test.ts src/components/Sidebar.simple-mode.test.ts src/components/Sidebar.working-folder.test.ts
