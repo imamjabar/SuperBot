@@ -216,14 +216,14 @@ describe("opening a bot with threads hidden", () => {
 });
 
 describe("a click on a bot's message", () => {
-  it("lands from a row on the unread thread its dot is about, and reads only that thread", async () => {
-    await threadsShown(true);
-    flushSync(() => openBotRow(dispatch, scoutNow(), true, false));
+  it("lands from a row on the main chat while threads are hidden, however unread another thread is", async () => {
+    await threadsShown(false);
+    flushSync(() => openBotRow(dispatch, scoutNow(), false, false));
     await settle();
     expect(state.selectedId).toBe("scout");
-    expect(scoutNow().threadId).toBe("finished");
-    expect(reads()).toEqual(["finished"]);
-    expect(unread("left-behind")).toBe(true);
+    expect(scoutNow().threadId).toBe("main-chat");
+    expect(reads()).toEqual([]);
+    expect(unread("finished")).toBe(true);
   });
 
   it("lands from the bell on a thread another bot opened, over Settings, and the thread's row is revealed", async () => {

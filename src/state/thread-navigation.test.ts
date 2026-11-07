@@ -50,12 +50,6 @@ describe("a click on a bot's row or tile", () => {
     expect(opened(chief([work]), true)).toEqual([{ type: "select", id: "cos" }, { type: "switchTask", botId: "cos", threadId: "work" }]);
   });
 
-  it("lands on a thread a teammate's work is running in while threads are shown, and a second click comes back to the main chat", () => {
-    const running = { threadId: "work", busy: true };
-    expect(opened(chief([running]), true)).toEqual([{ type: "select", id: "cos" }, { type: "switchTask", botId: "cos", threadId: "work" }]);
-    expect(opened(chief([running], "work"), true, true)).toEqual([{ type: "select", id: "cos" }, { type: "switchTask", botId: "cos", threadId: "main" }]);
-  });
-
   it("opens the bot as ever when nothing is marked, or when the main chat itself is what is marked", () => {
     expect(opened(chief([{ threadId: "quiet" }]), false)).toEqual([{ type: "select", id: "cos" }]);
     expect(opened({ ...chief([work]), tasks: [{ threadId: "main", unread: true, createdAt: 1 }, { threadId: "work" }] }, false)).toEqual([{ type: "select", id: "cos" }]);

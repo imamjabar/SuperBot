@@ -87,9 +87,9 @@ describe("jobNowPhrases", () => {
     const unmappedMcpLive: TurnLive = {
       turnId: "turn-1",
       ended: false,
-      status: { activity: "tool", tool: "mcp__server__deploy_cluster" },
+      status: { activity: "tool", tool: "mcp__agents__web_fetch" },
     };
-    expect(jobNowPhrases(unmappedMcpLive).phrases).toEqual([t("chat.job.waitingFor", { target: "deploy_cluster" })]);
+    expect(jobNowPhrases(unmappedMcpLive).phrases).toEqual([t("chat.job.waitingFor", { target: "web_fetch" })]);
 
     const bareToolLive: TurnLive = {
       turnId: "turn-1",
