@@ -1,6 +1,25 @@
-# Chat UX ledger (branch `ux/main-chat-progress`)
+# Chat UX ledger (branches `ux/main-chat-progress` and `feat/one-main-chat`)
 
 Evidence: **CI** = scoped specs in the branch-only `chatux-check.yml` (run 42346753665, 15 specs, `b11b0d3`; workflow removed before merge). **box** = vitest or headless Chrome on Chief's Linux computer, no Docker. **VPS** = disposable `omb-chatux-probe` (`scripts/validate-chatux/`): branch bundle from a `check.yml` run with `probe_dist=true`, real gateway, `deepseek/deepseek-v4.1-flash`, `frontDesk` on, `TZ=Asia/Jakarta`, container and data deleted afterwards. **none** = code only. PASS needs observed behaviour (`docs/HANDOFF.md` §11).
+
+## Branch `feat/one-main-chat` (on `764bf83`)
+
+On a server that belongs to one person, a person writes to each bot only in its main chat, front desk on or off; `docs/HANDOFF.md` §"One main chat" has the rule. Box list: `scripts/validate-chatux/box-onechat.txt`.
+
+| Item | Commits | Status | Evidence |
+|---|---|---|---|
+| Server: send, goal and edit outside the main chat refused (409 `main_chat_only`), no new thread for a person | `67ba2d3`, `352cd4d` | PASS | box: strict one-main-chat set green apart from the 10 known failures below |
+| Web: threads hidden, other threads read-only with "Back to your chat" | `0243c37`, `211f60a` | PASS | box: same set (`ChatView.controls`, `store`) |
+| Jobs: success, failure, Stop, restart and steer each answer once in the main chat | `2e01905` | PASS | box: `runtime.test.ts`, `direct-coordination.e2e.test.ts` |
+| Delivery state on each result row: `delivered`, `failed`, `interrupted` | `952ed50` | PASS | box at `952ed50`: server tsc clean, `result-delivery.test.ts` and `direct-coordination.e2e.test.ts` pass |
+| "Quick replies" lane answers mirrored into the main chat with `requestMessageId` | `b698a9f` | PASS | box at `b698a9f`: `side-replies.test.ts` 2/2 |
+| Desktop Talk asks in the main chat (`mainThreadId`, else `threadId`), front desk on and off; no "Quick asks" thread | `602e7d9`, `ae6babe` | Box run pending | `server/talk-server.e2e.test.ts`; node tests `electron/talk-server.node-test.mjs`, `electron/talk-main.node-test.mjs` |
+| Deploy restart: a new server bundle force-recreates `omb`, then Caddy; fails when `omb` keeps its id or health stays down | `82bca41` (merged) | Mocked test only | `scripts/deploy-web-pull.test.ts` (`box-deploy.txt`); the VPS cron copy needs a one-time install |
+
+Merge readiness, `feat/one-main-chat` → `main`:
+- Known failures: 10 in `server/steer-e2e.test.ts` and `server/cloud-send-kinds.e2e.test.ts`, already failing at `2e01905`; not caused by this branch.
+- After the merge, copy `deploy/superbot-web-pull.sh` once over the VPS cron's `$HOME/SuperBot/web-pull.sh`; until then the restart fix does not run.
+- Still open: the box run of the Talk tests; #4 on a real phone (Imam); #8, #11, #17 rerun after merge.
 
 ## VPS probe, 2026-11-07 (three full runs; same scenario)
 

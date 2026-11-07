@@ -13,3 +13,4 @@ server/cloud-send-kinds.e2e.test.ts
 scripts/testing/thinking-timer-ui.e2e.test.ts
 server/result-delivery.test.ts
 server/side-replies.test.ts
+server/talk-server.e2e.test.ts
