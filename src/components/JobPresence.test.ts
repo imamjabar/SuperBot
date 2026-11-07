@@ -17,6 +17,7 @@ const baseBot: Bot = {
   notifications: true,
   unread: false,
   modelSelection: { instanceId: "test", model: "m" },
+  messages: [],
 };
 
 const runningTask: Task = {
