@@ -631,7 +631,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
-import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
+import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_LANGUAGE_NOTE, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 import { teamAiOwner } from "./host/team-ai-owner.ts"; import { createTeamOwners, type AskViewer } from "./host/team-owners.ts"; import { createTeamMessages } from "./host/team-messages.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts"; import { relayedTurn } from "./host/relayed-turn.ts"; import { createPersonCalendar } from "./host/person-calendar.ts";
@@ -7969,7 +7969,7 @@ async function beginTurn(
         skillAuthoring ? expandLearnTurnText(setupText) : setupText,
         opts?.replyTo,
         userNameFor(threadId),
-      ), personLine ? activeMessages : [], skipTranscript, userNameFor(threadId)), lineLabels(threadId));
+      ), personLine ? activeMessages : [], skipTranscript, userNameFor(threadId)), lineLabels(threadId)) + (personLine && frontDeskTurn(cfg, botMainThread(bot.id), threadId) ? FRONT_DESK_LANGUAGE_NOTE : "");
       const replay = usesNativeImageInput
         ? extractReplayImages(selection.inline, turnImages)
         : { transcript: selection.inline, images: [] };

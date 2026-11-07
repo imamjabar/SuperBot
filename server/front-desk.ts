@@ -44,6 +44,9 @@ export const FRONT_DESK_PROMPT =
   " News, prices, weather and statuses already in this chat held when they were fetched: asked again, start a fresh job rather than repeating them, never present an earlier result as current, and if you mention one say when it was fetched." +
   " Write every reply, the short line before a job and the job's result alike, in the language of the person's latest message, even when earlier messages or notes about the person use another.";
 
+/** Follows the person's own line in a front-desk turn: the model keeps to the language of what it read last, not of the chat so far. */
+export const FRONT_DESK_LANGUAGE_NOTE = "\n\n[Reply in the language of this message.]";
+
 interface SteerJobDeps {
   store: Pick<Store, "taskByThread" | "appendMessage">;
   canSteer(threadId: string): boolean;
