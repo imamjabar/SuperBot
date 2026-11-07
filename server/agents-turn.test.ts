@@ -6,7 +6,7 @@ import { TOOL_BRIDGE_ENV } from "./drivers/agents-bridge.ts";
 import { agentsMcp } from "./drivers/agents-mcp.ts";
 import { agentsServerEnv, COMPUTER_OFF_REFUSAL, computerPickRefusal, directTurnKind, roomSkillsRefusal, type AgentsConversation, type AgentsTurn } from "./agents-turn.ts";
 
-const HOST: AgentsConversation["host"] = { skillAuthoring: true, sharedComputers: true, cloudHome: false, team: false, escalations: true, voiceNotes: true, x: true, research: true };
+const HOST: AgentsConversation["host"] = { skillAuthoring: true, sharedComputers: true, cloudHome: false, team: false, escalations: true, voiceNotes: true, x: true, research: true, webSearch: true };
 const CHAT: AgentsConversation = { threadId: "thread-1", bot: { id: "bot-1", chiefOfStaff: true }, room: false, teamComputer: false, host: HOST };
 const ROOM: AgentsConversation = { ...CHAT, threadId: "room-1", room: true };
 
@@ -78,6 +78,14 @@ describe("one conversation's agents tools", () => {
     expect(await selects({ ...CHAT, bot: { ...CHAT.bot, computer: "off" } })).toBe(false);
     expect(await selects({ ...CHAT, teamComputer: true })).toBe(false);
     expect(await selects({ ...CHAT, bot: { ...CHAT.bot, computer: "browser" } })).toBe(true);
+  });
+
+  it("lists web_search in a chat, a job and a room only while the Command Code key is held", async () => {
+    const searches = async (conversation: AgentsConversation) => (await everyTurn(conversation)).every(({ wire }) => wire.includes('"name":"web_search"'));
+    expect(await searches(CHAT)).toBe(true);
+    expect(await searches({ ...CHAT, reportsBack: true })).toBe(true);
+    expect(await searches(ROOM)).toBe(true);
+    expect((await everyTurn({ ...CHAT, host: { ...HOST, webSearch: false } })).some(({ wire }) => wire.includes('"name":"web_search"'))).toBe(false);
   });
 });
 

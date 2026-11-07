@@ -20,14 +20,15 @@ export function newChatRefused(main: MainChat) {
   return { error: `This bot keeps one chat with you: use ${named(main)}.`, code: "main_chat_only", mainThreadId: main.threadId } as const;
 }
 
-/** Tools that make a turn slow: the computer, the browser, shells and page reads. The person's chat never holds them, so it
- * always answers fast and never takes the one desktop or browser seat a job may be using. */
+/** Tools that make a turn slow: the computer, the browser, shells, page reads and web searches. The person's chat never holds
+ * them, so it always answers fast and never takes the one desktop or browser seat a job may be using. */
 export const FRONT_DESK_DENY: readonly string[] = [
   "mcp:computer:*",
   "mcp:browser:*",
   "mcp:agents:vm_exec",
   "mcp:agents:shared_computer",
   "mcp:agents:web_fetch",
+  "mcp:agents:web_search",
 ];
 
 export function frontDeskScope(scope: ToolScope | undefined): ToolScope {

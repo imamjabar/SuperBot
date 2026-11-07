@@ -2,6 +2,8 @@ server/drivers/agents-usage-tool.test.ts
 server/front-desk.test.ts
 server/wait-probes.test.ts
 server/routes/web-fetch.test.ts
+server/routes/web-search.test.ts
+server/agents-turn.test.ts
 server/drivers/chat-mcp-tools.test.ts
 server/host/busy-reply.test.ts
 server/direct-coordination.e2e.test.ts

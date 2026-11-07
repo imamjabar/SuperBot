@@ -6,6 +6,7 @@ import { createHelperToolRoutes, type HelperToolContext, type HelperToolDeps } f
 import { createMausBotNotificationRoutes, type LiveNotificationsDeps } from "./mausbot-notifications.ts";
 import { PASS } from "./table.ts";
 import { createWebFetchRoutes, type WebFetchDeps } from "./web-fetch.ts";
+import { createWebSearchRoutes, type WebSearchDeps } from "./web-search.ts";
 import { createXResearchInternalRoutes, type XResearchDeps } from "./x-research.ts";
 
 export function createInternalToolRoutes(deps: {
@@ -14,6 +15,7 @@ export function createInternalToolRoutes(deps: {
   notifications: LiveNotificationsDeps;
   engineLimits: EngineLimitsDeps;
   webFetch?: WebFetchDeps;
+  webSearch: WebSearchDeps;
 }) {
   const routes = [
     createXResearchInternalRoutes(deps.xResearch),
@@ -21,6 +23,7 @@ export function createInternalToolRoutes(deps: {
     createMausBotNotificationRoutes(deps.notifications),
     createEngineLimitsRoutes(deps.engineLimits),
     createWebFetchRoutes(deps.webFetch),
+    createWebSearchRoutes(deps.webSearch),
   ];
   return async (ctx: HelperToolContext & { threadId: string }): Promise<typeof PASS | void> => {
     for (const route of routes) if (await route(ctx) !== PASS) return;

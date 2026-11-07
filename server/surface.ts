@@ -174,7 +174,7 @@ const CONNECTED_APP_FIRST =
   " When a connected app can do the task, use it before any browser or screen. If that app is refused or fails, say so in one plain line with what fixes it (connecting it, or who can), and ask before doing the task on a screen instead.";
 
 const PUBLIC_PAGE_FIRST =
-  " Read a public page, news or feed whose address you know with web_fetch, never on a screen. Use the browser for it only when web_fetch says it needs a sign-in or a browser, or the task needs clicks, forms or the person to see it; use a desktop only when no browser can do it.";
+  " Read a public page, news or feed whose address you know with web_fetch, never on a screen; when you do not know the address, find it with web_search if you have it. Use the browser for it only when web_fetch says it needs a sign-in or a browser, or the task needs clicks, forms or the person to see it; use a desktop only when no browser can do it.";
 
 const RESTATE_SENTENCE =
   " Before your first action on a screen or page in a task, say in one short sentence where you are working, using that same name.";
