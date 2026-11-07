@@ -111,7 +111,7 @@ cd /home/ubuntu/SuperBot
 sh /home/ubuntu/superbot-web-pull-final.sh
 ```
 
-The updater fetches build branches, validates compiled JS and recreates `omb` with `--no-build`. It preserves the machine and handles Caddy. If `omb` is replaced, Caddy must immediately be recreated with `up -d --no-deps --no-build --force-recreate caddy`; otherwise reload Caddy. Explicit recreation matters: `up -d` alone may report Running without activating a modified mount.
+The updater fetches build branches and validates compiled JS. A web-only or unchanged update restarts nothing. A new `server-dist` commit force-recreates `omb` with `--no-build` (plain `up -d` with an unchanged compose config prints "Running" and keeps the old Node process on the old bundle, seen on the VPS 2026-11-07), then always force-recreates Caddy, which lives in `omb`'s network namespace. It fails, without printing "omb and caddy are up", when `omb` keeps its container id or health does not answer within 20 tries 3 s apart. Mocked test: `scripts/deploy-web-pull.test.ts`.
 
 On the VPS:
 
