@@ -26,6 +26,8 @@ jobs:
           src/state/turn-status.test.ts src/state/thread-navigation.test.ts src/state/notification-open.test.ts
           src/components/JobPresence.test.ts src/components/ChatMoreMenu.test.ts src/components/Sidebar.simple-mode.test.ts
           src/components/BotSettingsDialog.simple.test.ts src/lib/i18n.test.ts scripts/testing/file-size-ratchet.test.ts
+          src/lib/job-threads.test.ts src/components/JobViewFooter.test.ts src/components/ChatView.controls.test.ts
+          src/components/Sidebar.working-folder.test.ts
       - run: pnpm vitest run server/index.test.ts
   baseline-main:
     runs-on: ubuntu-latest
