@@ -39,12 +39,14 @@ describe("a reply while the main chat is busy", () => {
     expect(c.rows.at(-1)!.requestMessageId).toBeUndefined();
   });
 
-  it.each([
-    ["no model can write it", () => undefined],
-    ["the call fails", async () => { throw new Error("model down"); }],
-    ["the model writes nothing", async () => "   "],
-  ] as const)("still acknowledges in the main chat when %s", async (_case, write) => {
-    const c = chat(write as never);
+  type Write = (prompt: string, signal: AbortSignal) => Promise<string> | undefined;
+  const failingWrites: Array<[string, Write]> = [
+    ["no model can write it", (): Promise<string> | undefined => undefined],
+    ["the call fails", async (): Promise<string> => { throw new Error("model down"); }],
+    ["the model writes nothing", async (): Promise<string> => "   "],
+  ];
+  it.each(failingWrites)("still acknowledges in the main chat when %s", async (_case, write) => {
+    const c = chat(write);
     expect((await c.ask("queued")).text).toBe(busyReplyFallback("queued"));
   });
 
