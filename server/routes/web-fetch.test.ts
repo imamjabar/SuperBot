@@ -64,9 +64,7 @@ describe("web_fetch internal route", () => {
         res.writeHead(404).end();
       }
     });
-    const { promise, resolve } = Promise.withResolvers<void>();
-    server.listen(0, "127.0.0.1", () => resolve());
-    await promise;
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     port = (server.address() as AddressInfo).port;
   });
 
