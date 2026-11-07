@@ -112,8 +112,9 @@ export function createTalkServer({ request, starting = () => false }) {
     if (!Array.isArray(bots)) throw down();
     const bot = findMausBot(bots);
     if (!bot) throw new TalkServerError("no-mausbot");
-    if (typeof bot.threadId !== "string") throw new TalkServerError("refused");
-    return { botId: bot.id, threadId: bot.threadId };
+    const threadId = bot.mainThreadId ?? bot.threadId;
+    if (typeof threadId !== "string") throw new TalkServerError("refused");
+    return { botId: bot.id, threadId };
   };
 
   const ask = ({ chat, text, sendId, signal, onUpdate }) => new Promise((resolve, reject) => {

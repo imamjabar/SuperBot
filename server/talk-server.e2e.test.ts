@@ -24,7 +24,7 @@ it.each([["on", true], ["off", false]])("with front desk %s, Talk asks in MausBo
   const before = await mausBot();
   const talk = createTalkServer({ request });
   const chat = await talk.prepare();
-  expect(chat).toEqual({ botId: before.id, threadId: before.threadId });
+  expect(chat).toEqual({ botId: before.id, threadId: before.mainThreadId ?? before.threadId });
   const sendId = randomUUID(), updates: TalkUpdate[] = [];
   expect(await talk.ask({ chat, text: "What can you do?", sendId, signal: AbortSignal.timeout(60_000), onUpdate: u => updates.push(u) })).toBe("done");
   expect(updates[0]).toEqual({ kind: "thinking" });
@@ -32,7 +32,7 @@ it.each([["on", true], ["off", false]])("with front desk %s, Talk asks in MausBo
   expect(done).toMatchObject({ kind: "done", ok: true });
   if (done?.kind !== "done") return;
   const after = await mausBot();
-  expect(after.threadId).toBe(before.threadId);
+  expect(after.mainThreadId ?? after.threadId).toBe(before.mainThreadId ?? before.threadId);
   expect(after.tasks.map((t: any) => t.threadId)).toEqual(before.tasks.map((t: any) => t.threadId));
   const history = (await (await request(`/api/threads/${chat.threadId}/messages`)).json() as any).messages;
   const asked = history.filter((m: any) => m.role === "user" && m.sendId === sendId);

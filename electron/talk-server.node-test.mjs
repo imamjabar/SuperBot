@@ -49,8 +49,8 @@ test("findMausBot picks this computer's MausBot, else the Chief of Staff", () =>
   assert.equal(findMausBot([{ id: "x" }, { ...chief, hidden: true }]), null);
 });
 
-test("prepare asks in MausBot's main chat and makes no other chat", async () => {
-  const server = fakeServer({ bots: [{ id: "m", threadId: "main", defaultBot: {}, tasks: [{ threadId: "main" }, { threadId: "t-job" }] }] });
+test("prepare asks in MausBot's main chat, not the thread selected in the app, and makes no other chat", async () => {
+  const server = fakeServer({ bots: [{ id: "m", threadId: "t-job", mainThreadId: "main", defaultBot: {}, tasks: [{ threadId: "main" }, { threadId: "t-job" }] }] });
   assert.deepEqual(await server.talk.prepare(), { botId: "m", threadId: "main" });
   assert.deepEqual(server.calls.map(([method]) => method), ["GET"]);
 });
