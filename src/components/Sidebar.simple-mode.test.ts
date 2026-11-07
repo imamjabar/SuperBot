@@ -469,7 +469,7 @@ describe("bot-first sidebar", () => {
     fixture.state = { ...fixture.state, selectedId: "other-bot" };
     renderToStaticMarkup(createElement(Capture));
     expect(named("Set as main thread")).toBeUndefined();
-    expect(named("New thread")).toBeDefined();
+    expect(named("View threads")).toBeDefined();
     fixture.state = { ...fixture.state, selectedId: bot.id, bots: [{ ...bot, threadId: "run", tasks: [...bot.tasks!, { threadId: "run", title: "Run", createdAt: 9, routineRunId: "r" }] }] };
     renderToStaticMarkup(createElement(Capture));
     expect(named("Set as main thread")).toBeUndefined();
