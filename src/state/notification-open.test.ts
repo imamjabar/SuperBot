@@ -217,8 +217,8 @@ describe("opening a bot with threads hidden", () => {
 
 describe("a click on a bot's message", () => {
   it("lands from a row on the unread thread its dot is about, and reads only that thread", async () => {
-    await threadsShown(false);
-    flushSync(() => openBotRow(dispatch, scoutNow(), false, false));
+    await threadsShown(true);
+    flushSync(() => openBotRow(dispatch, scoutNow(), true, false));
     await settle();
     expect(state.selectedId).toBe("scout");
     expect(scoutNow().threadId).toBe("finished");

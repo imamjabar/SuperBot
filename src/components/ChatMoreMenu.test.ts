@@ -81,16 +81,18 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
 
   it("offers threads in Simple mode, and Usage and the Inspector unlocked", () => {
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
-    expect(keys(menu.items)).toEqual(["find", "new-thread", "threads", "copy", "download", "activity", "inspector"]);
+    expect(keys(menu.items)).toEqual(["find", "threads", "copy", "download", "activity", "inspector"]);
     for (const item of menu.items) {
       expect(item.disabled, item.key).toBeFalsy();
       expect(item.heading ?? "", item.key).not.toBe("In Advanced mode");
     }
-    expect(menu.items.find((item) => item.key === "new-thread")).toMatchObject({ label: "New thread", heading: "Threads", separatorBefore: true });
+    expect(menu.items.find((item) => item.key === "new-thread")).toBeUndefined();
     expect(menu.items.find((item) => item.key === "inspector")?.separatorBefore).toBe(false);
   });
 
-  it("starts a new thread with the bot", () => {
+  it("starts a new thread with the bot when threads are enabled", () => {
+    fixture.advanced = true;
+    fixture.threadsChosen = true;
     const menu = menuOf(createElement(ChatMoreMenu, { bot }));
     menu.items.find((item) => item.key === "new-thread")!.onSelect();
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "pepper" });
@@ -117,7 +119,7 @@ describe("ChatMoreMenu, the round ⋯ for the bot panel", () => {
 
   it("leaves All threads out while the bot has one thread", () => {
     const single = { ...bot, threadId: "main", tasks: [task("main", "Our chat", 1), task("routine", "Morning digest", 5, { routineRunId: "run-1" })] };
-    expect(keys(menuOf(createElement(ChatMoreMenu, { bot: single })).items)).toEqual(["find", "new-thread", "copy", "download", "activity", "inspector"]);
+    expect(keys(menuOf(createElement(ChatMoreMenu, { bot: single })).items)).toEqual(["find", "copy", "download", "activity", "inspector"]);
     expect(keys(menuOf(createElement(ChatMoreMenu, { bot: { ...bot, tasks: undefined } })).items)).not.toContain("threads");
   });
 
@@ -171,7 +173,8 @@ describe("ChatHeaderMenu, Advanced mode's header ⋯", () => {
     fixture.advanced = true;
     fixture.threadsChosen = false;
     const items = menuOf(createElement(ChatHeaderMenu, { bot })).items;
-    expect(keys(items)).toEqual(expect.arrayContaining(["new-thread", "threads"]));
+    expect(keys(items)).toEqual(expect.arrayContaining(["threads"]));
+    expect(keys(items)).not.toContain("new-thread");
     expect(items.find((item) => item.key === "threads")!.submenu).toHaveLength(3);
   });
 });

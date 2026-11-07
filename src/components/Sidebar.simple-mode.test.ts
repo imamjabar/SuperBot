@@ -324,7 +324,7 @@ describe("bot-first sidebar", () => {
     expect(markup).not.toContain("waiting-dot");
   });
 
-  it.each(densities)("opens the thread a row or circle is marked for, on mouse or keyboard, %s density", (density) => {
+  it.each(densities)("always opens the main chat even when marked when threads are hidden, on mouse or keyboard, %s density", (density) => {
     fixture.showThreads = false;
     const trees: ReactNode[] = [];
     function Capture() { const tree = [botRow(rowProps(density)), pinnedCircle(rowProps(density))]; trees.push(...tree); return tree; }
@@ -333,11 +333,11 @@ describe("bot-first sidebar", () => {
       const row = findElement(tree, "data-sidebar-bot-row", bot.id)!;
       fixture.dispatch.mockClear();
       row.props.onClick!({ type: "click", target: {} } as MouseEvent);
-      expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "switchTask", botId: bot.id, threadId: "approval" });
+      expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "select", id: bot.id });
       if (!row.props.onKeyDown) continue;
       fixture.dispatch.mockClear();
       row.props.onKeyDown({ key: "Enter", preventDefault: vi.fn() } as unknown as KeyboardEvent);
-      expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "switchTask", botId: bot.id, threadId: "approval" });
+      expect(fixture.dispatch).toHaveBeenCalledExactlyOnceWith({ type: "select", id: bot.id });
     }
   });
 
@@ -441,6 +441,11 @@ describe("bot-first sidebar", () => {
 
     named("New thread")!.props.onClick!({} as MouseEvent);
     expect(fixture.dispatch.mock.calls).toEqual([[{ type: "newTask", botId: bot.id }]]);
+
+    fixture.showThreads = false;
+    renderToStaticMarkup(createElement(Capture));
+    expect(named("New thread")).toBeUndefined();
+    fixture.showThreads = true;
 
     fixture.dispatch.mockClear();
     named("View threads")!.props.onClick!({} as MouseEvent);

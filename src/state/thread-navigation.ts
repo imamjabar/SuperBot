@@ -73,6 +73,10 @@ export function openBotRow(
   threadsShown: boolean,
   onScreen: boolean,
 ) {
+  if (!threadsShown) {
+    openBot(dispatch, bot, false);
+    return;
+  }
   const marked = teamChats() ? null : markedThread(bot, threadsShown);
   if (!marked || marked === botOpensTo(bot, threadsShown) || (onScreen && marked === bot.threadId)) openBot(dispatch, bot, threadsShown);
   else openBotThread(dispatch, bot, marked, threadsShown);
