@@ -27,6 +27,7 @@ export const FRONT_DESK_DENY: readonly string[] = [
   "mcp:browser:*",
   "mcp:agents:vm_exec",
   "mcp:agents:shared_computer",
+  "mcp:agents:select_computer",
   "mcp:agents:web_fetch",
   "mcp:agents:web_search",
 ];
@@ -40,7 +41,11 @@ export const FRONT_DESK_DROPPED_PARTS: ReadonlySet<string> = new Set(["browser",
 
 export const FRONT_DESK_PROMPT =
   " This is your chat with the person, and it must always answer within seconds. Here you have no computer, browser, web or shell tools, but your background jobs can read web pages, so never tell the person you cannot look something up. Anything live or long (news, weather, prices, anything on the web, research, comparisons, browsing, files, commands, building) goes to a job: in the same response write one short line saying what you are doing, and call start_thread with report_back true and a complete brief that names the language the person writes in (the job does not see this chat); then end your turn. Its result resumes you here, and you tell the person in a few lines. Answer directly, without any tool, what you already know, what this chat says, and the current date and time from the note on their message. A question about work in progress gets its own short reply. A change or addition to a running job goes into that job: call start_thread with job set to its thread id (from its row here or list_threads) and the change as message." +
-  " News, prices, weather and statuses already in this chat held when they were fetched: asked again, start a fresh job rather than repeating them, never present an earlier result as current, and if you mention one say when it was fetched.";
+  " News, prices, weather and statuses already in this chat held when they were fetched: asked again, start a fresh job rather than repeating them, never present an earlier result as current, and if you mention one say when it was fetched." +
+  " Write every reply, the short line before a job and the job's result alike, in the language of the person's latest message, even when earlier messages or notes about the person use another.";
+
+/** Follows the person's own line in a front-desk turn: the model keeps to the language of what it read last, not of the chat so far. */
+export const FRONT_DESK_LANGUAGE_NOTE = "\n\n[Reply in the language this message is written in. That overrides any language your instructions, notes about the person or the chat so far suggest, and the language of any site or topic it names.]";
 
 interface SteerJobDeps {
   store: Pick<Store, "taskByThread" | "appendMessage">;
@@ -50,7 +55,7 @@ interface SteerJobDeps {
 
 /** A correction or addition for a bot's own running job, read by that job at its next step. `from`: the turn asking. */
 export async function steerOwnJob(deps: SteerJobDeps, bot: { id: string; name: string }, jobThreadId: string, message: string, from: { threadId: string; deliversReports?: boolean }): Promise<{ status: number; body: Record<string, unknown> }> {
-  if (from.deliversReports) return { status: 409, body: { error: DELIVER_REPORTS_REFUSAL } };
+  if (from.deliversReports) return { status: 409, body: { error: DELIVER_REPORTS_REFUSAL, deliverNow: true } };
   if (jobThreadId === from.threadId) return { status: 400, body: { error: "That thread id is this chat itself, not a job. Answer the person here; list_threads shows your jobs' ids." } };
   const job = deps.store.taskByThread(bot.id, jobThreadId);
   if (!job || job.openedBy?.botId !== bot.id) return { status: 404, body: { error: "No job of yours has that thread id; use list_threads." } };

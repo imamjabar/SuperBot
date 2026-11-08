@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import type { RosterMember } from "../peer-roster.ts";
 import { createRefusedHandoffs } from "./refused-handoffs.ts";
-import type { Delivery } from "./person-inbox.ts";
 
 const B = { people: ["mara@acme.test"] };
 const rooms: RosterMember = { id: "rooms", name: "Rooms", visibility: B };
@@ -12,13 +11,13 @@ const listed: RosterMember = { ...rooms, id: "listed", name: "Listed", peers: ["
 const mausbot: RosterMember = { id: "maus", name: "MausBot", visibility: { people: ["olive@acme.test"] }, defaultBot: { person: "olive@acme.test" } };
 const bots = [rooms, hours, books, listed, mausbot];
 
-function fixture(over: { writer?: string; asked?: string | null; run?: boolean; own?: boolean } = {}) {
-  const lines: Array<{ to: string; delivery: Delivery }> = [];
+function fixture(over: { run?: boolean } = {}) {
   const refused = createRefusedHandoffs({
-    bots: () => bots, runOf: () => (over.run === false ? undefined : { routineId: "r1", botId: "rooms" }), writerOf: () => over.writer,
-    askedPerson: () => over.asked ?? null, theirOwn: () => over.own === true, inbox: () => ({ deliver: (to, delivery) => { lines.push({ to, delivery }); } }), language: () => undefined,
+    bots: () => bots,
+    runOf: () => (over.run === false ? undefined : { routineId: "r1", botId: "rooms" }),
+    language: () => undefined,
   });
-  return { refused, lines };
+  return { refused };
 }
 
 describe("a routine's refused hand-off", () => {
@@ -58,29 +57,4 @@ describe("a routine's refused hand-off", () => {
     expect(refused.take("t")).toBeNull();
   });
 
-  it("tells who wrote the routine in their inbox when the bot's failures reach someone else, once for the same words", () => {
-    const { refused, lines } = fixture({ writer: "p_olive", asked: "p_mara" });
-    refused.settled("t", rooms, ["Bookkeeping"], 403);
-    refused.take("t");
-    expect(lines).toHaveLength(1);
-    expect(lines[0]!.to).toBe("p_olive");
-    expect(lines[0]!.delivery).toMatchObject({ kind: "notice", quiet: false, title: "Rooms's routine couldn't hand off its work", text: "Rooms couldn't hand this to Bookkeeping, because they're shared with different people. Nothing was sent." });
-    refused.settled("t2", rooms, ["Bookkeeping"], 403);
-    refused.take("t2");
-    expect(lines, "the next day's run says the same").toHaveLength(1);
-  });
-
-  it("reaches a person's inbox from a run of their own too, where the failure's own notification already tells them", () => {
-    const { refused, lines } = fixture({ writer: "p_mara", asked: "p_mara", own: true });
-    refused.settled("t", rooms, ["Bookkeeping"], 403);
-    refused.take("t");
-    expect(lines.map((line) => [line.to, line.delivery.quiet])).toEqual([["p_mara", true]]);
-  });
-
-  it("sends no second line when the bot's failures already reach who wrote it", () => {
-    const { refused, lines } = fixture({ writer: "p_olive", asked: "p_olive" });
-    refused.settled("t", rooms, ["Bookkeeping"], 403);
-    refused.take("t");
-    expect(lines).toEqual([]);
-  });
 });

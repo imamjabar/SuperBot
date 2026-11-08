@@ -124,7 +124,7 @@ export function LiveCallSettings({ onClose }: { onClose: () => void }) {
         <div className="-mt-2 text-[12px] text-ink-tertiary">{t(live.keySource === "openai" ? "call.live.keyFromApiKeys" : "call.live.needsKey")} <KeysLink id="openai" purpose="liveCalls" /></div>
       )}
       {changingKey && <LiveKeySetup compact onSaved={() => setChangingKey(false)} />}
-      <div className="text-[12px] text-ink-tertiary">{liveDisclosure({ cloudHome: state.config?.cloudHome === true, azure })} {t(azure ? "call.live.azureCost" : "call.live.cost")}</div>
+      <div className="text-[12px] text-ink-tertiary">{liveDisclosure({ azure })} {t(azure ? "call.live.azureCost" : "call.live.cost")}</div>
       {error && <div className="text-[12px] text-danger">{error}</div>}
     </div>
   );

@@ -3,7 +3,6 @@ import { SmilePlus } from "lucide-react";
 import { REACTIONS, type Reaction } from "../../shared/reactions";
 import { ACTION_ICON, messageActionClass } from "@/components/MessageActions";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
-import { useCanWriteIn, useReactor } from "@/lib/cloud-guest";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
@@ -35,7 +34,7 @@ let taps = 0;
 
 function useReaction(threadId: string, message: Message) {
   const { dispatch } = useStoreRef();
-  const me = useReactor();
+  const me = "user";
   const latest = useRef(message);
   useLayoutEffect(() => { latest.current = message; });
   const own = message.reactions?.find((reaction) => reaction.by === me);
@@ -160,15 +159,14 @@ export function ReactAction({ threadId, message }: { threadId: string; message: 
   );
 }
 
-export const useCanReact = (threadId: string) => useCanWriteIn(threadId) !== false;
 
-type ChipProps = { threadId: string; message: Message; bots?: readonly Bot[]; align?: "start" | "end"; canReact?: boolean };
+type ChipProps = { threadId: string; message: Message; bots?: readonly Bot[]; align?: "start" | "end" };
 
 export function ReactionChips(props: ChipProps) {
   return props.message.reactions?.length ? <Chips {...props} /> : null;
 }
 
-function Chips({ threadId, message, bots = [], align = "start", canReact = true }: ChipProps) {
+function Chips({ threadId, message, bots = [], align = "start" }: ChipProps) {
   const { me, mine, react } = useReaction(threadId, message);
   const reactions = message.reactions ?? [];
   const nameOf = (reaction: NonNullable<Message["reactions"]>[number]) => reaction.by === me ? t("chat.you")
@@ -195,7 +193,7 @@ function Chips({ threadId, message, bots = [], align = "start", canReact = true 
             {people.length > 1 && <span aria-hidden="true" className="text-[12px] tabular-nums text-ink-secondary">{people.length}</span>}
           </>
         );
-        return canReact && Object.hasOwn(LABEL, emoji) ? (
+        return Object.hasOwn(LABEL, emoji) ? (
           <button key={emoji} type="button" aria-pressed={mine === emoji} aria-label={label} title={people.join(", ")}
             onClick={() => react(emoji as Reaction)}
             className={cn(chip, "hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus")}>

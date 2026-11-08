@@ -6,7 +6,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { CloudLendingTurn } from "../cloud-lending.ts";
 import { PHONE_PLACE_PROMPT } from "../phones/instructions.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import type { SessionRecord } from "../sessions.ts";
@@ -36,12 +35,9 @@ function world(overrides: Partial<PhonesDeps> = {}) {
   const lines: Array<{ id: string; role: string; sendId?: string; sender?: { id: string } }> = [];
   const requests = new Map<string, { messageId?: string; automation?: unknown; origin?: { kind: string } }>();
   const phones = createPhones({
-    dataDir: dir, shared: false, cloudHome: false, cloudOwnerKey: null, loopbackTrust: "owner", sharedMembership: () => false,
+    dataDir: dir, loopbackTrust: "owner", sharedMembership: () => false,
     store: { messagesFor: () => lines, bot: () => chief, groupByThread: () => undefined, appendMessage: () => {} } as unknown as PhonesDeps["store"],
-    sessions: { list: () => [], isLive: () => true, onSessionRevoked: () => () => {} }, routines: () => null, ownerOrAdmin: (auth) => auth.scopes.includes("admin"), cloudOwnerSession: () => false,
-    cloudLendingRefusal: () => null,
-    cloudLendingTurn: () => ({ thread: lines, request: { ...requests.get(THREAD), generations: new Set([TURN.generation]) }, generation: TURN.generation, starters: [], reportsFromOthers: false,
-      ownerPerson: () => true, cardAnswerer: () => undefined, routineRun: () => null }) as unknown as CloudLendingTurn,
+    sessions: { list: () => [], isLive: () => true, onSessionRevoked: () => () => {} }, routines: () => null, ownerOrAdmin: (auth) => auth.scopes.includes("admin"),
     originIsUser: () => true, request: (threadId) => requests.get(threadId), nudge: () => {}, mint: () => "turn-token",
     harnessUrl: "http://127.0.0.1:1", active: () => true,
     ...overrides,
@@ -124,7 +120,7 @@ describe("whose phones", () => {
   });
 
   it("a Team Cloud or hosted workspace, a server several people sign in to, and a service-trust machine get no phone", () => {
-    for (const overrides of [{ shared: true }, { sharedMembership: () => true }, { loopbackTrust: "service" as const }]) {
+    for (const overrides of [{ sharedMembership: () => true }, { loopbackTrust: "service" as const }]) {
       const { phones, send } = world(overrides);
       send(phones.sendIdFor(loopback));
       expect(phones.fromPhone(session(PHONE_SESSION))).toBe(true);
@@ -135,12 +131,4 @@ describe("whose phones", () => {
     }
   });
 
-  it("on a Cloud home only the owner's session holds a phone, and only a turn the lent Mac would allow reaches it", () => {
-    let refusal: string | null = null;
-    const { phones } = world({ cloudHome: true, cloudOwnerKey: "owner", cloudOwnerSession: (auth) => auth.kind === "session" && auth.session.id === PHONE_SESSION.id, cloudLendingRefusal: () => refusal });
-    expect(phones.turnOwner(TURN)).toBe("owner");
-    refusal = "someone-else";
-    expect(phones.turnOwner(TURN)).toBeNull();
-    expect(phones.integration(chief, TURN)).toBeNull();
-  });
 });

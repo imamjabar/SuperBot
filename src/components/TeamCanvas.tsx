@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowRight, BookOpen, Brain, Crown, MessageCircle, Minus, Monitor, MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { api, openBot, useStore, type Bot } from "@/state/store";
-import { teamBotName, useTeamPeople } from "@/state/team-people";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -42,7 +41,7 @@ function BotCard({ bot, selected, moving, connected, tagged = false, sent, onCom
   const { state, dispatch } = useStore();
   const showThreads = useShowThreads();
   const status = teamMapStatus(bot);
-  const name = teamBotName(bot, useTeamPeople());
+  const name = bot.name;
   const instance = state.instances.find((item) => item.instanceId === bot.modelSelection.instanceId);
   const model = instance?.models.options.find((item) => item.id === bot.modelSelection.model)?.label ?? bot.modelSelection.model;
   return <article className={cn("relative h-[126px] w-[236px] shrink-0 rounded-xl border bg-card shadow-sm transition-colors",

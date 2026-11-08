@@ -7,12 +7,11 @@ export function SidebarRailSeparator() {
   return <div aria-hidden="true" data-sidebar-rail-separator="" className="mx-auto my-1.5 h-px w-8 shrink-0 bg-hairline/70" />;
 }
 
-export function SimpleRailFooter({ owner = null, archived }: {
-  owner?: string | null;
+export function SimpleRailFooter({ archived }: {
   archived?: ArchivedBots;
-}) {
+} = {}) {
   const place = useSimplePlace();
-  const account = useSimpleAccount(place, owner, archived);
+  const account = useSimpleAccount(place, archived);
   return (
     <div data-sidebar-rail-footer="" className="relative flex flex-col items-center gap-2 px-2 pb-4 pt-2">
       <SidebarConnectApps circle />

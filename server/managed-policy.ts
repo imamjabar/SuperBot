@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { serviceSlugFor, serviceSlugForCandidates } from "./connector-verdict.ts";
-import { appLabel } from "./team-connections.ts";
+import { appLabel } from "./app-event-catalog.ts";
 
 /** Received over Electron's private port, or on a Team Cloud from the Admin (cloud-team-policy.ts), and held in memory:
  * never merged into config.json, and adds no prompts. */

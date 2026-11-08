@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  BROWSER_SIGN_IN_FAILED, cloudOwnerOf, isConnected, isOwnerOrAdmin, previewBrowserSignIn, profileForSession, readSessionState, reasonWorthShowing, SERVICE_TRUST_REASON, signInWithBrowserGrant,
-  takeBrowserSignInFromLocation, takeInvitedEmailFromLocation, takePairingCodeFromLocation,
+  isConnected, isOwnerOrAdmin, profileForSession, readSessionState, reasonWorthShowing, SERVICE_TRUST_REASON,
+  takeInvitedEmailFromLocation, takePairingCodeFromLocation,
   type SessionState,
 } from "./session";
 
@@ -31,60 +31,18 @@ describe("the invited address on a pair link", () => {
   });
 });
 
-describe("the OMB Cloud page's \"Use in your browser\" link", () => {
-  const credential = `omb_pair_${"b".repeat(43)}`;
-  it("is taken off the address bar and out of history before anything renders, whatever it carries", () => {
+describe("the pairing code on a pair link", () => {
+  it("is taken off the address bar and out of history", () => {
     const replaceState = vi.fn();
     vi.stubGlobal("history", { replaceState });
-    vi.stubGlobal("location", { pathname: "/pair", search: "", hash: `#signin=${credential}` });
-    expect(takeBrowserSignInFromLocation()).toBe(credential);
-    expect(replaceState).toHaveBeenCalledWith(null, "", "/pair");
-    replaceState.mockClear();
-    vi.stubGlobal("location", { pathname: "/pair", search: "", hash: "#signin=ABCD-EFGH-JKLM" });
-    expect(takeBrowserSignInFromLocation()).toBeNull();
-    expect(replaceState).toHaveBeenCalledWith(null, "", "/pair");
-    replaceState.mockClear();
     vi.stubGlobal("location", { pathname: "/pair", search: "", hash: "#code=ABCD-EFGH-JKLM" });
-    expect(takeBrowserSignInFromLocation()).toBeNull();
-    expect(replaceState).not.toHaveBeenCalled();
     expect(takePairingCodeFromLocation()).toBe("ABCD-EFGH-JKLM");
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/pair");
+    replaceState.mockClear();
+    vi.stubGlobal("location", { pathname: "/pair", search: "", hash: "" });
+    expect(takePairingCodeFromLocation()).toBeNull();
+    expect(replaceState).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
-  });
-
-  it("shows whose Cloud it is first, asking only to look, and treats anything else as spent", async () => {
-    const requests: Array<{ path: string; body: unknown }> = [];
-    const server = (status: number, body: unknown) => (async (path: string, init?: RequestInit) => {
-      requests.push({ path, body: init?.body ? JSON.parse(String(init.body)) : undefined });
-      return new Response(JSON.stringify(body), { status });
-    }) as unknown as typeof fetch;
-    expect(await previewBrowserSignIn(credential, server(200, { owner: "ada@example.test", expiresAt: 1 }))).toEqual({ owner: "ada@example.test" });
-    expect(requests).toEqual([{ path: "/api/auth/pair", body: { code: credential, browser: true, preview: true } }]);
-    expect(await previewBrowserSignIn(credential, server(401, { error: "expired" }))).toBeNull();
-    expect(await previewBrowserSignIn(credential, server(200, { owner: "" }))).toBeNull();
-    expect(await previewBrowserSignIn(credential, server(200, { owner: 7 }))).toBeNull();
-    expect(await previewBrowserSignIn(credential, (async () => { throw new Error("offline"); }) as unknown as typeof fetch)).toBeNull();
-  });
-
-  it("on Continue is always redeemed into this browser's cookie, connected or not, with the page's one attempt id", async () => {
-    const requests: Array<{ path: string; body: unknown }> = [];
-    const server = (async (path: string, init?: RequestInit) => {
-      requests.push({ path, body: init?.body ? JSON.parse(String(init.body)) : undefined });
-      if (path === "/api/auth/session") return new Response(JSON.stringify({ kind: "session", id: "s", label: "Chrome on Mac", scopes: ["client"], expiresAt: 1 }), { status: 200 });
-      return new Response(JSON.stringify({ session: {} }), { status: 200 });
-    }) as unknown as typeof fetch;
-    expect(await signInWithBrowserGrant(credential, "attempt-page-0001", server)).toEqual({ ok: true });
-    expect(await signInWithBrowserGrant(credential, "attempt-page-0001", server)).toEqual({ ok: true });
-    expect(requests.map((r) => r.path)).toEqual(["/api/auth/pair", "/api/auth/pair"]);
-    for (const request of requests) expect(request.body).toMatchObject({ code: credential, cookie: true, browser: true, attemptId: "attempt-page-0001" });
-    const spent = (async () => new Response(JSON.stringify({ error: "pairing code is wrong or has expired" }), { status: 401 })) as unknown as typeof fetch;
-    expect(await signInWithBrowserGrant(credential, "attempt-page-0002", spent)).toEqual({ ok: false, error: "pairing code is wrong or has expired" });
-    expect(reasonWorthShowing(BROWSER_SIGN_IN_FAILED)).toBe(BROWSER_SIGN_IN_FAILED);
-  });
-
-  it("names the Cloud's owner afterwards only for a browser sign-in's session on a Cloud home", () => {
-    expect(cloudOwnerOf({ kind: "session", cloudHome: true, owner: "ada@example.test" })).toBe("ada@example.test");
-    for (const session of [{ kind: "session", owner: "ada@example.test" }, { kind: "session", cloudHome: true }, { kind: "loopback" },
-      { cloudHome: true, owner: 7 }, { cloudHome: "yes", owner: "ada@example.test" }, null, undefined]) expect(cloudOwnerOf(session)).toBeNull();
   });
 });
 
@@ -113,14 +71,12 @@ describe("the profile shown for a signed-in session", () => {
   const owner = { name: "Owner", email: "owner@example.test", avatarUrl: "/owner.png" };
   const ada: Extract<SessionState, { kind: "session" }> = { kind: "session", id: "s", label: "Ada's iPad", email: "ada@example.test", scopes: ["client"], expiresAt: 1 };
 
-  it("preserves the verified email, device label, and team membership", async () => {
+  it("preserves the verified email and device label", async () => {
     const answer: typeof fetch = async () => new Response(JSON.stringify({
       kind: "session", id: "s", label: "Ada's iPad", email: "ada@example.test", scopes: ["client"], expiresAt: 1,
-      team: { id: "team-1", name: "Shared Team", role: "member" },
     }), { status: 200 });
-    expect(await readSessionState(answer)).toMatchObject({
+    expect(await readSessionState(answer)).toEqual({
       kind: "session", id: "s", label: "Ada's iPad", email: "ada@example.test", scopes: ["client"], expiresAt: 1,
-      team: { id: "team-1", name: "Shared Team", role: "member" },
     });
   });
 
@@ -154,11 +110,9 @@ describe("the profile shown for a signed-in session", () => {
     expect(profileForSession(owner, { kind: "loopback" })).toBe(owner);
   });
 
-  it("keeps the configured profile for an admin session, with or without an email, and on a Team Cloud", () => {
+  it("keeps the configured profile for an admin session, with or without an email", () => {
     expect(profileForSession(owner, { kind: "session", id: "s", label: "Owner's browser", scopes: ["admin", "client"], expiresAt: 1 })).toBe(owner);
     expect(profileForSession(owner, { ...ada, scopes: ["admin", "client"] })).toBe(owner);
-    const member = { name: "Ada", email: "ada@example.test" };
-    expect(profileForSession(member, { ...ada, team: { id: "team-1", name: "Shared Team", role: "member" } })).toBe(member);
   });
 
   it("does not show the configured owner for email-less paired sessions", () => {

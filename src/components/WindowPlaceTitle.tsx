@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import { usePlaceLook } from "@/lib/place-look";
-import { useStore } from "@/state/store";
 import { PlaceMark } from "./PlacesRail";
 
 type WorkspaceState = Awaited<ReturnType<NonNullable<NonNullable<typeof window.ogb>["workspaces"]>["state"]>>;
@@ -21,10 +20,8 @@ export function useWindowPlace(): WorkspaceState | null {
   return place;
 }
 
-/** What the window's top bar calls the place: This computer, My Cloud while it is the window's only home (a team's name
- * on a team's Cloud), else the name it was saved under. */
-export function windowPlaceName(place: WorkspaceState, team: string | undefined): string {
-  if (place.home) return team || t("cloudSetup.myCloud");
+/** What the window's top bar calls the place: This computer, else the name it was saved under. */
+export function windowPlaceName(place: WorkspaceState): string {
   if (place.local && !place.localPath) return t("rail.thisComputer");
   return place.name;
 }
@@ -34,11 +31,12 @@ export function windowPlaceName(place: WorkspaceState, team: string | undefined)
 export function WindowPlaceTitle() {
   const place = useWindowPlace();
   const look = usePlaceLook();
-  const { state } = useStore();
   if (!place) return <span aria-hidden="true" />;
-  const name = windowPlaceName(place, state.config?.team?.name);
-  return <div data-window-place className="flex min-w-0 items-center justify-center gap-1.5 px-2 text-[12px] font-medium text-ink-secondary">
-    <PlaceMark place={{ kind: place.local ? "computer" : place.role ? "team" : "cloud", name, color: look?.color ?? place.color ?? null }} size={16} />
-    <span className="min-w-0 truncate">{name}</span>
-  </div>;
+  const name = windowPlaceName(place);
+  return (
+    <div data-window-place className="flex min-w-0 items-center justify-center gap-1.5 px-2 text-[12px] font-medium text-ink-secondary">
+      <PlaceMark place={{ kind: place.local ? "computer" : "server", name, color: look?.color ?? place.color ?? null }} size={16} />
+      <span className="min-w-0 truncate">{name}</span>
+    </div>
+  );
 }

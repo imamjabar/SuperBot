@@ -121,30 +121,12 @@ const __APP_VERSION__: string;
        * whose page carries that server's version. Absent in desktop builds before it. */
       app?: { version: string; ownPage: boolean };
       organization?: import("../../electron/managed-desktop.mjs").ManagedDesktopBridge;
-      cloudAccount?: import("../../electron/cloud-account.mjs").CloudAccountBridge;
-      accounts?: import("../../electron/cloud-account.mjs").AccountsBridge;
-      accountSheet?: import("../../electron/cloud-account.mjs").AccountSheetBridge;
-      /** Either page in this app: the one-time move's line (on its way, what arrived, coming home). */
-      cloudSendPage?: import("../../electron/cloud-send.mjs").CloudSendPageBridge;
-      /** This computer's page only: bots in two places, and the one tap that brings them together on one (electron/two-places.mjs). */
-      twoPlaces?: {
-        state(): Promise<{ suggest: import("../lib/two-places").TwoPlacesSuggestion | null }>;
-        accept(key: string): Promise<{ suggest: import("../lib/two-places").TwoPlacesSuggestion | null }>;
-        dismiss(key: string): Promise<{ suggest: import("../lib/two-places").TwoPlacesSuggestion | null }>;
-        onChanged(callback: () => void): () => void;
-      };
-      /** Settings on the person's own Cloud: the plan, read only. */
-      cloudPlan?: import("../../electron/cloud-account.mjs").CloudPlanBridge;
-      /** This computer's page, and My Cloud's own page once it is the person's home: the window onto My Cloud. */
-      home?: import("../../electron/home-window.mjs").HomeBridge;
       desktopNotices?: import("../../electron/desktop-prefs.mjs").DesktopNoticesBridge;
       desktopNotifications?: import("../../electron/desktop-notifications.mjs").DesktopNotificationsBridge;
       /** This computer's own page only: the account's full name, for a first run's profile (system-name.mjs). */
       desktopProfile?: { systemName(): Promise<string | null> };
       desktopAnalytics?: import("../../electron/desktop-prefs.mjs").DesktopAnalyticsBridge;
       desktopLanguage?: import("../../electron/desktop-prefs.mjs").DesktopLanguageBridge;
-      /** This computer's page and My Cloud's own page: the one-time "Get MausBot updates?" answer. */
-      updatesConsent?: import("../../electron/updates-consent.mjs").UpdatesConsentBridge;
       companyBackups?: {
         state(): Promise<CompanyBackupState>;
         list(): Promise<{ backups: CompanyBackupEntry[]; usedBytes: number; limits: { ownerQuotaBytes: number; retainedSnapshots: number } }>;
@@ -170,45 +152,26 @@ const __APP_VERSION__: string;
         line?: () => Promise<{ kind: "left"; name: string } | null>;
         /** The rail's circles, for this app's page and a hosted Cloud's only (empty elsewhere, and with fewer than two
          * places). Absent on an older app. */
-        places?: () => Promise<import("../../electron/cloud-rail.mjs").RailState>;
+        places?: () => Promise<import("../../electron/rail-places.mjs").RailState>;
         /** Opens a circle main listed, by its id, through main's own switch: only from the person's click. */
         /** Nothing for a place of the account in use; for another account's, how its switch went. */
-        open?: (id: string) => Promise<import("../../electron/cloud-account.mjs").RailOpenResult | undefined>;
+        open?: (id: string) => Promise<unknown>;
         /** ＋'s fixed choices: buy a Cloud (this computer's own sheet), a server's pairing link (`link`: the one pasted on the
          * sheet; without it, the clipboard's), or type its address. Resolves false when the person cancels Connect. */
-        add?: (choice: "cloud" | "link" | "address", link?: string) => Promise<unknown>;
+        add?: (choice: "link" | "address", link?: string) => Promise<unknown>;
         /** The colour of the place this page is (This computer's too), and whether it can be changed here. Absent on an
          * older app. */
         look?: () => Promise<import("../../electron/place-look.mjs").PlaceLook | null>;
         /** That place's colour, from the person's click: one of the six swatches, or null for none. */
-        color?: (swatch: import("../../electron/cloud-list.mjs").CloudSwatch | null) => Promise<{ outcome: import("../../electron/place-look.mjs").PlaceColorOutcome; look: import("../../electron/place-look.mjs").PlaceLook | null }>;
+        color?: (swatch: import("../../electron/place-look.mjs").PlaceSwatch | null) => Promise<{ outcome: import("../../electron/place-look.mjs").PlaceColorOutcome; look: import("../../electron/place-look.mjs").PlaceLook | null }>;
         /** The colour of a place the window's rail lists, by its circle's id, from the person's click on the rail's own
          * page (refused on any other page). */
-        recolor?: (id: string, swatch: import("../../electron/cloud-list.mjs").CloudSwatch | null) => Promise<{ outcome: import("../../electron/place-look.mjs").PlaceColorOutcome; look: import("../../electron/place-look.mjs").PlaceLook | null }>;
+        recolor?: (id: string, swatch: import("../../electron/place-look.mjs").PlaceSwatch | null) => Promise<{ outcome: import("../../electron/place-look.mjs").PlaceColorOutcome; look: import("../../electron/place-look.mjs").PlaceLook | null }>;
         /** Remove from list: a Cloud the window's rail lists as `removable`, by its circle's id, once the person said yes on
          * the rail's own page (refused on any other page). Absent on an older app. */
-        remove?: (id: string) => Promise<{ outcome: import("../../electron/cloud-account.mjs").CloudRemoveOutcome }>;
-        /** Make a server of the person's own, which the rail lists with `makeHome`, their bots' home: the move starts. */
-        makeHome?: (id: string) => Promise<{ started: true }>;
+        remove?: (id: string) => Promise<{ outcome: "saved" | "removed" | "failed" | "unsupported" }>;
         /** Main's word that the places or the sign-in changed: read them again. */
         onChanged?: (callback: () => void) => () => void;
-      };
-      /** Buying another Cloud from the rail's ＋, on this app's page or a hosted Cloud's; absent on an older app. */
-      cloudAdd?: {
-        state(): Promise<import("../../electron/cloud-rail.mjs").AddCloudView>;
-        /** Opens that plan's checkout in the browser, for a Cloud of this name and swatch; only from the person's click. */
-        /** `source`: where the checkout started, one of the app's checkout sources (main ignores any other). */
-        start(tier: string, name: string, color: import("../../electron/cloud-list.mjs").CloudSwatch | null, source?: string): Promise<{ outcome: "opened" | "unsupported" | "failed" } | { outcome: "blocked"; blocked: import("../../electron/cloud-account.mjs").CloudAddBlock }>;
-        reopen(): Promise<boolean>;
-        copyLink(): Promise<boolean>;
-        /** Opens the Cloud just bought, once it is ready. */
-        open(): Promise<void>;
-        interest(): Promise<void>;
-        /** The sheet is open on this page (main then says "ready" here, not with a notification). */
-        sheet(open: boolean): Promise<void>;
-        /** A new organization on the Team plan this account pays for, of this name and swatch: no checkout; only from the person's click. */
-        organization?(name: string, color: import("../../electron/cloud-list.mjs").CloudSwatch | null): Promise<{ outcome: "added" | "taken" | "unsupported" | "failed" }
-          | { outcome: "blocked"; blocked: import("../../electron/cloud-list.mjs").OrganizationBlock }>;
       };
       /** Saved servers and the active one (desktop Server menu). Present on
        * the local server's UI; a remote server's page sees a reduced bridge. */
@@ -369,7 +332,7 @@ const __APP_VERSION__: string;
        * app Settings. Every server's page in the window receives it, and the
        * bridge is absent in the browser. "cloud" is the
        * openmausbot://cloud link (Settings → OMB Cloud, opened by the link). */
-      onOpenAppSettings?(cb: (section?: "organization" | "cloud" | "cloud-settings" | "cloud-add" | "cloud-add-howto") => void): () => void;
+      onOpenAppSettings?(cb: (section?: "organization") => void): () => void;
       /** Updates the native Dock/taskbar unread indicator. */
       setUnreadCount?(count: number): void;
       /** Opens a live desktop as a sandboxed window owned by OpenMausBot. */

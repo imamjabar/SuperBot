@@ -2,12 +2,11 @@
 // one), buy a Cloud (the buying sheet: another Cloud right here, or the first one on this computer's own sheet), or add a
 // server of the person's own by pasting its pairing link.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Building2, Loader2, Server, UserRound, X } from "lucide-react";
-import type { RailAddChoices } from "../../electron/cloud-rail.mjs";
+import { Loader2, X } from "lucide-react";
+import type { RailAddChoices } from "../../electron/rail-places.mjs";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { NewOrganization } from "./NewOrganization";
 import { BackLink, Heading } from "./account-parts";
 
 /** A server's pairing link, pasted here: main checks it and asks "Connect to <host>?" itself, then opens it. The sheet
@@ -47,14 +46,6 @@ export function OwnServerLink({ onBack, onConnected, connect = null }: { onBack:
   </form>;
 }
 
-function Choice({ icon, title, sub, onClick, kind }: { icon: ReactNode; title: string; sub: string; onClick: () => void; kind: string }) {
-  return <button type="button" data-place-add-choice={kind} onClick={onClick}
-    className="flex min-w-0 flex-1 flex-col items-start gap-2 rounded-2xl border border-hairline bg-card p-5 text-start transition-colors hover:border-accent/60 hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-    <span aria-hidden="true" className="grid size-9 place-items-center rounded-[10px] bg-accent/12 text-accent-text">{icon}</span>
-    <span className="text-[15px] font-semibold text-ink">{title}</span>
-    <span className="text-[13px] leading-snug text-ink-secondary">{sub}</span>
-  </button>;
-}
 
 const FOCUSABLE = "button:not([disabled]):not([tabindex='-1']), input:not([disabled]):not([tabindex='-1']), [href], [tabindex='0']";
 
@@ -82,26 +73,14 @@ export function RailSheet({ wide = false, focusKey, onClose, children }: { wide?
   return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div ref={sheet} role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-place-add-sheet tabIndex={-1}
       className={cn("animate-pop-in relative max-h-full w-full overflow-y-auto overscroll-contain rounded-2xl border border-hairline/70 bg-panel shadow-2xl outline-none", wide ? "max-w-[900px]" : "max-w-[560px]")}>
-      <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className="ui-icon-button absolute end-3.5 top-3.5 z-10"><X size={18} /></button>
+      <button type="button" onClick={onClose} aria-label={t("common.close")} className="ui-icon-button absolute end-3.5 top-3.5 z-10"><X size={18} /></button>
       {children}
     </div>
   </div>;
 }
 
-export function PlaceAddSheet({ choices, connect = null, onClose, onAccount }: { choices: RailAddChoices; connect?: { name: string } | null; onClose: () => void; onAccount?: () => void }) {
-  const server = choices.link, organization = choices.organization === true, account = choices.account === true && Boolean(onAccount);
-  const several = [organization, server, account].filter(Boolean).length > 1;
-  const [view, setView] = useState<"choose" | "server" | "organization">(connect ? "server" : several ? "choose" : organization ? "organization" : "server");
-  return <RailSheet focusKey={view} onClose={onClose}>
-    {view === "choose" && <div data-place-add="choose" className="flex flex-col gap-5 px-[30px] pb-[26px] pt-7">
-      <Heading title={t("rail.add")} />
-      <div className="flex flex-col gap-3 sm:flex-row">
-        {organization && <Choice kind="organization" icon={<Building2 size={19} />} title={t("rail.org")} sub={t("rail.orgSub")} onClick={() => setView("organization")} />}
-        {server && <Choice kind="server" icon={<Server size={19} />} title={t("rail.own")} sub={t("rail.ownSub")} onClick={() => setView("server")} />}
-        {account && <Choice kind="account" icon={<UserRound size={19} />} title={t("accounts.add")} sub={t("rail.accountSub")} onClick={() => onAccount!()} />}
-      </div>
-    </div>}
-    {view === "server" && <OwnServerLink onBack={several && !connect ? () => setView("choose") : null} onConnected={onClose} connect={connect} />}
-    {view === "organization" && <NewOrganization onClose={onClose} onBack={several ? () => setView("choose") : null} />}
+export function PlaceAddSheet({ connect = null, onClose }: { choices?: RailAddChoices; connect?: { name: string } | null; onClose: () => void; onAccount?: () => void }) {
+  return <RailSheet focusKey="server" onClose={onClose}>
+    <OwnServerLink onBack={null} onConnected={onClose} connect={connect} />
   </RailSheet>;
 }

@@ -15,10 +15,8 @@ vi.mock("../../state/api", () => ({
 
 import { initialState, StoreContext, type AppState, type Bot } from "@/state/store";
 import { closeInbox, currentInboxPanel, openInbox, readInboxLine, refreshInbox, setInboxView } from "@/state/inbox";
-import { setTeamPeople } from "@/state/team-people";
 import type { InboxRow, InboxView } from "../../../shared/inbox";
 import { SidebarActiveThreads } from "../SidebarActiveThreads";
-import { NeedsYouButton } from "../TeamOwner";
 import { SidebarInboxRow } from "../SidebarInboxRow";
 import { setAttentionPinned } from "./attention-pinned";
 import { InboxPanel } from "./InboxPanel";
@@ -63,14 +61,12 @@ beforeEach(() => {
   server.refusal = null;
   server.answer = placeView([]);
   dispatch.mockClear();
-  setTeamPeople(null);
   setAttentionPinned(false);
 });
 afterEach(() => {
   act(() => root.unmount());
   closeInbox();
   setInboxView(null);
-  setTeamPeople(null);
   document.body.innerHTML = "";
   vi.useRealTimers();
 });
@@ -115,37 +111,17 @@ describe("the Inbox row", () => {
     expect(document.querySelector("[data-inbox-count]")?.textContent).toBe("9+");
   });
 
-  it("counts what a team's person has to fix, except what the inbox lists already", async () => {
-    setInboxView(placeView([question]));
-    setTeamPeople({ people: [], me: null, admin: true, needsYou: [
-      { kind: "signed-out", id: "s", at: AT, instanceId: "claude", botIds: ["eli"] },
-      { kind: "question", id: "same", at: AT, botId: "eli", threadId: "eli-launch", text: "Which page?" },
-      { kind: "question", id: "own", at: AT, botId: "eli", threadId: "eli-main", text: "In their own chat" },
-      { kind: "message", id: "m", at: AT, botId: "eli", threadId: "t", from: "Ada", text: "An inbox line" },
-    ] });
-    await mount(row());
-    expect(document.querySelector("[data-inbox-count]")?.textContent).toBe("3");
-    server.answer = placeView([question]);
-    openInbox();
-    await mount(createElement(InboxPanel), [bot({})]);
-    expect(document.querySelector("[data-inbox-fixes]")?.textContent).toContain("Eli needs a fix");
-    expect(document.querySelector("[data-inbox-fixes]")?.textContent).toContain("In their own chat");
-    expect(document.querySelector("[data-inbox-fixes]")?.textContent).not.toContain("Which page?");
-  });
 });
 
 describe("an older server, with no inbox off a team", () => {
   beforeEach(() => { server.refusal = { status: 404 }; });
 
-  it("falls back to the tray and Needs you it showed before, and is not asked again", async () => {
+  it("falls back to the tray it showed before, and is not asked again", async () => {
     await refreshInbox();
     await mount(createElement("div", null, row(), createElement(SidebarActiveThreads, { entries: [], icons: false, phone: false, dispatch: vi.fn() })));
     expect(inboxButton(), "no row where there is no inbox").toBeNull();
     await click('[aria-label="Active Threads"]');
     expect(document.body.textContent).toContain("No active threads");
-    setTeamPeople({ people: [], me: null, admin: true, needsYou: [{ kind: "question", id: "q", at: AT, botId: "eli", threadId: "t", text: "Which?" }] });
-    await mount(createElement(NeedsYouButton));
-    expect(document.querySelector("[data-needs-you]"), "Needs you stays on an older team's Cloud").not.toBeNull();
   });
 
   it("keeps the row when the server merely can't be reached", async () => {

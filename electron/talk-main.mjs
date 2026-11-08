@@ -45,9 +45,8 @@ export function installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, ap
   };
 
   return {
-    /** `remote()`: this desktop is a remote client of another computer. `away()`: this computer's bots moved to My Cloud,
-     * so its own copy is frozen. `starting()`: this computer's server is on its way up. */
-    start({ globalShortcut, screen, prefs, remote, away, starting, localRequest }) {
+    /** `remote()`: this desktop is a remote client of another computer. `starting()`: this computer's server is on its way up. */
+    start({ globalShortcut, screen, prefs, remote, starting, localRequest }) {
       const request = (route, init) => (packaged ? localRequest(route, init) : fetch(new URL(route, devUrl), init));
       try {
         panel = createTalkPanel({ BrowserWindow, screen, nativeImage, iconPath, theme, onOpen: logged("open", () => session.open()), onDismiss: logged("dismiss", () => session.dismiss()) });
@@ -59,14 +58,12 @@ export function installTalk({ ipcMain, localOnly, localOrHome, BrowserWindow, ap
           release: () => shortcut.releaseModifiers(),
           openChat: chat => (chat ? openLink(`openmausbot://thread/${encodeURIComponent(chat.threadId)}?bot=${encodeURIComponent(chat.botId)}`) : reveal()),
         });
-        shortcut = createTalkShortcut({ globalShortcut, prefs, available: () => appleSpeech && !remote() && !away(), onPress: logged("press", () => session.press()) });
+        shortcut = createTalkShortcut({ globalShortcut, prefs, available: () => appleSpeech && !remote(), onPress: logged("press", () => session.press()) });
       } catch (error) {
         session = null;
         log(`talk shortcut unavailable: ${error?.message ?? error}`);
       }
     },
-    /** Home changed (My Cloud, or this computer again): the key is let go or taken again to match. */
-    homeChanged: logged("home change", () => shortcut?.refresh()),
     /** A page painted the app's skin (its id, resolved from the Theme setting): the box takes its light or dark. */
     skin(id) {
       if (!skins.isKnownSkin(id)) return;

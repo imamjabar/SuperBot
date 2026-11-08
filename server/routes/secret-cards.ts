@@ -10,8 +10,6 @@ import { PASS, type RouteContext, type RouteHandler } from "./table.ts";
 
 /** Whose a conversation is, for who may type a secret into its card. */
 export interface SecretAnswerContext {
-  /** A Cloud only its owner answers: any other session is a guest. */
-  personalCloud: boolean;
   /** Other people sign in here too (a Team Cloud, or a server with members). */
   shared: boolean;
   /** The person the conversation belongs to, when it names one. */
@@ -24,7 +22,6 @@ export interface SecretAnswerContext {
 export function secretAnswerRefusal(auth: RequestAuth, context: SecretAnswerContext): string | null {
   if (auth.kind === "loopback") return auth.trust === "service" ? "A local service cannot enter a secret. Enter it in OpenMausBot." : null;
   const admin = auth.scopes.includes("admin");
-  if (context.personalCloud) return admin ? null : "Only the owner of this Cloud can enter this secret.";
   if (!context.shared) return null;
   if (context.owner) return context.owner === context.person ? null : "Only the person this conversation belongs to can enter this secret.";
   return admin ? null : "Only a workspace admin can enter this secret.";

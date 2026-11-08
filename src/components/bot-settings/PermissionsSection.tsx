@@ -1,5 +1,4 @@
 // LocalComputerAutoWarning remembers its bot, so a bot switch while it is up never applies the choice to the new bot.
-import { useTeamPeople } from "@/state/team-people";
 import { useEffect, useState } from "react";
 import { Crown } from "lucide-react";
 
@@ -30,7 +29,6 @@ export function PermissionsSection({
   parts?: readonly PermissionsPart[];
 }) {
   const { patch, engine, canCoordinate, approvalMode, trustedModesAvailable, sectionName, currentChief } = derived;
-  const team = useTeamPeople();
   const { state, dispatch } = useStore();
   const ownerOrAdmin = useOwnerOrAdmin();
   const { draft } = useBotEditor();
@@ -55,7 +53,7 @@ export function PermissionsSection({
 
   return (
     <div className="flex flex-col gap-4">
-      {shows("chief") && !team && <div
+      {shows("chief") && <div
         className={cn(
           "rounded-xl border p-4",
           bot.chiefOfStaff ? "border-accent/40 bg-accent/10" : "border-hairline/40 bg-card",

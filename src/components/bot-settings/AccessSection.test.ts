@@ -208,11 +208,8 @@ describe("AccessSection Works on", () => {
     ]);
   });
 
-  it("hides the Boat or VPS choice on My Cloud, whose cloud computers are the plan's", () => {
+  it("shows the Boat or VPS choice for a bot on the default computer", () => {
     expect(render(makeBot())).toContain("Cloud backend");
-    fixture.config = { cloudHome: true } as Partial<ConfigStatus>;
-    expect(render(makeBot())).not.toContain("Cloud backend");
-    expect(render(makeBot({ computer: "cloud" }))).not.toContain("Boat");
   });
 });
 
@@ -236,8 +233,8 @@ describe("Research (treg) card", () => {
     return { derived, card: nodes(rendered) };
   };
 
-  it("with neither a treg key nor a plan, asks for a treg key, opens API keys, and offers no switch", () => {
-    fixture.config = { xResearch: { included: false }, treg: { configured: false } } as Partial<ConfigStatus>;
+  it("with no treg key, asks for a treg key, opens API keys, and offers no switch", () => {
+    fixture.config = { treg: { configured: false } } as Partial<ConfigStatus>;
     const html = render(makeBot());
     expect(html).toContain("Add your treg key in Settings → API keys to let bots research X, companies, people and more.");
     expect(html).toMatch(new RegExp(`${SWITCH}[^>]* disabled=""`));
@@ -248,7 +245,7 @@ describe("Research (treg) card", () => {
   });
 
   it("is on by default for every bot with the person's own treg key, and says it bills their treg balance", () => {
-    fixture.config = { xResearch: { included: false }, treg: { configured: true } } as Partial<ConfigStatus>;
+    fixture.config = { treg: { configured: true } } as Partial<ConfigStatus>;
     const html = render(makeBot());
     expect(html).toMatch(new RegExp(`${SWITCH}[^>]*aria-checked="true"`));
     expect(html).not.toMatch(new RegExp(`${SWITCH}[^>]* disabled=""`));
@@ -256,20 +253,8 @@ describe("Research (treg) card", () => {
     expect(html).not.toContain("Open API keys");
   });
 
-  it("is on by default with a Cloud plan, and turns off for one bot with one patch", () => {
-    fixture.config = { xResearch: { included: true } } as Partial<ConfigStatus>;
-    expect(render(makeBot())).toContain("Included with your MausBot Cloud plan");
-    const { card, derived } = capture(makeBot());
-    const toggle = card.find((node) => node.props["aria-label"] === "Let this bot use research")!;
-    (toggle.props.onClick as () => void)();
-    expect(derived.patch).toHaveBeenCalledWith({ xResearch: false });
-    const off = render(makeBot({ xResearch: false }));
-    expect(off).toMatch(new RegExp(`${SWITCH}[^>]*aria-checked="false"`));
-    expect(off).toContain("Off for this bot.");
-  });
-
   it("is not offered while a new bot or the New bot defaults are being drafted", async () => {
-    fixture.config = { xResearch: { included: true } } as Partial<ConfigStatus>;
+    fixture.config = { treg: { configured: true } } as Partial<ConfigStatus>;
     const { BotEditorContext } = await import("./BotEditorContext");
     const { api } = await import("@/state/store");
     const html = renderToStaticMarkup(createElement(StoreProvider, null,

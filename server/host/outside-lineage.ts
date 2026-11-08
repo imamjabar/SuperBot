@@ -2,7 +2,16 @@
 // came in from outside stay in the conversation, so once work traces to outside that conversation, and everything it
 // starts, retries, wakes, queues or schedules, stays outside. A person's line in such a conversation runs confined too:
 // its engine reads those words as context, whoever typed last.
-import { CLOUD_OUTSIDE_KEY, outsideDriven } from "../cloud-sharing.ts";
+export const CLOUD_OUTSIDE_KEY = "p_cloud-outside";
+function outsideDriven(threadId: string, records: {
+  marked(threadId: string): boolean;
+  webhookRun(threadId: string): boolean;
+  webhookPosted(threadId: string): boolean;
+  handedFrom(threadId: string): Iterable<string>;
+}): boolean {
+  const driven = (id: string) => records.marked(id) || records.webhookRun(id) || records.webhookPosted(id);
+  return driven(threadId) || [...records.handedFrom(threadId)].some(driven);
+}
 import type { HandoffView } from "../coordinator.ts";
 import type { RoutineRun } from "../routines.ts";
 import { serverLine } from "../server-lines.ts";
@@ -135,13 +144,10 @@ export function createOutsideLineage(deps: OutsideLineageDeps) {
   }
 
   /** At every start: what ran without a record of its own, or was still in flight, keeps its lineage. */
-  function settle(runs: readonly RoutineRun[], eventChat: (run: RoutineRun) => string | undefined): void {
+  function settle(runs: readonly RoutineRun[]): void {
     for (const run of runs) {
       if (run.triggerSource !== "webhook" || !run.threadId) continue;
-      // Off a Cloud a wait's follow-up runs in the person's own chat.
       if (deps.home || run.eventSource !== "wait") mark(run.threadId);
-      const chat = eventChat(run);
-      if (chat) mark(chat);
     }
     for (const node of deps.active()) {
       if (handedFrom(node.id).some((threadId) => outsideDrivenThread(threadId))) mark(node.threadId);

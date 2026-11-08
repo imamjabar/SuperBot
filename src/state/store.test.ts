@@ -7,8 +7,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   api,
   ApiError,
-  CLOUD_LINK_SETTINGS,
-  configStatusFromFrame,
   currentTaskBot,
   desktopApprovalBridge,
   initialState,
@@ -29,11 +27,11 @@ import {
   type AppState,
   type Bot,
   type BotAnnouncement,
-  type ConfigStatusFrame,
   type Group,
   type Message,
   type Action,
 } from "./store";
+import { configStatusFromFrame, type ConfigStatusFrame } from "./config-status";
 import { LAST_CONVERSATION_KEY } from "@/lib/last-conversation";
 import { cacheDesktopCapabilities, desktopCapabilitiesNow } from "@/lib/desktop";
 import { LAST_BOT_SECTION_KEY } from "@/lib/last-bot-section";
@@ -368,20 +366,6 @@ describe("keyboard shortcuts dialog state", () => {
   });
 });
 
-describe("Settings opened by the Cloud link", () => {
-  it("marks only the link's own opening, counts each link, and clears on any other Settings navigation", () => {
-    expect(initialState.appSettingsCloudLink).toBe(0);
-    const link = CLOUD_LINK_SETTINGS;
-    const opened = reducer(initialState, link);
-    expect(opened).toMatchObject({ appSettingsOpen: true, appSettingsSection: "cloudAccount", appSettingsCloudLink: 1 });
-    expect(reducer(opened, link).appSettingsCloudLink).toBe(2);
-    expect(reducer(opened, { type: "toggleAppSettings", open: true, section: "cloudAccount" }).appSettingsCloudLink).toBe(0);
-    expect(reducer(opened, { type: "toggleAppSettings", open: true, section: "general" }).appSettingsCloudLink).toBe(0);
-    expect(reducer(opened, { type: "toggleAppSettings", open: false })).toMatchObject({ appSettingsOpen: false, appSettingsCloudLink: 0 });
-    expect(reducer(opened, { type: "toggleAppSettings" }).appSettingsCloudLink).toBe(0);
-    expect(reducer(initialState, { ...link, open: false }).appSettingsCloudLink).toBe(0);
-  });
-});
 
 describe("Settings opened on the phone pairing", () => {
   it("counts each request, and clears on any other Settings navigation", () => {
@@ -2533,14 +2517,6 @@ describe("activity panel", () => {
     expect(reducer(open, { type: "showTeamMap" }).activityOpen).toBe(false);
   });
 
-  it("opens Files as its own page, carrying the folders it should offer to share only when asked", () => {
-    const open = { ...initialState, activityOpen: true, appSettingsOpen: true, settingsOpen: true };
-    const suggested = reducer(open, { type: "showFiles", suggest: ["/Users/ada/site"] });
-    expect(suggested).toMatchObject({ activeView: "files", filesSuggest: ["/Users/ada/site"], activityOpen: false, appSettingsOpen: false, settingsOpen: false });
-    expect(reducer(suggested, { type: "showFiles" })).toMatchObject({ activeView: "files", filesSuggest: null });
-    expect(reducer(suggested, { type: "showFiles", suggest: [] }).filesSuggest).toBeNull();
-    expect(reducer(suggested, { type: "showTeamMap" })).toMatchObject({ activeView: "team-map", filesSuggest: null });
-  });
 
   it("a pinned web panel replaces the main view like the team map, and chat comes back", () => {
     const open = { ...initialState, activityOpen: true, computerOpen: true, settingsOpen: true };
@@ -2567,16 +2543,6 @@ describe("live config frames", () => {
     expect(configStatusFromFrame({ ...baseFrame, automaticRecovery: { enabled: false } }).automaticRecovery).toEqual({ enabled: false });
   });
 
-  it("keeps a Team Cloud's team through live config refreshes, so its people stay in the @ list", () => {
-    const team = { id: "team-acme", name: "Acme", cloudPage: "https://cloud.example.test/cloud" };
-    expect(configStatusFromFrame({ ...baseFrame, team }).team).toEqual(team);
-    expect(configStatusFromFrame(baseFrame)).not.toHaveProperty("team");
-  });
-
-  it("keeps an OMB Cloud home's flag through live config refreshes, and adds none elsewhere", () => {
-    expect(configStatusFromFrame({ ...baseFrame, cloudHome: true }).cloudHome).toBe(true);
-    expect(configStatusFromFrame(baseFrame)).not.toHaveProperty("cloudHome");
-  });
 
   it("preserves edition, budgets and billing through configStatusFromFrame", () => {
     const frame: ConfigStatusFrame = {

@@ -8,7 +8,6 @@ import { parseToolScope, toolScopeWidens } from "../../shared/tool-scope.ts";
 import { isMausColor, MAUS_COLOR_NAMES, type WireBot, type WireGroup } from "../../shared/wire.ts";
 import { validateBotCwd } from "../bot-cwd.ts";
 import { parseBotProfilePatch } from "../bot-profile.ts";
-import { accessFromVisibility } from "../../shared/bot-access.ts";
 import { parseVisibility } from "../bot-visibility.ts";
 import type { BrowserLive } from "../browser-live.ts";
 import type { BrowserRuntime } from "../browser-runtime.ts";
@@ -49,7 +48,6 @@ export interface BotPatchRouteDeps {
   supportsApprovalMode: ReturnType<typeof createApprovalModeSupport>;
   routines(): RoutineManager | null;
   activeVpsThreads: { has(botId: string): boolean };
-  /** Full access comes only from the workspace policy. */
   hostedWorkspace: boolean;
   hostedFullAccessRefusal: string;
   desktopManaged: boolean;
@@ -74,8 +72,6 @@ export interface BotPatchRouteDeps {
   forgetTemporaryBrowser(botId: string): Promise<void>;
   /** What this session may do with the bot: off a Team Cloud a member chats with every bot they see. */
   levelOf(auth: RequestAuth, botId: string): "none" | "view" | "chat" | "edit";
-  /** A Team Cloud, where a bot's sharing follows its visibility. */
-  team: boolean;
   /** The bot's conversations the main-thread resolver may pick: a Team Cloud keeps only team-visible ones. */
   mainThreadTasks(botId: string): readonly TaskRecord[];
 }
@@ -584,7 +580,6 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
         const parsed = parseVisibility(body.visibility);
         if (!parsed.ok) return json(res, 400, { error: parsed.error });
         patch.visibility = parsed.visibility;
-        if (deps.team) patch.access = accessFromVisibility(parsed.visibility);
       }
       if (body.alwaysAllow !== undefined) {
         if (!Array.isArray(body.alwaysAllow) || body.alwaysAllow.some((t: unknown) => typeof t !== "string")) {

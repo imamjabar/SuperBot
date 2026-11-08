@@ -32,7 +32,6 @@ function AdvancedHelperIntro({ botId, threadId, message, answered }: IntroProps)
   const { state, dispatch } = useStore();
   const bot = state.bots.find((candidate) => candidate.id === botId);
   const name = bot?.name ?? "MausBot";
-  const team = bot?.defaultBot?.person ? state.config?.team?.name : undefined;
   const ask = (key: LocaleKey) => dispatch({ type: "answerCard", botId, threadId, messageId: message.id, answer: t(key) });
   return (
     <div data-helper-intro={message.id} className="flex w-full flex-col items-start gap-2">
@@ -40,7 +39,6 @@ function AdvancedHelperIntro({ botId, threadId, message, answered }: IntroProps)
         <p className="font-medium">{t("helperIntro.title", { name })}</p>
         <p className="mt-1">{t("helperIntro.body")}</p>
         {bot?.chiefOfStaff ? <p className="mt-1">{t("helperIntro.chief")}</p> : bot?.defaultBot && !bot.defaultBot.person && <p className="mt-1">{t("helperIntro.watch")}</p>}
-        {team && <p className="mt-1">{t("helperIntro.team", { team })}</p>}
         {!answered && <p className="mt-1 text-ink-secondary">{t("helperIntro.try")}</p>}
       </div>
       {!answered && <HelperSetup />}

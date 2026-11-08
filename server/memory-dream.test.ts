@@ -3,8 +3,6 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { DATA_DIR } from "./config.ts";
-import { ownerOnlyConversation } from "./cloud-lending.ts";
-import { stampOwner } from "./cloud-owner-lines.ts";
 import {
   DREAM_CONVERSATION_BYTES, DREAM_MARKER, DREAM_TOTAL_BYTES, MAX_IDEAS, MAX_LEARNED,
   dreamConversations, dreamPrompt, parseDream, type DreamConversation, type DreamSource,
@@ -26,6 +24,10 @@ function source(threads: Record<string, { askedAt?: number; title?: string; rout
     activePath: (threadId) => threads[threadId]?.path ?? [],
   };
 }
+const ownerOnlyConversation = (path: Path, ownerPerson: (id: string | undefined) => boolean, _cardAnswerer?: unknown) =>
+  path.every((m) => m.role !== "user" || ownerPerson(m.sender?.id));
+const stampOwner = (path: Path, owner: { person: string; name: string }): Path =>
+  path.map((line) => ({ ...line, ...(line.role === "user" ? { sender: { id: owner.person, name: owner.name } } : {}) }));
 
 describe("the chats a dream reads", () => {
   it("takes chats the person wrote in since the last dream, newest first, and only the owner's own lines", () => {
@@ -70,9 +72,9 @@ describe("the chats a dream reads", () => {
 
   it("keeps both owner-only conversations after their move to My Cloud stamps the owner", () => {
     const owner = { person: "p_owner", name: "Amit" };
-    const threads: Record<string, { askedAt: number; path: Message[] }> = {
-      a: { askedAt: 200, path: [{ id: "a1", at: 200, role: "user", kind: "text", text: "Shorter please" }] },
-      b: { askedAt: 300, path: [{ id: "b1", at: 300, role: "user", kind: "text", text: "Too long again" }] },
+    const threads: Record<string, { askedAt: number; path: Path }> = {
+      a: { askedAt: 200, path: [{ id: "a1", role: "user", kind: "text", text: "Shorter please" }] },
+      b: { askedAt: 300, path: [{ id: "b1", role: "user", kind: "text", text: "Too long again" }] },
     };
     const expected = [
       { threadId: "b", lines: [{ by: "person", text: "Too long again" }] },

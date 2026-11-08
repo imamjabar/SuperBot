@@ -64,12 +64,11 @@ export function applyIncludedPagesMessage(message: unknown): boolean {
 }
 
 /** True when this desktop is signed in but its Admin offers no pages yet: the bot says so instead of asking to sign in. */
-export function pagesNotOffered(home: unknown): boolean {
-  return !home && !desktopPages && desktopPagesNotOffered;
+export function pagesNotOffered(): boolean {
+  return !desktopPages && desktopPagesNotOffered;
 }
 
-/** A Cloud home's own credential, else a signed-in desktop's; null when this server is signed in to no MausBot account. */
-export function pagesAccess(home: { adminOrigin: string; machineId: string; bootstrapSecret: string } | null): PagesAccess | null {
-  if (home) return { kind: "home", url: `${home.adminOrigin}${PAGES_TOKEN_PATH}`, machineId: home.machineId, secret: home.bootstrapSecret };
+/** A signed-in desktop's credential; null when this server is signed in to no MausBot account. */
+export function pagesAccess(): PagesAccess | null {
   return desktopPages ? { kind: "desktop", ...desktopPages } : null;
 }

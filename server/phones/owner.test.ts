@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cloudHomeLendingRefusal, type CloudLendingTurn } from "../cloud-lending.ts";
-import { adoptExistingRoutines, desktopLendingTurn, desktopPhonesOffered, NOT_THE_OWNER, type DesktopTurn } from "./owner.ts";
+import { adoptExistingRoutines, cloudHomeLendingRefusal, desktopLendingTurn, desktopPhonesOffered, NOT_THE_OWNER, type CloudLendingTurn, type DesktopTurn } from "./owner.ts";
 
 const ADMIN = "p_admin", MEMBER = "p_member", ROUTINE = "routine-1", WEBHOOK = "webhook-1";
 const said = (id: string, extra: Record<string, unknown> = {}) => ({ id, role: "user", ...extra });
@@ -11,7 +10,7 @@ const card = (answeredBy?: { kind: string; person?: string; name?: string }) =>
 /** What server/index.ts hands over off a Cloud home: the Cloud test's own owner, which knows nobody here. */
 const base = (overrides: Partial<DesktopTurn> = {}): DesktopTurn => ({
   request: { messageId: "m1", generations: new Set(["g1"]) }, generation: "g1", thread: [said("m1"), reply("r1")],
-  ownerPerson: () => false, cardAnswerer: (c) => (c.answeredBy?.kind === "session" ? c.answeredBy.person : undefined),
+  ownerPerson: () => false, cardAnswerer: (c) => (c?.answeredBy?.kind === "session" ? c.answeredBy.person : undefined),
   routineRun: () => null, reportsFromOthers: true, ...overrides,
 });
 /** `written`: the routines the owner wrote and nobody has changed since. */

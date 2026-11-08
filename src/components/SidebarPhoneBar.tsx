@@ -1,10 +1,8 @@
-import { FolderOpen, LayoutGrid, Puzzle, Search, UsersRound, X, Zap } from "lucide-react";
+import { LayoutGrid, Puzzle, Search, UsersRound, X, Zap } from "lucide-react";
 
-import { useCloudFilesReady } from "@/lib/cloud-files";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
 
-import { CloudUsageCard } from "./CloudUsageMeter";
 import { useAutomationsNeedYou } from "./SidebarFooterNav";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import { UpdateIndicator } from "./UpdateIndicator";
@@ -13,8 +11,7 @@ import { UpdateIndicator } from "./UpdateIndicator";
 export function SidebarPhoneBar({ query, onQuery }: { query: string; onQuery: (query: string) => void }) {
   const { state, dispatch } = useStore();
   const automationsNeedYou = useAutomationsNeedYou();
-  const filesReady = useCloudFilesReady();
-  const items: SidebarMenuItem[] = [
+    const items: SidebarMenuItem[] = [
     {
       key: "automations",
       label: t("sidebar.nav.automations"),
@@ -30,13 +27,6 @@ export function SidebarPhoneBar({ query, onQuery }: { query: string; onQuery: (q
       active: state.activeView === "team-map",
       onSelect: () => dispatch({ type: "showTeamMap" }),
     },
-    ...(filesReady ? [{
-      key: "files",
-      label: t("sidebar.nav.files"),
-      icon: <FolderOpen size={18} />,
-      active: state.activeView === "files",
-      onSelect: () => dispatch({ type: "showFiles" }),
-    }] : []),
     {
       key: "apps",
       label: t("sidebar.nav.apps"),
@@ -47,7 +37,6 @@ export function SidebarPhoneBar({ query, onQuery }: { query: string; onQuery: (q
   ];
   return (
     <div data-sidebar-phone-bar className="px-3 pb-3 pt-1">
-      <CloudUsageCard />
       <div className="flex items-center gap-2 not-first:mt-2">
         <SidebarPopoverMenu
           items={items}

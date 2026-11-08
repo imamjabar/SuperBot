@@ -17,7 +17,7 @@ const names = windows => windows.map(win => win?.name ?? null);
 
 function harness({ packaged = true, appleSpeech = true, remote = false, register, serve = () => undefined } = {}) {
   const h = { handlers: new Map(), guards: new Map(), started: [], stopped: [], finished: [], requests: [], links: [], reveals: 0, log: [],
-    registered: new Map(), windows: [], busy: false, fail: {}, away: false, starting: false };
+    registered: new Map(), windows: [], busy: false, fail: {}, starting: false };
   const owners = new Map();
   class FakeBrowserWindow {
     static fromWebContents(contents) { return owners.get(contents) ?? null; }
@@ -65,7 +65,7 @@ function harness({ packaged = true, appleSpeech = true, remote = false, register
   };
   const screen = { getCursorScreenPoint: () => ({ x: 0, y: 0 }), getDisplayNearestPoint: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }) };
   h.start = () => h.talk.start({ globalShortcut, screen, prefs: createDesktopPrefs({ read: () => null, write: () => {} }), remote: () => remote,
-    away: failing("away", () => h.away), starting: () => h.starting,
+    starting: () => h.starting,
     localRequest: route => { h.requests.push(["local", route]); return answer(route); } });
   h.handle = (channel, event, ...args) => h.handlers.get(channel)(event, ...args);
   h.press = () => h.registered.get("Control+Alt+Space")();
@@ -86,22 +86,19 @@ test("every list of the app's windows leaves the talk box out", () => {
 test("main hands the talk wiring its speech sinks, this computer's own server and window, and closes it first on quit", () => {
   assert.match(main, /const talk = installTalk\(\{ ipcMain, localOnly, localOrHome, BrowserWindow, appleSpeech: nativeActions\.appleSpeech,\s*speech: \{ start: startSpeech, stop: stopSpeech, finish: finishSpeech, busy: speechBusy \},/);
   assert.match(main, /packaged: app\.isPackaged, devUrl: DEV_URL, nativeImage, iconPath: APP_ICON, openLink: queueChatLink, reveal: revealForLink, log: slog \}\);/);
-  assert.match(main, /talk\.start\(\{ globalShortcut, screen, prefs: desktopPrefs, remote: \(\) => Boolean\(desktopRemoteAccess\), away: \(\) => homeWindow\.current\(\)\.kind !== "computer", starting: \(\) => !serverReady, localRequest: localServerRequest \}\);/);
+  assert.match(main, /talk\.start\(\{ globalShortcut, screen, prefs: desktopPrefs, remote: \(\) => Boolean\(desktopRemoteAccess\), starting: \(\) => !serverReady, localRequest: localServerRequest \}\);/);
   assert.match(main, /app\.on\("before-quit", \(e\) => \{\s*talk\.close\(\);/);
   assert.doesNotMatch(main, /ipcMain\.handle\("(?:speech|talk-shortcut|call):/);
 });
 
-test("main tells the talk wiring when home changes and which skin the app painted, and counts a talk ask as busy for a quiet update", () => {
-  assert.match(main, /const homeWindow = createHomeWindow\(\{[^]*?rehomed: \(\) => talk\.homeChanged\(\),[^]*?\}\);\ninstallHomeWindowIpc/);
+test("main tells the talk wiring which skin the app painted, and counts a talk ask as busy for a quiet update", () => {
   assert.match(main, /ipcMain\.handle\("desktop:skin", \(event, skin\) => \{\s*if \(!isKnownSkin\(skin\)\) return false;\s*if \(chromeRail\.owns\(event\)\) return true;\s*try \{\s*talk\.skin\(skin\);/);
-  assert.match(main, /busy: \(\) => \(\(oneHome\.oneHome\.busy\(\) \|\| ownHome\?\.busy\(\)\) && "move"\) \|\| \(computerSharing\?\.busy\(\) && "lending"\) \|\| \(talk\.busy\(\) && "talk"\) \|\|/);
+  assert.match(main, /busy: \(\) => \(computerSharing\?\.busy\(\) && "lending"\) \|\| \(talk\.busy\(\) && "talk"\) \|\|/);
 });
 
-test("the talk bridge keys stay off other servers' pages; a call can be reported from My Cloud's page", () => {
+test("the talk bridge keys stay off other servers' pages", () => {
   const list = name => preload.match(new RegExp(`const ${name} = (?:new Set\\()?\\[([^\\]]*)\\]`))[1];
   assert.doesNotMatch(list("REMOTE_SAFE"), /talkShortcut|callActive/);
-  assert.match(list("HOME_PAGE"), /"callActive"/);
-  assert.doesNotMatch(list("HOME_PAGE"), /talkShortcut/);
 });
 
 test("every microphone channel answers only this computer's page; a call can be reported from My Cloud's page too", () => {
@@ -242,28 +239,6 @@ test("clicking the box opens its chat by a link with both ids escaped, or else j
   sink.end({ code: 0, reason: "completed" });
   h.click("open");
   assert.deepEqual(h.links, ["openmausbot://thread/t%201%2Fx?bot=b%3F1%26x"]);
-  h.talk.close();
-});
-
-test("while home is My Cloud or this computer's copy is frozen the shortcut is unavailable and the key free; home here again takes it back", () => {
-  const h = harness();
-  h.away = true;
-  h.start();
-  assert.equal(h.handle("talk-shortcut:state", {}).available, false);
-  assert.deepEqual([...h.registered.keys()], []);
-  assert.equal(h.handle("talk-shortcut:set", {}, { enabled: false }).available, false, "a change does nothing meanwhile");
-  h.away = false;
-  h.talk.homeChanged();
-  assert.equal(h.handle("talk-shortcut:state", {}).available, true);
-  assert.deepEqual([...h.registered.keys()], ["Control+Alt+Space"]);
-  h.away = true;
-  h.talk.homeChanged();
-  assert.deepEqual([...h.registered.keys()], []);
-  h.fail.away = "home unknown";
-  assert.doesNotThrow(() => h.talk.homeChanged());
-  assert.deepEqual(h.log, ["talk home change failed: home unknown"]);
-  const early = harness();
-  assert.doesNotThrow(() => early.talk.homeChanged(), "before start");
   h.talk.close();
 });
 

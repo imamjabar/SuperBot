@@ -7,7 +7,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { writeFileAtomic } from "./atomic.ts";
-import { cloudHomePrompt } from "./system-prompt.ts";
 import { availableTools, catalogProfileFromEnv } from "./drivers/agents-catalog.ts";
 import { CONTROL_BUSY, CONTROL_REFUSAL_PLAIN, controlRefusal, createControlClient } from "./control-client.ts";
 import { freePortBlock } from "./testing/ports.ts";
@@ -111,7 +110,7 @@ beforeAll(async () => {
   writeFileSync(join(data, "config.json"), JSON.stringify({ features: { frontDesk: false }, instances: { claude: {
     driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
     // Its first computer call is what creates or wakes the Boat, as with a real model.
-    environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile, FAKE_CLAUDE_USES_CLOUD_COMPUTER: "1" },
+    environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_TEXT_DUMP: join(fixtureHome, "text-dump.json"), FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile, FAKE_CLAUDE_USES_CLOUD_COMPUTER: "1" },
   } } }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
@@ -575,8 +574,6 @@ describe("Group Local VM ownership on the real isolated server", () => {
       const available = await (await call("GET")).json() as any;
       expect(available.canSelect).toBe(true);
       expect(available.options.map((option: any) => option.surface)).toEqual(["cloud", "vm", "local", "browser"]);
-      expect(before.mcpConfig.mcpServers.agents.env.OMB_CLOUD_HOME).toBe("0");
-      expect(before.systemPrompt).not.toContain(cloudHomePrompt(true));
       expect(before.systemPrompt).not.toContain("You run on the user's OMB Cloud");
       expect(available.options).toContainEqual(expect.objectContaining({ surface: "vm", available: true }));
       expect(available.options).toContainEqual(expect.objectContaining({ surface: "cloud", ready: false, canCreate: true }));

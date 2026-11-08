@@ -9,7 +9,7 @@ import { CalendarClock, ChevronRight, Columns2, Box, Check, Cloud, Sparkles, Glo
 import { api, ApiError, currentTaskBot, useStore, type Bot, type ConfigStatus } from "@/state/store";
 import { setAdvancedMode, useAdvancedMode } from "@/lib/interface-mode";
 import { ComputerFilesPane } from "./ComputerFilesPane";
-import { effectivePlace, isComputerPlace, personPin, placeLabelKey, placeOffered } from "@/lib/place";
+import { effectivePlace, isComputerPlace, personPin, placeLabelKey } from "@/lib/place";
 import type { CloudBackend } from "../../shared/wire";
 import { KeyRow } from "./keys/KeyRow"; import { openKeySettings } from "./keys/key-focus";
 import { cn } from "@/lib/cn";
@@ -159,10 +159,10 @@ export function ComputerPanel({
   const localAvailable = capabilities.localComputer.available;
   const isLinux = capabilities.host.platform === "linux";
   const providerSupportsLocal = instanceSupportsLocalComputer(state.instances, bot);
-  const localSelectable = placeOffered("local", state.config) && localComputerSelectable({ capabilities, providerSupportsLocal });
+  const localSelectable = localComputerSelectable({ capabilities, providerSupportsLocal });
   const [localAutoWarningTarget, setLocalAutoWarningTarget] = useState<string | null>(null);
   const localDisabledReason = localComputerDisabledReason({ capabilities, providerSupportsLocal });
-  const placeSeat = usePlaceSeat(state.config, capabilities.host.platform);
+  const placeSeat = usePlaceSeat(capabilities.host.platform);
   const [phase, setPhase] = useState<Phase>("checking");
   const [persistedComputerSelection, setPersistedComputerSelection] = useState<{
     botId: string;
@@ -1111,7 +1111,7 @@ export function ComputerPanel({
     ...(refusal ? { refusal } : {}),
   });
   const cloudRefused = bot.computer === "cloud" && cloudBackend === "box" && phase === "error" && error && !(error instanceof LocalizedPanelError)
-    ? cloudRefusal({ message: errorText ?? "", status: Number((error as { status?: unknown }).status ?? 0) || undefined }, state.config?.box?.included === true)
+    ? cloudRefusal({ message: errorText ?? "", status: Number((error as { status?: unknown }).status ?? 0) || undefined })
     : undefined;
   const cloudView = viewOf("cloud", cloudRefused);
   const autoView = viewOf("auto");
@@ -1122,7 +1122,7 @@ export function ComputerPanel({
     ["local", "vm.dest.local", "computer.dest.localDesc", Monitor],
     ["browser", "vm.dest.browser", "computer.dest.browserDesc", Globe],
     ["off", "vm.dest.off", "computer.dest.offDesc", Power],
-  ] as const).filter(([mode]) => mode === null || mode === "off" || (placeOffered(mode, state.config) && !(mode === "local" && capabilities.localComputer.reasonCode === "remote-server"))).map(([mode, labelKey, descriptionKey, Icon]) => {
+  ] as const).filter(([mode]) => mode === null || mode === "off" || !(mode === "local" && capabilities.localComputer.reasonCode === "remote-server")).map(([mode, labelKey, descriptionKey, Icon]) => {
     const selected = mode === null ? !profileBot.computer : profileBot.computer === mode;
     const managedKind = mode === "local" ? "thisComputer" : mode === "vm" ? "localVm" : mode === "cloud" ? (profileBot.cloudBackend === "vps" ? "vps" : "box") : null;
     const managedBy = managedPolicy && managedKind && !managedPolicy.computers[managedKind] ? t("policy.managedBy", { organization: managedPolicy.organizationName }) : undefined;
@@ -1688,7 +1688,7 @@ export function ComputerPanel({
           <div className="mt-4 rounded-xl bg-card p-4">
             <div className="text-[15px] font-medium text-ink">{t("computer.worksOn")}</div>
             <p className="mt-1 text-[12px] leading-5 text-ink-secondary">
-              {t(state.config?.cloudHome ? "computer.worksOnHintCloudHome" : "computer.worksOnHint")}
+              {t("computer.worksOnHint")}
             </p>
           <div role="group" aria-label={t("computer.destinationAria")} className="mt-3 grid auto-rows-fr grid-cols-2 gap-2">
             {placeOptions.map(({ mode, labelKey, descriptionKey, Icon, selected, managedBy, disabled, unavailableTitle, issue, view }) => (

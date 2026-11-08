@@ -84,6 +84,7 @@ posixOnly("mid-turn steering e2e", () => {
     writeFileSync(
       join(home, ".openmausbot", "config.json"),
       JSON.stringify({
+        features: { frontDesk: false },
         instances: {
           claude: { driver: "claudeAgent", environment: { FAKE_CLAUDE_MODE: "slow" }, config: { cli: FAKE_CLAUDE, permissionMode: "bypassPermissions" } },
           claudeSteer: {
@@ -174,6 +175,7 @@ posixOnly("mid-turn steering e2e", () => {
       expect(second.body.steered).toBe(true);
 
       await waitFor(async () => (await getBot(created.id)).busy === false, "the turn to settle");
+      await waitFor(async () => (await getBot(created.id)).messages.some((m: { text?: string }) => m.text === "fake generated text"), "the busy reply");
       const bot = await getBot(created.id);
       const texts = bot.messages.filter((m: any) => m.kind === "text").map((m: any) => `${m.role}:${m.role === "bot" ? withoutTurnClock(m.text) : m.text}`);
       expect(texts.slice(1)).toEqual([
@@ -181,6 +183,7 @@ posixOnly("mid-turn steering e2e", () => {
         "bot:hello from fake claude",
         "user:and also this",
         "bot:reply to: first + steered: and also this",
+        "bot:fake generated text",
       ]);
       const steered = bot.messages.find((m: any) => m.text === "and also this");
       expect(steered.steered).toBe(true);
@@ -328,7 +331,8 @@ posixOnly("mid-turn steering e2e", () => {
         return false;
       }
     }, "the fake's spawn dump");
-    const token = dump.mcpConfig.mcpServers.agents.env.OMB_COMMS_TOKEN as string;
+    const agents = dump.mcpConfig.mcpServers.agents;
+    const token = ((agents.env.OMB_GATE_UPSTREAM ? JSON.parse(agents.env.OMB_GATE_UPSTREAM).env : agents.env).OMB_COMMS_TOKEN) as string;
     expect(token).toMatch(/^[a-f0-9]{48}$/);
     const internalTools = async () =>
       (await fetch(`${BASE}/api/internal/agents`, { headers: { authorization: `Bearer ${token}` } })).status;
@@ -344,6 +348,7 @@ posixOnly("mid-turn steering e2e", () => {
     );
     expect((await getBot(created.id)).busy).toBe(true);
     expect(await internalTools()).toBe(200);
+    await waitFor(async () => (await getBot(created.id)).messages.some((m: { text?: string }) => m.text === "fake generated text"), "the busy reply");
 
     writeFileSync(lateSteerContinuationGate, "finish");
     await waitFor(async () => (await getBot(created.id)).busy === false, "the turn to settle");
@@ -356,6 +361,7 @@ posixOnly("mid-turn steering e2e", () => {
       "user:and also this",
       "bot:reply to: first",
       "bot:hello from fake claude",
+      "bot:fake generated text",
       "bot:reply to: and also this",
     ]);
     const events = readFileSync(join(home, ".openmausbot", "events", `${created.threadId}.ndjson`), "utf8")

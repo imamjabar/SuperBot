@@ -472,7 +472,7 @@ const CLEARING_WORDS = [/is being deleted/i, /previous cloud computer deletion/i
 /** The Admin's own codes come first; until every refusal has one, its English
  * is read. `included`: the plan's computers, not the person's own Boat key,
  * whose provider's words are shown as they are. */
-export function cloudRefusal(failure: { message: string; code?: string; status?: number }, included: boolean): { state: PlaceState; params: PlaceParams } {
+export function cloudRefusal(failure: { message: string; code?: string; status?: number }): { state: PlaceState; params: PlaceParams } {
   const message = failure.message.trim();
   const code = failure.code;
   const hours = HOURS_USED.exec(message);
@@ -493,6 +493,6 @@ export function cloudRefusal(failure: { message: string; code?: string; status?:
   if (NO_START_WORDS.some((words) => words.test(message))) return { state: "cc-no-start", params: {} };
   if (CLEARING_WORDS.some((words) => words.test(message))) return { state: "cc-clearing", params: {} };
   if ((failure.status ?? 0) >= 500 || PASSING_WORDS.some((words) => words.test(message))) return { state: "cc-unavailable", params: {} };
-  if (!included && message) return { state: "cc-provider", params: { words: message.replace(/[\s.]+$/, "") + "." } };
+  if (message) return { state: "cc-provider", params: { words: message.replace(/[\s.]+$/, "") + "." } };
   return { state: "cc-no-start", params: {} };
 }

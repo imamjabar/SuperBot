@@ -465,7 +465,7 @@ computer stops for good, the rest goes, both sides are checked, and the server
 switches on what was on here, so no routine ever runs twice. The account area
 says how it goes, and after a day of failing it says the move needs you, with
 Try again. Afterwards the server is what the window opens, and this computer
-works for it by itself as it does for My Cloud: no access dialog, only the
+works for it by itself: no access dialog, only the
 menu bar's item with Pause.
 
 Until then, a bot that asks for a teammate living in your other place says where
@@ -591,8 +591,7 @@ Set `OMB_LOOPBACK_TRUST=service` on a self-hosted server people share (with
 an email sign-in list, say), or `OMB_LOOPBACK_TRUST=owner` to opt a hosted
 workspace back into the old behaviour (the log then warns). Any other value
 means `service`. The desktop app ignores the setting: its local changes
-already need the app's own per-launch capability. MausBot Cloud ignores
-it too and is always `service` (docs/cloud-pro.md).
+already need the app's own per-launch capability.
 
 With `service` on a self-hosted server:
 

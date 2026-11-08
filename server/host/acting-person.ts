@@ -11,7 +11,6 @@ import { readFileSync } from "node:fs";
 import { z } from "zod";
 
 import { writeFileAtomic } from "../atomic.ts";
-import { answeredByPerson } from "../cloud-lending.ts";
 import type { WorkOrigin } from "../peer-provenance.ts";
 
 export const HANDED_PEOPLE_FILE = "handed-people.json";
@@ -23,6 +22,10 @@ const KEEP_MS = 30 * 24 * 60 * 60_000;
 const MAX_ENTRIES = 20_000;
 
 type Card = { answered?: string; answeredText?: string; dismissed?: boolean; autoApplied?: boolean; answeredBy?: { kind: string; person?: string } };
+function answeredByPerson(card: Card | undefined): boolean {
+  if (!card || card.answeredBy?.kind === "bot") return false;
+  return (Boolean(card.answered) && card.answered !== "unavailable" && card.dismissed !== true && card.autoApplied !== true) || Boolean(card.answeredText);
+}
 export type ActingLine = {
   id: string; at: number; role: string; peerAsk?: unknown; steered?: boolean; relayed?: boolean; queueId?: string; sender?: { id?: string }; card?: Card;
 };

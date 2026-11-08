@@ -25,15 +25,12 @@ export function pairsAutomatically(initialCode: string | null, desktop = typeof 
   return Boolean(initialCode) && desktop;
 }
 
-export function pairIntro({ mode, sent, email, cloudHome }: { mode: "email" | "code" | null; sent: boolean; email: string; cloudHome: boolean }): string {
+export function pairIntro({ mode, sent, email }: { mode: "email" | "code" | null; sent: boolean; email: string }): string {
   if (mode === "email") return sent ? `We emailed an 8-digit code to ${email}. It works once and expires in ten minutes.` : "Enter your email and we will send you a one-time code.";
-  if (cloudHome) return `To open the Cloud, choose Open the Cloud in the ${productName()} app on your computer (Settings → MausBot Cloud), or Use in your browser on your Plan page. Have a pairing code? Enter it below.`;
   return "Enter the pairing code shown on the server. Codes work once and expire after five minutes.";
 }
 
 export function pairTitle(environment: EnvironmentDescriptor | null, mode: "email" | "code" | null): string {
-  if (environment?.capabilities.cloudTeam) return environment.label;
-  if (environment?.capabilities.cloudHome) return "My Cloud";
   return `${mode === "email" ? "Sign in to" : "Connect to"} ${environment?.label ?? `this ${productName()}`}`;
 }
 
@@ -80,7 +77,6 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
 
   const connected = isConnected(session);
   const emailOffered = environment?.capabilities.emailSignIn === true;
-  const cloudHome = environment?.capabilities.cloudHome === true;
 
   async function submitCode(e: React.FormEvent) {
     e.preventDefault();
@@ -122,15 +118,14 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
       <div className="absolute left-3 top-12 max-w-[280px]"><DesktopWorkspaceSwitcher /></div>
       <div className="w-full max-w-[420px]">
         {opening ? (
-          <p role="status" className="text-[20px] font-semibold">{cloudHome ? "Opening the Cloud…" : `Connecting to ${environment?.label ?? `this ${productName()}`}…`}</p>
+          <p role="status" className="text-[20px] font-semibold">{`Connecting to ${environment?.label ?? `this ${productName()}`}…`}</p>
         ) : <>
         <h1 className="text-[20px] font-semibold">{pairTitle(environment, mode)}</h1>
         <p className="mt-1.5 text-[14px] leading-relaxed text-ink-secondary">
-          {environment && !cloudHome ? `Version ${environment.version} on ${environment.platform}. ` : ""}
-          {pairIntro({ mode, sent, email, cloudHome })}
+          {environment ? `Version ${environment.version} on ${environment.platform}. ` : ""}
+          {pairIntro({ mode, sent, email })}
         </p>
         {reasonWorthShowing(reason) && !connected ? <p className="mt-3 text-[13px] text-ink-secondary">{reasonWorthShowing(reason)}</p> : null}
-        {error && cloudHome && initialCode ? <p className="mt-3 text-[13px] text-ink-secondary">This link has expired or was already used. In the {productName()} app on your computer, open Settings → MausBot Cloud and choose Open the Cloud.</p> : null}
         </>}
         {opening ? null : connected ? (
           <p className="mt-4 text-[14px]">

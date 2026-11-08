@@ -11,7 +11,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   api: fixture.api,
   useStore: () => ({ state: { config: fixture.config }, dispatch: fixture.dispatch }),
 }));
-vi.mock("@/lib/own-profile", () => ({ saveTeamProfile: (patch: unknown) => fixture.api("/api/me", { method: "PUT", body: JSON.stringify(patch) }) }));
 
 const { AboutMeSettings } = await import("./AboutMeSettings");
 
@@ -40,16 +39,6 @@ const type = async (text: string) => {
   });
   await act(async () => { area.dispatchEvent(new FocusEvent("focusout", { bubbles: true })); });
 };
-
-it("saves a Team Cloud person's About me to their own profile, also when Settings opened before the config arrived", async () => {
-  fixture.config = null;
-  await act(async () => root.render(createElement(AboutMeSettings)));
-  fixture.config = { profile: { name: "Ada", email: "ada@acme.test", aboutMe: "" }, team: { id: "t1", name: "Acme" } };
-  await act(async () => root.render(createElement(AboutMeSettings)));
-  await type("Likes durian");
-  const puts = fixture.api.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "PUT").map(([path]) => path);
-  expect(puts).toEqual(["/api/me"]);
-});
 
 it("saves the server's one profile with /api/config off a team", async () => {
   fixture.config = { profile: { name: "Ada", email: "", aboutMe: "" } };

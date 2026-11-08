@@ -31,9 +31,9 @@ const { useWelcomeAi } = await import("./welcome-ai");
 const { useStore } = await import("@/state/store");
 
 /** As the first screen has it: the AI it stands on, tested once, handed to the block. */
-function FirstScreenAi({ hosted = false }: { hosted?: boolean }) {
+function FirstScreenAi() {
   const { state } = useStore();
-  return createElement(ConnectAi, { hosted, tested: useWelcomeAi(state.instances, !hosted) });
+  return createElement(ConnectAi, { tested: useWelcomeAi(state.instances) });
 }
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -44,8 +44,8 @@ const engine = (instanceId: string, driverKind: string, displayName: string, rea
 const bridge = { onState: vi.fn(), state: vi.fn() } as unknown as ManagedDesktopBridge;
 let host: HTMLDivElement, root: Root;
 const text = () => host.textContent ?? "";
-const show = async (extra: { hosted?: boolean } = {}) => {
-  await act(async () => { root.render(createElement(FirstScreenAi, extra)); });
+const show = async () => {
+  await act(async () => { root.render(createElement(FirstScreenAi)); });
 };
 /** Every other way is listed under the recommended one, with nothing to unfold. */
 const otherWays = async () => {
@@ -216,9 +216,10 @@ describe("connecting an AI on the first screen", () => {
     await otherWays();
     expect(f.row).toBeNull();
     vi.stubGlobal("ogb", { organization: bridge });
-    window.ogb = { organization: bridge } as unknown as typeof window.ogb;
-    await show({ hosted: true });
+    window.ogb = { organization: bridge, remoteClient: { active: true } } as unknown as typeof window.ogb;
+    await show();
     expect(f.row).toBeNull();
+    window.ogb = { organization: bridge } as unknown as typeof window.ogb;
     await show();
     expect(f.row?.bridge).toBe(bridge);
     f.row!.onOpenSettings();

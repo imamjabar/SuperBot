@@ -6,7 +6,6 @@ import * as probeModule from "../mcp-probe.ts";
 import { McpOAuthManager } from "../mcp-oauth.ts";
 import { listMcpServers, type StoredMcpServer } from "../mcp-registry.ts";
 import { createMcpConfig } from "./mcp-config.ts";
-import type { TeamConnectionsHost } from "./team-connections-host.ts";
 
 const remote = (url = "https://data.example.com/mcp"): StoredMcpServer => ({ type: "http", url, headers: {}, enabled: false }) as StoredMcpServer;
 
@@ -20,8 +19,6 @@ function fixture(options: { refuse?: (name: string) => string | undefined } = {}
     cfg,
     sessions: { isLive: () => true },
     mcpOAuth,
-    teamConnections: { personMcp: () => [], people: {} as TeamConnectionsHost["people"] },
-    cloudHome: null,
     fallbackPublicUrl: null,
     mcpConfigBusy: { get: () => busy, set: (value) => { busy = value; } },
     mcpServerResponse: () => ({ servers: listMcpServers(cfg.mcpServers) }),

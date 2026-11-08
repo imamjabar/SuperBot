@@ -660,6 +660,7 @@ describe("agents-proxy MCP surface", () => {
       "extract",
       "message_person",
       "report_bug",
+      "web_fetch",
       "memory_update",
       "retry_thread",
       "memory_log",

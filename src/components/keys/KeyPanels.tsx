@@ -50,12 +50,10 @@ export function OpenCodeProviderKeys() {
   return (
     <div data-opencode-provider-keys className="flex flex-col gap-2">
       <p className="text-[12px] leading-4 text-ink-secondary">{t("keys.opencode.otherProviders.hint")}</p>
-      {state.config?.cloudHome !== true && (
-        <p className="text-[12px] leading-4 text-ink-secondary">
-          {t("keys.opencode.providersHint").split("{command}").flatMap((part, index) =>
-            index === 0 ? [part] : [<code key={index} className="font-mono">opencode auth login</code>, part])}
-        </p>
-      )}
+      <p className="text-[12px] leading-4 text-ink-secondary">
+        {t("keys.opencode.providersHint").split("{command}").flatMap((part, index) =>
+          index === 0 ? [part] : [<code key={index} className="font-mono">opencode auth login</code>, part])}
+      </p>
       {names.map((saved) => (
         <div key={saved} data-opencode-provider-key={saved} className="flex flex-wrap items-center gap-2">
           <span className={cn(KEY_FIELD, "block flex-1 truncate text-ink")}>{saved}</span>

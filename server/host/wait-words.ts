@@ -9,8 +9,6 @@ export const QUEUED_NOTE_AFTER_MS = 30_000;
 
 export interface WaitWordsDeps {
   language(threadId: string): string | undefined;
-  /** This Cloud's plan runs on the smallest machine, so a bigger one is what gives it more room. */
-  starter(): boolean;
   /** The record of what the turn this thread runs is waiting for. */
   held(threadId: string, why: string): void;
   changed(): void;
@@ -22,15 +20,15 @@ export function createWaitWords(deps: WaitWordsDeps): EngineWaits & { queued(thr
       const language = deps.language(threadId);
       if (!first) return serverLine(language, "server.memory.still", { running, ahead });
       const wait = serverLine(language, "server.memory.wait", { running, ahead });
-      return deps.starter() ? `${wait} ${serverLine(language, "server.memory.starter")}` : wait;
+      return wait;
     },
     began(threadId, { running, ahead }) {
-      deps.held(threadId, `memory: ${running} running, ${ahead} ahead${deps.starter() ? ", on Starter" : ""}`);
+      deps.held(threadId, `memory: ${running} running, ${ahead} ahead`);
     },
     changed: deps.changed,
     queued(threadId, reason) {
       if (!reason) return undefined;
-      return serverLine(deps.language(threadId), reason === "group-turn" ? "server.queued.groupTurn" : deps.starter() ? "server.queued.capacityStarter" : "server.queued.capacity");
+      return serverLine(deps.language(threadId), reason === "group-turn" ? "server.queued.groupTurn" : "server.queued.capacity");
     },
   };
 }

@@ -67,7 +67,7 @@ function fixture() {
     git("push", "-q", `file://${remote}`, `HEAD:refs/heads/${branch}`);
   };
   const publishWeb = () => publish("web-dist", { "index.html": "<html>" });
-  const publishServer = () => publish("server-dist", { "index.js": "export {};", "cloud-home-start.js": "export {};" });
+  const publishServer = () => publish("server-dist", { "index.js": "export {};" });
 
   const run = (env: Record<string, string> = {}) => {
     rmSync(join(state, "calls"), { force: true });

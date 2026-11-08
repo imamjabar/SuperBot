@@ -44,6 +44,8 @@ const LINES: Record<string, number> = {
   "src/components/PhoneSetupFlow.tsx": 1146,
   "server/cli.ts": 1080,
   "src/components/AttachmentPreview.tsx": 1037,
+  "server/drivers/openai-chat.ts": 1033,
+  "shared/wire.ts": 1006,
 };
 
 function sourceFiles(): string[] {

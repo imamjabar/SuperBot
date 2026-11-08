@@ -198,14 +198,6 @@ describe("reaction chips under a message", () => {
     ]);
   });
 
-  it("shows a viewer who cannot write here the chips as labels, not buttons", async () => {
-    await render(createElement(ReactionChips, { threadId: "t1", message: reacted, canReact: false }));
-    expect(host.querySelectorAll("button")).toHaveLength(0);
-    expect(chips().map((chip) => [chip.getAttribute("role"), chip.getAttribute("aria-label")])).toEqual([
-      ["img", "Thumbs up: yes, go ahead: You, alice@example.test"],
-      ["img", "Heart: Bob"],
-    ]);
-  });
 
   it("pops in only a reaction made just now, not every reaction a transcript loads", async () => {
     const message: Message = { ...ASKED, reactions: [{ emoji: "👍", by: "p_bob", at: Date.now() }, { emoji: "❤️", by: "p_ada", at: 1 }, { emoji: "🎉", by: "p_cy" }] };

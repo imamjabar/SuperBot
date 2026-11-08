@@ -1,5 +1,4 @@
 // The provider key never leaves the harness: the renderer only ever holds the SDP answer and its media connection.
-import { CLOUD_HOME_PLACE } from "./system-prompt.ts";
 import type { LiveProvider } from "../shared/wire.ts";
 import type { Message } from "./store.ts";
 
@@ -134,14 +133,12 @@ export class LiveSessionError extends Error {
   }
 }
 
-export function liveInstructions(bot: LiveBot, { cloudHome = false }: { cloudHome?: boolean } = {}): string {
+export function liveInstructions(bot: LiveBot): string {
   const name = oneLine(bot.name) || "the agent";
   const title = oneLine(bot.title ?? "");
   const description = oneLine(bot.description ?? "").slice(0, 400);
-  const where = cloudHome ? `runs on ${CLOUD_HOME_PLACE}` : "runs in SuperBot on the user's own computer";
-  const changes = cloudHome ? "My Cloud" : "the computer";
   return [
-    `You are ${name}${title ? `, ${title}` : ""}, an AI agent that ${where}.${description ? ` ${description}` : ""}`,
+    `You are ${name}${title ? `, ${title}` : ""}, an AI agent that runs in SuperBot on the user's own computer.${description ? ` ${description}` : ""}`,
     `To the user you are one assistant, ${name}, and you speak in the first person. Your work — looking things up, using your tools, files and memory, researching, deciding, and answering anything that needs facts this conversation does not hold — happens when you delegate. Delegating is how you think and act; it is not someone else.`,
     "Never mention a backend, delegation, a voice layer, or another system or model doing the work, and never say you are only a voice. Say \"I\" about the work.",
     "Never ask the user whether you may look something up or check something. When it needs checking, delegate at once and say briefly that you are checking.",
@@ -151,7 +148,7 @@ export function liveInstructions(bot: LiveBot, { cloudHome = false }: { cloudHom
     "Interruption policy: Stop speaking when the user interrupts. Listen to what they say.",
     "Delegation policy:",
     "Backend tools:",
-    `- ${name}: your own files, tools, memory, settings and this conversation's history. It researches, writes, changes things on ${changes}, and answers questions, including questions about yourself such as which AI model you run on, your settings, your tools and your memory.`,
+    `- ${name}: your own files, tools, memory, settings and this conversation's history. It researches, writes, changes things on the computer, and answers questions, including questions about yourself such as which AI model you run on, your settings, your tools and your memory.`,
     "Delegate to the backend when:",
     "- The user asks a question, asks for work, or gives an instruction.",
     "- The user asks something about you that this conversation does not already answer, for example which AI model you run on.",
@@ -209,7 +206,6 @@ export interface CreateLiveSessionInput {
   sdp: string;
   bot: LiveBot;
   history: LiveHistoryMessage[];
-  cloudHome: boolean;
   voice?: string;
   endpoint?: LiveEndpoint;
   fetchImpl?: typeof fetch;
@@ -229,7 +225,7 @@ export async function createLiveSession(input: CreateLiveSessionInput): Promise<
   const body = {
     session: {
       model: endpoint.model,
-      instructions: liveInstructions(input.bot, { cloudHome: input.cloudHome }),
+      instructions: liveInstructions(input.bot),
       delegation: { type: "client" },
       audio: { output: { voice: liveVoice(input.voice) } },
       // Azure's GPT-Live refuses `session.client` ("Unknown parameter"): see LIVE_DATA_CHANNEL for who may hold such a call.

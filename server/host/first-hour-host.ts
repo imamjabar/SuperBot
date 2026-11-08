@@ -1,7 +1,6 @@
 // Wires a new Cloud's first hour into the server (server/host/README.md): the counts every personal Cloud keeps, the
 // hooks the brief and the read-and-draft fence call before the first hour exists, and the first hour itself once its
 // Chief and services are up.
-import { CLOUD_WELCOME_DONE } from "../../shared/cloud-hints.ts";
 import type { Notification } from "../../shared/notification.ts";
 import type { RuntimeEvent } from "../../shared/runtime-events.ts";
 import type { AppConfig } from "../config.ts";
@@ -66,7 +65,7 @@ export interface FirstHourHostDeps {
   startTurn: FirstHourDeps["startTurn"];
   notify(notification: Notification | null): void;
   wrote(bot: BotRecord, threadId: string): void;
-  welcomeDone(): void;
+  welcomeDone?(): void;
   /** An event from a turn that no longer counts (a replaced or stopped one). */
   stale(event: RuntimeEvent): boolean;
 }
@@ -104,7 +103,7 @@ export function startFirstHour(deps: FirstHourHostDeps): FirstHour | null {
     startTurn: deps.startTurn,
     notify: (bot, threadId, body) => deps.notify(bot.notifications === false ? null : { kind: "brief", botId: bot.id, botName: bot.name, threadId, title: bot.name, body, ...(bot.avatarUrl ? { avatarUrl: bot.avatarUrl } : {}) }),
     wrote: deps.wrote,
-    welcomeDone: deps.welcomeDone,
+    welcomeDone: deps.welcomeDone ?? (() => {}),
     runs: () => deps.routines()?.listRuns() ?? [],
     ledger: deps.hooks.ledger,
   });
@@ -122,7 +121,3 @@ export function startFirstHour(deps: FirstHourHostDeps): FirstHour | null {
   return firstHour;
 }
 
-/** The config patch that ends a new Cloud's welcome steps: it opens on its Chief's chat. */
-export function welcomeDonePatch(onboarding: AppConfig["onboarding"]): { onboarding: { hintsSeen: string[] } } {
-  return { onboarding: { hintsSeen: [...new Set([...(onboarding?.hintsSeen ?? []), CLOUD_WELCOME_DONE])] } };
-}

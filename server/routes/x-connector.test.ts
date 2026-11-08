@@ -36,21 +36,21 @@ describe("GET /api/x/status", () => {
 
   it("says the plan's included calls are used, with this month's count, when only the plan is held", async () => {
     const { handler, usage } = routes(null, PLAN);
-    expect((await get(handler)).body).toEqual({ using: "included", ownKey: false, included: true, usage: USAGE });
+    expect((await get(handler)).body).toEqual({ using: "included", ownKey: false, usage: USAGE });
     expect(usage).toHaveBeenCalledWith(PLAN);
   });
 
   it("says the person's own key is used first when both are held, and still reports the plan's month", async () => {
     const { handler } = routes(OWN, PLAN);
-    expect((await get(handler)).body).toEqual({ using: "own", ownKey: true, included: true, usage: USAGE });
+    expect((await get(handler)).body).toEqual({ using: "own", ownKey: true, usage: USAGE });
   });
 
   it("asks the relay nothing for an own key alone, and says no X with neither", async () => {
     const own = routes(OWN, null);
-    expect((await get(own.handler)).body).toEqual({ using: "own", ownKey: true, included: false });
+    expect((await get(own.handler)).body).toEqual({ using: "own", ownKey: true });
     expect(own.usage).not.toHaveBeenCalled();
     const none = routes(null, null, { unavailable: () => true });
-    expect((await get(none.handler)).body).toEqual({ using: null, ownKey: false, included: false, unavailable: true });
+    expect((await get(none.handler)).body).toEqual({ using: null, ownKey: false, unavailable: true });
     expect(none.usage).not.toHaveBeenCalled();
   });
 
@@ -78,7 +78,7 @@ describe("GET /api/x/status", () => {
     expect(usage).toHaveBeenCalledTimes(3);
     plan = { ...PLAN, token: "omb_xd_new_token" };
     usage.mockResolvedValueOnce(null);
-    expect((await get(handler)).body).toEqual({ using: "included", ownKey: false, included: true });
+    expect((await get(handler)).body).toEqual({ using: "included", ownKey: false });
     expect(usage).toHaveBeenCalledTimes(4);
   });
 

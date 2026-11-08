@@ -8,7 +8,7 @@ export function cornerPopupWaits(state: AppState, updater: UpdaterState | null,
   const busy = idle && (state.bots.some(bot => bot.busy || bot.tasks?.some(task => task.busy))
     || state.groups.some(group => group.working || group.busyBotId));
   const setup = state.welcomeOpen || state.tourOpen
-    || welcomeDue(state.config, { remoteClient: false, legacyDone: emailGateDone(), ...(viewer ? { hosted: viewer.hosted, canSave: viewer.canSave, cloudHome: viewer.cloudHome } : {}) });
+    || welcomeDue(state.config, { remoteClient: false, legacyDone: emailGateDone(), ...(viewer ? { canSave: viewer.canSave } : {}) });
   return !state.connected || !state.config || setup || busy || quiet || (!duringFirstChat && firstChatQuiet(state))
     || state.appSettingsOpen || state.settingsOpen || state.pluginsOpen || state.shortcutsOpen
     || Boolean(updater && (!["idle", "checking"].includes(updater.status) || updater.updated));

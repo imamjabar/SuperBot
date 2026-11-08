@@ -49,7 +49,7 @@ export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void
     >
       <div className="text-[14px] font-medium text-ink">{t(azure ? "call.live.azureKeyTitle" : "call.live.keyTitle")}</div>
       <div className="text-[13px] leading-[1.45] text-ink-secondary">{t(azure ? "call.live.azureKeyExplain" : "call.live.keyExplain")}</div>
-      <div className="text-[13px] leading-[1.45] text-ink-secondary">{liveDisclosure({ cloudHome: state.config?.cloudHome === true, azure })}</div>
+      <div className="text-[13px] leading-[1.45] text-ink-secondary">{liveDisclosure({ azure })}</div>
       <input
         type="password"
         autoComplete="off"

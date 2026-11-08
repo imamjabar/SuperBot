@@ -2,7 +2,6 @@ import { existsSync, lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { writeFileAtomic } from "./atomic.ts";
-import { cloudHomeConfigured } from "./cloud-home.ts";
 import { hostedWorkspaceConfiguration } from "./enterprise.ts";
 import type { InstanceConfigMap, ModelSelection, ProviderInstance } from "./contracts.ts";
 import type { Store } from "./store.ts";
@@ -23,7 +22,6 @@ const providerFor = { claude: "anthropic", codex: "openai", opencode: "openroute
 /** Operator-only: partial policy configuration must never enable it, and a Cloud home ignores it. */
 export function hostedModelPolicy(dataDirectory: string, env: NodeJS.ProcessEnv = process.env) {
   if (env.OMB_HOSTED_MODELS === undefined && env.OMB_HOSTED_MODEL_TOKEN === undefined) return null;
-  if (cloudHomeConfigured(env)) return null;
   const hosted = hostedWorkspaceConfiguration(env);
   if (!hosted?.portalMembership || env.OMB_DESKTOP_PARENT === "1" || !/^omb_workspace_[A-Za-z0-9_-]{43}$/.test(env.OMB_HOSTED_MODEL_TOKEN ?? "")) {
     throw new Error("Hosted model access requires complete portal-managed configuration.");

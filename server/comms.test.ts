@@ -448,7 +448,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       expect(replied).toBeTruthy();
       expect(replied.from?.botId).toBe(helper.id);
       expect(replied.tool.output).toBe("hello from fake acp");
-      expect(replied.roomRequest).toEqual({ id: consult.id, phase: "result" });
+      expect(replied.roomRequest).toEqual({ id: consult.id, phase: "result", delivery: "delivered" });
       expect(chip(askerBot.messages, "Resumed with Helper results, reviewing")).toBeTruthy();
       expect((await api("GET", "/api/bots")).body.groups.filter((g: any) => g.dm)).toEqual([]);
 

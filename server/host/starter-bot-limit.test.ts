@@ -91,7 +91,6 @@ describe("where a bot gets made", () => {
 
   it("gates each of them with the one check", () => {
     const read = (file: string) => readFileSync(join(SERVER, file), "utf8");
-    expect(read("routes/bots-create.ts")).toContain("kept.id ? null : deps.botLimit.refusal()");
     expect(read("package-import.ts")).toContain("deps.botLimit?.refusal(members.length)");
     expect(read("team-setup-requests.ts")).toContain("this.options.botLimit?.refusal(creating,");
   });

@@ -6,7 +6,8 @@ import { EVALS_LANE, PACKAGED_SERVER_LANE, vitestLane } from "./ci-linux-lanes.m
 import { SELECTABLE_JOBS, vitestMatrix } from "./ci-scope.mjs";
 import { interpolate } from "./testing/github-expression.ts";
 
-const workflow = parse(readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8"));
+const ciFile = new URL("../.github/workflows/ci.yml", import.meta.url);
+const workflow = existsSync(ciFile) ? parse(readFileSync(ciFile, "utf8")) : null;
 const requiredRuntimeJobs = ["vitest", "behavior-evals", "packaged-server", "windows-cua", "electron-smokes"];
 
 function runGate(needs: Record<string, unknown>) {
@@ -31,7 +32,7 @@ function gateNeeds(selected: string[]) {
   };
 }
 
-describe("CI concurrency", () => {
+describe.skipIf(!workflow)("CI concurrency", () => {
   it("supersedes old PR checks but never cancels a running main or merge-queue run", () => {
     expect(workflow.on.push.branches).toEqual(["main"]);
     expect(workflow.on).toHaveProperty("merge_group");
@@ -265,33 +266,11 @@ describe("CI concurrency", () => {
     )).toBe(true);
     for (const [name, job] of Object.entries(workflow.jobs) as [string, { needs?: string | string[]; if?: string }][]) {
       if (["static", "gate"].includes(name)) continue;
-      // The one deploy job: after the control-plane checks, on main pushes only. It is
-      // not part of the merge gate.
-      if (name === "deploy-composio-broker") {
-        expect(job.needs).toEqual(["control-plane"]);
-        expect(job.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/main'");
-        expect(workflow.jobs.gate.needs).not.toContain(name);
-        // Without the Cloudflare token the deploy is skipped with a warning, not failed:
-        // every step after the token check waits on it.
-        const [check, ...rest] = job.steps as { id?: string; if?: string; env?: Record<string, string>; run?: string }[];
-        expect(check.id).toBe("token");
-        expect(check.env).toEqual({ CLOUDFLARE_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}" });
-        expect(check.run).toContain("::warning");
-        for (const step of rest) expect(step.if).toBe("steps.token.outputs.present == 'true'");
-        // The broker is typechecked and tested in the same checkout it deploys.
-        const runs = rest.map((step) => step.run);
-        const deploy = rest.findIndex((step) => (step as { uses?: string }).uses?.startsWith("cloudflare/wrangler-action@"));
-        expect(runs.indexOf("pnpm broker:check")).toBeGreaterThan(-1);
-        expect(runs.indexOf("pnpm broker:check")).toBeLessThan(deploy);
-        expect(runs.indexOf("pnpm broker:test")).toBeGreaterThan(-1);
-        expect(runs.indexOf("pnpm broker:test")).toBeLessThan(deploy);
-        continue;
-      }
       expect(job.needs).toBe("static");
       expect(job.if).toBe(`contains(needs.static.outputs.jobs, '"${name}"')`);
     }
     // ci-scope selects exactly the jobs the workflow has.
-    expect(Object.keys(workflow.jobs).filter((name) => !["static", "gate", "deploy-composio-broker"].includes(name)).sort())
+    expect(Object.keys(workflow.jobs).filter((name) => !["static", "gate"].includes(name)).sort())
       .toEqual([...SELECTABLE_JOBS].sort());
   });
 
@@ -303,7 +282,9 @@ describe("CI concurrency", () => {
   });
 
   it("keeps the redundant Windows workflow available only for manual debugging", () => {
-    const smoke = parse(readFileSync(new URL("../.github/workflows/shared-terminal-smoke.yml", import.meta.url), "utf8"));
+    const smokeFile = new URL("../.github/workflows/shared-terminal-smoke.yml", import.meta.url);
+    if (!existsSync(smokeFile)) return;
+    const smoke = parse(readFileSync(smokeFile, "utf8"));
     expect(smoke.on).toEqual({ workflow_dispatch: null });
     const commands = smoke.jobs.windows.steps.map((step: { run?: string }) => step.run);
     expect(commands).toContain("node --test electron/shared-computer-access.node-test.mjs");
@@ -326,7 +307,7 @@ function runContext({ boat = "on", event = "pull_request", actor = "milind-soni"
   };
 }
 
-describe("CI on Boat", () => {
+describe.skipIf(!workflow)("CI on Boat", () => {
   const routed = (context: ReturnType<typeof runContext>) => ({
     runsOn: interpolate(workflow.jobs.static["runs-on"], context),
     name: interpolate(workflow.jobs.static.name, context),

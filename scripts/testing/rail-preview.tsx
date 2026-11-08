@@ -1,6 +1,31 @@
 import { createRoot } from "react-dom/client";
-import type { CloudSwatch } from "../../electron/cloud-list.mjs";
-import type { AddCloudView, RailPlace, RailState } from "../../electron/cloud-rail.mjs";
+type CloudSwatch = "blue" | "green" | "amber" | "rose" | "violet" | "slate";
+interface RailPlace {
+  id: string;
+  name: string;
+  color?: PlaceLook["color"];
+  kind: "computer" | "cloud" | "team" | "server" | "account";
+  opens: boolean;
+  active?: boolean;
+  progress?: number;
+  waiting?: boolean;
+  attention?: boolean;
+  server?: boolean;
+  offline?: boolean;
+  lastSeenAt?: number;
+  ownNetwork?: boolean;
+  pairs?: boolean;
+  update?: { version: string; latest: string };
+  paint?: { swatch: CloudSwatch | null; locked?: "member" | "signed-out" };
+  ended?: boolean;
+  removable?: boolean;
+  forget?: boolean;
+}
+interface RailState {
+  places: RailPlace[];
+  add: { cloud: boolean; link: boolean; address: boolean; organization?: boolean; account?: boolean };
+  beside?: boolean;
+}
 import type { PlaceLook } from "../../electron/place-look.mjs";
 import App from "../../src/App";
 import { ChromeRail } from "../../src/components/ChromeRail";
@@ -94,14 +119,6 @@ const rail: RailState = { places: listed.map(({ active: _active, ...entry }) => 
 let look: PlaceLook = { name: computer ? "This computer" : onTeam ? teamName : "My Cloud", color, swatch: color ? SWATCH[color] ?? null : null,
   change: computer ? "local" : member ? null : "admin", ...(member ? { reason: "member" as const } : {}) };
 let openSettings: ((section?: string) => void) | null = null;
-const offer = { recommended: "pro", refundDays: 14, plans: [
-  { tier: "starter", label: "Starter", amount: 1500, allowances: { cpus: 2, cpuKind: "shared" as const, memoryMb: 2048, diskGb: 10, maxDiskGb: 20, computers: 15, computerHours: 100, voiceCharacters: 30_000, sleeps: true as const } },
-  { tier: "pro", label: "Pro", amount: 4900, allowances: { cpus: 4, cpuKind: "shared" as const, memoryMb: 4096, diskGb: 10, maxDiskGb: 100, computers: 15, computerHours: 300, voiceCharacters: 60_000 } },
-  { tier: "max", label: "Max", amount: 9900, allowances: { cpus: 8, cpuKind: "shared" as const, memoryMb: 8192, diskGb: 10, maxDiskGb: 100, computers: 15, computerHours: 800, voiceCharacters: 180_000 } },
-] };
-const adding = params.get("adding") === "setting_up"
-  ? { adding: { name: "Client C", color: "rose" as const, tier: "pro", startedAt: Date.now(), status: "setting_up" as const, progress: 0.55, link: true as const } } : {};
-const addView: AddCloudView = { signedIn: true, hasCloud: true, supported: true, canAdd: true, offer, count: 3, home: { name: "My Cloud", color: "blue" }, ...adding };
 const ok = async () => {};
 const windows = params.get("platform") === "win32";
 const chrome = params.has("chrome");
@@ -122,7 +139,6 @@ const recolor = async (id: string, swatch: CloudSwatch) => {
   rail.places = rail.places.map((entry) => (entry.id === id ? { ...entry, color: COLOR[swatch], paint: { swatch: COLOR[swatch] ? swatch : null } } : entry));
   return { outcome: "saved", look: null };
 };
-const cloudAdd = { state: async () => addView, start: async () => ({ outcome: "opened" }), reopen: async () => true, copyLink: async () => true, open: ok, interest: ok, sheet: ok };
 
 if (params.has("railpage")) {
   // The window's own rail page: see-through but for the rail, as main.tsx draws it.
@@ -130,7 +146,6 @@ if (params.has("railpage")) {
   Object.assign(window, { ogb: {
     platform: windows ? "win32" : "darwin", getCapabilities: capabilities, onCapabilitiesChanged: () => () => {}, applySkin: ok,
     workspaces: { places: async () => rail, open: ok, add: ok, recolor, onChanged: () => () => {} },
-    cloudAdd, rail: { expand: ok, onSkin: () => () => {} },
   } });
   createRoot(document.getElementById("root")!).render(<ChromeRail />);
 } else {
@@ -165,7 +180,6 @@ if (params.has("railpage")) {
       recolor,
       color: async (swatch: CloudSwatch) => { look = { ...look, swatch: COLOR[swatch] ? swatch : null, color: COLOR[swatch] }; return { outcome: "saved", look }; },
     },
-    cloudAdd,
     windowFrame: {
       state: async () => ({ on: frameOn, restart: windows && framePending }),
       set: async (on: boolean) => { frameOn = on; for (const heard of capabilitiesHeard) heard(await capabilities()); return { on, restart: windows }; },
@@ -239,8 +253,7 @@ if (params.has("railpage")) {
   });
   const sheet = params.get("sheet");
   if (sheet === "connect") void click('[data-rail-place="signed-in:s-render"]');
-  else if (sheet) void click("[data-rail-add]").then(() => (sheet === "server" ? click('[data-place-add-choice="server"]') : sheet === "add" ? undefined : click('[data-place-add-choice="cloud"]')))
-    .then(() => (sheet === "name" ? click("[data-plan-buy='pro']") : undefined));
+  else if (sheet) void click("[data-rail-add]");
   const openedSettings = () => new Promise<void>((resolve) => { const tick = () => { if (openSettings) { openSettings(); resolve(); } else setTimeout(tick, 100); }; tick(); });
   const settings = params.get("settings");
   if (settings) {

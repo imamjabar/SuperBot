@@ -233,17 +233,7 @@ export function McpServersPanel({ embedded = false, hostedCards, hideHosted = fa
     let latest = servers ?? [];
     try {
       for (const item of items) {
-        const body = item.ownKey
-          ? { ...item.body, headers: Object.fromEntries(Object.keys(item.body.headers ?? {}).map((name) => [name, ""])) }
-          : item.body;
-        latest = listed((await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name: item.name, ...body }) })).servers);
-        if (item.ownKey) {
-          await api("/api/team/connection-scopes", { method: "PUT", body: JSON.stringify({ kind: "mcp", id: item.name, scope: "person" }) });
-          await api(`/api/team/my-connections/mcp/${encodeURIComponent(item.name)}/key`, { method: "PUT", body: JSON.stringify({ value: item.ownKey, url: body.url }) });
-          latest = listed((await api(`/api/mcp/servers/${encodeURIComponent(item.name)}`, {
-            method: "PUT", body: JSON.stringify({ ...body, enabled: false }),
-          })).servers);
-        }
+        latest = listed((await api("/api/mcp/servers", { method: "POST", body: JSON.stringify({ name: item.name, ...item.body }) })).servers);
         added.push(item.name);
       }
     } catch (cause) {
@@ -266,22 +256,8 @@ export function McpServersPanel({ embedded = false, hostedCards, hideHosted = fa
     setError(null);
     setNotice(null);
     try {
-      let body = item.body;
-      let ownKey: string | undefined;
-      if (store.config?.team && existing.scope !== "team" && typeof body.url === "string" && !body.oauth) {
-        const connections = await api("/api/team/my-connections");
-        if (connections.mcp.some((connection: { name: string }) => connection.name === item.name)) {
-          const headers = (body.headers ?? {}) as Record<string, string | true>;
-          if (Object.keys(headers).length > 1) {
-            throw new Error("Personal MCP connections support one header. Remove the extra headers before saving.");
-          }
-          const value = Object.values(headers)[0];
-          ownKey = typeof value === "string" ? value : undefined;
-          body = { ...body, headers: Object.fromEntries(Object.keys(headers).map((name) => [name, ""])) };
-        }
-      }
+      const body = item.body;
       listed((await api(`/api/mcp/servers/${encodeURIComponent(item.name)}`, { method: "PUT", body: JSON.stringify({ ...body, enabled: existing.enabled }) })).servers);
-      if (ownKey) await api(`/api/team/my-connections/mcp/${encodeURIComponent(item.name)}/key`, { method: "PUT", body: JSON.stringify({ value: ownKey, url: body.url }) });
       closeEditor();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -576,7 +552,7 @@ export function McpServersPanel({ embedded = false, hostedCards, hideHosted = fa
 
         {restricted && policy && <p role="status" className="mt-3 text-[13px] leading-relaxed text-ink-secondary">{t("policy.mcpRestricted", { organization: policy.organizationName })}</p>}
         {(editing === "new" || editingServer) && (
-          <McpServerEditor key={`${editing}${fixingKeys ? ":keys" : ""}`} server={editingServer} fixKeys={fixingKeys} taken={(servers ?? []).map((server) => server.name)} team={Boolean(store.config?.team)}
+          <McpServerEditor key={`${editing}${fixingKeys ? ":keys" : ""}`} server={editingServer} fixKeys={fixingKeys} taken={(servers ?? []).map((server) => server.name)}
             busy={busy !== null} onCancel={closeEditor} onSubmit={(items) => void (editing === "new" ? addServers(items) : saveEdit(items))} />
         )}
         {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{typeof error === "string" ? error : t(error.key, error.params)}</div>}

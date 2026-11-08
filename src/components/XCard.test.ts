@@ -15,13 +15,10 @@ vi.mock("@/lib/analytics", () => ({ track: fixture.track }));
 
 import { XCard } from "./XCard";
 
-const USAGE = { calls: 312, max: 5_000, resetsAt: "2026-11-01T00:00:00.000Z" };
 const KEY = "treg_live_0123456789";
 
 interface Server {
   own: boolean;
-  included: boolean;
-  usage?: XConnectorStatus["usage"];
   check: { ok: boolean; check: "treg"; balanceUsd?: number; message?: string };
   calls: Array<[string, string, unknown]>;
 }
@@ -35,7 +32,7 @@ const card = () => host.querySelector<HTMLElement>('[data-app-tile="x"]')!;
 const text = () => card().textContent ?? "";
 const button = (label: string) => [...host.querySelectorAll("button")].find((element) => element.textContent?.trim() === label);
 const field = () => host.querySelector<HTMLInputElement>("[data-x-key-form] input");
-const configStatus = () => ({ treg: { configured: server.own }, xResearch: { included: server.included } });
+const configStatus = () => ({ treg: { configured: server.own } });
 
 function serve() {
   fixture.api.mockImplementation(async (path: string, init?: RequestInit) => {
@@ -43,8 +40,8 @@ function serve() {
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
     server.calls.push([method, path, body]);
     if (path.startsWith("/api/x/status") && method === "GET") {
-      const status: XConnectorStatus = { using: server.own ? "own" : server.included ? "included" : null, ownKey: server.own, included: server.included };
-      return server.included && server.usage ? { ...status, usage: server.usage } : status;
+      const status: XConnectorStatus = { using: server.own ? "own" : null, ownKey: server.own };
+      return status;
     }
     if (path === "/api/config" && method === "PUT") { server.own = Boolean(body.treg.key); return configStatus(); }
     if (path === "/api/keys/test" && method === "POST") return server.check;
@@ -53,7 +50,7 @@ function serve() {
 }
 
 async function mount(state: Partial<Server>) {
-  server = { own: false, included: false, check: { ok: true, check: "treg", balanceUsd: 4.25 }, calls: [], ...state };
+  server = { own: false, check: { ok: true, check: "treg", balanceUsd: 4.25 }, calls: [], ...state };
   fixture.config = configStatus();
   serve();
   host = document.createElement("div");
@@ -93,33 +90,7 @@ afterEach(() => {
 });
 
 describe("the X card in Apps", () => {
-  it("shows a Cloud plan's included calls with this month's use, and nothing to set up", async () => {
-    await mount({ included: true, usage: USAGE });
-    expect(card().dataset.xState).toBe("included");
-    expect(text()).toContain("X (Twitter)");
-    expect(text()).toContain("Included with your plan");
-    expect(text()).toContain("312 of 5,000 X calls this month. They reset on November 1.");
-    expect(field()).toBeNull();
-    expect(button("Use my own treg key")).toBeDefined();
-    expect(onConnection).toHaveBeenLastCalledWith(true);
-  });
-
-  it("says when the month's included calls are used up and how to keep going, with the key field open", async () => {
-    await mount({ included: true, usage: { ...USAGE, calls: 5_000, usedUp: true } });
-    expect(text()).toContain("This month's included X calls are used up. They reset on November 1. Add your own treg key to keep going.");
-    expect(field()).not.toBeNull();
-  });
-
-  it("names a free trial's calls, and when its full allowance starts once they are used up", async () => {
-    await mount({ included: true, usage: { calls: 2, max: 3, resetsAt: USAGE.resetsAt, trialEndsAt: "2026-10-25T09:00:00.000Z" } });
-    expect(text()).toContain("2 of 3 X calls in your free trial.");
-    await act(async () => root.unmount());
-    host.remove();
-    await mount({ included: true, usage: { calls: 3, max: 3, usedUp: true, resetsAt: USAGE.resetsAt, trialEndsAt: "2026-10-25T09:00:00.000Z" } });
-    expect(text()).toContain("Your free trial's included X calls are used up. Your full allowance starts on October 25. Add your own treg key to keep going.");
-  });
-
-  it("asks everyone else for a treg key with a link to treg.to, saves it where keys go, tests it once and says it works", async () => {
+  it("asks for a treg key with a link to treg.to, saves it where keys go, tests it once and says it works", async () => {
     await mount({});
     expect(card().dataset.xState).toBe("none");
     expect(text()).toContain("Add your treg key");
@@ -131,7 +102,7 @@ describe("the X card in Apps", () => {
       ["PUT", "/api/config", { treg: { key: KEY } }],
       ["POST", "/api/keys/test", { provider: "treg" }],
     ]);
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "configStatus", config: { treg: { configured: true }, xResearch: { included: false } } });
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "configStatus", config: { treg: { configured: true } } });
     expect(card().dataset.xState).toBe("own");
     expect(text()).toContain("Using your treg key");
     expect(text()).toContain("treg is working ✓ Balance: $4.25.");
@@ -158,27 +129,19 @@ describe("the X card in Apps", () => {
     expect(server.calls.filter(([method]) => method !== "GET")).toEqual([]);
   });
 
-  it("says the person's own key is used first when the plan's calls are there too, and Test shows treg's plain reason", async () => {
-    await mount({ own: true, included: true, usage: USAGE, check: { ok: false, check: "treg", message: "treg rejected this key. Copy it again from treg.to." } });
+  it("shows treg's plain reason when Test fails", async () => {
+    await mount({ own: true, check: { ok: false, check: "treg", message: "treg rejected this key. Copy it again from treg.to." } });
     expect(card().dataset.xState).toBe("own");
-    expect(text()).toContain("Your own treg key is used first, and calls are billed to your treg balance. Your plan's included X calls wait until you remove it.");
     await click("Test");
     expect(text()).toContain("treg rejected this key. Copy it again from treg.to.");
-  });
-
-  it("falls back to the plan's included calls when the key is removed", async () => {
-    await mount({ own: true, included: true, usage: USAGE });
-    await click("Remove key");
-    expect(server.calls).toContainEqual(["PUT", "/api/config", { treg: { key: "" } }]);
-    expect(card().dataset.xState).toBe("included");
-    expect(text()).toContain("Included with your plan");
-    expect(fixture.track).toHaveBeenCalledWith("api_key_removed", { provider: "treg", via: "apps" });
   });
 
   it("removing the only key leaves no X, and the card asks for a key again", async () => {
     await mount({ own: true });
     expect(text()).toContain("Your bots search and read X with your own treg key. Calls are billed to your treg balance.");
     await click("Remove key");
+    expect(server.calls).toContainEqual(["PUT", "/api/config", { treg: { key: "" } }]);
+    expect(fixture.track).toHaveBeenCalledWith("api_key_removed", { provider: "treg", via: "apps" });
     expect(card().dataset.xState).toBe("none");
     expect(field()).not.toBeNull();
     expect(onConnection).toHaveBeenLastCalledWith(false);
@@ -186,8 +149,8 @@ describe("the X card in Apps", () => {
 
   it("speaks the app's language", async () => {
     setLocale("de");
-    await mount({ included: true, usage: USAGE });
-    expect(text()).toContain("In deinem Tarif enthalten");
-    expect(text()).toContain("312 von 5.000 X-Aufrufen in diesem Monat.");
+    await mount({ own: true });
+    expect(text()).toContain("Dein treg-Schlüssel wird verwendet");
+    expect(text()).toContain("Aufrufe werden über dein treg-Guthaben abgerechnet.");
   });
 });

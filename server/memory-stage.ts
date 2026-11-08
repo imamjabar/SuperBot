@@ -91,7 +91,7 @@ export function stageBotMemoryUpdate(
   layer: string,
   body: MemoryUpdateBody,
   opts: { source: string; aboutMe: Pick<AboutMe, "forget"> | null; prefer?: PreferenceTarget | null },
-  write: MemoryWriter,
+  write: MemoryWriter = (change) => change(),
 ): BotMemoryResult {
   if (body.action === "forget") {
     const result = write(() => botMemoryUpdate(layer, body, opts));
@@ -140,7 +140,7 @@ function loggedToday(layer: string, file: string, line: string): boolean {
 }
 
 /** memory_log in a live turn: the line it will add, written when the turn succeeds. */
-export function stageMemoryLog(stage: MemoryStage, layer: string, text: string, opts: { source: string }, write: MemoryWriter): MemoryLogResult {
+export function stageMemoryLog(stage: MemoryStage, layer: string, text: string, opts: { source: string }, write: MemoryWriter = (change) => change()): MemoryLogResult {
   const staged = { ...opts, now: new Date() };
   const plan = planMemoryLog(text, staged);
   if (!plan.ok) return plan;

@@ -21,8 +21,8 @@ export type WelcomeAiNow = NonNullable<ReturnType<typeof welcomeAi<InstanceInfo>
 
 /** The AI the welcome stands on (welcomeAi), after one tiny test message through the server's check when this sign-in
  * hasn't had one: the server shares a test already under way, and its result also settles the new-bot default. A check
- * that can't be made trusts the AI as before. `enabled` is false for a viewer who can't run checks. */
-export function useWelcomeAi(instances: readonly InstanceInfo[], enabled = true): WelcomeAiNow | null {
+ * that can't be made trusts the AI as before. */
+export function useWelcomeAi(instances: readonly InstanceInfo[]): WelcomeAiNow | null {
   const [answers, setAnswers] = useState<Record<string, Known>>({});
   const asked = useRef(new Set<string>());
   const live = useRef(true);
@@ -47,7 +47,7 @@ export function useWelcomeAi(instances: readonly InstanceInfo[], enabled = true)
   const known = (instance: InstanceInfo): Known | undefined => answers[keyOf(instance)]
     ?? (instance.aiTest && instance.aiTest !== "testing" ? { state: instance.aiTest, ...(instance.aiTestError ? { error: instance.aiTestError } : {}) } : undefined);
   const found = welcomeAi(instances, runs, (instance) => known(instance)?.state);
-  const asking = enabled && found?.state === "testing" ? keyOf(found.instance) : null;
+  const asking = found?.state === "testing" ? keyOf(found.instance) : null;
   useEffect(() => {
     if (asking) ask(asking);
   }, [asking, ask]);
@@ -58,7 +58,6 @@ export function useWelcomeAi(instances: readonly InstanceInfo[], enabled = true)
     ...found,
     ...(error ? { error } : {}),
     retry: () => {
-      if (!enabled) return;
       setAnswers((current) => ({ ...current, [key]: { state: "testing" } }));
       ask(key);
     },

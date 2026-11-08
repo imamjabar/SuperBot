@@ -1,8 +1,6 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import type { DeviceLinks, LinkedComputer } from "./device-links.ts";
 import { awayNotice, deviceWord, lendScreenSteps, LENT_PLATFORMS, type LentComputers, type LentPlatform } from "./lent-computers.ts";
-import type { LentCopies } from "./lent-copies.ts";
 export { LentComputers } from "./lent-computers.ts";
 
 const folder = z.object({ id: z.string().uuid(), name: z.string().min(1).max(120), write: z.boolean() }).strict();
@@ -122,15 +120,11 @@ export class SharedComputers {
   private closed = false;
   private sessionLive: (id: string) => boolean;
   private lent: LentComputers | undefined;
-  private links: Pick<DeviceLinks, "drop"> | undefined;
-  /** A Cloud home's copies of lent folders: what a computer that is away still lends (server/lent-copies.ts). */
-  private copies: Pick<LentCopies, "away" | "answer"> | undefined;
-  /** A computer connected, changed what it lends, or stopped. */
   changed: () => void = () => {};
   /** On the person's own Cloud, the bots' tool that asks them to turn on what their computer doesn't give now. */
   askTool: string | null = null;
-  constructor(sessionLive: (id: string) => boolean, lent?: LentComputers, links?: Pick<DeviceLinks, "drop">, copies?: Pick<LentCopies, "away" | "answer">) {
-    this.sessionLive = sessionLive; this.lent = lent; this.links = links; this.copies = copies;
+  constructor(sessionLive: (id: string) => boolean, lent?: LentComputers) {
+    this.sessionLive = sessionLive; this.lent = lent;
   }
   private static key(session: string, id: string) { return `${session}\n${id}`; }
   register(registration: Registration, owner: SharedComputerOwner, secret: string) {
@@ -140,8 +134,6 @@ export class SharedComputers {
     const old = this.computers.get(key);
     if (old) {
       this.authorize(registration.id, owner.session, secret);
-      // Its link was let in for the internet connection and Chrome as lent then: lent or taken back since, the link starts over.
-      if ((old.registration.internet === true) !== (registration.internet === true) || (old.registration.chrome === true) !== (registration.chrome === true)) this.links?.drop(key);
       old.registration = registration; old.seen = Date.now();
       this.remember(registration, old.owner.person);
       this.changed();
@@ -151,7 +143,7 @@ export class SharedComputers {
     // A new id from the same session replaces its entry; no other session can reach, replace or squat this key.
     for (const [stale, entry] of this.computers) {
       if (entry.owner.session !== owner.session) continue;
-      this.computers.delete(stale); entry.wake?.(); this.links?.drop(stale);
+      this.computers.delete(stale); entry.wake?.();
       for (const job of entry.jobs.values()) this.finish(entry, job, failure("This computer's access changed. An in-flight action may have completed; inspect before retrying."));
     }
     if (this.computers.size >= TOTAL) throw failure("Too many shared computers");
@@ -165,7 +157,7 @@ export class SharedComputers {
   }
   private reap() {
     for (const [key, entry] of this.computers) {
-      if (entry.jobs.size === 0 && (!this.sessionLive(entry.owner.session) || Date.now() - entry.seen > RETAIN_MS)) { this.computers.delete(key); this.links?.drop(key); }
+      if (entry.jobs.size === 0 && (!this.sessionLive(entry.owner.session) || Date.now() - entry.seen > RETAIN_MS)) this.computers.delete(key);
     }
   }
   private online(entry: Computer) { return this.sessionLive(entry.owner.session) && Date.now() - entry.seen < 40_000; }
@@ -201,7 +193,7 @@ export class SharedComputers {
   away(principal: string | null) {
     if (!principal) return {};
     const online = this.list(principal);
-    return { ...awayNotice(this.lent?.list(principal) ?? [], new Set(online.map(registration => registration.id)), this.askTool), ...this.copies?.away(principal, online) };
+    return awayNotice(this.lent?.list(principal) ?? [], new Set(online.map(registration => registration.id)), this.askTool);
   }
   /** For a bot: how the person lends apps and screen, when an online computer of theirs lends neither. */
   screenNotLent(principal: string | null): { screen?: string } {
@@ -224,13 +216,6 @@ export class SharedComputers {
     const record = (this.lent?.list(principal) ?? []).find(candidate => candidate.chrome === true && candidate.stoppedAt === null);
     if (!record) return null;
     return { name: record.name, device: deviceWord(record.platform), online: this.list(principal).some(registration => registration.id === record.id) };
-  }
-  /** The registered computer behind a device link: the same session and secret as its poll. */
-  linkable(id: string, session: string, secret: string): LinkedComputer {
-    const entry = this.authorize(id, session, secret);
-    entry.seen = Date.now();
-    return { key: SharedComputers.key(session, id), person: entry.owner.person, internet: entry.registration.internet === true, chrome: entry.registration.chrome === true, seenAs: null,
-      live: () => this.sessionLive(session), used: () => this.lent?.used(entry.owner.person, id) };
   }
   status(principal: string | null): SharedComputerStatus[] {
     if (!principal) return [];
@@ -300,7 +285,7 @@ export class SharedComputers {
   disconnect(id: string, session: string, secret: string, paused = false) {
     const entry = this.authorize(id, session, secret);
     if (paused) this.lent?.seen(entry.owner.person, id); else this.lent?.stopped(entry.owner.person, id);
-    this.computers.delete(SharedComputers.key(session, id)); entry.wake?.(); this.links?.drop(SharedComputers.key(session, id));
+    this.computers.delete(SharedComputers.key(session, id)); entry.wake?.();
     for (const job of entry.jobs.values()) this.finish(entry, job, failure("Computer disconnected. An in-flight action may have completed; inspect before retrying."));
     this.changed();
   }
@@ -312,9 +297,6 @@ export class SharedComputers {
       const known = lent();
       if (known && this.online(known)) break;
       if (!known || Date.now() - known.seen > RECONNECTING_MS || Date.now() >= deadline || !active()) {
-        // Away: its lent folders answer from their copy here, a write to one lent with editing waits for it.
-        const copy = active() ? this.copies?.answer(operation, principal, this.list(principal)) : null;
-        if (copy) return copy;
         const why = known && this.sessionLive(known.owner.session)
           ? lentButOffline(known.registration.name, known.seen, deviceWord(known.registration.platform))
           : this.offline(principal, operation.computer_id);
@@ -351,7 +333,6 @@ export class SharedComputers {
   }
   close() {
     this.closed = true;
-    for (const key of this.computers.keys()) this.links?.drop(key);
     for (const entry of this.computers.values()) {
       entry.wake?.();
       for (const job of entry.jobs.values()) this.finish(entry, job, failure("Workspace stopped. Inspect any in-flight action before retrying."));

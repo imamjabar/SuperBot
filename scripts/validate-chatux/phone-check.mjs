@@ -98,7 +98,7 @@ async function chrome() {
       const waiter = msg.id && pending.get(msg.id);
       if (!waiter) return;
       pending.delete(msg.id);
-      msg.error ? waiter.fail(new Error(msg.error.message)) : waiter.done(msg.result);
+      if (msg.error) waiter.fail(new Error(msg.error.message)); else waiter.done(msg.result);
     };
     const send = (method, params = {}) => new Promise((done, fail) => {
       const n = ++id;

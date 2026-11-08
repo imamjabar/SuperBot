@@ -5,11 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { teamRoleScopes, type TeamRole } from "./cloud-team.ts";
 import { azureLiveCallRefusal, LIVE_AZURE_REFUSAL, liveScopeRefusal } from "./live-access.ts";
 import { requiredScope, resolveRequestAuth, type RequestAuth, type ResolveOptions } from "./request-auth.ts";
 import { SessionRegistry, type Scope, type SessionRecord } from "./sessions.ts";
-import { moveInRefusal } from "./team-move-in.ts";
 
 const LIVE = "/api/live/session";
 const COOKIE = "omb_session_test";
@@ -43,13 +41,6 @@ function verdict(headers: Record<string, string>, place: Place = {}): string {
 
 const bearer = (token: string) => ({ ...REMOTE, authorization: `Bearer ${token}` });
 const device = (scopes: Scope[]) => bearer(sessions.issue({ label: "Device", scopes }).token);
-function teamMember(role: TeamRole, phone = false) {
-  const email = `${role}@acme.test`;
-  const opened = sessions.openPairing({ scopes: teamRoleScopes(role), label: phone ? "Phone" : "App", member: { email, role }, ...(phone ? { memberCheckedAt: Date.now() } : {}) });
-  const paired = sessions.exchange({ code: opened.code, label: "Device", source: "203.0.113.9" });
-  if (!paired.ok) throw new Error(paired.error);
-  return bearer(paired.token);
-}
 const portal = (scopes: Scope[]) => bearer(sessions.issuePortal({ email: "person@acme.test", grant: "g".repeat(43), scopes }).token);
 const SERVICE = { resolve: { loopbackTrust: "service" as const } };
 const CALL = "gets a call";
@@ -99,25 +90,6 @@ describe("an Azure Live call", () => {
     });
   });
 
-  describe("on a Team Cloud", () => {
-    const place = { ...SERVICE, othersOnLoopback: true };
-    it("goes to a Super admin and an Admin", () => {
-      expect(verdict(teamMember("owner"), place)).toBe(CALL);
-      expect(verdict(teamMember("admin"), place)).toBe(CALL);
-    });
-    it("is refused in plain words to a User, on the app or their phone", () => {
-      expect(verdict(teamMember("member"), place)).toBe(AT_SIGN_IN);
-      expect(verdict(teamMember("member", true), place)).toBe(AT_SIGN_IN);
-    });
-    it("is refused to a sign-in that only moves a bot in, whoever's it is", () => {
-      const moving = bearer(sessions.issueMoveIn({ label: "Move in", email: "admin@acme.test", teamRole: "admin", bot: "bot1" }).token);
-      expect(verdict(moving, { ...place, resolve: { ...SERVICE.resolve, restricted: moveInRefusal } })).toBe("sign-in gate 403: This sign-in only moves one bot in.");
-      expect(verdict(moving, place)).toBe(AT_LIMIT);
-    });
-    it("is refused to a bot's shell", () => {
-      expect(verdict(LOCAL, place)).toMatch(/^sign-in gate 403: forbidden: on this shared server/);
-    });
-  });
 
   describe("on a shared company workspace", () => {
     const place = { ...SERVICE, othersOnLoopback: true };

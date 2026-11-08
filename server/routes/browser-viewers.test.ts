@@ -123,7 +123,6 @@ async function serve({ attach, current = () => true, download, audience = () => 
       fixture.opened.push(opened);
       return botId === "pepper" ? { botId, session: "bot-pepper", spec: { command: "omb-cdp", args: ["bot:pepper"], env: {} } } : { status: 404, error: "no such bot" };
     },
-    authorize: async () => null,
     current: (_botId, _session, _auth, checked) => { fixture.checked.push(checked); return current(); },
     restartRefusal: () => null,
   };

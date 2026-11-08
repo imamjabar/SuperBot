@@ -16,7 +16,6 @@ import { browserStreamAccess, createPreviewStreamClient, type PreviewStreamClien
 import { createLiveStreamClient, type LiveResume, type LiveStreamClient } from "@/lib/browser-stream-v1";
 import { BROWSER_HELD_ELSEWHERE } from "../../shared/browser-held";
 import { passkeyWallAt } from "../../shared/passkey-wall";
-import { browserScope, withBrowserScope } from "@/lib/team-browser";
 
 const button = "rounded-md p-1.5 text-ink-secondary hover:bg-inset hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed";
 const NO_NAV: BrowserNav = { url: "", loading: false, canGoBack: false, canGoForward: false };
@@ -80,7 +79,7 @@ export function LiveBrowser({ bot, signIn, page }: { bot: Bot; signIn?: BrowserS
   const pageNow = useRef<string | null>(null);
   const latest = useRef({ openSignInPage: () => {}, takeControl: () => {} });
   const signInOpen = state.computerControl?.[bot.id]?.help?.place === "browser";
-  const scopedThread = browserScope(state.config?.team, bot.threadId).threadId;
+  const scopedThread = undefined;
   keepNow.current = kept || signInOpen;
   const profileName = bot.browserProfile === "guest" ? "Temporary browser"
     : state.config?.browserProfiles?.find((profile) => profile.id === bot.browserProfile)?.name ?? `${bot.name}’s own browser`;
@@ -112,7 +111,7 @@ export function LiveBrowser({ bot, signIn, page }: { bot: Bot; signIn?: BrowserS
     if (stream) return createPreviewStreamClient({ access: browserStreamAccess(bot.id, window.location, scope), ...target }, events);
     const key = `${bot.id}\n${bot.browserProfile ?? ""}${scopedThread ? `\n${scopedThread}` : ""}`;
     if (resume.current.key !== key) resume.current = { key, viewer: "" };
-    return createLiveStreamClient(bot.id, events, (body, viewerId) => api(withBrowserScope(`/api/bots/${encodeURIComponent(bot.id)}/browser/action`, scope), {
+    return createLiveStreamClient(bot.id, events, (body, viewerId) => api(`/api/bots/${encodeURIComponent(bot.id)}/browser/action`, {
       // 120 s matches the server's browser requestTimeoutMs.
       method: "POST", body: JSON.stringify({ ...body, viewerId }), timeoutMs: 120_000,
     }), resume.current, scope, { width: target.width, height: target.height });

@@ -27,7 +27,7 @@ desktop, headless and on a Cloud.
   queued or working. `watch.json` records which bot each briefing routine was
   handed to, so it happens once: a routine the person later puts back on the
   Chief stays there. A restart between the steps finishes them at the next
-  start, and a computer frozen by a move to My Cloud hands nothing over.
+  start.
 - **One on at a time.** When a briefing routine lands on MausBot, handed over
   or arrived with it in a move, it is the one. Every other briefing routine is
   paused, never deleted, so the inbox is never read twice and a paused routine
@@ -156,12 +156,8 @@ there is no brief at all. Its row says
   until it can. It checks once a minute, since a Cloud's access arrives after
   start. A scripted test install without the fake connected-apps service
   behaves as before.
-- Routines carry `checks`, `access` and `deliver` through Cloud moves and team
-  backups. The watch moves to My Cloud with MausBot. A move carries MausBot
-  when it has a routine the person set up, paused or changed, even if nobody
-  has opened MausBot; the watch exactly as the server made it does not count.
-  On My Cloud the arrived watch pauses My Cloud's own. The move freeze pauses the watch like any routine, so two
-  homes never watch the same inbox. MausBot never moves into a team.
+- Routines carry `checks`, `access` and `deliver` through team
+  backups. MausBot never moves into a team.
 
 ## Not in v1
 

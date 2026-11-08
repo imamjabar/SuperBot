@@ -98,10 +98,6 @@ export interface DevsReportsDeps {
   engine(instanceId: string): { name: string; snapshot?: ProviderSnapshot } | null;
   appsReady(): boolean;
   sessions(): PublicSession[];
-  /** My Cloud's owner key: the owner's lines carry it instead of their session's person key. */
-  ownerKey: string | null;
-  /** On a Team Cloud the server's profile is nobody's, so only a session's address counts. */
-  team: boolean;
   profileEmail(): string | undefined;
   language(): string | undefined;
   /** The language a line for this person is written in; absent, the one set on this server. */
@@ -294,9 +290,9 @@ export function createDevsReports(deps: DevsReportsDeps) {
   function contactFor(sender: ResolvedSender | undefined): string | undefined {
     const person = sender?.id;
     const own = person ? deps.sessions()
-      .filter((session) => session.email && (personKey(session) === person || (person === deps.ownerKey && session.scopes.includes("admin"))))
+      .filter((session) => session.email && personKey(session) === person)
       .sort((a, b) => b.lastSeenAt - a.lastSeenAt)[0]?.email : undefined;
-    return contactAddress(own) ?? (deps.team ? undefined : contactAddress(deps.profileEmail()));
+    return contactAddress(own) ?? contactAddress(deps.profileEmail());
   }
 
   function reported(bot: BotRecord, threadId: string): ReportedBot {

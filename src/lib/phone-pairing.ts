@@ -1,12 +1,9 @@
-import type { CloudAccountState } from "../../electron/cloud-account.mjs";
-import { teamPlan } from "../../electron/cloud-team-plan.mjs";
-import type { LocaleKey } from "@/locales";
-import { cloudPlanView } from "./cloud-plan";
 import type { Action } from "@/state/store";
+import type { LocaleKey } from "@/locales";
 import { readMembership } from "./membership";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "./session";
 
-export type PhonePairingTarget = "computer" | "cloud" | "server";
+export type PhonePairingTarget = "computer" | "server";
 
 export const phonePairingSettingsAction = (): Extract<Action, { type: "toggleAppSettings" }> => ({
   type: "toggleAppSettings",
@@ -15,13 +12,12 @@ export const phonePairingSettingsAction = (): Extract<Action, { type: "toggleApp
   phonePairing: true,
 });
 
-export function currentPhonePairingTarget(cloudHome: boolean): PhonePairingTarget {
+export function currentPhonePairingTarget(): PhonePairingTarget {
   const ogb = typeof window === "undefined" ? undefined : (window.ogb as { companion?: unknown; remoteClient?: { active?: boolean } } | undefined);
-  return phonePairingTarget({ companion: Boolean(ogb?.companion), remoteClient: ogb?.remoteClient?.active === true, cloudHome });
+  return phonePairingTarget({ companion: Boolean(ogb?.companion), remoteClient: ogb?.remoteClient?.active === true });
 }
 
-export function phonePairingTarget(input: { companion: boolean; remoteClient: boolean; cloudHome: boolean }): PhonePairingTarget {
-  if (input.cloudHome) return "cloud";
+export function phonePairingTarget(input: { companion: boolean; remoteClient: boolean }): PhonePairingTarget {
   return input.companion && !input.remoteClient ? "computer" : "server";
 }
 
@@ -33,41 +29,26 @@ export interface PhonePairingAccess {
 export interface ConnectPhoneEntry {
   target: PhonePairingTarget;
   subtitleKey: LocaleKey;
-  /** A Team Cloud's name: everyone in the team opens it on their own phone. */
-  team?: string;
 }
 
 const SUBTITLE: Record<PhonePairingTarget, LocaleKey> = {
   computer: "sidebar.menu.connectPhone.computer",
-  cloud: "sidebar.menu.connectPhone.cloud",
   server: "sidebar.menu.connectPhone.server",
 };
 
 export function connectPhoneEntry(target: PhonePairingTarget, access: PhonePairingAccess | null): ConnectPhoneEntry | null {
-  const team = access?.session?.kind === "session" ? access.session.team?.name : undefined;
-  if (team) return { target, subtitleKey: "sidebar.menu.connectPhone.team", team };
   if (target !== "computer" && !(access && access.pairingCodes && isOwnerOrAdmin(access.session))) return null;
   return { target, subtitleKey: SUBTITLE[target] };
 }
 
-export type CloudPhoneDestination = "ready" | "not-ready" | null;
-
-export function cloudPhoneDestination(account: CloudAccountState | null | undefined): CloudPhoneDestination {
-  if (cloudPlanView(account).kind !== "paid" || teamPlan(account)) return null;
-  return account?.status === "connected" && account.machine?.status === "ready" ? "ready" : "not-ready";
-}
-
 export interface PhoneDestination extends ConnectPhoneEntry {
-  id: "cloud" | "here";
+  id: "here";
   noteKey?: LocaleKey;
 }
 
-export function phoneDestinations(entry: ConnectPhoneEntry | null, cloud: CloudPhoneDestination): PhoneDestination[] {
+export function phoneDestinations(entry: ConnectPhoneEntry | null): PhoneDestination[] {
   if (!entry) return [];
-  const here: PhoneDestination = { ...entry, id: "here" };
-  if (entry.target !== "computer" || !cloud) return [here];
-  if (cloud === "not-ready") return [{ ...here, noteKey: "sidebar.menu.connectPhone.cloudNotReady" }];
-  return [{ id: "cloud", target: "cloud", subtitleKey: "sidebar.menu.connectPhone.cloudAlwaysOn" }, here];
+  return [{ ...entry, id: "here" }];
 }
 
 let pending: Promise<PhonePairingAccess> | null = null;

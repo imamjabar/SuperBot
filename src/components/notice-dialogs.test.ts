@@ -40,9 +40,9 @@ it("knows when another dialog is open, and notices it opening and closing", asyn
   expect(seen.at(-1)).toBe(false);
 });
 
-it("any dialog on screen counts, modal or not, the tour's cards and the card that says a new Cloud is set up; one not shown or the queue's own does not", async () => {
+it("any dialog on screen counts, modal or not, and the tour's cards; one not shown or the queue's own does not", async () => {
   await showPopup();
-  for (const [attribute, value] of [["role", "dialog"], ["role", "alertdialog"], ["aria-modal", "true"], ["data-tour-card", ""], ["data-cloud-setup-ready", ""]]) {
+  for (const [attribute, value] of [["role", "dialog"], ["role", "alertdialog"], ["aria-modal", "true"], ["data-tour-card", ""]]) {
     const other = document.body.appendChild(document.createElement("div"));
     other.setAttribute(attribute!, value!);
     expect(otherDialogOpen(), `${attribute}=${value}`).toBe(true);
@@ -53,7 +53,7 @@ it("any dialog on screen counts, modal or not, the tour's cards and the card tha
   const inside = document.querySelector('[role="dialog"]')!.appendChild(document.createElement("div"));
   inside.setAttribute("role", "alertdialog");
   expect(otherDialogOpen(), "inside the popup").toBe(false);
-  for (const own of ["data-simple-mode-prompt", "data-updates-consent-popup"]) {
+  for (const own of ["data-simple-mode-prompt"]) {
     const popup = document.body.appendChild(document.createElement("div"));
     popup.setAttribute(own, ""); popup.setAttribute("role", "dialog");
     expect(otherDialogOpen(), own).toBe(false);

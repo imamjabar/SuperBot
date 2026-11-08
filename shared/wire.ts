@@ -127,11 +127,6 @@ export interface GroupThreadUsage extends TaskUsage {
   lastSpeaker?: { botId: string; name: string };
 }
 
-export interface BotMovedTo {
-  team: { id: string; name: string };
-  state: "moving" | "moved";
-  at: number;
-}
 
 /** One task = one conversation with its own context, thread and provider
  * session. */
@@ -144,17 +139,12 @@ export interface WireTask extends InboxTask {
   /** The first message already drove a title attempt for this thread, so a
    * later one does not rename a thread the person may have retitled. */
   titleFromFirstMessage?: true;
-  /** Team Cloud only: this is the bot's main chat, everyone's who sees the bot. Its title is SHARED_CHAT_TITLE on every
-   * person's copy, whatever is stored, and it can't be renamed. */
-  sharedChat?: true;
   /** Organizational grouping only; never a directory or provider context. */
   projectId?: string;
   /** Detached routine execution, reachable through its visible results card. */ routineRunId?: string;
   /** Work from outside (a webhook, an app's event) reached this conversation: what it starts or runs stays confined, for good. */ outside?: true;
   /** An outside caller opened this thread through the bot's API, so only it may continue it; such a thread is outside too. */ botApi?: true;
   /** Set when a bot, not a person, opened this thread. */ openedBy?: TaskOpenedBy;
-  /** On a team's server: one person's conversation, seen by them alone (never by another member or an admin). */
-  private?: true;
   /** Set by close_thread; absent while the thread is open. */
   closedBy?: TaskClosedBy;
   archivedAt?: number;
@@ -355,9 +345,6 @@ export interface WireBot extends DefaultBotFields, BotAccessFields {
   rewound?: boolean;
   pinned?: boolean;
   hidden?: boolean;
-  /** On My Cloud, a bot its person moved into one of their teams: `moving` while it goes (no turns, its routines off),
-   * `moved` once it lives there (archived here, shown as a line that opens the team). */
-  movedTo?: BotMovedTo;
   /** Optional labeled divider used to organize this bot in the sidebar. */
   section?: string;
   /** the one message pinned to the top of this bot's active thread */

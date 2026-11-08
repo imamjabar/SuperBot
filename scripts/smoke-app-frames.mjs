@@ -246,7 +246,7 @@ async function run() {
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, preload },
   });
   const permissionAsks = [];
-  const permissions = appPermissionHandlers({ rendererOrigin: () => origin, mainContents: () => win.webContents, cloudHomeOrigin: () => null, cloudHomeRestoring: () => null });
+  const permissions = appPermissionHandlers({ rendererOrigin: () => origin, mainContents: () => win.webContents });
   session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
     permissions.request(contents, permission, (granted) => {
       permissionAsks.push({ permission, origin: details?.requestingUrl ?? "", isMainFrame: details?.isMainFrame, granted });

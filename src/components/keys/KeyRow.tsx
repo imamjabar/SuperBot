@@ -102,7 +102,6 @@ export function KeyRow({
   const [draft, setDraft] = useState("");
   const [shown, setShown] = useState(false);
   const [replacing, setReplacing] = useState(false);
-  const [ownKey, setOwnKey] = useState(false);
   const [busy, setBusy] = useState<"saving" | "checking" | "removing" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -144,16 +143,14 @@ export function KeyRow({
   const rejected = !works && (rejectedHere ?? (saved.configured && engineRejected));
   const failure = problem ?? (rejected && !busy ? t("keys.testRejected") : null);
   const editing = !saved.configured || replacing;
-  const fieldShown = editing && (!saved.included || saved.configured || ownKey);
-  const other = fieldShown && draft ? looksLikeOtherKey(row, draft) : null;
+  const other = editing && draft ? looksLikeOtherKey(row, draft) : null;
 
   const status: KeyStatus = busy === "saving" ? { tone: "busy", text: t("keys.row.saving") }
     : busy === "removing" ? { tone: "busy", text: t("keys.row.removing") }
       : busy === "checking" ? { tone: "busy", text: t("common.checking") }
-        : failure && (saved.configured || !fieldShown) ? { tone: "bad", text: t("keys.row.didntWork") }
+        : failure && saved.configured ? { tone: "bad", text: t("keys.row.didntWork") }
           : saved.configured ? { tone: "ok", text: target.test || target.verifiedOnSave || works ? t("keys.connected") : t("common.saved") }
-            : saved.included ? { tone: "ok", text: t("keys.includedWithCloudPro") }
-              : null;
+            : null;
 
   const runCheck = async (): Promise<KeyResult> => {
     if (!target.test) return "unverified";
@@ -195,7 +192,6 @@ export function KeyRow({
       setDraft("");
       setShown(false);
       setReplacing(false);
-      setOwnKey(false);
       if (hadFocus) focusAfter.current = now.configured ? "replace" : "input";
       if (!now.configured) setProblem(t("keys.row.notKept"));
       onSaved?.(now.configured);
@@ -335,26 +331,22 @@ export function KeyRow({
     </div>
   );
 
-  const warning = target.warningKey && fieldShown ? t(target.warningKey) : null;
-  const note = target.noteKey && fieldShown && !pointer ? t(target.noteKey) : null;
+  const warning = target.warningKey && editing ? t(target.warningKey) : null;
+  const note = target.noteKey && editing && !pointer ? t(target.noteKey) : null;
 
   return (
     <div
       data-key-row={row.id}
       data-api-key-row={pointer ? undefined : entry.id}
-      data-key-state={saved.configured ? "saved" : saved.included ? "included" : "empty"}
+      data-key-state={saved.configured ? "saved" : "empty"}
       aria-labelledby={bare ? undefined : titleId}
       role="group"
       className={cn(KEY_ROW, className)}
     >
       {bare ? status && <KeyStatusChip status={status} /> : <RowHeading entry={row} status={status} titleId={titleId} />}
       <div className={cn("flex flex-col gap-2", !bare && "pl-8")}>
-        {fieldShown ? field : saved.configured ? masked : (
-          <div>
-            <button type="button" data-key-own className="ui-button" onClick={() => { setOwnKey(true); focusAfter.current = "input"; }}>{t("keys.row.useOwn")}</button>
-          </div>
-        )}
-        {(notice || failure || other || warning || installCommand || note || verdict || (fieldShown && target.href) || (!fieldShown && saved.configured && target.test)) && (
+        {editing ? field : masked}
+        {(notice || failure || other || warning || installCommand || note || verdict || (editing && target.href) || (!editing && target.test)) && (
           <div className="flex flex-col gap-1.5 text-[12px] leading-4">
             {notice && <p role="alert" className="text-danger">{notice}</p>}
             {failure && (
@@ -391,15 +383,15 @@ export function KeyRow({
             )}
             {note && <p className="text-ink-secondary">{note}</p>}
             {verdict && <p role="status" className="whitespace-pre-line text-ink-secondary">{verdict}</p>}
-            {(fieldShown && target.href) || (!fieldShown && saved.configured && target.test) ? (
+            {(editing && target.href) || (!editing && target.test) ? (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                {fieldShown && target.href && (
+                {editing && target.href && (
                   <a href={target.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-accent-text hover:underline">
                     {t("keys.row.getKey")}
                     <ExternalLink size={11} aria-hidden="true" />
                   </a>
                 )}
-                {!fieldShown && saved.configured && target.test && (
+                {!editing && target.test && (
                   <button type="button" data-key-check className="cursor-pointer text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={busy !== null} onClick={() => void recheck()}>
                     {t("common.checkAgain")}
                   </button>

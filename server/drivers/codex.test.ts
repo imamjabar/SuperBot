@@ -1970,7 +1970,6 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
   });
 
   it.each([
-    ["Cloud home", "OMB_CLOUD_ROLE", "home"],
     ["hosted enterprise", "OMB_ADMIN_URL", "https://admin.example.test"],
   ])("refuses desktop ChatGPT plan sign-in on %s before accessing credentials or spawning", async (_name, variable, value) => {
     vi.stubEnv(variable, value);
@@ -3342,8 +3341,7 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       expect(codexSignInRefused({ message: "Reconnecting... 1/5", codexErrorInfo: "serverOverloaded" })).toBe(false);
     });
 
-    it.each([["this computer", undefined], ["My Cloud", "home"]])("ends the turn at once, without starting Codex, when Codex has no login on %s", async (_where, role) => {
-      if (role) vi.stubEnv("OMB_CLOUD_ROLE", role);
+    it("ends the turn at once, without starting Codex, when Codex has no login on this computer", async () => {
       const codexHome = join(scratch, ".codex");
       mkdirSync(codexHome, { recursive: true });
       await create({ mode: "logged-out", environment: { HOME: scratch, USERPROFILE: scratch, CODEX_HOME: codexHome } });
@@ -3351,7 +3349,6 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n');});`)
       const spawn = vi.spyOn(procs, "spawnCli");
       const { done, errors } = await runTurn("t-no-login");
       expect(errors).toEqual([expect.objectContaining({ message: codexNotSignedIn(), setup: true })]);
-      expect(codexNotSignedIn().includes("Sign-ins don't copy over when you move to My Cloud.")).toBe(Boolean(role));
       expect(done).toMatchObject({ ok: false, stopReason: "auth_required" });
       expect(spawn).not.toHaveBeenCalled();
     });

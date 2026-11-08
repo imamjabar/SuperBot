@@ -935,7 +935,7 @@ beforeAll(async () => {
       res.writeHead(201, { "content-type": "application/json" });
       return res.end(JSON.stringify({
         session_id: "trs_config_test",
-        mcp: { type: "http", url: "https://app.composio.dev/tool_router/v3/trs_config_test/mcp" },
+        mcp: { type: "http", url: `http://127.0.0.1:${boatStubPort}/broker/v1/mcp` },
         config: { user_id: body.user_id },
       }));
     }
@@ -1678,7 +1678,7 @@ describe("harness HTTP API", () => {
       req.end();
     });
     expect(brand.status).toBe(200);
-    expect(Reflect.get(Object(Reflect.get(Object(brand.body), "brand")), "name")).toBe("OpenMausBot");
+    expect(Reflect.get(Object(Reflect.get(Object(brand.body), "brand")), "name")).toBe("SuperBot");
     expect(await statusWithHeaders({ origin: "https://example.com" })).toBe(403);
     expect(await statusWithHeaders({ host: `127.0.0.2:${PORT}` })).toBe(200);
     expect(await statusWithHeaders({ host: `[::1]:${PORT}` })).toBe(200);
@@ -6304,7 +6304,7 @@ describe("harness HTTP API", () => {
         .find((message: { id: string }) => message.id === messageId);
       expect(directCard).toMatchObject({
         kind: "secret",
-        text: "Securely provide the OpenAI API key from OpenMausBot on your phone or computer. It is never added to chat.",
+        text: "Securely provide the OpenAI API key from SuperBot on your phone or computer. It is never added to chat.",
       });
       expect(directCard.secret.description).toContain(
         `${bot.name} can use it but never read it back.`,
@@ -8426,6 +8426,13 @@ describe("harness HTTP API", () => {
       expect(saved.tasks.find((task: { threadId: string }) => task.threadId === bot.threadId).surface).toBe("vm");
       expect((await api("GET", `/api/bots/${bot.id}/computer?threadId=${bot.threadId}`)).body.surface).toBe("vm");
       expect((await api("POST", `/api/bots/${bot.id}/computer/join?threadId=${bot.threadId}`, {})).status).toBe(409);
+      const chief = (await api("GET", "/api/bots?messages=0")).body.bots.find((b: { chiefOfStaff?: boolean }) => b.chiefOfStaff);
+      if (chief) {
+        for (const task of (chief.tasks as Array<{ threadId: string; busy?: boolean }> ?? []).filter((t) => t.busy)) {
+          await api("POST", `/api/bots/${chief.id}/interrupt`, { threadId: task.threadId });
+        }
+        await expect.poll(async () => (await api("GET", "/api/bots?messages=0")).body.bots.find((b: { id: string }) => b.id === chief.id)?.busy, { timeout: 10_000 }).toBe(false);
+      }
 
       await api("PATCH", `/api/bots/${bot.id}`, { computer: "vm" });
       await api("PATCH", `/api/bots/${bot.id}/tasks/${bot.threadId}`, { surface: "cloud" });
@@ -9603,6 +9610,7 @@ describe("harness HTTP API", () => {
     const on = (await api("POST", "/api/bots", { name: "Inbox" })).body.bot;
     const off = (await api("POST", "/api/bots", { name: "Quiet inbox" })).body.bot;
     try {
+      expect((await api("PUT", "/api/config", { composio: { apiKey: "ak_good" } })).status).toBe(200);
       for (const bot of [on, off]) {
         expect((await api("PATCH", `/api/bots/${bot.id}`, {
           modelSelection: { instanceId: "claude", model: "claude-sonnet-5" },
@@ -10992,7 +11000,7 @@ describe("harness HTTP API", () => {
         .find((message: { id: string }) => message.id === messageId);
       expect(roomCard).toMatchObject({
         kind: "secret",
-        text: "Securely provide the OpenAI API key from OpenMausBot on your phone or computer. It is never added to chat.",
+        text: "Securely provide the OpenAI API key from SuperBot on your phone or computer. It is never added to chat.",
         from: { botId: second.id, name: second.name, color: second.color },
       });
 
@@ -12266,7 +12274,7 @@ describe("harness HTTP API", () => {
 
   it("explains a missing Google permission instead of passing the bare 403 to the bot", async () => {
     // GMAIL_CREATE_FILTER needs gmail.settings.basic, which the default Composio Gmail connection never asks for.
-    expect((await api("PUT", "/api/config", { composio: { apiKey: "" } })).status).toBe(200);
+    expect((await api("PUT", "/api/config", { composio: { apiKey: "ak_good" } })).status).toBe(200);
     const bot = (await api("POST", "/api/bots")).body.bot;
     try {
       expect((await api("PATCH", `/api/bots/${bot.id}`, { composio: true })).status).toBe(200);
@@ -12292,7 +12300,7 @@ describe("harness HTTP API", () => {
 
   it("enforces per-bot connector tool grants on relayed tool calls", async () => {
     // Clear any project key an earlier test left, so the relay uses the stubbed managed broker.
-    expect((await api("PUT", "/api/config", { composio: { apiKey: "" } })).status).toBe(200);
+    expect((await api("PUT", "/api/config", { composio: { apiKey: "ak_good" } })).status).toBe(200);
     const bot = (await api("POST", "/api/bots")).body.bot;
     connectorRelayCalls.length = 0;
     const relayed = () => connectorRelayCalls.map((entry) => entry.body);
@@ -12405,7 +12413,7 @@ describe("harness HTTP API", () => {
   });
 
   it("refuses MULTI_EXECUTE shapes it cannot read and writes connector-scope denial rows", async () => {
-    expect((await api("PUT", "/api/config", { composio: { apiKey: "" } })).status).toBe(200);
+    expect((await api("PUT", "/api/config", { composio: { apiKey: "ak_good" } })).status).toBe(200);
     const bot = (await api("POST", "/api/bots")).body.bot;
     connectorRelayCalls.length = 0;
     try {
@@ -12549,7 +12557,7 @@ describe("harness HTTP API", () => {
 
   it("serves the grant editor's tool inventory grouped by service", async () => {
     // Broker mode: clear any project key an earlier test left behind.
-    expect((await api("PUT", "/api/config", { composio: { apiKey: "" } })).status).toBe(200);
+    expect((await api("PUT", "/api/config", { composio: { apiKey: "ak_good" } })).status).toBe(200);
     const response = await api("GET", "/api/connectors/tools");
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -12566,6 +12574,7 @@ describe("harness HTTP API", () => {
         email: EMAIL_TOOLS.map(({ name, description }) => ({ name, description })),
       },
     });
+    await api("PUT", "/api/config", { composio: { apiKey: "" } });
   });
 
   it.skipIf(process.platform === "win32")("stores the credentials file with owner-only permissions", () => {

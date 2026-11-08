@@ -12,19 +12,13 @@ const session = (scopes: Array<"admin" | "client">): RequestAuth => ({
 });
 const ADMIN = session(["admin", "client"]);
 const MEMBER = session(["client"]);
-const team = (owner: string | null, person: string | null): SecretAnswerContext => ({ personalCloud: false, shared: true, owner, person });
+const team = (owner: string | null, person: string | null): SecretAnswerContext => ({ shared: true, owner, person });
 
 describe("who may type a secret into a card", () => {
   it("is this computer's own app, never a local service", () => {
-    const desktop = { personalCloud: false, shared: false, owner: null, person: null };
+    const desktop = { shared: false, owner: null, person: null };
     expect(secretAnswerRefusal({ kind: "loopback", scopes: ["admin", "client"] }, desktop)).toBeNull();
     expect(secretAnswerRefusal({ kind: "loopback", scopes: ["admin"], trust: "service" }, desktop)).toMatch(/local service cannot/u);
-  });
-
-  it("is a Cloud's owner, never a guest", () => {
-    const cloud = { personalCloud: true, shared: false, owner: null, person: "p:ada" };
-    expect(secretAnswerRefusal(ADMIN, cloud)).toBeNull();
-    expect(secretAnswerRefusal(MEMBER, cloud)).toBe("Only the owner of this Cloud can enter this secret.");
   });
 
   // An admin who answers an ordinary card for a member never types a member's secret.

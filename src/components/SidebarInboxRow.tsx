@@ -4,8 +4,7 @@ import { Inbox } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { closeInbox, openInbox, useInboxPanel, useInboxSupport, useInboxView } from "@/state/inbox";
-import { useTeamPeople } from "@/state/team-people";
-import { inboxFixes, waitingCount } from "./inbox/inbox-view";
+import { waitingCount } from "./inbox/inbox-view";
 
 export function SidebarInboxRow({ icons, large, running, onOpened }: {
   icons: boolean;
@@ -16,10 +15,9 @@ export function SidebarInboxRow({ icons, large, running, onOpened }: {
 }) {
   const support = useInboxSupport();
   const view = useInboxView();
-  const team = useTeamPeople();
   const { open } = useInboxPanel();
   if (support === "no") return null;
-  const count = waitingCount(view) + inboxFixes(team?.needsYou, view).length;
+  const count = waitingCount(view);
   const shown = count > 9 ? "9+" : String(count);
   const label = count > 0 ? t("inbox.row.count", { count }) : t("inbox.panel.title");
   const toggle = () => {

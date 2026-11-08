@@ -18,7 +18,7 @@ afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: tru
 const SCOUT = { id: "scout", name: "Scout", threadId: "scout-main", modelSelection: { instanceId: "claude", model: "claude-opus-5-5" }, composio: true };
 const ROVER = { id: "rover", name: "Rover", threadId: "rover-main", modelSelection: { instanceId: "codex", model: "gpt-5.5", effort: "high" } };
 
-function fixture(options: { dataDir?: string; sections?: string[]; outcomes?: SendOutcome[]; sessions?: PublicSession[]; ownerKey?: string | null; team?: boolean;
+function fixture(options: { dataDir?: string; sections?: string[]; outcomes?: SendOutcome[]; sessions?: PublicSession[];
   profileEmail?: string; automated?: boolean; lineLanguage?: DevsReportsDeps["lineLanguage"]; appVersion?: string; clock?: number;
   /** The conversations, kept across a restart (another fixture on the same data). */
   threads?: Map<string, Message[]>;
@@ -63,7 +63,7 @@ function fixture(options: { dataDir?: string; sections?: string[]; outcomes?: Se
     dataDir, store: store as never, installId: "4b7c1f2e-0a9d-4c2b-9f1e-6d5a4b3c2d1e", appVersion: options.appVersion ?? "0.1.128", runsOn: "desktop app",
     working: (threadId) => busy.has(threadId), automated: () => options.automated === true,
     engine: (instanceId) => ({ name: instanceId === "claude" ? "Claude Code" : "Codex", snapshot: { state: "available", authenticated: true } }),
-    appsReady: () => false, sessions: () => options.sessions ?? [], ownerKey: options.ownerKey ?? null, team: options.team === true,
+    appsReady: () => false, sessions: () => options.sessions ?? [],
     profileEmail: () => options.profileEmail, language: () => "en", ...(options.lineLanguage ? { lineLanguage: options.lineLanguage } : {}),
     recentLog: () => ["2026-10-27T08:59:00.000Z warn engine probe slow"],
     send: async (payload) => { sent.push(payload); return outcomes.shift() ?? { ok: true, id: `report-${sent.length}` }; },
@@ -308,7 +308,7 @@ describe("a report that cannot go yet", () => {
 });
 
 describe("the person's address", () => {
-  it("is their signed-in session's, the owner's on My Cloud, else the profile's off a team", async () => {
+  it("is their signed-in session's, else the profile's", async () => {
     const session = (email: string, scopes: string[] = ["client"]) => ({ id: email, label: email, scopes, createdAt: 1, lastSeenAt: 1, expiresAt: 9e15, email }) as PublicSession;
     const sent = async (options: Parameters<typeof fixture>[0], sender?: { name: string; id?: string }) => {
       const fx = fixture(options);
@@ -318,9 +318,7 @@ describe("the person's address", () => {
       fx.stop();
       return fx.sent[0]!.contactEmail;
     };
-    expect(await sent({ sessions: [session("bob@acme.test")], team: true }, { name: "Bob", id: personKey({ id: "", email: "bob@acme.test" }) })).toBe("bob@acme.test");
-    expect(await sent({ sessions: [session("bob@acme.test")], team: true, profileEmail: "server@acme.test" }, { name: "Carl", id: "p_unknownunknownunknown" })).toBeUndefined();
-    expect(await sent({ sessions: [session("owner@example.com", ["admin"])], ownerKey: "p_owner" }, { name: "Ada", id: "p_owner" })).toBe("owner@example.com");
+    expect(await sent({ sessions: [session("bob@acme.test")] }, { name: "Bob", id: personKey({ id: "", email: "bob@acme.test" }) })).toBe("bob@acme.test");
     expect(await sent({ profileEmail: "Ada@Example.com" })).toBe("ada@example.com");
     expect(await sent({ profileEmail: "not an address" })).toBeUndefined();
   });
