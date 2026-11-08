@@ -96,7 +96,7 @@ const BUDGET_BASELINE: Record<string, number> = {
   "skills+shared+voice+non-chief": 18217,
   "skills+shared+voice+escalations": 18008,
   "skills+shared+voice+escalations+x": 18069,
-  "skills+shared+voice+escalations+x+reports-back": 18985,
+  "skills+shared+voice+escalations+x+reports-back": 19920,
   "default+legacy-switches": 17486,
   "default+mausbot": 17538,
   "skills+shared+voice+mausbot": 18042,
@@ -274,9 +274,10 @@ describe("agents proxy tools/list golden with the tool bridge on", () => {
     expect(base).toEqual(["tool_result_read", "list_room_targets", "coordinate_bots", "list_bots", "list_rooms", "select_computer", "attach_file", "publish_page", "post_to_room", "request_credential", "request_sign_in", "fill_login", "message_person", "memory_update"]);
     for (const name of Object.keys(PROFILES)) {
       const selects = PROFILES[name]!.OMB_COMPUTER_SELECTION === "1";
-      expect(hotOf(name).filter((tool) => tool !== "send_voice_note" && tool !== "report_progress"), name).toEqual(selects ? base : base.filter((tool) => tool !== "select_computer"));
+      expect(hotOf(name).filter((tool) => tool !== "send_voice_note" && tool !== "report_progress" && tool !== "job_notes"), name).toEqual(selects ? base : base.filter((tool) => tool !== "select_computer"));
       expect(hotOf(name).includes("send_voice_note"), name).toBe(PROFILES[name]!.OMB_VOICE_NOTES === "1");
       expect(hotOf(name).includes("report_progress"), name).toBe(PROFILES[name]!.OMB_REPORTS_BACK === "1");
+      expect(hotOf(name).includes("job_notes"), name).toBe(PROFILES[name]!.OMB_REPORTS_BACK === "1");
     }
   });
 

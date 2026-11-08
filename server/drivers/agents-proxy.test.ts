@@ -970,7 +970,7 @@ describe("agents-proxy MCP surface", () => {
     const list = await rpc("tools/list");
     const start = list.result.tools.find((tool: { name: string }) => tool.name === "start_thread");
     expect(start.inputSchema.required).toEqual(["title", "message"]);
-    expect(Object.keys(start.inputSchema.properties)).toEqual(["title", "message", "folder", "job", "report_back", "model_selection"]);
+    expect(Object.keys(start.inputSchema.properties)).toEqual(["title", "message", "folder", "job", "report_back", "deep", "model_selection"]);
     expect(start.description).toContain("Open a separate job on yourself");
     expect(start.description).toContain("use coordinate_bots for teammates");
     expect(start.description).toContain("do not retry it");

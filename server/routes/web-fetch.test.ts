@@ -73,6 +73,20 @@ describe("web_fetch internal route", () => {
       } else if (path === "/article") {
         res.setHeader("content-type", "text/html");
         res.end(`<html><body><form><input type="password" name="pw"></form><article>${"Harga VPS Singapura naik. ".repeat(80)}</article></body></html>`);
+      } else if (path === "/app-with-data") {
+        res.setHeader("content-type", "text/html");
+        res.end(`<!doctype html><html><head><title>Job Board</title><script src="/bundle.js"></script><script type="application/ld+json">{"@context":"https://schema.org","@type":"JobPosting","title":"Senior ML Engineer","datePosted":"2026-08-01","baseSalary":{"value":{"minValue":190000}}}</script></head><body><div id="root"></div><noscript>Enable JavaScript</noscript></body></html>`);
+      } else if (path === "/find-body") {
+        res.setHeader("content-type", "text/plain");
+        let bodyText = ".".repeat(1000) + "salary" + ".".repeat(74) + "visa";
+        for (let i = 0; i < 23; i++) {
+          bodyText += ".".repeat(994) + "salary";
+        }
+        bodyText += ".".repeat(1000);
+        res.end(bodyText);
+      } else if (path === "/long-with-next") {
+        res.setHeader("content-type", "text/html");
+        res.end(`<!doctype html><html><head><title>Long Next Page</title><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"company":"Acme"}}}</script></head><body><article>${"Visible article content that exceeds fifteen hundred characters. ".repeat(30)}</article></body></html>`);
       } else {
         res.writeHead(404).end();
       }
@@ -239,5 +253,104 @@ describe("web_fetch internal route", () => {
     const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}/gone` } });
     expect(status).toBe(502);
     expect(body).toEqual({ error: "The page answered 404." });
+  });
+
+  it("reads app-shell HTML carrying JSON-LD data without needing browser", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, {
+      body: { url: `http://status.test:${port}/app-with-data` },
+    });
+    expect(status).toBe(200);
+    expect(body.needsBrowser).toBeUndefined();
+    expect(String(body.text)).toContain("title: Senior ML Engineer");
+    expect(String(body.text)).toContain("minValue: 190000");
+  });
+
+  it("still reports needsBrowser script on app shell without embedded data", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, {
+      body: { url: `http://status.test:${port}/app` },
+    });
+    expect(status).toBe(200);
+    expect(body.needsBrowser).toBe("script");
+  });
+
+  it("returns merged windows with correct offsets, total, and more when over 20 hits for find", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, {
+      body: { url: `http://status.test:${port}/find-body`, find: "salary | visa" },
+    });
+    expect(status).toBe(200);
+    expect(body.find).toBe("salary | visa");
+    expect(typeof body.total).toBe("number");
+    expect(body.more).toBe(true);
+    const matches = body.matches as Array<{ offset: number; text: string }>;
+    expect(matches).toHaveLength(20);
+    expect(matches[0].offset).toBe(700);
+    expect(matches[0].text).toContain("salary");
+    expect(matches[0].text).toContain("visa");
+  });
+
+  it("rejects find shorter than 2 characters with 400", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, {
+      body: { url: `http://status.test:${port}/find-body`, find: "a" },
+    });
+    expect(status).toBe(400);
+    expect(body).toEqual({ error: "find must be 2 to 200 characters." });
+  });
+
+  it("fetches boards-api URL for thin Greenhouse page and returns Posting data with plain text content", async () => {
+    const greenhousePageUrl = "https://job-boards.greenhouse.io/artefact/jobs/8829736002";
+    const boardsApiUrl = "https://boards-api.greenhouse.io/v1/boards/artefact/jobs/8829736002?pay_transparency=true";
+    const fakeFetchPage: typeof fetchPublicPage = async (urlStr) => {
+      if (urlStr === greenhousePageUrl) {
+        return {
+          ok: true,
+          url: new URL(greenhousePageUrl),
+          headers: { "content-type": "text/html" },
+          body: Buffer.from("<!doctype html><html><head><title>Artefact Job</title></head><body><div id=\"app\"></div></body></html>"),
+        };
+      }
+      if (urlStr === boardsApiUrl) {
+        return {
+          ok: true,
+          url: new URL(boardsApiUrl),
+          headers: { "content-type": "application/json" },
+          body: Buffer.from(
+            JSON.stringify({
+              title: "Senior AI Engineer",
+              content: "<p>Lead machine learning <strong>infrastructure</strong>.</p>",
+              pay_input_ranges: [{ min_cents: 18000000, max_cents: 22000000, currency: "USD" }],
+            }),
+          ),
+        };
+      }
+      return { ok: false, refused: false, error: "Not found", status: 404 };
+    };
+
+    const handler = createWebFetchRoutes({ fetchPage: fakeFetchPage });
+    const { status, body } = await callRoute(handler, {
+      body: { url: greenhousePageUrl },
+    });
+    expect(status).toBe(200);
+    expect(body.needsBrowser).toBeUndefined();
+    const text = String(body.text);
+    expect(text.startsWith("Posting data (")).toBe(true);
+    expect(text).toContain("title: Senior AI Engineer");
+    expect(text).toMatch(/content: Lead machine learning infrastructure ?\./);
+    expect(text).not.toContain("<p>");
+    expect(text).not.toContain("<strong>");
+  });
+
+  it("omits Page data for a long (>1500 chars) page with __NEXT_DATA__", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, {
+      body: { url: `http://status.test:${port}/long-with-next` },
+    });
+    expect(status).toBe(200);
+    expect(String(body.text).length).toBeGreaterThan(1500);
+    expect(body.text).not.toContain("Page data:");
+    expect(body.text).not.toContain("Acme");
   });
 });

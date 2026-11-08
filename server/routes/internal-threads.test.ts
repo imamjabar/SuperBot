@@ -20,7 +20,7 @@ async function listThreads(from: BotRecord) {
     from, fromThreadId: "t-own", ownsThread: () => true, shown: () => true,
     threadBusy: (_bot, threadId) => threadId === "t-ops-busy", queuedThreadPosition: () => null,
     queuedReason: (node, showTitle) => `${node.id} waits${showTitle ? " (titles)" : ""}`,
-    readBody: async () => ({}), postProgress: () => ({ status: 200, body: {} }),
+    readBody: async () => ({}), postProgress: () => ({ status: 200, body: {} }), notes: () => ({ status: 200, body: {} }),
   });
   let body: { threads: Array<Record<string, unknown>> } | undefined;
   await route({ res: {}, path: "/api/internal/threads", method: "GET", json: (_res: unknown, _status: number, value: never) => { body = value; } } as never);

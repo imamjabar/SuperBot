@@ -95,6 +95,8 @@ export interface TaskOpenedBy {
   /** A job the bot opened on itself with report_back: its progress updates and its result go back to `threadId`. */ reportsBack?: true;
   /** The person's message in `threadId` that this job answers; its updates and its result quote it there. */
   requestMessageId?: string;
+  /** A long research job: up to DEEP_JOB_TOOL_CALLS tool calls; its notes table and a long report go to the chat as files. */
+  deep?: true;
   /** A parallel room job's thread: `threadId` is the room thread it came from, and the member must stay in that room. */
   roomLane?: true;
   at: number;

@@ -26,7 +26,7 @@ import { createModelRoutes, ModelRouteRefused, noRouteLeft, readResponsesStream,
 import { appendNative } from "./native.ts";
 import { classifyError, computeBackoff, interruptibleDelay, RETRY_MAX_ATTEMPTS } from "./retry.ts";
 import { plainFailureMessage } from "./engine-errors.ts"; import { toolFailureMessage } from "./tool-failure.ts";
-import { refusesRequestSize, RequestTooLargeError, sizeChange, smallerResend } from "./chat-size-limit.ts";
+import { refusesRequestSize, RequestTooLargeError, sizeChange, smallerResend } from "./chat-size-limit.ts"; import { fitToolOutputs } from "./tool-output-window.ts";
 import { requestTooLargeMessage } from "../../shared/request-too-large.ts";
 import { toolSchemaProfileFor } from "../tool-schema-profile.ts";
 import { classifyContinuable, writeTurnHandoff } from "../turn-continuation.ts";
@@ -611,7 +611,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
       const toolCallBudget = typeof turn.toolCallBudget === "number" && Number.isInteger(turn.toolCallBudget) && turn.toolCallBudget > 0
         ? turn.toolCallBudget
         : undefined;
-      let dispatchedToolCalls = 0;
+      let dispatchedToolCalls = 0; const maxRounds = Math.max(MAX_CHAT_ROUNDS, toolCallBudget ?? 0);
       let budgetNoticed = false;
       let budgetPrompted = false;
       let unreadable = false, askedAgain = false, spoke = false;
@@ -629,12 +629,12 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
         if (questionAllowed && !tools.definitions.some((definition) => definition.function.name === ASK_USER_TOOL)) {
           tools.definitions.push(ASK_USER_TOOL_DEFINITION);
         }
-        for (let round = 0; round < MAX_CHAT_ROUNDS; round++) {
+        for (let round = 0; round < maxRounds; round++) {
           abort.signal.throwIfAborted();
             // Between rounds, never inside a tool batch.
           unread = turnEntry.asides.splice(0);
-          if (unread.length) messages.push({ role: "user", content: unread.join("\n\n") });
-          turnEntry.ending = round === MAX_CHAT_ROUNDS - 1;
+          if (unread.length) messages.push({ role: "user", content: unread.join("\n\n") }); fitToolOutputs(messages, options.models().options.find((entry) => entry.id === model)?.contextWindow);
+          turnEntry.ending = round === maxRounds - 1;
           const roundTools = toolCallBudget !== undefined && dispatchedToolCalls >= toolCallBudget ? [] : tools.definitions;
           native("out", options.nativeLog.outgoing(turn, messages, model, roundTools));
           let attempt = 0;
@@ -915,7 +915,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
           }
           if (completion.text.trim() && !toolFailed && !turnEntry.asides.length && completion.toolCalls.every((call) => call.function.name === HANDOFF_TOOL)) { ok = true; break; }
         }
-        if (!ok) throw new ChatProtocolError(stoppedAfter(`${MAX_CHAT_ROUNDS} steps`));
+        if (!ok) throw new ChatProtocolError(stoppedAfter(`${maxRounds} steps`));
       } catch (value) {
         stopReason = abort.signal.aborted ? "interrupted" : stopReason ?? "error";
         failure = safeText(asError(value).message).slice(0, 2_000);

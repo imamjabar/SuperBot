@@ -355,6 +355,10 @@
             "type": "boolean",
             "description": "true: the result comes back here and resumes you. Leave out to keep it in its own thread."
           },
+          "deep": {
+            "type": "boolean",
+            "description": "A long research job over dozens of pages or items (rankings; job, price or market surveys): 200 tool calls instead of 30 and a notes table; its table and a long report reach the chat as files. Only with report_back."
+          },
           "model_selection": {
             "type": "object",
             "additionalProperties": false,
@@ -394,6 +398,39 @@
         "required": [
           "message"
         ]
+      }
+    },
+    {
+      "name": "job_notes",
+      "description": "Your notes table for this job, kept outside your memory: add one row per item you checked (for a job search: company, title, location, link, date, salary, visa, fit, reason) and read it back any time. In a long job, page text you read earlier can be dropped from your memory; these rows are not. When the job ends the whole table reaches the person's chat as a CSV file by itself, so your final answer gives the summary and the top items, not the full table.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "add": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            },
+            "description": "Rows to add, same keys for every row."
+          },
+          "read": {
+            "type": "boolean",
+            "description": "Return the row count, the columns and the last 30 rows."
+          },
+          "find": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Return up to 50 rows with a value containing these words."
+          }
+        }
       }
     },
     {
@@ -1169,7 +1206,7 @@
     },
     {
       "name": "web_fetch",
-      "description": "Read a public web page, RSS feed or JSON/text address and get its readable text (scripts and markup removed), up to 12,000 characters per call; pass offset to read further. For news, prices or any page: one call per page, then answer; prefer a site's RSS or section page for headlines. Use this before any browser or screen for a public page. Only http(s) on the public internet; no sign-in: a page behind a sign-in or one that shows its text only through scripts comes back with needsBrowser and next, which says how to open it in the built-in browser.",
+      "description": "Read a public web page, RSS feed or JSON/text address: readable text plus the page's embedded data (structured data such as a job posting's date and salary, or app data), so script-built pages usually read fine. Up to 12,000 characters per call; pass offset to read on, or find to get only the passages around some words in a long page or JSON feed. One call per page; prefer a site's RSS or section page for headlines. Use this before any browser or screen. Public http(s) only, no sign-in: with neither text nor data it returns needsBrowser and next, which says how to open it in the built-in browser.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -1181,6 +1218,11 @@
           "offset": {
             "type": "integer",
             "description": "Character offset to continue from (the previous call's offset + text length)."
+          },
+          "find": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Words to look for; returns only the passages around them (up to 20), not the whole page. Separate alternatives with ' | '."
           }
         },
         "required": [

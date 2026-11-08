@@ -5,6 +5,7 @@ import type { ServerResponse } from "node:http";
 import type { json as sendJson } from "../harness/http.ts";
 import { redactSecretsInText } from "../redact.ts";
 import { fetchPublicPage, PAGE_MAX_BYTES, PAGE_TIMEOUT_MS, pageText } from "../wait-probes.ts";
+import { embeddedPageData, jsonDataText, postingDataUrl } from "./page-data.ts";
 import { PASS } from "./table.ts";
 
 export interface WebFetchContext {
@@ -129,6 +130,10 @@ function browserNext(need: BrowserNeed): string {
   return `${BROWSER_NEXT[need]} Open it in the built-in browser (browser_navigate, then browser_snapshot)${need === "sign-in" ? "; the person may need to sign in there" : ""}. Do not call web_fetch on it again. With no browser this turn, say that this page needs the browser; use a desktop only when no browser can open it.`;
 }
 
+function postingJson(body: string): string {
+  try { return jsonDataText(JSON.parse(body)); } catch { return ""; }
+}
+
 export function createWebFetchRoutes(deps?: WebFetchDeps) {
   const fetchPage = deps?.fetchPage ?? fetchPublicPage;
 
@@ -149,6 +154,13 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
         return void ctx.json(ctx.res, 400, { error: "offset must be a non-negative integer." });
       }
       offset = body.offset as number;
+    }
+    let find: string | undefined;
+    if (body.find !== undefined) {
+      if (typeof body.find !== "string" || body.find.length < 2 || body.find.length > 200) {
+        return void ctx.json(ctx.res, 400, { error: "find must be 2 to 200 characters." });
+      }
+      find = body.find;
     }
 
     const requested = URL.canParse(body.url.trim()) ? new URL(body.url.trim()) : undefined;
@@ -173,8 +185,18 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
       const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);
       if (titleMatch) title = cleanXmlText(titleMatch[1]) || undefined;
       text = pageText(decoded);
+      const thin = text.length < 1500;
+      const postingApi = thin ? postingDataUrl(page.url) : undefined;
+      const posting = postingApi ? await fetchPage(postingApi, { maxBytes: PAGE_MAX_BYTES, timeoutMs: PAGE_TIMEOUT_MS }) : undefined;
+      const postingData = posting?.ok ? postingJson(posting.body.toString("utf8")) : "";
+      const data = [postingData && `Posting data (${postingApi}):\n${postingData}`, embeddedPageData(decoded, { appState: thin && !postingData })].filter(Boolean).join("\n\n");
       const need = requested ? browserNeed({ requested, url: page.url, html: decoded, text }) : undefined;
-      if (need) return void ctx.json(ctx.res, 200, { url: page.url.href, ...(title !== undefined ? { title: redactSecretsInText(title) } : {}), needsBrowser: need, next: browserNext(need) });
+      if (need && (need !== "script" || !data)) {
+        return void ctx.json(ctx.res, 200, { url: page.url.href, ...(title !== undefined ? { title: redactSecretsInText(title) } : {}), needsBrowser: need, next: browserNext(need) });
+      }
+      if (data) {
+        text = thin ? (text ? `${data}\n\n${text}` : data) : `${text}\n\n${data}`;
+      }
     } else if (isFeedOrXml) {
       const feedLines = parseFeedItems(decoded);
       const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);
@@ -194,6 +216,61 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
     }
 
     const total = text.length;
+    if (find !== undefined) {
+      const lowerText = text.toLowerCase();
+      const terms = Array.from(
+        new Set(
+          find
+            .split(" | ")
+            .map((t) => t.trim().toLowerCase())
+            .filter((t) => t.length > 0),
+        ),
+      );
+      const hits: Array<{ start: number; end: number }> = [];
+      for (const term of terms) {
+        let pos = offset;
+        while (pos < lowerText.length) {
+          const idx = lowerText.indexOf(term, pos);
+          if (idx === -1) break;
+          hits.push({ start: idx, end: idx + term.length });
+          pos = idx + Math.max(1, term.length);
+        }
+      }
+      hits.sort((a, b) => a.start - b.start || a.end - b.end);
+
+      const windows: Array<{ start: number; end: number }> = [];
+      for (const hit of hits) {
+        const winStart = Math.max(0, hit.start - 300);
+        const winEnd = Math.min(total, hit.end + 500);
+        if (windows.length === 0) {
+          windows.push({ start: winStart, end: winEnd });
+          continue;
+        }
+        const last = windows[windows.length - 1];
+        if (winStart <= last.end) {
+          last.end = Math.max(last.end, winEnd);
+        } else {
+          windows.push({ start: winStart, end: winEnd });
+        }
+      }
+
+      const more = hits.length > 20 || windows.length > 20;
+      const matches = windows.slice(0, 20).map((w) => ({
+        offset: w.start,
+        text: text.slice(w.start, w.end),
+      }));
+
+      return void ctx.json(ctx.res, 200, {
+        url: page.url.href,
+        ...(title !== undefined ? { title } : {}),
+        contentType: contentTypeHeader || (isHtml ? "text/html" : "text/plain"),
+        total,
+        find,
+        matches,
+        more,
+      });
+    }
+
     const slice = text.slice(offset, offset + 12000);
     const more = offset + slice.length < total;
 
