@@ -17,12 +17,12 @@ const waits = {
 
 const readBody = vi.fn(async (): Promise<unknown> => undefined);
 
-async function call(method: string, path: string, body?: unknown, overrides: Partial<Parameters<ReturnType<typeof createWaitRoutes>>[0]> = {}, cloudHome = false, sleeps = cloudHome) {
-  const route = createWaitRoutes({ waits, home: () => HOME, cloudHome, sleeps });
+async function call(method: string, path: string, body?: unknown, overrides: Partial<Parameters<ReturnType<typeof createWaitRoutes>>[0]> = {}) {
+  const route = createWaitRoutes({ waits, home: () => HOME });
   const json = vi.fn();
   const outcome = await route({
     method, path, res: {} as never, json, botId: "bot-1", threadId: "thread-1", readBody: async () => { readBody(); return body; },
-    sourceRefusal: () => null, hostRefusal: () => null, guest: () => false, peer: () => null, ...overrides,
+    sourceRefusal: () => null, hostRefusal: () => null, peer: () => null, ...overrides,
   });
   const [, status, payload] = json.mock.calls[0] ?? [];
   return { outcome, status: status as number | undefined, payload: payload as { text?: string; error?: string } };
@@ -46,19 +46,10 @@ describe("the waits route", () => {
     expect(payload.text).toContain("you will then do what you wrote in follow_up");
     expect(payload.text).toContain("plain checks, no AI, until 1970-01-01T00:00:00.000Z");
   });
-  it("says on a Cloud home that a sleeping My Cloud wakes to check every 30 minutes, and that the follow-up reports in its own results chat", async () => {
+  it("says the follow-up lands in this chat", async () => {
     const here = (await call("POST", "/api/internal/waits", { ...FILE_WAIT, follow_up: "Deploy it." })).payload.text!;
     expect(here).toContain("lands in this chat, and you will then do what you wrote in follow_up. Tell the person");
     expect(here).not.toContain("My Cloud");
-    const cloud = (await call("POST", "/api/internal/waits", { ...FILE_WAIT, follow_up: "Deploy it." }, {}, true)).payload.text!;
-    expect(cloud).toContain("lands in this chat, and you will then do what you wrote in follow_up in a run that reports in its own results chat, not this one.");
-    expect(cloud).toContain(" While My Cloud sleeps it wakes to check every 30 minutes, so the message can come up to 30 minutes late: tell the person that too. Tell the person in one sentence;");
-    expect((await call("POST", "/api/internal/waits", FILE_WAIT, {}, true)).payload.text).toContain("lands in this chat. While My Cloud sleeps it wakes to check every 30 minutes");
-  });
-  it("never says a Team Cloud sleeps: its plan never does", async () => {
-    const team = (await call("POST", "/api/internal/waits", { ...FILE_WAIT, follow_up: "Deploy it." }, {}, true, false)).payload.text!;
-    expect(team).toContain("in a run that reports in its own results chat, not this one.");
-    expect(team).not.toContain("sleeps");
   });
   it("answers 200 for a condition already true and the manager's status for a refusal, and appends a note", async () => {
     waits.create.mockResolvedValueOnce({ state: "already", text: "It exists already." } as never);
@@ -76,16 +67,6 @@ describe("the waits route", () => {
     expect(waits.create).not.toHaveBeenCalled();
     expect(waits.cancel).not.toHaveBeenCalled();
     expect(readBody).not.toHaveBeenCalled();
-  });
-  it("refuses a Cloud guest's follow-up, since it would run as the owner's, and still makes a guest's wait that only tells", async () => {
-    waits.create.mockClear();
-    const guest = { guest: () => true };
-    const page = { label: "the price drops", kind: "url_contains", url: "https://x.test/", text: "sale" };
-    expect(await call("POST", "/api/internal/waits", { ...page, follow_up: "Buy it." }, guest)).toMatchObject({ status: 403, payload: { error: WAIT_MESSAGES.guestFollowUp } });
-    expect(waits.create).not.toHaveBeenCalled();
-    expect(await call("POST", "/api/internal/waits", page, guest)).toMatchObject({ status: 201 });
-    expect(waits.create).toHaveBeenCalledWith(expect.not.objectContaining({ followUp: expect.anything() }));
-    expect(await call("POST", "/api/internal/waits", { ...page, follow_up: "Buy it." })).toMatchObject({ status: 201 });
   });
   it("refuses file and program waits away from the bot's own computer, and allows pages and bots there", async () => {
     const away = { hostRefusal: () => WAIT_MESSAGES.otherComputer, peer: () => ({ id: "b2", name: "Coder" }) };
@@ -177,9 +158,8 @@ describe("the waits route", () => {
     expect(await call("POST", "/api/internal/waits", { ...FILE_WAIT, label: "a\nb" })).toMatchObject({ status: 400, payload: { error: "label must be a single line of plain text." } });
   });
   it("lets only a person's own one-to-one turn make a wait", () => {
-    const person = { owned: true, room: false, depth: 0, handedOff: false, routineRun: false, outsideDriven: false, personStarted: true, guest: false };
+    const person = { owned: true, room: false, depth: 0, handedOff: false, routineRun: false, outsideDriven: false, personStarted: true };
     expect(waitSourceRefusal(person)).toBeNull();
-    expect(waitSourceRefusal({ ...person, personStarted: false, guest: true })).toBeNull();
     expect(waitSourceRefusal({ ...person, owned: false })).toBe(WAIT_MESSAGES.notYours);
     expect(waitSourceRefusal({ ...person, room: true })).toBe(WAIT_MESSAGES.room);
     for (const other of [{ depth: 1 }, { handedOff: true }, { routineRun: true }, { outsideDriven: true }, { personStarted: false }]) {
@@ -187,10 +167,7 @@ describe("the waits route", () => {
     }
   });
   it("offers files and programs only on the bot's own computer", () => {
-    const own = { cloudHome: false, hosted: false, guest: false, place: null };
-    for (const place of [null, "local", "browser"] as const) expect(hostWaitRefusal({ ...own, place })).toBeNull();
-    for (const place of ["vm", "cloud"] as const) expect(hostWaitRefusal({ ...own, place })).toBe(WAIT_MESSAGES.otherComputer);
-    expect([hostWaitRefusal({ ...own, cloudHome: true }), hostWaitRefusal({ ...own, hosted: true }), hostWaitRefusal({ ...own, guest: true })])
-      .toEqual([WAIT_MESSAGES.serverHost, WAIT_MESSAGES.serverHost, WAIT_MESSAGES.guest]);
+    for (const place of [null, "local", "browser"] as const) expect(hostWaitRefusal(place)).toBeNull();
+    for (const place of ["vm", "cloud"] as const) expect(hostWaitRefusal(place)).toBe(WAIT_MESSAGES.otherComputer);
   });
 });
