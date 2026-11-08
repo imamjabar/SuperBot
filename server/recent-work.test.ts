@@ -98,13 +98,15 @@ describe("recentWorkLines + recentWorkPrompt", () => {
 });
 
 describe("turnOutcomeLine", () => {
-  it("notes what was said and the tools used; a failed turn says so; a silent fine turn leaves nothing", () => {
-    expect(turnOutcomeLine({ ok: true, reply: "Done.\n\nSent 3 invoices.", tools: ["Bash", "Bash", "browser_click"] }))
+  it("notes what was said and the tools used; a failed turn is noted only once it acted outside the chat", () => {
+    expect(turnOutcomeLine({ ok: true, reply: "Done.\n\nSent 3 invoices.", tools: ["Bash", "Bash", "browser_click"], outward: [] }))
       .toBe("Done. Sent 3 invoices. [tools: Bash, browser_click]");
-    expect(turnOutcomeLine({ ok: false, reply: null, stopReason: "provider exited", tools: [] }))
-      .toBe("(turn failed: provider exited) no reply");
-    expect(turnOutcomeLine({ ok: true, reply: "", tools: [] })).toBeNull();
-    expect(turnOutcomeLine({ ok: true, reply: "x".repeat(500), tools: [] })!.length).toBeLessThanOrEqual(240);
+    expect(turnOutcomeLine({ ok: false, reply: null, stopReason: "provider exited", tools: ["Bash"], outward: [] })).toBeNull();
+    expect(turnOutcomeLine({ ok: false, reply: "Half way", stopReason: "provider exited", tools: ["Bash"], outward: [] })).toBeNull();
+    expect(turnOutcomeLine({ ok: false, reply: null, stopReason: "provider exited", tools: ["Bash", "GMAIL_SEND_EMAIL"], outward: ["GMAIL_SEND_EMAIL", "git push"] }))
+      .toBe("(turn failed: provider exited after: GMAIL_SEND_EMAIL, git push) no reply [tools: Bash, GMAIL_SEND_EMAIL]");
+    expect(turnOutcomeLine({ ok: true, reply: "", tools: [], outward: [] })).toBeNull();
+    expect(turnOutcomeLine({ ok: true, reply: "x".repeat(500), tools: [], outward: [] })!.length).toBeLessThanOrEqual(240);
   });
 });
 

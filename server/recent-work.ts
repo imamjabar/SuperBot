@@ -113,11 +113,13 @@ export function recentWorkPrompt(lines: readonly RecentWorkLine[], now = Date.no
   return text;
 }
 
-export function turnOutcomeLine(input: { ok: boolean; reply?: string | null; stopReason?: string | null; tools: readonly string[] }): string | null {
+/** A failed turn leaves a line only when it already acted outside the chat (`outward`, from `outwardActions`): that is
+ * worth remembering, a crash or a timeout is not. */
+export function turnOutcomeLine(input: { ok: boolean; reply?: string | null; stopReason?: string | null; tools: readonly string[]; outward: readonly string[] }): string | null {
   const head = input.reply ? fold(input.reply, OUTCOME_CHARS) : "";
-  if (!head && input.ok) return null;
+  if (input.ok ? !head : !input.outward.length) return null;
   const tools = [...new Set(input.tools)].filter(Boolean).slice(0, 6);
-  const status = input.ok ? "" : `(turn failed${input.stopReason ? `: ${fold(input.stopReason, 80)}` : ""}) `;
+  const status = input.ok ? "" : `(turn failed${input.stopReason ? `: ${fold(input.stopReason, 80)}` : ""} after: ${input.outward.slice(0, 4).join(", ")}) `;
   return `${status}${head || "no reply"}${tools.length ? ` [tools: ${tools.join(", ")}]` : ""}`;
 }
 
