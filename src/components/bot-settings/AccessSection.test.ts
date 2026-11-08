@@ -208,11 +208,8 @@ describe("AccessSection Works on", () => {
     ]);
   });
 
-  it("hides the Boat or VPS choice on My Cloud, whose cloud computers are the plan's", () => {
+  it("shows the Boat or VPS choice for a bot on the default computer", () => {
     expect(render(makeBot())).toContain("Cloud backend");
-    fixture.config = { cloudHome: true } as Partial<ConfigStatus>;
-    expect(render(makeBot())).not.toContain("Cloud backend");
-    expect(render(makeBot({ computer: "cloud" }))).not.toContain("Boat");
   });
 });
 

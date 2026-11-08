@@ -8,7 +8,6 @@ import { parseToolScope, toolScopeWidens } from "../../shared/tool-scope.ts";
 import { isMausColor, MAUS_COLOR_NAMES, type WireBot, type WireGroup } from "../../shared/wire.ts";
 import { validateBotCwd } from "../bot-cwd.ts";
 import { parseBotProfilePatch } from "../bot-profile.ts";
-import { accessFromVisibility } from "../../shared/bot-access.ts";
 import { parseVisibility } from "../bot-visibility.ts";
 import type { BrowserLive } from "../browser-live.ts";
 import type { BrowserRuntime } from "../browser-runtime.ts";
@@ -49,9 +48,6 @@ export interface BotPatchRouteDeps {
   supportsApprovalMode: ReturnType<typeof createApprovalModeSupport>;
   routines(): RoutineManager | null;
   activeVpsThreads: { has(botId: string): boolean };
-  /** Full access comes only from the workspace policy. */
-  hostedWorkspace: boolean;
-  hostedFullAccessRefusal: string;
   desktopManaged: boolean;
   maxWorkspaceBots: number;
   broadcast(payload: Record<string, unknown>): void;
@@ -74,8 +70,6 @@ export interface BotPatchRouteDeps {
   forgetTemporaryBrowser(botId: string): Promise<void>;
   /** What this session may do with the bot: off a Team Cloud a member chats with every bot they see. */
   levelOf(auth: RequestAuth, botId: string): "none" | "view" | "chat" | "edit";
-  /** A Team Cloud, where a bot's sharing follows its visibility. */
-  team: boolean;
   /** The bot's conversations the main-thread resolver may pick: a Team Cloud keeps only team-visible ones. */
   mainThreadTasks(botId: string): readonly TaskRecord[];
 }
@@ -83,7 +77,7 @@ export interface BotPatchRouteDeps {
 export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
   const {
     store, cfg, registry, sessions, browserRuntime, browserLive, memoryUpkeep, cacheKeepWarm, hostedModels, supportsApprovalMode, activeVpsThreads,
-    hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, desktopManaged: DESKTOP_MANAGED, maxWorkspaceBots: MAX_WORKSPACE_BOTS,
+    desktopManaged: DESKTOP_MANAGED, maxWorkspaceBots: MAX_WORKSPACE_BOTS,
     broadcast, wireBot, publicGroupState, audienceChanged, storedAvatarExists, requestedTaskBot, threadBusy, activeGroupTurnForBot,
     checkedModelSelection, engineSwitchNeedsAsk, currentBrowserSession, interruptAllDirectThreads, cancelGroupTurnOperations,
     revokeInternalCapabilitiesForThread, runningTurnInstance, closeOpenApprovals, assertTeamComputerChangeIdle, forgetTemporaryBrowser,
@@ -499,10 +493,6 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
           error: "This approval-level change can only be made from the packaged desktop app",
         });
       }
-      if (HOSTED_WORKSPACE && requestedApprovalMode === "full" &&
-        (currentApprovalMode !== "full" || body.applyToAllThreads === true)) {
-        return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
-      }
       if (body.applyToAllThreads !== undefined) {
         if (typeof body.applyToAllThreads !== "boolean") return json(res, 400, { error: "applyToAllThreads must be true or false" });
         if (body.applyToAllThreads && (body.approvalMode === undefined || requestedApprovalMode === "custom")) {
@@ -584,7 +574,6 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
         const parsed = parseVisibility(body.visibility);
         if (!parsed.ok) return json(res, 400, { error: parsed.error });
         patch.visibility = parsed.visibility;
-        if (deps.team) patch.access = accessFromVisibility(parsed.visibility);
       }
       if (body.alwaysAllow !== undefined) {
         if (!Array.isArray(body.alwaysAllow) || body.alwaysAllow.some((t: unknown) => typeof t !== "string")) {

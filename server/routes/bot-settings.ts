@@ -27,16 +27,11 @@ export interface BotSettingsRouteDeps {
   registry: Pick<ProviderRegistry, "get">;
   commandAllowlist: Pick<CommandAllowlistStore, "add" | "remove">;
   commandAllowlistDrivers: ReadonlySet<string>;
-  cloudHome: boolean;
-  cloudOwnerProfileFields: readonly ("name" | "title" | "description" | "soul" | "notifications")[];
   hostedModels: ReturnType<typeof hostedModelPolicy>;
   supportsApprovalMode: ReturnType<typeof createApprovalModeSupport>;
   directTurnBots: { get(threadId: string): BotRecord | undefined };
   broadcast(payload: Record<string, unknown>): void;
   wireBot(bot: BotRecord): WireBot;
-  cloudOwnerSession(auth: RequestAuth): boolean;
-  /** On a Team Cloud a member who can edit the bot changes its profile as its owner would. */
-  levelOf?(auth: RequestAuth, botId: string): string;
   storedAvatarExists(avatarUrl: string): boolean;
   requestedTaskBot(botId: string, rawThreadId: unknown): BotRecord;
   threadBusy(botId: string, threadId: string): boolean;
@@ -47,15 +42,13 @@ export interface BotSettingsRouteDeps {
   canManageCommandAllowlist(auth: RequestAuth): boolean;
   commandAllowlistResponse(bot: BotRecord): CommandAllowlistResponse;
   cardAnswerRefusal(auth: RequestAuth, threadId: string, requestId: string, behavior: string): string | null;
-  /** A person opened this conversation (a Team Cloud's Needs you lines for them there are done). */
-  threadRead?(auth: RequestAuth, threadId: string): void;
 }
 
 export function createBotSettingsRoutes(deps: BotSettingsRouteDeps): RouteHandler {
   const {
     store, cfg, registry, commandAllowlist,
-    commandAllowlistDrivers: COMMAND_ALLOWLIST_DRIVERS, cloudHome: CLOUD_HOME, cloudOwnerProfileFields: CLOUD_OWNER_PROFILE_FIELDS,
-    hostedModels, supportsApprovalMode, directTurnBots, broadcast, wireBot, cloudOwnerSession, storedAvatarExists,
+    commandAllowlistDrivers: COMMAND_ALLOWLIST_DRIVERS,
+    hostedModels, supportsApprovalMode, directTurnBots, broadcast, wireBot, storedAvatarExists,
     requestedTaskBot, threadBusy, activeGroupTurnForBot, checkedModelSelection, engineSwitchNeedsAsk, readCursor,
     canManageCommandAllowlist, commandAllowlistResponse, cardAnswerRefusal,
   } = deps;
@@ -102,13 +95,6 @@ export function createBotSettingsRoutes(deps: BotSettingsRouteDeps): RouteHandle
         return json(res, 400, { error: "avatarUrl must reference an existing stored image" });
       }
       const existingBot = store.bot(m[1]);
-      // On a Cloud home these fields ride every owner turn: only the owner's own devices change them.
-      if (CLOUD_HOME && existingBot && !cloudOwnerSession(auth) && deps.levelOf?.(auth, existingBot.id) !== "edit") {
-        const changed = CLOUD_OWNER_PROFILE_FIELDS.find((field) => parsed.patch[field] !== undefined && (field === "notifications"
-          ? (parsed.patch.notifications !== false) !== (existingBot.notifications !== false)
-          : parsed.patch[field] !== (existingBot[field] ?? "")));
-        if (changed) return json(res, 403, { error: "On this Cloud only its owner can change a bot's name, title, description, instructions or notifications." });
-      }
       const beforeProfile = existingBot ? profileSnapshot(existingBot) : undefined;
       const bot = store.patchBotProfile(m[1], parsed.patch);
       if (!bot) return json(res, 404, { error: "no such bot" });
@@ -164,7 +150,6 @@ export function createBotSettingsRoutes(deps: BotSettingsRouteDeps): RouteHandle
       requirePinnedClientThread(m[1], body?.threadId);
       const current = requestedTaskBot(m[1], body?.threadId);
       sawThread(current.threadId);
-      deps.threadRead?.(auth, current.threadId);
       const task = store.taskByThread(current.id, current.threadId), cursor = readCursor(current.threadId);
       const changed = Boolean(task?.unread) || (cursor.lastReadMessageId !== undefined && task?.lastReadMessageId !== cursor.lastReadMessageId);
       if (changed) store.patchTask(current.id, current.threadId, { unread: false, ...cursor });

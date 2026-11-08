@@ -27,7 +27,6 @@ async function serve(store: Store, options: { busy?: Set<string>; owner?: boolea
     bot: (id) => store.bot(id),
     busy: (_botId, threadId) => options.busy?.has(threadId) ?? false,
     follow: (botId, threadIds) => store.followBotModel(botId, threadIds),
-    mayChangeModel: () => options.owner !== false,
     reply: (botId) => ({ id: botId, tasks: store.tasks(botId).map((task) => ({ threadId: task.threadId, modelSelection: task.modelSelection })) }),
   })];
   const server = createServer(async (req, res) => {

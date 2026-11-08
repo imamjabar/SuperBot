@@ -17,7 +17,6 @@ vi.mock("@/state/store", async (importOriginal) => {
         config: {
           tts: { configured: true, ready: true, voice: "v" },
           live: { configured: fixture.liveConfigured, voice: "marin", readTypedReplies: true, idleMinutes: 5 },
-          cloudHome: fixture.cloudHome,
         } as AppState["config"],
       },
       dispatch: vi.fn(),
@@ -73,7 +72,6 @@ function pressPhone(onStart: (mode: CallMode) => void) {
 beforeEach(() => {
   fixture.liveConfigured = true;
   fixture.liveCall = null;
-  fixture.cloudHome = false;
   vi.stubGlobal("window", { ogb: { speechStart: vi.fn(), speechStop: vi.fn(async () => {}) } });
   configureLiveMedia({ getUserMedia: () => new Promise<MediaStream>(() => {}) });
 });
@@ -149,19 +147,16 @@ describe("the call button", () => {
       ["allowed", "Allow microphone access for this app in your computer's privacy settings"],
       ["refused", "Open it in your web browser to make the Live call."],
     ] as const) {
-      for (const cloudHome of [true, false]) {
-        resetLiveMedia();
-        fixture.cloudHome = cloudHome;
-        configureLiveMedia({
-          getUserMedia: async () => { throw new DOMException("denied", "NotAllowedError"); },
-          capabilities: () => ({ dictation: { available: false, engine: "none", onDevice: false, reasonCode: "remote-server" } }) as DesktopCapabilities,
-          pageMicrophone: async () => pageMic,
-        });
-        setCallMode("live");
-        pressPhone(vi.fn());
-        await vi.waitFor(() => expect(liveMedia().phase).toBe("failed"));
-        expect(liveMedia().notice, `${pageMic} cloudHome=${cloudHome}`).toContain(notice);
-      }
+      resetLiveMedia();
+      configureLiveMedia({
+        getUserMedia: async () => { throw new DOMException("denied", "NotAllowedError"); },
+        capabilities: () => ({ dictation: { available: false, engine: "none", onDevice: false, reasonCode: "remote-server" } }) as DesktopCapabilities,
+        pageMicrophone: async () => pageMic,
+      });
+      setCallMode("live");
+      pressPhone(vi.fn());
+      await vi.waitFor(() => expect(liveMedia().phase).toBe("failed"));
+      expect(liveMedia().notice, pageMic).toContain(notice);
     }
   });
 

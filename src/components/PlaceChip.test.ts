@@ -4,7 +4,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import type { Bot, InstanceInfo } from "@/state/store";
 
 vi.stubGlobal("window", {});
-const fixture = vi.hoisted(() => ({ config: null as unknown, menuOpen: false, computerMcp: true }));
+const fixture = vi.hoisted(() => ({ menuOpen: false, computerMcp: true }));
 // Static markup never runs the click that opens the menu; this renders it open.
 vi.mock("./MenuMotion", async (importOriginal) => ({
   ...await importOriginal<typeof import("./MenuMotion")>(),
@@ -17,7 +17,6 @@ vi.mock("@/state/store", async (importOriginal) => {
     useStore: () => ({
       state: {
         ...original.initialState,
-        config: fixture.config ?? original.initialState.config,
         instances: [{
           instanceId: "test",
           driverKind: "grokAgent",
@@ -144,15 +143,9 @@ describe("the places a conversation can be pinned to", () => {
     renderToStaticMarkup(createElement(Probe));
     return seen!;
   };
-  afterEach(() => { fixture.config = null; });
 
   it("reaches this computer and a Local VM on a desktop or self-hosted server", () => {
     expect(availability()).toMatchObject({ cloud: true, vm: true, local: true });
-  });
-
-  it("never reaches them on an OMB Cloud home", () => {
-    fixture.config = { cloudHome: true };
-    expect(availability()).toMatchObject({ cloud: true, vm: false, local: false });
   });
 });
 

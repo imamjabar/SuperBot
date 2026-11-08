@@ -1,4 +1,5 @@
 import type { Action } from "@/state/store";
+import type { LocaleKey } from "@/locales";
 import { readMembership } from "./membership";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "./session";
 

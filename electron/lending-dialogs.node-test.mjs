@@ -27,35 +27,12 @@ test("a picked folder is checked and lent read only; a cancelled picker lends no
   assert.equal(await createLendingDialogs({ dialog: empty.dialog, window: () => win, validate }).chooseFolder("Choose"), null);
   assert.equal(checked.length, 0);
   const picked = fakeDialog({ picked: { canceled: false, filePaths: ["/Users/me/Plans"] } });
-  const folder = await createLendingDialogs({ dialog: picked.dialog, window: () => win, validate }).chooseFolder("Choose a folder My Cloud can use");
-  assert.deepEqual(picked.calls, [["open", win, { title: "Choose a folder My Cloud can use", properties: ["openDirectory"] }]]);
+  const folder = await createLendingDialogs({ dialog: picked.dialog, window: () => win, validate }).chooseFolder("Choose a folder a server can use");
+  assert.deepEqual(picked.calls, [["open", win, { title: "Choose a folder a server can use", properties: ["openDirectory"] }]]);
   assert.equal(checked.length, 1);
   assert.equal(checked[0][0].path, "/Users/me/Plans");
   assert.equal(checked[0][0].write, false);
   assert.deepEqual({ path: folder.path, name: folder.name, write: folder.write }, { path: "/Users/me/Plans", name: "Plans", write: false });
-});
-
-test("the terminal is lent only after its warning's own yes, one question at a time; turning it off never asks", async () => {
-  for (const [response, lent] of [[0, true], [1, false], [-1, false]]) {
-    const { dialog, calls } = fakeDialog({ response });
-    let lends = 0;
-    await createLendingDialogs({ dialog, window: liveWindow, validate: named }).lendTerminal(true, async () => { lends += 1; });
-    assert.equal(lends, lent ? 1 : 0, `response ${response}`);
-    assert.equal(calls[0][1].defaultId, 1, "Cancel is the default");
-  }
-  let answer;
-  const slow = { showMessageBox: () => new Promise(resolve => { answer = resolve; }) };
-  const dialogs = createLendingDialogs({ dialog: slow, window: liveWindow, validate: named });
-  let lends = 0;
-  const first = dialogs.lendTerminal(true, async () => { lends += 1; });
-  await dialogs.lendTerminal(true, async () => { lends += 1; });
-  answer({ response: 0 });
-  await first;
-  assert.equal(lends, 1, "a second click while the question is open lends nothing more");
-  const off = fakeDialog();
-  let stopped = 0;
-  await createLendingDialogs({ dialog: off.dialog, window: liveWindow, validate: named }).lendTerminal(false, async () => { stopped += 1; });
-  assert.deepEqual([stopped, off.calls.length], [1, 0]);
 });
 
 test("the whole home folder is lent only after its own warning, and is named in the access dialog", async () => {
@@ -119,7 +96,7 @@ function mainSharing({ response }) {
     sharingController: () => ({ identity: async () => ({ id: "info" }), save: async (env, grant, info) => { saved.push([env.id, grant, info]); } }),
   });
   vm.runInContext(mainSection("const lendingDialogs = createLendingDialogs(", 'ipcMain.handle("sharing:revoke"')
-    + mainSection('ipcMain.handle("sharing:save"', "const cloudSync = installCloudFiles("), context);
+    + mainSection('ipcMain.handle("sharing:save"', "// window.confirm() has no parent window"), context);
   return { handlers, saved, calls };
 }
 

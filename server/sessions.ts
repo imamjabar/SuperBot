@@ -163,7 +163,6 @@ function publicSession(record: SessionRecord): PublicSession {
   };
   if (record.email) view.email = record.email;
   if (record.owner) view.owner = record.owner;
-  if (record.teamRole) view.teamRole = record.teamRole;
   return view;
 }
 
@@ -317,7 +316,6 @@ export class SessionRegistry {
       createdAt: now,
       expiresAt: now + (input.ttlMs ?? PAIRING_CODE_TTL_MS),
       ...(input.browser ? { browser: true as const, ...(input.owner ? { owner: input.owner } : {}) } : {}),
-      ...(input.member ? { member: input.member, ...(input.memberCheckedAt !== undefined ? { memberCheckedAt: input.memberCheckedAt } : {}) } : {}),
     };
     this.pairings.push(pairing);
     return { id: pairing.id, code, credential, expiresAt: pairing.expiresAt };

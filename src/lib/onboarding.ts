@@ -1,4 +1,4 @@
-import { ONBOARDING_CLOUD_HINT, WELCOME_VERSION } from "../../electron/onboarding-record.mjs";
+import { WELCOME_VERSION } from "../../electron/onboarding-record.mjs";
 import { freeFallback, rankAis, type AiTestState, type RankableAi } from "../../shared/ai-ranking";
 
 export interface OnboardingStatus {
@@ -9,7 +9,7 @@ export interface OnboardingStatus {
   firstTurnAt?: string;
 }
 
-export { ONBOARDING_CLOUD_HINT, WELCOME_VERSION };
+export { WELCOME_VERSION };
 
 export const EMPTY_ONBOARDING: OnboardingStatus = {
   completedAt: "",
@@ -19,37 +19,26 @@ export const EMPTY_ONBOARDING: OnboardingStatus = {
 };
 
 export interface WelcomeViewer {
-  hosted: boolean;
   canSave: boolean;
-  cloudHome?: boolean;
 }
 
-export const LOCAL_VIEWER: WelcomeViewer = { hosted: false, canSave: true };
-
-export function hostedMember(viewer: WelcomeViewer | null): boolean {
-  return Boolean(viewer?.hosted && !viewer.canSave);
-}
+export const LOCAL_VIEWER: WelcomeViewer = { canSave: true };
 
 export function spotlightsQuiet(viewer: WelcomeViewer | null): boolean {
-  return viewer === null || hostedMember(viewer);
+  return viewer === null;
 }
 
 export function welcomeViewer(session: unknown): WelcomeViewer {
-  const record = session && typeof session === "object" ? (session as { hosted?: unknown; scopes?: unknown; cloudHome?: unknown }) : {};
-  return {
-    hosted: record.hosted === true,
-    canSave: Array.isArray(record.scopes) ? record.scopes.includes("admin") : true,
-    ...(record.cloudHome === true ? { cloudHome: true } : {}),
-  };
+  const record = session && typeof session === "object" ? (session as { scopes?: unknown }) : {};
+  return { canSave: Array.isArray(record.scopes) ? record.scopes.includes("admin") : true };
 }
 
 export function welcomeDue(
   config: { onboarding?: OnboardingStatus } | null | undefined,
-  options: { remoteClient: boolean; legacyDone: boolean; hosted?: boolean; canSave?: boolean; cloudHome?: boolean },
+  options: { remoteClient: boolean; legacyDone: boolean; canSave?: boolean },
 ): boolean {
-  if (options.remoteClient || options.cloudHome) return false;
+  if (options.remoteClient) return false;
   if (options.canSave === false) return false;
-  if (options.hosted && options.canSave !== true) return false;
   if (!config) return false;
   const record = config.onboarding ?? EMPTY_ONBOARDING;
   if (record.completedAt && record.version >= WELCOME_VERSION) return false;
@@ -92,35 +81,14 @@ export type BeatId = "meet" | "chief";
 /** Every screen the first run can show, in the order it shows them. */
 export const BEAT_ORDER: readonly BeatId[] = ["meet", "chief"];
 
-/** Two screens, then the chat: meeting the app (and connecting an AI when none works), then the Chief of Staff. A hosted
- * place's admin only meets the app: their team's bots and Chief are already set up. */
-export function beatsFor(options: { hosted?: boolean }): BeatId[] {
-  return options.hosted ? ["meet"] : ["meet", "chief"];
-}
-
 /** Where a reloaded first run opens: the saved screen while it is offered, else the first. */
 export function resumeBeat(beats: readonly BeatId[], saved: BeatId | undefined): BeatId {
   return saved && beats.includes(saved) ? saved : beats[0] ?? "meet";
 }
 
-export function onboardingCloudOffered(record: OnboardingStatus | undefined): boolean {
-  return hintSeen(record, ONBOARDING_CLOUD_HINT);
-}
-
-let welcomeShown = 0;
-/** The welcome flow is on screen (WelcomeFlow, until it closes): a Cloud sheet over it never switches the window away. */
-export function showWelcome(): () => void {
-  welcomeShown++;
-  let gone = false;
-  return () => { if (!gone) { gone = true; welcomeShown--; } };
-}
-export function welcomeOnScreen(): boolean {
-  return welcomeShown > 0;
-}
-
 const WELCOME_FINISHED_KEY = "omb.onboarding.welcomeFinished";
-/** The first-run welcome ended in this app session (never a replay): the full-screen Cloud Pro popup waits for a later
- * launch rather than following it. Kept for the window's session, so a reload counts as the same launch. */
+/** The first-run welcome ended in this app session (never a replay): the product-updates and MausBot notices wait for a
+ * later launch rather than following it. Kept for the window's session, so a reload counts as the same launch. */
 // Where browser storage is blocked, this page's memory stands in for it.
 let welcomeFinishedRemembered = false;
 export function markWelcomeFinished(): void {
@@ -142,9 +110,8 @@ export const DEFAULT_ADMIN_ORIGIN = "https://admin.openmausbot.com";
 
 export function organisationSignIn<Bridge>(
   ogb: { organization?: Bridge; remoteClient?: { active?: boolean } } | undefined,
-  options: { hosted: boolean },
 ): Bridge | undefined {
-  if (options.hosted || !ogb || ogb.remoteClient?.active === true) return undefined;
+  if (!ogb || ogb.remoteClient?.active === true) return undefined;
   return ogb.organization;
 }
 
@@ -201,15 +168,6 @@ export function plainSignIn(instance: SignInStep): boolean {
     ? Boolean(instance.authentication)
     : Boolean(instance.install?.server || instance.install?.managed);
 }
-
-export function cloudSignInDue<Instance>(
-  viewer: WelcomeViewer | null,
-  state: { connected: boolean; instances: readonly Instance[] },
-  ready: (instance: Instance) => boolean,
-): boolean {
-  return Boolean(viewer?.cloudHome && viewer.canSave) && state.connected && state.instances.length > 0 && !state.instances.some(ready);
-}
-
 
 export function reducedMotion(): boolean {
   if (typeof document !== "undefined" && document.documentElement.dataset.reducedMotion === "true") return true;

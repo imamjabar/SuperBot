@@ -16,7 +16,7 @@ export function createSharedComputerRoutes(deps: {
   sessionLive: (id: string) => boolean;
   environmentId: string;
   /** On a Cloud home every lent computer is the owner's, under this one name. */
-  cloudHomeLender: string | null;
+  cloudHomeLender?: string | null;
   principal: (auth: RequestAuth) => string | null;
   personKey: (session: Pick<SessionRecord, "id" | "email">) => string;
   /** A Cloud home's device links (a lent computer's internet connection); null elsewhere, where the path 404s. */
@@ -41,7 +41,7 @@ export function createSharedComputerRoutes(deps: {
       const computer = deps.computers.linkable(link[1]!, auth.session.id, String(req.headers["x-omb-computer-secret"] ?? ""));
       if (pending.socket.destroyed) return;
       pending.release();
-      deps.links.accept({ req, socket: pending.socket, head: pending.head }, { ...computer, seenAs: requestSource(req) }, deps.power());
+      deps.links.accept({ req, socket: pending.socket, head: pending.head }, { ...computer, seenAs: requestSource(req) });
       res.detachSocket(pending.socket);
       return;
     }

@@ -3,7 +3,7 @@
 import { engineReady } from "@/components/EngineLibrary";
 import { analyticsEnabled, track } from "@/lib/analytics";
 import {
-  allow, APP, CONNECTORS_MODE, DECIDER, EDITION, engineForDriver, LOCAL_VM_MODE, TRIAL_CREDIT, VOICE,
+  allow, APP, CONNECTORS_MODE, DECIDER, EDITION, engineForDriver, LOCAL_VM_MODE, VOICE,
   type EventProps, type KeyProvider, type PropValue,
 } from "@/lib/analytics-allowlist";
 import { hasActiveConnection, type ConnectorStatus } from "@/lib/connector-status";
@@ -38,8 +38,8 @@ const count = (value: unknown): number | undefined => Number.isInteger(value) &&
 const tally = <T,>(items: readonly T[], test: (item: T) => boolean) => items.filter(test).length;
 
 function keyProviders(config: ConfigStatus): KeyProvider[] {
-  const ownVoice = config.tts?.configured === true && config.tts.included !== true;
-  const ownDecider = config.decider?.configured === true && config.decider.included !== true;
+  const ownVoice = config.tts?.configured === true;
+  const ownDecider = config.decider?.configured === true;
   const configured: Array<[boolean | undefined, KeyProvider]> = [
     [config.anthropic?.configured, "anthropic"],
     [config.openai?.configured, "openai"],
@@ -51,7 +51,7 @@ function keyProviders(config: ConfigStatus): KeyProvider[] {
     [config.groq?.configured, "groq"],
     [config.greenference?.configured, "greenference"],
     [config.meta?.configured, "meta"],
-    [config.box?.configured && config.box.included !== true, "boat"],
+    [config.box?.configured, "boat"],
     [config.composio?.configured && config.composio.mode === "self-hosted", "composio"],
     [config.opencodeGo?.configured, "opencode_go"],
     [ownVoice && config.tts?.provider === "elevenlabs", "elevenlabs"],
@@ -111,7 +111,7 @@ export function buildUsageSnapshot(input: UsageInput): EventProps {
     key_providers: keys,
     key_count: keys.length,
     has_boat_key: keys.includes("boat"),
-    cloud_computer_source: config.box?.configured ? config.box.included === true ? "included" : "own_key" : "none",
+    cloud_computer_source: config.box?.configured ? "own_key" : "none",
     cloud_computers: count(input.computers?.cloudComputers),
     team_computers: count(input.computers?.teamComputers),
     bots_cloud_boat: tally(bots, (bot) => bot.computer === "cloud" && bot.cloudBackend !== "vps"),
@@ -130,20 +130,14 @@ export function buildUsageSnapshot(input: UsageInput): EventProps {
     engines: [...new Set(ready.map((instance) => engineForDriver(instance.driverKind)))].sort(),
     engine_count: ready.length,
     custom_endpoints: addedServers(instances).length,
-    trial_credit: allow(instances.find((instance) => instance.trialCredit !== undefined)?.trialCredit ?? "none", TRIAL_CREDIT),
     ...appFacts(input.apps),
     connectors_mode: allow(config.composio?.mode?.replace("-", "_"), CONNECTORS_MODE),
     local_vm_mode: allow(config.localVm?.mode?.replace("-", "_"), LOCAL_VM_MODE),
     vps_configured: config.vps?.configured === true,
     voice: config.tts?.configured ? allow(config.tts.provider, VOICE) : "none",
-    voice_included: false,
     decider: config.decider?.enabled ? allow(config.decider.provider, DECIDER) : "off",
-    decider_included: false,
     live_calls: config.live?.configured === true,
     ...deviceFacts(input.sessions, input.companionDevices),
-    cloud_home: false,
-    cloud_plan: "none",
-    cloud_trial: false,
     edition: allow(config.edition?.edition ?? "oss", EDITION),
     org_managed: Boolean(config.managedPolicy),
     onboarded: Boolean(config.onboarding?.completedAt),

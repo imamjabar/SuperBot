@@ -24,9 +24,6 @@ export interface BotCreateRouteDeps {
   cfg: AppConfig;
   presetStore: Pick<PresetStore, "resolve">;
   orgInstallStatuses(): ReadonlyMap<string, OrgInstallStatus>;
-  /** A hosted (company) workspace: Full access comes only from its policy. */
-  hostedWorkspace: boolean;
-  hostedFullAccessRefusal: string;
   desktopManaged: boolean;
   maxWorkspaceBots: number;
   hostedModels: ReturnType<typeof hostedModelPolicy>;
@@ -65,7 +62,7 @@ function askedSettings(body: Record<string, unknown>): Record<string, unknown> {
 export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
   const {
     store, cfg, presetStore, orgInstallStatuses,
-    hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, desktopManaged: DESKTOP_MANAGED,
+    desktopManaged: DESKTOP_MANAGED,
     maxWorkspaceBots: MAX_WORKSPACE_BOTS,
     hostedModels,
     storedAvatarExists, defaultSelection, checkedModelSelection, wireBot,
@@ -106,7 +103,6 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       if (settings.approvalMode === "custom") {
         return json(res, 403, { error: "Custom approval requires the desktop permission flow. Use the bot creation dialog or choose another level for API creation." });
       }
-      if (settings.approvalMode === "full" && HOSTED_WORKSPACE) return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
       if (settings.computer === "local" && settings.approvalMode === "auto" && body.acknowledgeLocalAuto !== true) {
         return json(res, 400, { error: "Auto mode on this computer requires confirming the warning first (acknowledgeLocalAuto)" });
       }
@@ -151,14 +147,8 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
           return json(res, 400, { error: "section must be at most 60 characters" });
         }
       }
-      const creator = auth.kind === "session" && auth.session.membershipAuthority === "team" ? auth.session.email : undefined;
-      let reportsTo: string | undefined;
       if (body.reportsTo !== undefined && body.reportsTo !== null) {
-        if (!deps.team) return json(res, 400, { error: "Only a team's bots report to someone." });
-        if (typeof body.reportsTo !== "string" || !body.reportsTo.trim()) return json(res, 400, { error: "reportsTo must be an email" });
-        const email = body.reportsTo.trim().toLowerCase();
-        if (email !== creator?.toLowerCase() && !deps.team.people.has(email)) return json(res, 400, { error: `Choose someone in ${deps.team.name}.` });
-        reportsTo = email;
+        return json(res, 400, { error: "Only a team's bots report to someone." });
       }
       let selection: ModelSelection;
       if (body.modelSelection === undefined) {
@@ -182,7 +172,6 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       const look = kept.id || settings.color || settings.mascotBody ? undefined : freshLook(store.bots);
       const bot = store.createBot({ ...profile.patch, soul: settings.soul, section, modelSelection: selection,
         toolScope: settings.toolScope ?? undefined, color: settings.color ?? look?.color, mascotBody: settings.mascotBody ?? look?.mascotBody,
-        ...(deps.team && creator ? { createdBy: creator } : {}), ...(reportsTo ? { reportsTo } : {}),
         ...(created?.ok ? { visibility: created.visibility } : {}) }, kept.id ? { ...kept, seedMessages: false } : {});
       const createdRoutines: Array<{ id: string; enabled: boolean }> = [];
       try {

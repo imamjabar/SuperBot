@@ -23,7 +23,7 @@ import {
   closeBrowserSession,
   browserEngineStatus,
   inRunningBrowser,
-  browserSessionId, isTemporaryBrowserSession, browserProfileDirectory,
+  browserSessionId, isTemporaryBrowserSession,
   noteBrowserEngineUnavailable,
   setBrowserViewport,
 } from "../browser-engine.ts";
@@ -65,9 +65,7 @@ export interface BrowserHostDeps {
   lendRefusal?(turn: TurnOwner): LendRefusal | null;
   /** The engine memory guard, told which browsers each thread's turn starts or holds. */
   engineMemory?: { useBrowsers(browsers: EngineBrowsers): void };
-  /** Whose browser a conversation's turns use on a Team Cloud: the member's, the group chat's or the team's. Every
-   * browser is the bot's own without it. */
-  audienceOf?(threadId: string): Audience;
+
 }
 
 /** The lent computer's connection for a browser's pages, under the rule for everything it lends: only while the last
@@ -121,7 +119,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   const browserLive = new LiveRouter(agentBrowserLive, chromeEngine);
   const usedBrowserSessions = new Map<string, Spec>();
   const audiences = new AudienceBrowsers(join(DATA_DIR, "browser", "audiences.json"));
-  const browserAudience = (threadId: string | undefined): Audience => (threadId && deps.audienceOf ? deps.audienceOf(threadId) : "team");
+  const browserAudience = (_threadId: string | undefined): Audience => "team";
   const device = deps.device && lentDevice(deps.device, (session) => turnResources.holder(`browser:${session}`), mayLend);
   const egressHost = DESKTOP_MANAGED ? "desktop" : "server";
   const sitesSwitch = egressHost === "server";
@@ -145,12 +143,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
       chromeEngine.start({ inUse: browserEngineKind(cfg) === "chrome", prepare: builtInBrowserEnabled(cfg) });
       return browserSweep;
     },
-    closeAll: () => {
-      doors?.close();
-      doorUrls.clear();
-      leftovers.clear();
-      return agentBrowserSweep.closeAll();
-    },
+    closeAll: () => agentBrowserSweep.closeAll(),
   };
   // The viewer and the agent must address the SAME temporary browser.
   const temporaryBrowserSessions = new Map<string, string>();
@@ -419,8 +412,8 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   /** Chrome receives private copies; a boxed agent-browser reads them from its own profile's folder. */
   function uploadPaths(files: ReadonlyArray<{ file: string; name: string | null }>, session: string, spec: Spec): Promise<string[]> {
     const chrome = chromeTarget(session, spec);
-    const folder = boxed && !chrome ? join(browserProfileDirectory(session), "omb-uploads") : join(DATA_DIR, "browser-uploads");
-    return namedUploadPaths(files, folder, Date.now(), { everyFile: boxed || Boolean(chrome) });
+    const folder = join(DATA_DIR, "browser-uploads");
+    return namedUploadPaths(files, folder, Date.now(), { everyFile: Boolean(chrome) });
   }
   /** The saved sign-ins of a bot's or a shared profile's browser, for one audience. */
   async function signedInSitesTarget(which: BrowserSitesRef, audience: Audience = "team"): Promise<BrowserSitesTarget | { status: number; error: string }> {

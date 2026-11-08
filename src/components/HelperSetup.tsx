@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { AppWindow, Bot as BotIcon, Download, Mail, Smartphone, Sparkles, type LucideIcon } from "lucide-react";
 
-import { track } from "@/lib/analytics";
 import { INTRO_CHIPS, setupSteps, type IntroChip, type SetupStep } from "@/lib/default-bot";
 import { t } from "@/lib/i18n";
 import { phonePairingSettingsAction } from "@/lib/phone-pairing";
@@ -75,7 +74,7 @@ export function chipAction(chip: Exclude<IntroChip, "ai">): Action {
 
 function IntroConnectAi({ onClose }: { onClose: () => void }) {
   const { state } = useStore();
-  return <ConnectAiDialog tested={useWelcomeAi(state.instances, true)} onClose={onClose} />;
+  return <ConnectAiDialog tested={useWelcomeAi(state.instances)} onClose={onClose} />;
 }
 
 /** What is still missing, as chips under MausBot's follow-up (Simple mode): at most INTRO_CHIPS, and one that was tapped
@@ -88,7 +87,6 @@ export function IntroChips({ chips }: { chips: readonly IntroChip[] }) {
   const tap = (chip: IntroChip) => {
     setTapped((now) => new Set([...now, chip]));
     if (chip === "ai") return setConnecting(true);
-    if (chip === "cloud") track("onboarding_cloud", { action: "start_trial" });
     dispatch(chipAction(chip));
   };
   return (

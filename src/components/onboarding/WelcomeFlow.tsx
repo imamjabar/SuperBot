@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import { setEmailGateDone, track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { chiefStepFits, myDefaultBot, setChiefStepOpen, useViewerEmail } from "@/lib/default-bot";
-import { beatsFor, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, showWelcome, type BeatId } from "@/lib/onboarding";
+import { BEAT_ORDER, completionPatch, firstRunPatch, markWelcomeFinished, resumeBeat, type BeatId } from "@/lib/onboarding";
 import { clearWelcomeDraft, readWelcomeDraft, saveWelcomeDraft } from "@/lib/welcome-draft";
 import { api, useStore } from "@/state/store";
 import { ChiefIntro } from "./ChiefIntro";
@@ -15,10 +15,10 @@ const FADE_MS = 150;
 type Config = ReturnType<typeof useStore>["state"]["config"];
 
 /** A genuine first run on this computer's own page names the person after its account, where their profile has none
- * (never on a Cloud, a Team Cloud or a remote page). The name stays theirs to change in Settings. */
+ * (never on a remote page). The name stays theirs to change in Settings. */
 async function nameFromComputer(config: Config, done: (config: NonNullable<Config>) => void): Promise<void> {
   const bridge = window.ogb;
-  if (!config || config.onboarding?.completedAt || config.profile?.name?.trim() || config.cloudHome || config.team) return;
+  if (!config || config.onboarding?.completedAt || config.profile?.name?.trim()) return;
   if (!localDesktopPage() || bridge?.remoteClient?.active) return;
   const name = await bridge?.desktopProfile?.systemName().catch(() => null);
   if (!name) return;
@@ -53,21 +53,17 @@ export function WelcomeFlow({
   replay = false,
   initialBeat,
   embedded = false,
-  hosted = false,
 }: {
   onDone: (botId: string | null) => void;
   replay?: boolean;
   initialBeat?: BeatId;
   embedded?: boolean;
-  hosted?: boolean;
 }) {
   const { state, dispatch } = useStore();
   const maus = myDefaultBot(state.bots, useViewerEmail());
-  // A first run keeps its screen in this browser, so a reload resumes it; a replay starts over. A hosted place's
-  // browser may hold another person's draft.
-  const keepsDraft = !replay && !embedded && !hosted;
-  const beats = beatsFor({ hosted });
-  const [beat, setBeat] = useState<BeatId>(() => resumeBeat(beats, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
+  // A first run keeps its screen in this browser, so a reload resumes it; a replay starts over.
+  const keepsDraft = !replay && !embedded;
+  const [beat, setBeat] = useState<BeatId>(() => resumeBeat(BEAT_ORDER, initialBeat ?? (keepsDraft ? readWelcomeDraft()?.beat : undefined)));
   const root = useRef<HTMLDivElement>(null);
   const finishing = useRef(false);
   const record = useRef(state.config?.onboarding);
@@ -78,10 +74,8 @@ export function WelcomeFlow({
     if (keepsDraft && !finishing.current) saveWelcomeDraft({ beat });
   }, [beat, replay, keepsDraft]);
 
-  // A Cloud sheet opened over the welcome never switches the window away from it (CloudAddDialog).
-  useEffect(() => (embedded ? undefined : showWelcome()), [embedded]);
   useEffect(() => {
-    if (!replay && !embedded && !hosted) void nameFromComputer(state.config, (config) => dispatch({ type: "configStatus", config }));
+    if (!replay && !embedded) void nameFromComputer(state.config, (config) => dispatch({ type: "configStatus", config }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -101,12 +95,12 @@ export function WelcomeFlow({
       } catch {
       }
     },
-    [beat, dispatch, onDone, replay, embedded, keepsDraft, hosted],
+    [beat, dispatch, onDone, replay, embedded, keepsDraft],
   );
 
   // The first screen fades away before the Chief step comes up; a timer moves on, since a hidden window runs no
   // animation to its end.
-  const toChief = beats.includes("chief") && chiefStepFits(state.bots, maus);
+  const toChief = chiefStepFits(state.bots, maus);
   const leaving = useRef(false);
   const next = useCallback(() => {
     if (finishing.current || leaving.current) return;
@@ -169,7 +163,7 @@ export function WelcomeFlow({
       {chief ? (
         <ChiefIntro replay={replay} onLeave={fadeScrim} onDone={(botId) => void finish("completed", botId)} />
       ) : (
-        <MeetScreen hosted={hosted} onNext={next} />
+        <MeetScreen onNext={next} />
       )}
     </div>
   );

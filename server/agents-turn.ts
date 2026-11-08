@@ -17,7 +17,7 @@ export interface AgentsConversation {
   reportsBack?: boolean;
   /** `x`: a research credential is held (a treg key or a plan's); `research`: research works for it too; `webSearch`: the
    * workspace OpenAI-compatible connection is the Command Code gateway with a key. */
-  host: { skillAuthoring: boolean; sharedComputers: boolean; cloudHome: boolean; team: boolean; escalations: boolean; voiceNotes: boolean; x: boolean; research: boolean; webSearch: boolean };
+  host: { skillAuthoring: boolean; sharedComputers: boolean; escalations: boolean; voiceNotes: boolean; x: boolean; research: boolean; webSearch: boolean };
 }
 
 /** What one turn may do. Its bearer carries this to the harness, which checks it on every call. */
@@ -46,7 +46,7 @@ export function agentsServerEnv(conversation: AgentsConversation, turn: AgentsTu
     OMB_SKILL_AUTHORING_ENABLED: flag(host.skillAuthoring),
     OMB_MEMORY_ENABLED: flag(bot.memoryEnabled !== false),
     OMB_SHARED_COMPUTERS_ENABLED: flag(host.sharedComputers),
-    OMB_CLOUD_HOME: flag(host.cloudHome), OMB_TEAM_PEOPLE: flag(host.team), OMB_ROOM: flag(conversation.room), OMB_REPORTS_BACK: flag(conversation.reportsBack === true),
+    OMB_CLOUD_HOME: "0", OMB_TEAM_PEOPLE: "0", OMB_ROOM: flag(conversation.room), OMB_REPORTS_BACK: flag(conversation.reportsBack === true),
     OMB_VOICE_NOTES: flag(host.voiceNotes),
     OMB_X_RESEARCH: flag(host.x && bot.xResearch !== false),
     OMB_RESEARCH: flag(host.x && host.research && bot.xResearch !== false),

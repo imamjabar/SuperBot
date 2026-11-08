@@ -52,7 +52,7 @@ function fixture(options: Options = {}) {
   const mcpOAuth = new McpOAuthManager({ file: join(dataDir, "mcp-oauth.json") });
   let busy = false;
   const config = createMcpConfig({
-    cfg, sessions: { isLive: () => true }, mcpOAuth,
+    cfg, sessions: { isLive: () => true }, mcpOAuth, fallbackPublicUrl: null,
     mcpConfigBusy: { get: () => busy, set: (value) => { busy = value; } },
     mcpServerResponse: () => ({ servers: listMcpServers(cfg.mcpServers) }),
     mcpPolicyRefusal: (name) => options.refuse?.(name),
@@ -77,7 +77,7 @@ function fixture(options: Options = {}) {
       appendMessage: (_threadId, message) => { const row = { ...message, id: `card-${chat.length + 1}` }; chat.push(row); return row; },
       patchMessage: (_threadId, id, patch) => { const row = chat.find((item) => item.id === id); if (row) row.card = patch.card; },
     },
-    teamCloud: false,
+
     apply: (request, fields) => applyMcpChange(deps, request, fields),
     answer: (_threadId, _messageId, text) => { answers.push(text); return true; },
     decide: (row) => { decisions.push(row.decision); },
@@ -88,7 +88,7 @@ function fixture(options: Options = {}) {
     readBody: async () => body as Record<string, unknown>,
     sender, threadId: THREAD,
     fullAccess: () => options.full ?? true,
-    guestDriven: () => options.guest ?? false,
+
     teamAdmin: () => options.admin ?? true,
     canUse: (name) => !options.leftOut?.includes(name),
     config, cfg: () => cfg as AppConfig,

@@ -79,7 +79,7 @@ export function RelayLabel({ message }: { message: Message }) {
   if (!relay || relay.kind === "told") return null;
   return (
     <div className="mb-1 flex items-center gap-1.5 pl-0.5" data-relay={relay.kind}>
-      <PersonFace person={face(relay)} size={16} />
+      <PersonFace person={relay} size={16} />
       <span className="text-[11px] font-medium text-ink-secondary">{t(relay.kind === "assistant" ? "relay.assistant" : "relay.reply", { name: relay.name })}</span>
     </div>
   );

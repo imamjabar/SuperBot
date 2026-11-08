@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { t } from "@/lib/i18n";
-import { saveTeamProfile } from "@/lib/own-profile";
 import { IMAGE_MAX_BYTES, imageAttachmentFromFile, isImageFile } from "@/lib/composer-attachments";
 import type { LocaleKey } from "@/locales";
 import { botAvatarUrlFromStoredPath } from "../../shared/bot-avatar";
@@ -77,11 +76,8 @@ function ProfilePhoto() {
   useEffect(() => () => {
     if (draftRef.current) URL.revokeObjectURL(draftRef.current.previewUrl);
   }, []);
-  const team = Boolean(state.config?.team);
   const store = async (next: string) => {
-    const profile = team
-      ? await saveTeamProfile({ avatarUrl: next })
-      : (await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ profile: { avatarUrl: next } }) })).profile;
+    const profile = (await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ profile: { avatarUrl: next } }) })).profile;
     dispatch({ type: "profileSaved", profile: { avatarUrl: profile?.avatarUrl } });
   };
   const pick = (file: File | undefined) => {
@@ -157,15 +153,7 @@ export function ProfileFields() {
     setName(state.config?.profile?.name ?? "");
     setEmail(state.config?.profile?.email ?? "");
   }, [state.config?.profile?.name, state.config?.profile?.email]);
-
-  const team = Boolean(state.config?.team);
   const save = () => {
-    if (team) {
-      void saveTeamProfile({ name: name.trim() })
-        .then((profile) => dispatch({ type: "profileSaved", profile: { name: profile.name, email: profile.email } }))
-        .catch(() => {});
-      return;
-    }
     void fetch("/api/config", {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -189,8 +177,7 @@ export function ProfileFields() {
         aria-label={t("phone.signIn.email")}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        onBlur={team ? undefined : save}
-        readOnly={team}
+        onBlur={save}
         placeholder="you@example.com"
         className={inputClass}
       />

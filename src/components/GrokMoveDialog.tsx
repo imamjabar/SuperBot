@@ -100,7 +100,7 @@ function BringBack({ local, look, found, reply, error, onReply, onFile, onFound 
  * this computer is read until this dialog is open. */
 export function GrokMoveDialog({ onClose }: { onClose: () => void }) {
   const { state, dispatch } = useStore();
-  const local = localSetupImport(state.config?.cloudHome === true);
+  const local = localSetupImport();
   const [look, setLook] = useState<GrokLook>(NOTHING_FOUND);
   const [reply, setReply] = useState("");
   const [error, setError] = useState("");

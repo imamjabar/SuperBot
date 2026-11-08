@@ -25,7 +25,7 @@ it("refuses an MCP card's Turn on from a local browser while a bot is busy, and 
   const kiwi = store.createBot({ name: "Kiwi" });
   const clive = store.createBot({ name: "Clive" });
   const apply = vi.fn(async (): Promise<McpApplied> => ({ state: "applied", text: "Turned on MCP server linear." }));
-  const cards = new McpRequestService({ store, teamCloud: false, apply, answer: () => true, decide: () => {} });
+  const cards = new McpRequestService({ store, apply, answer: () => true, decide: () => {} });
   const { requestId } = cards.propose({ botId: kiwi.id, threadId: kiwi.threadId, action: "enable", name: "linear", targetHash: "0".repeat(64) }, "https://mcp.linear.app/mcp");
   const deps = {
     store, routines: () => null, desktopManaged: false, activeGroupTurnForBot: () => null,

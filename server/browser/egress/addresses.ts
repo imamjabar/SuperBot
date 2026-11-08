@@ -1,5 +1,4 @@
-// Which kind of address a browser connection would reach: the one list My Cloud's egress gate and a lent computer's
-// own check both use.
+// Which kind of address a browser connection would reach: the one list the egress gates use.
 //
 // The address ranges, the NAT64 and 6to4 unwrapping and this machine's own addresses are adapted from
 // pingdotgg/t3code@00cdceb1 apps/server/src/htmlRender/publicProxy.ts, MIT License, Copyright (c) 2026
@@ -8,9 +7,11 @@
 import { BlockList, isIP } from "node:net";
 import { networkInterfaces } from "node:os";
 
-const family = (address) => (isIP(address) === 6 ? "ipv6" : "ipv4");
+export type AddressClass = "public" | "loopback" | "this-machine" | "private" | "link-local" | "metadata" | "reserved";
 
-function subnets(entries) {
+const family = (address: string) => (isIP(address) === 6 ? "ipv6" : "ipv4");
+
+function subnets(entries: ReadonlyArray<readonly [string, number]>): BlockList {
   const list = new BlockList();
   for (const [network, prefix] of entries) list.addSubnet(network, prefix, family(network));
   return list;
@@ -24,7 +25,7 @@ const RESERVED = subnets([
   ["::", 96], ["64:ff9b:1::", 48], ["2001::", 32], ["ff00::", 8],
 ]);
 const LINK_LOCAL = subnets([["169.254.0.0", 16], ["fe80::", 10]]);
-// fc00::/7 holds Fly's private 6PN network (fdaa::/16), which links a Cloud home to other customers' machines.
+// fc00::/7 holds Fly's private 6PN network (fdaa::/16), which links a host to other customers' machines.
 const PRIVATE = subnets([["10.0.0.0", 8], ["100.64.0.0", 10], ["172.16.0.0", 12], ["192.168.0.0", 16], ["fc00::", 7]]);
 // AWS (IPv4 and IPv6), Azure, GCP and Oracle answer on 169.254.169.254; Alibaba on 100.100.100.200.
 const METADATA = new BlockList();
@@ -34,20 +35,20 @@ const NAT64 = subnets([["64:ff9b::", 96]]);
 const SIX_TO_FOUR = subnets([["2002::", 16]]);
 
 /** The sixteen-bit groups of an IPv6 address, which may end in dotted IPv4. */
-function ipv6Groups(address) {
+function ipv6Groups(address: string): number[] {
   const dotted = /(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(address);
   const text = dotted
-    ? `${address.slice(0, dotted.index)}${((+dotted[1] << 8) | +dotted[2]).toString(16)}:${((+dotted[3] << 8) | +dotted[4]).toString(16)}`
+    ? `${address.slice(0, dotted.index)}${((+dotted[1]! << 8) | +dotted[2]!).toString(16)}:${((+dotted[3]! << 8) | +dotted[4]!).toString(16)}`
     : address;
   const [head = "", tail] = text.split("::");
   const left = head ? head.split(":") : [];
   const right = tail ? tail.split(":") : [];
   const fill = tail === undefined ? 0 : 8 - left.length - right.length;
-  return [...left, ...Array(fill).fill("0"), ...right].map((group) => Number.parseInt(group, 16));
+  return [...left, ...Array<string>(fill).fill("0"), ...right].map((group) => Number.parseInt(group, 16));
 }
 
 /** The IPv4 address a NAT64 or 6to4 address stands for, which a translator will route to. */
-function embeddedIPv4(address) {
+function embeddedIPv4(address: string): string | undefined {
   const at = NAT64.check(address, "ipv6") ? 6 : SIX_TO_FOUR.check(address, "ipv6") ? 1 : -1;
   if (at === -1) return undefined;
   const groups = ipv6Groups(address);
@@ -57,32 +58,16 @@ function embeddedIPv4(address) {
 }
 
 /** The addresses this machine's interfaces hold right now; IPv4-mapped IPv6 matches their IPv4 entries. */
-export function ownAddresses(interfaces = networkInterfaces()) {
+export function ownAddresses(interfaces: ReturnType<typeof networkInterfaces> = networkInterfaces()): BlockList {
   const own = new BlockList();
   for (const entry of Object.values(interfaces).flat()) {
-    if (entry) own.addAddress(entry.address.split("%", 1)[0], entry.family === "IPv6" ? "ipv6" : "ipv4");
+    if (entry) own.addAddress(entry.address.split("%", 1)[0]!, entry.family === "IPv6" ? "ipv6" : "ipv4");
   }
   return own;
 }
 
-/** Shorter prefixes are a VPN's catch-all route, not a network of devices beside this one. */
-const NARROWEST_LOCAL = { ipv4: 8, ipv6: 16 };
-
-/** The networks this machine's interfaces sit on: a public IPv6 prefix at home reaches the other devices there. */
-export function ownSubnets(interfaces = networkInterfaces()) {
-  const list = new BlockList();
-  for (const entry of Object.values(interfaces).flat()) {
-    const [network, bits] = String(entry?.cidr ?? "").split("/");
-    const type = entry?.family === "IPv6" ? "ipv6" : "ipv4";
-    const prefix = Number(bits);
-    if (!network || !isIP(network.split("%", 1)[0]) || !Number.isInteger(prefix) || prefix < NARROWEST_LOCAL[type]) continue;
-    list.addSubnet(network.split("%", 1)[0], prefix, type);
-  }
-  return list;
-}
-
-export function addressClass(raw, own = ownAddresses()) {
-  const address = raw.split("%", 1)[0];
+export function addressClass(raw: string, own: BlockList = ownAddresses()): AddressClass {
+  const address = raw.split("%", 1)[0]!;
   if (!isIP(address)) return "reserved";
   const type = family(address);
   const embedded = type === "ipv6" ? embeddedIPv4(address) : undefined;
@@ -97,7 +82,7 @@ export function addressClass(raw, own = ownAddresses()) {
 }
 
 /** Whether `address` is in `list`, an address of either family; IPv4-mapped IPv6 matches IPv4 entries. */
-export function listed(list, raw) {
-  const address = raw.split("%", 1)[0];
+export function listed(list: BlockList, raw: string): boolean {
+  const address = raw.split("%", 1)[0]!;
   return isIP(address) !== 0 && list.check(address, family(address));
 }

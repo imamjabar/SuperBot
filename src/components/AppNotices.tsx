@@ -14,7 +14,7 @@ import { useMausBotWelcomeDue } from "./MausBotWelcome";
 import { reportSimpleModePrompt, SimpleModePrompt } from "./SimpleModePrompt";
 
 const FIRST_MESSAGES_MS = 6_000;
-export function AppNotices({ quiet = false, viewer = null, now: _now = Date.now }: { quiet?: boolean; viewer?: WelcomeViewer | null; now?: () => number }) {
+export function AppNotices({ quiet = false, viewer = null }: { quiet?: boolean; viewer?: WelcomeViewer | null }) {
   const { state, dispatch } = useStore();
   const remote = window.ogb?.remoteClient?.active === true;
   const desktop = remote ? undefined : window.ogb?.desktopNotices;

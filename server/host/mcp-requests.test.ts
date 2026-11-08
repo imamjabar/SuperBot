@@ -35,7 +35,7 @@ function service(options: Partial<McpRequestOptions> & { store?: ReturnType<type
   let parked = true;
   const decisions: Array<{ decision: string }> = [];
   const cards = new McpRequestService({
-    store, apply, teamCloud: options.teamCloud ?? false,
+    store, apply,
     answer: (_threadId, _messageId, text) => { answers.push(text); return parked; },
     decide: (row) => { decisions.push(row); },
   });
@@ -54,13 +54,6 @@ describe("MCP approval cards", () => {
     expect(await local.respond(requestId, "allow", false)).toMatchObject({ status: 403 });
     expect(local.apply).not.toHaveBeenCalled();
     expect(local.store.rows[0]!.card).not.toHaveProperty("answered");
-
-    const team = service({ teamCloud: true });
-    const proposed = team.propose();
-    expect(await team.respond(proposed.requestId, "allow", false)).toEqual({ status: 403, body: { error: "Ask a workspace admin to approve this." } });
-    expect(team.apply).not.toHaveBeenCalled();
-    expect(await team.respond(proposed.requestId, "deny", false)).toMatchObject({ status: 200, body: { alreadySettled: false } });
-    expect(team.store.rows[0]!.card).toMatchObject({ answered: "deny" });
   });
 
   it("a newer card about the same server supersedes the open one, which can no longer be allowed", async () => {

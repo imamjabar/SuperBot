@@ -64,7 +64,7 @@ function useLookAround(deep: boolean): Look {
         .map(([slug]) => cards.get(slug)?.label ?? slug))
       .catch(() => null);
     const phones = api<{ phones?: unknown[] }>("/api/phones").then((response) => (response.phones?.length ?? 0) > 0).catch(() => undefined);
-    const look = deep && localSetupImport(false) ? detectSetupWithin(setupImportApi) : null;
+    const look = deep && localSetupImport() ? detectSetupWithin(setupImportApi) : null;
     const timer = setTimeout(() => { if (active) setFound((now) => ({ ...now, settled: true })); }, LOOK_MS);
     void Promise.all([apps, phones, look?.found ?? null]).then(([appNames, phonePaired, detection]) => {
       if (active) setFound({ apps: appNames, phonePaired, importFound: Boolean(detection), settled: true });
@@ -115,7 +115,7 @@ export function SimpleHelperIntro({ botId, threadId, message, answered, followup
   const welcoming = useWelcomingBot();
   const hidden = welcoming === botId;
   const bot = state.bots.find((candidate) => candidate.id === botId);
-  const team = bot?.defaultBot?.person ? state.config?.team?.name : undefined;
+  const team = undefined;
   const person = greetingName(state.config?.profile?.name) || undefined;
   const lines = introLines({ name: bot?.name ?? "MausBot", chief: Boolean(bot?.chiefOfStaff), person, team });
   const look = useLookAround(!answered);

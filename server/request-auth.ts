@@ -70,9 +70,6 @@ export function ownerOrAdmin(auth: RequestAuth): boolean {
 export function resolveLoopbackTrust(input: {
   env?: NodeJS.ProcessEnv;
   desktopManaged: boolean;
-  hostedWorkspace: boolean;
-  /** A Cloud home's network traffic arrives through its edge proxy, so bare loopback is a bot's shell: always `service`. */
-  cloudHome?: boolean;
   /** This server runs from TypeScript source rather than a build. */
   fromSource?: boolean;
 }): { trust: LoopbackTrust; reason: string; warning?: string; localBrowsers: boolean } {
@@ -85,9 +82,6 @@ export function resolveLoopbackTrust(input: {
 function loopbackTrust(input: Parameters<typeof resolveLoopbackTrust>[0]): { trust: LoopbackTrust; reason: string; warning?: string } {
   const raw = (input.env ?? process.env).OMB_LOOPBACK_TRUST;
   const requested = raw?.trim().toLowerCase();
-  if (input.cloudHome) {
-    return { trust: "service", reason: "MausBot Cloud home", ...(raw !== undefined && requested !== "service" ? { warning: "OMB_LOOPBACK_TRUST is ignored on a MausBot Cloud home: a local request is always a service" } : {}) };
-  }
   if (input.desktopManaged) {
     return { trust: "owner", reason: "desktop app", ...(raw !== undefined ? { warning: "OMB_LOOPBACK_TRUST is ignored in the desktop app" } : {}) };
   }
@@ -95,15 +89,11 @@ function loopbackTrust(input: Parameters<typeof resolveLoopbackTrust>[0]): { tru
     return {
       trust: requested,
       reason: "OMB_LOOPBACK_TRUST",
-      ...(requested === "owner" && input.hostedWorkspace
-        ? { warning: "OMB_LOOPBACK_TRUST=owner on a shared workspace: every bot's shell can change settings and approve cards as the owner" }
-        : {}),
     };
   }
   if (raw !== undefined && requested !== "") {
     return { trust: "service", reason: "OMB_LOOPBACK_TRUST", warning: `OMB_LOOPBACK_TRUST="${raw.replace(/[^\w.-]/g, "").slice(0, 40)}" is not owner or service; using service` };
   }
-  if (input.hostedWorkspace) return { trust: "service", reason: "hosted workspace" };
   return { trust: "owner", reason: "self-hosted default" };
 }
 

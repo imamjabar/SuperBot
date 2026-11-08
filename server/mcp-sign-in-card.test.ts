@@ -32,7 +32,7 @@ afterEach(async () => {
   for (const fixture of fixtures.splice(0)) await fixture.close();
 });
 
-async function setup(options: { team?: boolean; origins?: string[]; lifetimeMs?: number } = {}) {
+async function setup(options: { origins?: string[]; lifetimeMs?: number } = {}) {
   const provider: FakePostiz = await startFakePostiz({ signInPage: SIGN_IN_PAGE });
   const dataDir = mkdtempSync(join(tmpdir(), "omb-mcp-sign-in-card-"));
   const url = `${provider.url}/mcp-oauth-dynamic`;
@@ -85,7 +85,7 @@ async function setup(options: { team?: boolean; origins?: string[]; lifetimeMs?:
     const deps = {
       readBody: async () => ({ action: "sign_in", name }),
       sender: { id: "kiwi" }, threadId,
-      fullAccess: () => true, guestDriven: () => false,
+      fullAccess: () => true,
       teamAdmin: () => true,
       canUse: () => true, cfg: () => cfg,
       personal: () => [],
@@ -115,15 +115,13 @@ async function setup(options: { team?: boolean; origins?: string[]; lifetimeMs?:
     expect(page.origin).toBe(SIGN_IN_PAGE);
     const sent = await fetch(`${provider.url}${page.pathname}${page.search}`, { redirect: "manual" });
     const back = new URL(sent.headers.get("location")!);
-    if (back.protocol === "http:") return (await fetch(back)).status;
-    return (await team.mcpCallback(back.host, back.search)).status;
+    return (await fetch(back)).status;
   }
 
   const fixture = {
-    provider, url, cfg, store, mcpOAuth, team, cards, answers, turn, signIn, current, route, authorize, approve,
+    provider, url, cfg, store, mcpOAuth, cards, answers, turn, signIn, current, route, authorize, approve,
     close: async () => {
       mcpOAuth.dispose();
-      for (const manager of team.people.liveManagers()) manager.dispose();
       await provider.close();
       rmSync(dataDir, { recursive: true, force: true });
     },

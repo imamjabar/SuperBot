@@ -97,7 +97,6 @@ async function fixture(over: Partial<Record<keyof BotMessageRouteDeps, unknown>>
     store,
     routines: () => null,
     desktopManaged,
-    cloudHome: false,
     DirectSendRefused,
     acceptDirectSend: accept,
     directSendRefusal: (botId: string, thread: string) => (store.taskByThread(botId, thread) ? null : { status: 409, body: { error: "the bot switched tasks before it could receive the message" } }),

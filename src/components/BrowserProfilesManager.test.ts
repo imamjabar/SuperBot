@@ -79,7 +79,7 @@ describe("browser profile manager", () => {
     expect(botHtml).toContain("act inside your real Chrome");
   });
 
-  it("says on Cloud and servers that My Chrome does not apply, and keeps the built-in browser", () => {
+  it("says on servers that My Chrome does not apply, and keeps the built-in browser", () => {
     fixture.myChrome = false;
     fixture.profiles = [{ id: "work", name: "Work", browser: "chrome" }];
     const html = renderToStaticMarkup(createElement(BrowserProfilesManager));

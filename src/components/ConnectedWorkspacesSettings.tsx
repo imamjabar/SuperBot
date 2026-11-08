@@ -64,7 +64,7 @@ export function ConnectedWorkspacesSettings() {
   if (!bridge) return <p className="text-[13px] text-ink-secondary">Manage server connections in the desktop app.</p>;
   const confirmAction = (message: string) => window.ogb?.confirm ? window.ogb.confirm(message) : window.confirm(message);
   const connected = saved?.environments.find(entry => entry.id === computerId);
-  const computerWorkspace = connected?.origin && !connected.home ? { id: connected.id, name: connected.name, origin: connected.origin } : undefined;
+  const computerWorkspace = connected?.origin ? { id: connected.id, name: connected.name, origin: connected.origin } : undefined;
   const locals = saved?.environments.filter(entry => entry.kind === "local") ?? [];
   const forgetEntry = locals.find(entry => entry.id === envForget);
   return <>
@@ -140,7 +140,7 @@ export function ConnectedWorkspacesSettings() {
     <Card title="Your servers" subtitle="Saved on this computer. Your hosted bots keep running when you switch away.">
       {!saved ? <p role="status" className="text-[13px] text-ink-secondary">{error ? "Saved servers could not be loaded." : "Loading servers…"}</p> :
         <ul className="divide-y divide-hairline/40">
-          {[{ id: "local", name: "This computer", origin: "", color: undefined }, ...saved.environments.filter((entry) => entry.kind !== "local")].map((entry) => {
+          {[{ id: "local", name: "This computer", origin: "" }, ...saved.environments.filter((entry) => entry.kind !== "local")].map((entry) => {
             const active = entry.id === saved.activeId;
             const Icon = entry.id === "local" ? Laptop : Server;
             return <li key={entry.id} className="flex items-center gap-3 py-3">

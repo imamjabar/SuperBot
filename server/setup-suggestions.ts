@@ -371,7 +371,7 @@ export function suggestionBasis(bot: BotRecord, place: { bots: readonly BotRecor
     ...(bot.section ? { department: bot.section } : {}),
     ...(aboutMe ? { aboutMe } : {}),
     otherJobs: place.shared ? [] : place.bots
-      .filter((other) => other.id !== bot.id && !other.hidden && !other.movedTo && !other.defaultBot && !other.chiefOfStaff)
+      .filter((other) => other.id !== bot.id && !other.hidden && !other.defaultBot && !other.chiefOfStaff)
       .map((other) => other.title?.trim() || other.description?.split("\n")[0]?.trim() || "").filter(Boolean),
     language, languageCode: place.languageCode, canBrowse: place.canBrowse,
   };

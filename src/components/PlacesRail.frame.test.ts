@@ -18,7 +18,7 @@ import { PlacesRail } from "./PlacesRail";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: Root | null = null;
 let tell: (framed: boolean) => void = () => {};
-const rail: RailState = { places: [{ id: "home", name: "My Cloud", color: null, kind: "cloud", opens: true, active: true }], add: { cloud: true, link: false, address: false } };
+const rail: RailState = { places: [{ id: "home", name: "My Server", color: null, kind: "server", opens: true, active: true }], add: { cloud: false, link: false, address: false } };
 
 beforeEach(() => {
   setLocale("en");

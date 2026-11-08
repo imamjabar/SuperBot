@@ -120,7 +120,7 @@ describe("whose phones", () => {
   });
 
   it("a Team Cloud or hosted workspace, a server several people sign in to, and a service-trust machine get no phone", () => {
-    for (const overrides of [{ shared: true }, { sharedMembership: () => true }, { loopbackTrust: "service" as const }]) {
+    for (const overrides of [{ sharedMembership: () => true }, { loopbackTrust: "service" as const }]) {
       const { phones, send } = world(overrides);
       send(phones.sendIdFor(loopback));
       expect(phones.fromPhone(session(PHONE_SESSION))).toBe(true);
@@ -131,12 +131,4 @@ describe("whose phones", () => {
     }
   });
 
-  it("on a Cloud home only the owner's session holds a phone, and only a turn the lent Mac would allow reaches it", () => {
-    let refusal: string | null = null;
-    const { phones } = world({ cloudHome: true, cloudOwnerKey: "owner", cloudOwnerSession: (auth) => auth.kind === "session" && auth.session.id === PHONE_SESSION.id, cloudLendingRefusal: () => refusal });
-    expect(phones.turnOwner(TURN)).toBe("owner");
-    refusal = "someone-else";
-    expect(phones.turnOwner(TURN)).toBeNull();
-    expect(phones.integration(chief, TURN)).toBeNull();
-  });
 });

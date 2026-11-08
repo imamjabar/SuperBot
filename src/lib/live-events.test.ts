@@ -92,7 +92,7 @@ function harness(options?: { online?: boolean; visible?: boolean; now?: number }
 }
 
 beforeEach(() => vi.useFakeTimers());
-afterEach(() => { vi.useRealTimers(); resetCloudPowerForTests(); });
+afterEach(() => { vi.useRealTimers(); });
 
 describe("live events URL", () => {
   it("builds cold and resumable stream URLs", () => {

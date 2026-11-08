@@ -44,8 +44,7 @@ export interface McpRequestOptions {
     appendMessage(threadId: string, message: { role: "bot"; kind: "options"; card: OptionCardData; from?: RequestFrom }): { id: string };
     patchMessage(threadId: string, messageId: string, patch: { card: OptionCardData }): unknown;
   };
-  /** Allow on a Team Cloud also needs a workspace admin. */
-  teamCloud: boolean;
+
   apply(request: McpChangeRequest, fields?: McpUpdateFields): Promise<McpApplied>;
   /** Hands the decision to the turn parked on this card; false when none took it. */
   answer(threadId: string, messageId: string, text: string): boolean;
@@ -93,8 +92,7 @@ export class McpRequestService {
     if (request.botId !== args.botId || request.threadId !== args.threadId) return { status: 403, body: { error: "This card belongs to another conversation." } };
     if (args.behavior !== "allow" && args.behavior !== "deny") return { status: 400, body: { error: `Answer with ${card.options.join(" or ")}.` } };
     if (args.behavior === "allow" && !ownerReview) {
-      return { status: 403, body: { error: this.options.teamCloud ? "Ask a workspace admin to approve this."
-        : "Approve MCP server changes from the desktop app or a paired Full-access device. In a local browser, wait until every bot is idle." } };
+      return { status: 403, body: { error: "Approve MCP server changes from the desktop app or a paired Full-access device. In a local browser, wait until every bot is idle." } };
     }
     const duplicate = Boolean(card.answered || card.dismissed || card.expired);
     let settled = request;

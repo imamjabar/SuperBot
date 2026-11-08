@@ -486,7 +486,7 @@ function ResearchCard({ bot, patch }: { bot: Bot; patch: (patch: { xResearch: bo
       <div>
         <div className="text-[15px] font-medium text-ink">{t("research.title")}</div>
         <div className="mt-0.5 text-[13px] text-ink-secondary">{line}</div>
-        {!available && !connecting && (
+        {!available && (
           <button type="button" className="ui-button mt-2" onClick={() => dispatch(openKeySettings("treg"))}>
             {t("research.openKeys")}
           </button>
@@ -522,10 +522,6 @@ function RecordStepsRow({ on, browserOn, myChrome, onChange }: { on: boolean; br
       />
     </div>
   );
-}
-
-export function cloudPreferenceShown(bot: Pick<Bot, "computer">, config: { cloudHome?: boolean } | null | undefined): boolean {
-  return (!bot.computer || bot.computer === "cloud") && !config?.cloudHome;
 }
 
 /**
@@ -593,9 +589,8 @@ export function VpsAliasField({ bot }: { bot: Bot }) {
 }
 
 export function CloudPreference({ bot, patch }: { bot: Bot; patch: ReturnType<typeof useBotSettingsDerived>["patch"] }) {
-  const { state } = useStore();
   const { draft } = useBotEditor();
-  if (!cloudPreferenceShown(bot, state.config)) return null;
+  if (bot.computer && bot.computer !== "cloud") return null;
   return (
     <>
       {!bot.computer && (
@@ -657,7 +652,7 @@ export function AccessSection({
   } = derived;
   const browserInstallable = state.config?.browserEngine?.installable === true;
   const { capabilities } = useDesktopCapabilities();
-  const placeSeat = usePlaceSeat(state.config, capabilities.host?.platform ?? "other");
+  const placeSeat = usePlaceSeat(capabilities.host?.platform ?? "other");
   const worksOn = placeViewFor(placeFacts({
     bot, place: bot.computer ?? "auto", seat: placeSeat, config: state.config, instances: state.instances,
   }));

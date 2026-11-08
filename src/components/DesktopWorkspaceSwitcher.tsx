@@ -11,9 +11,9 @@ export function openServerMenu(bridge: { menu: (options?: { from?: "howto" }) =>
 
 export type WorkspacePlace = ReturnType<typeof useWorkspacePlace>;
 
-export function useWorkspacePlace({ onMenuClosed }: { cloudHome?: boolean; howTo?: boolean; onMenuClosed?: () => void } = {}) {
+export function useWorkspacePlace({ onMenuClosed }: { onMenuClosed?: () => void } = {}) {
   const bridge = window.ogb?.workspaces;
-  const [current, setCurrent] = useState<{ local: boolean; name: string; origin?: string; color?: string; home?: boolean } | null>(null);
+  const [current, setCurrent] = useState<{ local: boolean; name: string; origin?: string } | null>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -29,11 +29,11 @@ export function useWorkspacePlace({ onMenuClosed }: { cloudHome?: boolean; howTo
     void openServerMenu(bridge, { onClosed: onMenuClosed }).catch(() => setError(t("sidebar.switchServerError")))
       .finally(() => setOpen(false));
   };
-  return { bridge, current, cloudHome: false, open, error, onLine: "", waking: "", openMenu, switchable: Boolean(bridge) };
+  return { bridge, current, open, error, openMenu, switchable: Boolean(bridge) };
 }
 
 type SwitcherProps = {
-  compact?: boolean; inline?: boolean; pill?: boolean; rail?: boolean; cloudHome?: boolean; owner?: string | null; howTo?: boolean; place?: string; onMenuClosed?: () => void;
+  compact?: boolean; inline?: boolean; pill?: boolean; rail?: boolean; onMenuClosed?: () => void;
 };
 
 export function DesktopWorkspaceSwitcher(props: SwitcherProps) {

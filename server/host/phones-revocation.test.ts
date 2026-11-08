@@ -26,10 +26,9 @@ async function fixture() {
   const session = sessions.authenticate(paired.token)!;
   const bot = { id: "helper", name: "Helper", phoneApps: { calendar: "write" } } as BotRecord;
   const phones = createPhones({
-    dataDir: dir, shared: false, cloudHome: true, cloudOwnerKey: "owner", loopbackTrust: "owner", sharedMembership: () => false,
+    dataDir: dir, loopbackTrust: "owner", sharedMembership: () => false,
     store: { bot: () => bot, groupByThread: () => undefined, messagesFor: () => [], appendMessage: (_thread, message) => ({ ...message, id: "message-1", at: message.at ?? Date.now() }) },
-    sessions, routines: () => null, ownerOrAdmin: () => true, cloudOwnerSession: () => true,
-    cloudLendingRefusal: () => null, cloudLendingTurn: () => { throw new Error("unused on Cloud home"); },
+    sessions, routines: () => null, ownerOrAdmin: () => true,
     originIsUser: () => true, request: () => undefined, nudge: () => {}, mint: () => "fixture-token", harnessUrl: "http://127.0.0.1:1", active: () => true,
   });
   let pollStarted!: () => void;

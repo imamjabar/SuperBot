@@ -1,7 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { Check, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { t } from "@/lib/i18n";
 
 export const SHEET = "rounded-2xl border-[0.5px] border-ink/10 bg-app text-ink";
 export const SCREEN = "flex flex-col gap-5 px-6 pb-6 pt-5";
@@ -94,14 +93,3 @@ export function Badge({ children }: { children: ReactNode }) {
   );
 }
 
-export function StagingMark({ className }: { className?: string }) {
-  return (
-    <span
-      data-cloud-staging
-      title={t("cloudBuy.stagingHint")}
-      className={cn("inline-flex items-center rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-warning", className)}
-    >
-      {t("cloudBuy.staging")}<span className="sr-only">: {t("cloudBuy.stagingHint")}</span>
-    </span>
-  );
-}

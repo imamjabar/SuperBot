@@ -4,9 +4,6 @@ import vm from "node:vm";
 import { Children, createElement, isValidElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-type CloudAccountState = any;
-type CloudPlanSnapshot = any;
-type CloudOffer = any;
 import { withTourFinished } from "@/lib/guided-tour";
 import { setLocale } from "@/lib/i18n";
 import { EMPTY_ONBOARDING, LOCAL_VIEWER, markWelcomeFinished, MET_CHIEF_HINT, type WelcomeViewer } from "@/lib/onboarding";
@@ -21,8 +18,7 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
   useEffect: (effect: EffectCallback) => { f.effects.push(effect); },
   useSyncExternalStore: (_subscribe: unknown, snapshot: () => unknown) => snapshot(),
 }));
-vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch }), api: vi.fn().mockResolvedValue({}),
-  CLOUD_LINK_SETTINGS: { type: "toggleAppSettings", open: true, section: "cloudAccount", cloudLink: true } }));
+vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch }), api: vi.fn().mockResolvedValue({}) }));
 vi.mock("@/lib/analytics", () => ({ emailGateDone: () => false, track: vi.fn() }));
 vi.mock("@/lib/updater", () => ({ useUpdaterState: () => f.updater }));
 // Who MausBot belongs to: unknown (as before the session answers) unless a test says otherwise.
@@ -40,23 +36,17 @@ import { SIMPLE_MODE_PROMPT_KEY } from "@/lib/simple-mode-prompt";
 import { api } from "@/state/store";
 
 const NOW = new Date(2026, 9, 9, 12).getTime();
-const signedOut: CloudAccountState = { status: "signed-out" };
 
 let storage: Map<string, string>;
-let account: CloudAccountState;
-let snapshot: CloudPlanSnapshot | Error;
-let offer: CloudOffer | null;
 let viewer: WelcomeViewer | null;
-let bridges: { cloud: Record<string, ReturnType<typeof vi.fn>>; plan: Record<string, ReturnType<typeof vi.fn>> };
-let accountListeners: Set<(next: CloudAccountState) => void>;
 let now: number;
 
 const PRELOAD = readFileSync(join(process.cwd(), "electron", "preload.cjs"), "utf8").replace(/\r\n/g, "\n");
-const LOCAL_ORIGIN = "http://127.0.0.1:8799", MY_CLOUD = "https://omb-u-1.fly.dev";
-type Page = "local" | "cloud" | "server";
+const LOCAL_ORIGIN = "http://127.0.0.1:8799";
+type Page = "local" | "server";
 type Handler = (event: { page: Page; returnValue?: unknown }, ...args: unknown[]) => unknown;
 interface Desktop {
-  handlers: Map<string, Handler>; listeners: Map<string, Handler>; saved: { seen?: string[] } | null; offered: boolean;
+  handlers: Map<string, Handler>; listeners: Map<string, Handler>; saved: { seen?: string[] } | null;
   /** This computer's own workspace config.json, as main reads it. */
   config: unknown;
 }
@@ -64,19 +54,19 @@ let desk: Desktop;
 
 // Main's own record for this one desktop, behind its real IPC.
 function desktopMachine(): Desktop {
-  const machine: Desktop = { handlers: new Map(), listeners: new Map(), saved: null, offered: true,
+  const machine: Desktop = { handlers: new Map(), listeners: new Map(), saved: null,
     config: { onboarding: { completedAt: "2026-09-01", version: 1, hintsSeen: [] } } };
   registerDesktopPrefs({
     ipcMain: { handle: (channel, handler) => void machine.handlers.set(channel, handler as Handler), on: (channel, listener) => void machine.listeners.set(channel, listener as Handler) },
     read: () => machine.saved, write: value => { machine.saved = JSON.parse(JSON.stringify(value)); }, page: event => (event as { page: Page }).page,
-    cloudOffered: async () => machine.offered, localConfig: () => machine.config, now: () => now,
+    cloudOffered: async () => false, localConfig: () => machine.config, now: () => now,
   });
   return machine;
 }
 
-// The real preload, as this desktop's window loads it for a page; the Cloud account and plan answer from this file's fakes.
+// The real preload, as this desktop's window loads it for a page.
 function windowOn(origin: string, { click = true } = {}) {
-  const page: Page = origin === LOCAL_ORIGIN ? "local" : origin === MY_CLOUD ? "cloud" : "server";
+  const page: Page = origin === LOCAL_ORIGIN ? "local" : "server";
   let ogb: Record<string, unknown> = {};
   vm.runInNewContext(PRELOAD, {
     process: { platform: "darwin", argv: [`--omb-local-origin=${LOCAL_ORIGIN}`, "--omb-company-desktop=1"] },
@@ -86,7 +76,7 @@ function windowOn(origin: string, { click = true } = {}) {
         sendSync: (channel: string) => { const event = { page, returnValue: undefined as unknown }; desk.listeners.get(channel)?.(event); return event.returnValue; },
         invoke: async (channel: string, ...args: unknown[]) => desk.handlers.get(channel)?.({ page }, ...args) } }),
   });
-  const fakes: Record<string, unknown> = { cloudAccount: bridges.cloud, cloudPlan: bridges.plan, openExternal: vi.fn(async () => true), organization: undefined };
+  const fakes: Record<string, unknown> = { openExternal: vi.fn(async () => true), organization: undefined };
   return { ...ogb, ...Object.fromEntries(Object.entries(fakes).filter(([key]) => key in ogb)) };
 }
 const showWindow = (origin: string, options?: { click?: boolean }) => {
@@ -94,7 +84,7 @@ const showWindow = (origin: string, options?: { click?: boolean }) => {
 };
 
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
-const render = () => { f.index = 0; f.effects = []; return renderToStaticMarkup(createElement(AppNotices, { viewer, now: () => now })); };
+const render = () => { f.index = 0; f.effects = []; return renderToStaticMarkup(createElement(AppNotices, { viewer })); };
 async function settle(rounds = 4) { for (let i = 0; i < rounds; i++) { render(); f.effects.forEach(effect => effect()); await flush(); } return render(); }
 const launch = () => { f.values = []; return settle(); };
 /** The app opened again: a new window session, so nothing this launch showed holds the next one back. */
@@ -106,7 +96,7 @@ const nodes = (value: ReactNode): Node[] => {
   if (typeof node.type === "function") return nodes((node.type as (props: unknown) => ReactNode)(node.props));
   return [node, ...Children.toArray(node.props.children).flatMap(nodes)];
 };
-const tree = () => { f.index = 0; f.effects = []; return nodes(AppNotices({ viewer, now: () => now })); };
+const tree = () => { f.index = 0; f.effects = []; return nodes(AppNotices({ viewer })); };
 const press = (label: string) => {
   const button = tree().find(node => node.type === "button" && (renderToStaticMarkup(node).includes(`>${label}<`) || node.props["aria-label"] === label));
   expect(button, label).toBeTruthy(); button!.props.onClick();
@@ -121,7 +111,7 @@ const hints = () => f.state.config.onboarding.hintsSeen as string[];
 beforeEach(() => {
   vi.clearAllMocks(); vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
   storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.brand = "default"; f.dispatch = vi.fn(); now = NOW; desk = desktopMachine();
-  setLocale("en"); viewer = LOCAL_VIEWER; account = signedOut; snapshot = { status: "none" }; offer = null;
+  setLocale("en"); viewer = LOCAL_VIEWER;
   session = new Map(); f.viewerEmail = undefined;
   vi.stubGlobal("sessionStorage", { getItem: (key: string) => session.get(key) ?? null, setItem: (key: string, value: string) => session.set(key, value) });
   f.state = { connected: true, hydrated: true, bots: structuredClone(FIRST_REPLY), groups: [], routines: [], instances: [{ instanceId: "claude", snapshot: { state: "available", authenticated: true } }],
@@ -133,33 +123,10 @@ beforeEach(() => {
   });
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) });
   launchCardsSeen();
-  accountListeners = new Set();
-  bridges = {
-    cloud: { state: vi.fn(async () => account), onState: vi.fn((listener: (next: CloudAccountState) => void) => { accountListeners.add(listener); return () => accountListeners.delete(listener); }),
-      offer: vi.fn(async () => offer), begin: vi.fn(async () => account),
-      signInAgain: vi.fn(async () => account), connectHome: vi.fn(async () => account), openDashboard: vi.fn(async () => account) },
-    plan: { state: vi.fn(async () => { if (snapshot instanceof Error) throw snapshot; return snapshot; }), manage: vi.fn(async () => {}), noticeSeen: vi.fn(async () => {}) },
-  };
   showWindow(LOCAL_ORIGIN);
   vi.stubGlobal("document", { activeElement: null, body: null, getElementById: () => null, querySelector: () => null, querySelectorAll: () => [] });
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); });
-
-
-
-describe("no Use my Mac popup", () => {
-  it("the page never asks main for one, whatever an older main would answer, and the cards go on as before", async () => {
-    const asked: unknown[] = [];
-    desk.handlers.set("cloud-lending:due", async () => true);
-    desk.handlers.set("cloud-lending:ask", (_event: unknown, language: unknown) => { asked.push(language); return Promise.resolve(); });
-    returning();
-    await launch();
-    snapshot = { status: "none" }; viewer = { hosted: false, canSave: true, cloudHome: true }; f.state.config.cloudHome = true;
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "cloud-setup-hidden"]; showWindow(MY_CLOUD);
-    await launch();
-    expect(asked, "on this computer's page and on My Cloud's own page").toEqual([]);
-  });
-});
 
 describe("the Move from Grok Bot popup", () => {
   const TITLE = "Move from Grok Bot", DIALOG = "THE MOVE DIALOG";
@@ -285,14 +252,11 @@ describe("the Move from Grok Bot popup", () => {
     expect(await relaunch(), "in another browser, the workspace remembers").not.toContain(TITLE);
   });
 
-  it("stays away from those who can't add a bot and from what isn't ours to promote: a member, a Team Cloud, a branded build", async () => {
+  it("stays away from those who can't add a bot and from what isn't ours to promote: a member, a branded build", async () => {
     returning();
-    viewer = { hosted: true, canSave: false };
+    viewer = { canSave: false };
     expect(await launch(), "a member").not.toContain(TITLE);
     viewer = LOCAL_VIEWER;
-    f.state.config.team = { id: "t", name: "Acme" };
-    expect(await relaunch(), "a Team Cloud").not.toContain(TITLE);
-    delete f.state.config.team;
     f.brand = "file";
     expect(await relaunch(), "a branded build").not.toContain(TITLE);
   });
@@ -348,12 +312,8 @@ describe("the Simple mode popup after the update", () => {
     expect(prompts()).toEqual([{ action: "shown", mode: "simple" }]);
   });
 
-  it("asks on the Cloud's own page and in a plain browser too, not only on this computer's", async () => {
-    snapshot = { status: "none" }; viewer = { hosted: false, canSave: true, cloudHome: true }; f.state.config.cloudHome = true;
-    f.state.config.onboarding.hintsSeen = [...withTourFinished(undefined), "cloud-setup-hidden"]; showWindow(MY_CLOUD);
-    expect(await launch()).toContain(TITLE);
+  it("asks in a plain browser too, not only on this computer's", async () => {
     vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
-    viewer = { hosted: true, canSave: true }; f.state.config.cloudHome = false;
     expect(await launch()).toContain(TITLE);
   });
 

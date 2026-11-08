@@ -15,16 +15,16 @@ export class ApiError extends Error {
 type ApiInit = RequestInit & { timeoutMs?: number; background?: boolean };
 
 export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
-  const { timeoutMs, signal, background: _background, headers, ...rest } = init ?? {};
-  const sent = new Headers(headers ?? { "content-type": "application/json" });
+  const sent = new Headers(init?.headers ?? { "content-type": "application/json" });
+  const signal = init?.timeoutMs === undefined
+    ? init?.signal
+    : init?.signal
+      ? AbortSignal.any([init.signal, AbortSignal.timeout(init.timeoutMs)])
+      : AbortSignal.timeout(init.timeoutMs);
   const res = await fetch(path, {
-    ...rest,
+    ...init,
     headers: sent,
-    signal: timeoutMs === undefined
-      ? signal
-      : signal
-        ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
-        : AbortSignal.timeout(timeoutMs),
+    signal,
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -35,4 +35,9 @@ export async function api<T = any>(path: string, init?: ApiInit): Promise<T> {
     throw refused;
   }
   return body;
+}
+
+export function snapshotArrays<T>(answer: T, ...keys: (keyof T)[]): T {
+  for (const key of keys) if (!Array.isArray(answer[key])) throw new Error(`Invalid snapshot: ${String(key)} is not a list`);
+  return answer;
 }

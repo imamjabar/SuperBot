@@ -322,7 +322,7 @@ export function Composer({
   }, [slash, dismissedSlashAt, group, bot, canLearn, state.instances, locale, slashSkills]);
   const commandPickerOpen = commandCandidates.length > 0;
 
-  const mention = mentionQueryAt(text, caret); const teammates = useTeammates(); const viewer = useViewerEmail();
+  const mention = mentionQueryAt(text, caret); const viewer = useViewerEmail();
   const candidates = useMemo(() => {
     if (!mention || mention.start === dismissedAt) return [];
     const pool: MentionChoice[] = group
@@ -839,7 +839,7 @@ export function Composer({
           <MentionTextarea
           wrapperClassName={singleRow || simpleDock ? undefined : cn("@max-[30rem]/composer:order-first @max-[30rem]/composer:basis-full", stacked && "order-first basis-full")}
           inputRef={inputRef}
-          peers={[...(group ? members ?? [] : state.bots.filter((member) => member.id !== bot?.id)), ...teammates.peers]}
+          peers={group ? members ?? [] : state.bots.filter((member) => member.id !== bot?.id)}
           everyone={Boolean(group && !group.dm)}
           dir="auto"
           rows={1}

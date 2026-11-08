@@ -19,7 +19,6 @@ export interface ConfigStatus {
   greenference?: SavedKey;
   deepseek?: SavedKey;
   meta?: SavedKey;
-  xResearch?: { unavailable?: boolean };
   /** The person's own treg key for research: configured or not, never the key. */
   treg?: SavedKey;
   /** The Postiz organisation API key, and the Postiz server it belongs to when it is not Postiz Cloud. */
@@ -74,8 +73,8 @@ export interface ConfigStatus {
   };
   /** The decision model: switches and whether a key is on file. The key
    * itself never comes back. `enabled` is the switch as it takes effect
-   * (off while no key is saved). `included`: Cloud Pro's decisions, no key
-   * saved. OpenRouter only: `keySource` says which key is in use (its own, or
+   * (off while no key is saved).
+   * OpenRouter only: `keySource` says which key is in use (its own, or
    * the one under Settings → API keys); `sharedKey`: that one is on file. */
   decider?: {
     provider: "jev" | "workersai" | "openrouter";
@@ -140,7 +139,7 @@ export interface ManagedPolicySummary {
   mcp: { allowCustom: boolean; allowlist: string[] };
   computers: { thisComputer: boolean; localVm: boolean; box: boolean; vps: boolean };
   remoteAccess: boolean;
-  /** Connected apps by service slug; absent from an older Team Cloud and from an organisation's policy. */
+  /** Connected apps by service slug; absent from an organisation's policy. */
   apps?: { allowAll: boolean; allowlist: string[] };
 }
 
@@ -160,7 +159,7 @@ export interface BrowserEngineSummary {
   /** browserEngine.engine: "chrome" when the bots' browsers run on OpenMausBot's own Chrome driver. */
   engine?: "agent-browser" | "chrome";
   /** Self-hosted servers only: whether bots' browsers may open this server's own sites and its local network
-   * (browserEngine.egress.localNetwork, off by default). Absent on the desktop and on MausBot Cloud. */
+   * (browserEngine.egress.localNetwork, off by default). Absent on the desktop. */
   serverSites?: boolean;
 }
 
@@ -178,7 +177,7 @@ export interface BrowserProfile {
 // A section left out here is wiped from state.config whenever a config frame lands.
 export type ConfigStatusFrame = Pick<
   ConfigStatus,
-  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "xResearch" | "treg" | "postiz" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "fleet" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "edition" | "budgets" | "billing" | "managedPolicy" | "workspaceBanner" | "oneMainChat"
+  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "treg" | "postiz" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "fleet" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "edition" | "budgets" | "billing" | "managedPolicy" | "workspaceBanner" | "oneMainChat"
 >;
 
 export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
@@ -187,7 +186,7 @@ export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
     mistral: frame.mistral,
     cerebras: frame.cerebras,
     groq: frame.groq, greenference: frame.greenference, deepseek: frame.deepseek,
-    meta: frame.meta, xResearch: frame.xResearch, treg: frame.treg, postiz: frame.postiz,
+    meta: frame.meta, treg: frame.treg, postiz: frame.postiz,
     anthropic: frame.anthropic,
     openai: frame.openai,
     openrouter: frame.openrouter,

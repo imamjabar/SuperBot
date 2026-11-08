@@ -36,6 +36,7 @@ async function serve(options: { botsPath?: () => BrokerPath | null; bots?: Bot[]
   const mcpServerResponse = () => ({ servers: listMcpServers(cfg.mcpServers).map((server) => ({ ...server, ...options.listed?.[server.name] })) });
   const sessions = { isLive: () => true };
   const config = createMcpConfig({
+    cfg, sessions, mcpOAuth,
     fallbackPublicUrl: null,
     mcpConfigBusy: { get: () => busy, set: (value) => { busy = value; } },
     mcpServerResponse,

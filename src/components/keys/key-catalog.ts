@@ -21,7 +21,7 @@ export type TestableProvider = "anthropic" | "openai" | "openrouter" | "openaiCo
 
 export type DesktopSlot = Parameters<NonNullable<NonNullable<Window["ogb"]>["setCredential"]>>[0];
 
-export interface SavedState { configured: boolean; last4?: string; included?: boolean }
+export interface SavedState { configured: boolean; last4?: string }
 
 export interface KeyTarget {
   patch: (value: string, firstKey: boolean) => Record<string, unknown>;
@@ -130,8 +130,7 @@ export const KEY_CATALOG: readonly KeyEntry[] = [
   { id: "elevenlabs", section: "voice", labelKey: "keys.label.elevenlabs", purposeKey: "keys.purpose.elevenlabs", name: "ElevenLabs", env: ["OMB_TTS_KEY"],
     words: ["elevenlabs", "eleven labs", "voice", "voices", "speech", "tts"], mark: { icon: AudioLines }, kind: "key",
     target: { patch: (value) => ({ tts: { key: value } }), slot: "ttsKey", verifiedOnSave: true,
-      saved: (config) => ({ ...flag(config.savedKeys?.ttsKey ?? { configured: config.tts?.provider === "elevenlabs" && config.tts.configured && !config.tts.included }),
-        ...(config.tts?.included ? { included: true } : {}) }),
+      saved: (config) => flag(config.savedKeys?.ttsKey ?? { configured: config.tts?.provider === "elevenlabs" && config.tts.configured }),
       placeholder: "sk_…", href: "https://elevenlabs.io/app/settings/api-keys", analytics: "elevenlabs", shape: /^sk_/ } },
   { id: "geminiTts", section: "voice", labelKey: "keys.label.geminiTts", purposeKey: "keys.purpose.geminiTts", name: "Gemini", env: ["OMB_GEMINI_API_KEY"],
     words: ["google", "gemini", "speech", "voice", "tts"], mark: { icon: AudioLines }, kind: "key",
@@ -146,7 +145,7 @@ export const KEY_CATALOG: readonly KeyEntry[] = [
   { id: "box", section: "computers", labelKey: "keys.boat.label", purposeKey: "keys.purpose.box", name: "boat.dev", env: ["BOX_TOKEN"],
     words: ["boat", "box", "cloud desktop", "cloud computer", "computer", "sandbox"], mark: { icon: Monitor }, kind: "key",
     target: { patch: (value) => ({ box: { token: value } }), slot: "boxToken", verifiedOnSave: true,
-      saved: (config) => ({ ...flag(config.box?.included ? undefined : config.box), ...(config.box?.included ? { included: true } : {}) }),
+      saved: (config) => flag(config.box),
       placeholder: "boat_…", href: "https://docs.boat.dev/api-keys", analytics: "boat", shape: /^(boat|box)_/, warningKey: "keys.boat.warning" } },
   { id: "vps", section: "computers", labelKey: "keys.vps.label", purposeKey: "keys.purpose.vps", name: "VPS", env: [],
     words: ["vps", "ssh", "server", "self-hosted", "computer", "docker"], mark: { icon: Server }, kind: "panel",
@@ -157,13 +156,12 @@ export const KEY_CATALOG: readonly KeyEntry[] = [
   { id: "composio", section: "apps", labelKey: "keys.composio.label", purposeKey: "keys.purpose.composio", name: "Composio", env: ["COMPOSIO_API_KEY"],
     words: ["composio", "connected apps", "apps", "gmail", "slack", "github", "notion", "self-host"], mark: { icon: Blocks }, kind: "key",
     target: { patch: (value) => ({ composio: { apiKey: value } }), slot: "composioApiKey", verifiedOnSave: true,
-      saved: (config) => ({ ...flag((config.composio?.mode ?? "self-hosted") === "self-hosted" ? config.composio : undefined),
-        ...(config.composio?.mode === "managed" ? { included: true } : {}) }),
+      saved: (config) => flag((config.composio?.mode ?? "self-hosted") === "self-hosted" ? config.composio : undefined),
       placeholder: "ak_…", href: "https://dashboard.composio.dev", analytics: "composio", shape: /^ak_/ } },
   { id: "treg", section: "apps", labelKey: "keys.treg.label", purposeKey: "keys.purpose.treg", name: "treg", env: ["OMB_TREG_KEY"],
     words: ["treg", "research", "x", "twitter", "companies", "people", "funding", "news"], mark: { icon: Search }, kind: "key",
     target: { ...providerKey("treg", { slot: "tregApiKey", placeholder: "…", placeholderKey: "keys.treg.placeholder", href: "https://treg.to", test: "treg", analytics: "treg" }),
-      saved: (config) => ({ ...flag(config.treg), ...(config.xResearch?.included && !config.treg?.configured ? { included: true } : {}) }) } },
+      saved: (config) => flag(config.treg) } },
   { id: "postiz", section: "apps", labelKey: "keys.postiz.label", purposeKey: "keys.purpose.postiz", name: "Postiz", env: ["OMB_POSTIZ_API_KEY"],
     words: ["postiz", "social", "social media", "posts", "schedule", "linkedin", "instagram", "x", "twitter"], mark: { icon: CalendarClock }, kind: "key",
     target: { patch: (value) => ({ postiz: { key: value } }), slot: "postizApiKey", verifiedOnSave: true, saved: (config) => flag(config.postiz),
@@ -171,7 +169,7 @@ export const KEY_CATALOG: readonly KeyEntry[] = [
   { id: "jev", section: "helpers", labelKey: "decider.key.label", purposeKey: "keys.purpose.jev", name: "Jev", env: ["OMB_JEV_API_KEY"],
     words: ["jev", "typesafe", "decisions", "extraction", "helper", "rooms"], mark: { icon: Zap }, kind: "key",
     target: { patch: (value) => ({ decider: { key: value } }), slot: "jevApiKey", verifiedOnSave: true,
-      saved: (config) => ({ ...flag(config.savedKeys?.jevApiKey ?? { configured: config.helpers?.own.jev === true }), ...(config.decider?.included ? { included: true } : {}) }),
+      saved: (config) => flag(config.savedKeys?.jevApiKey ?? { configured: config.helpers?.own.jev === true }),
       placeholder: "…", placeholderKey: "decider.key.placeholder", href: "https://typesafe.ai", analytics: "jev" } },
   { id: "openrouterHelper", section: "helpers", labelKey: "keys.label.openrouterHelper", purposeKey: "keys.purpose.openrouterHelper", name: "OpenRouter", env: ["OMB_OPENROUTER_DECIDER_KEY"],
     words: ["openrouter", "decisions", "helper"], mark: provider("openai-compat", "openrouter"), kind: "key",

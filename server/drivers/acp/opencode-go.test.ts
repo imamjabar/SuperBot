@@ -356,15 +356,6 @@ describe("OpenCode catalog", () => {
     expect(describeOpenCodeAccountError("inactive_subscription", "opencode-go/minimax-m3")).toContain("OpenCode Go subscription");
   });
 
-  it("on a Cloud, sends another provider's refused key to Settings, not a terminal", () => {
-    for (const model of ["openrouter/openai/gpt-4o-mini", "venice/llama-3.3-70b", `${"very-long-provider-name".repeat(4)}/model`]) {
-      const cloud = describeOpenCodeAccountError("invalid_credentials", model, { cloudHome: true });
-      expect(cloud).not.toContain("opencode auth login");
-      expect(cloud).toContain("Save it under Keys for other OpenCode providers in Settings → API keys.");
-      expect(cloud.length, model).toBeLessThanOrEqual(160);
-      expect(describeOpenCodeAccountError("invalid_credentials", model, { cloudHome: false })).toContain("opencode auth login");
-    }
-  });
 
   it("passes the person's provider keys through, as the CLI would see them", async () => {
     const scratch = mkdtempSync(join(tmpdir(), "omb-opencode-go-"));

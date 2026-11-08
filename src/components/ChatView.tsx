@@ -253,7 +253,7 @@ function PlaceFailedRow({ place, botId, threadId, onRetry }: {
 }) {
   const { state, dispatch } = useStore();
   const { capabilities } = useDesktopCapabilities();
-  const seat = usePlaceSeat(state.config, capabilities.host.platform);
+  const seat = usePlaceSeat(capabilities.host.platform);
   const bot = state.bots.find((candidate) => candidate.id === botId);
   const view = placeRowViewFor(place, seat, worksOnSimpleLabel(bot?.computer, capabilities.host.platform));
   const id = view.action?.id;
@@ -994,7 +994,6 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
             <ChatHeadPill
               bot={bot}
               avatar={{ state: stateForBot({ ...bot, messages }), motion: mascotMotion?.kind ?? "none", motionKey: mascotMotion?.nonce ?? 0, animated: headerAnimated }}
-              privacy={null}
               onToggle={() => dispatch({ type: "toggleSettings", open: !state.settingsOpen })}
             />
           ) : advanced ? (

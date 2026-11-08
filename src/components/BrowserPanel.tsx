@@ -111,7 +111,7 @@ export function LiveBrowser({ bot, signIn, page }: { bot: Bot; signIn?: BrowserS
     if (stream) return createPreviewStreamClient({ access: browserStreamAccess(bot.id, window.location, scope), ...target }, events);
     const key = `${bot.id}\n${bot.browserProfile ?? ""}${scopedThread ? `\n${scopedThread}` : ""}`;
     if (resume.current.key !== key) resume.current = { key, viewer: "" };
-    return createLiveStreamClient(bot.id, events, (body, viewerId) => api((`/api/bots/${encodeURIComponent(bot.id)}/browser/action`, scope), {
+    return createLiveStreamClient(bot.id, events, (body, viewerId) => api(`/api/bots/${encodeURIComponent(bot.id)}/browser/action`, {
       // 120 s matches the server's browser requestTimeoutMs.
       method: "POST", body: JSON.stringify({ ...body, viewerId }), timeoutMs: 120_000,
     }), resume.current, scope, { width: target.width, height: target.height });

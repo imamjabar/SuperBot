@@ -11,7 +11,7 @@ vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   api: vi.fn(async () => ({})),
   useStore: () => ({
-    state: { appSettingsSection: "general", instances: [], bots: [], config: { features: {}, composio: { mode: "self" } }, appSettingsCloudLink: 0, appSettingsPhonePairing: 0 },
+    state: { appSettingsSection: "general", instances: [], bots: [], config: { features: {}, composio: { mode: "self" } }, appSettingsPhonePairing: 0 },
     dispatch: fixture.dispatch,
     refreshInstances: vi.fn(),
   }),
@@ -23,7 +23,7 @@ vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capab
 vi.mock("./SidebarProfileMenu", async (importOriginal) => ({ ...await importOriginal<typeof import("./SidebarProfileMenu")>(), useServerUpdateItem: () => null }));
 for (const [path, name] of [
   ["./EnginesSettings", "EnginesSettings"], ["./RemoteComputerSection", "RemoteComputerSection"], ["./CompanionSection", "CompanionSection"],
-  ["./ServerPairingCard", "ServerPairingCard"], ["./LocalComputerSection", "LocalComputerSection"], ["./CloudAccountSettings", "CloudAccountSettings"],
+  ["./ServerPairingCard", "ServerPairingCard"], ["./LocalComputerSection", "LocalComputerSection"],
   ["./PeopleSection", "PeopleSection"], ["./ActivitySection", "ActivitySection"], ["./UsageSection", "UsageSection"], ["./ImportSettings", "ImportSettings"],
   ["./CustomDomainSettings", "CustomDomainSettings"], ["./LoginsSettings", "LoginsSettings"], ["./PlanUsage", "PlanUsageSummary"],
 ] as const) vi.doMock(path, async (importOriginal) => ({ ...await importOriginal<Record<string, unknown>>(), [name]: () => null }));

@@ -7,7 +7,6 @@ import {
   currentPhonePairingTarget,
   loadPhonePairingAccess,
   pairedDestination,
-  phoneDestinations,
   phonePairingSettingsAction,
   phonePairingTarget,
   resetPhonePairingAccess,
@@ -38,7 +37,7 @@ describe("where Connect your phone pairs", () => {
 
   it("reads the window's bridges", () => {
     vi.stubGlobal("window", { ogb: { companion: {} } });
-    expect(currentPhonePairingTarget(false)).toBe("computer");
+    expect(currentPhonePairingTarget()).toBe("computer");
     vi.stubGlobal("window", { ogb: { companion: {}, remoteClient: { active: true } } });
     expect(currentPhonePairingTarget()).toBe("server");
     vi.stubGlobal("window", { ogb: { companion: {} } });
@@ -54,13 +53,6 @@ describe("Connect your phone in the account menu", () => {
     expect(connectPhoneEntry("computer", access(chatOnly, false))?.target).toBe("computer");
   });
 
-  it("on a Team Cloud: to the team, for every member, whatever their role", () => {
-    const member = { kind: "session" as const, id: "s", label: "Desktop", scopes: ["client"], expiresAt: 1, team: { id: "team-acme-1", name: "Acme", role: "member" } };
-    const entry = connectPhoneEntry("cloud", access(member, false));
-    expect(entry).toMatchObject({ target: "cloud", team: "Acme" });
-    expect(t("sidebar.menu.connectPhone.team", { team: entry!.team! })).toBe("to Acme");
-    expect(phoneDestinations(entry, null)).toEqual([{ ...entry, id: "here" }]);
-  });
 
   it("on another server: to the bots here, only for a session that may make a pairing code", () => {
     expect(subtitle(connectPhoneEntry("server", access(admin)))).toBe("to the bots here");

@@ -18,6 +18,7 @@
   "callActive",
   "companion",
   "companion.browserControl",
+  "companion.cloudDesktop",
   "companion.keepAwake",
   "companion.pairing",
   "companion.refreshTailscale",

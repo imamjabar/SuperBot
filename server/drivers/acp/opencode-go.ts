@@ -769,7 +769,6 @@ function allowOwnedDirectories(env: Record<string, string | undefined>, botId: s
 export function describeOpenCodeAccountError(
   code: AccountErrorCode,
   model?: string,
-  where: { cloudHome: boolean } = { cloudHome: cloudHomeConfigured() },
 ): string {
   const provider = model && model.includes("/") ? model.slice(0, model.indexOf("/")) : "";
   const zen = provider === "opencode";
@@ -780,9 +779,7 @@ export function describeOpenCodeAccountError(
     case "invalid_credentials":
       return zen || go || !provider
         ? "OpenCode rejected its key, or has none for this model. Add or replace the OpenCode key in Settings → API keys."
-        : where.cloudHome
-          ? `OpenCode's ${name} key for this model is missing or was rejected. Save it under Keys for other OpenCode providers in Settings → API keys.`
-          : `OpenCode's ${name} key for this model is missing or was rejected. Fix it with \`opencode auth login\`, or choose another model.`;
+        : `OpenCode's ${name} key for this model is missing or was rejected. Fix it with \`opencode auth login\`, or choose another model.`;
     case "insufficient_funds":
       return zen || !provider
         ? "Your OpenCode Zen balance has run out. Add credit at opencode.ai, or choose one of Zen's free models for this bot."

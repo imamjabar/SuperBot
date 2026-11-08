@@ -103,7 +103,7 @@ const BASE = {
 function bots(state: string): Bot[] {
   const ledger: Bot = { ...BASE, id: "ledger", name: "Ledger", title: "Developer", color: "teal", createdBy: CLEO.email, threadId: WORK, mainThreadId: "ledger-main",
     busy: state === "question" || state === "approval", activity: state === "question" || state === "approval" ? "waiting-on-you" : "idle",
-    tasks: [{ threadId: "ledger-main", title: "Ledger", createdAt: AT - 86_400_000 }, { threadId: WORK, title: "Pricing page: fix", createdAt: AT, private: true,
+    tasks: [{ threadId: "ledger-main", title: "Ledger", createdAt: AT - 86_400_000 }, { threadId: WORK, title: "Pricing page: fix", createdAt: AT,
       openedBy: { botId: "scout", name: "Scout", at: AT } }], messages: ledgerMessages(state) };
   const scout: Bot = { ...BASE, id: "scout", name: "Scout", title: "Cleo's Chief", color: "orange", chiefOfStaff: true, reportsTo: CLEO.email, threadId: INBOX,
     tasks: [{ threadId: INBOX, title: "Inbox", createdAt: AT - 86_400_000, inbox: true, ...(cardFor(state) && state !== "answered" ? { openAsks: 1 } : {}) }],

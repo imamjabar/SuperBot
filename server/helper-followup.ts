@@ -38,7 +38,7 @@ export function followupFacts(
   connects?: string,
 ): HelperFollowupFacts {
   const person = defaultBotPerson(maus);
-  const others = bots.filter((bot) => bot.id !== maus.id && !bot.hidden && !bot.defaultBot && !bot.movedTo && seenBy(bot, person));
+  const others = bots.filter((bot) => bot.id !== maus.id && !bot.hidden && !bot.defaultBot && seenBy(bot, person));
   const theirs = new Set([maus.id, ...others.map((bot) => bot.id)]);
   return {
     ai: seen.ai,

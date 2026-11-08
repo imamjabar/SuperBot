@@ -147,8 +147,6 @@ export function createMcpConfig(deps: McpConfigDeps & { changed(): void }): McpC
       if (Object.keys(current).length + names.length > MAX_MCP_SERVERS) {
         return { status: 400, error: `You can add at most ${MAX_MCP_SERVERS} MCP servers.` };
       }
-      const personalRefusal = names.map((name) => personalHeaderRefusal(name, servers[name]!)).find(Boolean);
-      if (personalRefusal) return { status: 400, error: personalRefusal };
       const blocked = names.filter((name) => mcpPolicyRefusal(name, servers[name] as object));
       if (blocked.length) return { status: 403, error: `${mcpPolicyRefusal(blocked[0]!, servers[blocked[0]!] as object)} Not approved: ${blocked.join(", ")}.`, code: "managed_policy" };
       persistMcpServers({ ...current, ...servers });
@@ -235,7 +233,7 @@ export function createMcpConfig(deps: McpConfigDeps & { changed(): void }): McpC
             sentSignIn = true;
           }
         }
-        const options = { ...(personal ? {} : appCatalog?.probeOptions(name, parsed.server) ?? {}), ...(asBot ? { asBot } : isRemoteMcpServer(target) ? {} : { asBot: deps.probeAs?.(target) ?? {} }) };
+        const options = { ...appCatalog?.probeOptions(name, parsed.server), ...(asBot ? { asBot } : isRemoteMcpServer(target) ? {} : { asBot: deps.probeAs?.(target) ?? {} }) };
         const viaBots = isRemoteMcpServer(target) ? deps.botsPath?.() ?? null : null;
         const result = viaBots && isRemoteMcpServer(target)
           ? await probeAsBots(viaBots, name, target, signal, options)

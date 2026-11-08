@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-// When MausBot's first-launch card may open: like the Cloud Pro popup and the product-updates question, never over the
-// first chat before a reply, never in the launch the welcome finished, never while the app tour runs, and never in the
-// same launch as those two.
+// When MausBot's first-launch card may open: like the product-updates question, never over the first chat before a
+// reply, never in the launch the welcome finished, never while the app tour runs, and never in the same launch as that
+// question.
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";

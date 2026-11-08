@@ -77,7 +77,7 @@ export function forgetDefaultBot(dataDir: string, person: string): void {
  * not installed from a package, and still named MausBot or still in the colour a new install gave it. */
 export function seededMausBot(bots: readonly BotRecord[]): BotRecord | undefined {
   const oldest = bots.reduce<BotRecord | undefined>((first, bot) => !first || bot.createdAt < first.createdAt ? bot : first, undefined);
-  if (!oldest || oldest.hidden || oldest.movedTo || oldest.section?.trim() || oldest.installedPackage) return undefined;
+  if (!oldest || oldest.hidden || oldest.section?.trim() || oldest.installedPackage) return undefined;
   return oldest.name === DEFAULT_BOT_NAME || oldest.color === STARTER_COLOR ? oldest : undefined;
 }
 

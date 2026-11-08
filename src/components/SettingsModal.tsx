@@ -114,7 +114,7 @@ export const SIMPLE_PAGES: SimpleSettingsPage[] = [
     keywords: ["account", "theme", "looks", "open at login", "startup", "analytics", "advanced mode"] },
   { id: "ai", labelKey: "settings.group.ai", icon: Sparkles, sections: ["engines", "connections"] },
   { id: "computer", labelKey: "settings.simple.page.computer", icon: Monitor, sections: ["companion", "desktopWorkspaces", "computer", "logins"] },
-  { id: "billing", labelKey: "settings.simple.page.billing", icon: ChartNoAxesColumn, sections: ["usage"], keywords: ["billing", "included", "allowance", "cloud hours", "voice"] },
+  { id: "billing", labelKey: "settings.simple.page.billing", icon: ChartNoAxesColumn, sections: ["usage"], keywords: ["billing", "included", "allowance", "voice"] },
   { id: "updates", labelKey: "settings.simple.page.updates", icon: CloudDownload, sections: ["updates"],
     keywords: ["update", "version", "release", "product updates", "newsletter", "email updates", "welcome", "tour", "diagnostics", "logs", "support"] },
 ];
@@ -300,12 +300,12 @@ export function SettingsModal() {
   const openSection = (id: AppSettingsSection) => dispatch({ type: "toggleAppSettings", open: true, section: id });
 
   const phoneFocus = state.appSettingsPhonePairing;
-  const computerPairs = currentPhonePairingTarget(state.config?.cloudHome === true) === "computer";
+  const computerPairs = currentPhonePairingTarget() === "computer";
   const remoteAccess = {
     client: <RemoteComputerSection hideWhenUnavailable={!advanced} />,
     domain: remoteActive ? null : <CustomDomainSettings />,
     // Security: the server decides who may pair (an owner or admin session), not this gate.
-    pairing: <ServerPairingCard cloudHome={state.config?.cloudHome === true} focusRequest={computerPairs ? 0 : phoneFocus} team={state.config?.team?.name} teamPhoneBlocked={state.config?.managedPolicy?.remoteAccess === false ? t("policy.teamRemoteBlocked", { organization: state.config.managedPolicy.organizationName }) : null} simple={!advanced} />,
+    pairing: <ServerPairingCard focusRequest={computerPairs ? 0 : phoneFocus} simple={!advanced} />,
     companion: remoteActive ? null : <CompanionSection profileEmail={state.config?.profile?.email} focusRequest={computerPairs ? phoneFocus : 0} />,
   };
 

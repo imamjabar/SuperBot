@@ -260,7 +260,7 @@ describe("server device-code sign-in", () => {
     };
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(EngineSetup, { instance: engine })));
     expect(markup).toContain("Continue with ChatGPT");
-    expect(markup).toContain("separate from MausBot Cloud and from paying with an API key");
+    expect(markup).toContain("from paying with an API key");
     expect(markup).not.toContain("codex login");
     expect(markup).not.toContain("Device-code login");
   });

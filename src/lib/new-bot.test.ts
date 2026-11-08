@@ -39,7 +39,7 @@ async function newBot(request: never, action: Partial<Extract<Action, { type: "n
 }
 
 beforeEach(() => { fixture.track.mockReset(); fixture.openBot.mockReset(); });
-afterEach(() => { vi.unstubAllGlobals(); setTeamPeople(null); setTeamChats(null); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("New bot", () => {
   it("leaves a plan's refusal to the popup: no error line beside it, and no onError", async () => {
@@ -54,12 +54,6 @@ describe("New bot", () => {
     expect(fixture.track).not.toHaveBeenCalled();
   });
 
-  it("makes nothing for a User on a team, however it was asked for", async () => {
-    setTeamPeople({ ...team, admin: false });
-    const { calls, request } = server();
-    expect(await newBot(request)).toEqual([]);
-    expect(calls).toEqual([]);
-  });
 
   it("makes a bot at once from the New bot defaults and opens its chat", async () => {
     const { calls, request, created } = server();

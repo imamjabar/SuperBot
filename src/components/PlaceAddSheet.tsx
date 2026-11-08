@@ -73,7 +73,7 @@ export function RailSheet({ wide = false, focusKey, onClose, children }: { wide?
   return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div ref={sheet} role="dialog" aria-modal="true" aria-labelledby="cloud-add-title" data-place-add-sheet tabIndex={-1}
       className={cn("animate-pop-in relative max-h-full w-full overflow-y-auto overscroll-contain rounded-2xl border border-hairline/70 bg-panel shadow-2xl outline-none", wide ? "max-w-[900px]" : "max-w-[560px]")}>
-      <button type="button" onClick={onClose} aria-label={t("cloudAdd.close")} className="ui-icon-button absolute end-3.5 top-3.5 z-10"><X size={18} /></button>
+      <button type="button" onClick={onClose} aria-label={t("common.close")} className="ui-icon-button absolute end-3.5 top-3.5 z-10"><X size={18} /></button>
       {children}
     </div>
   </div>;

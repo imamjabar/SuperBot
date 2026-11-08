@@ -176,31 +176,30 @@ describe("a failed place, by where it came from", () => {
 });
 
 describe("cloudRefusal reads the Admin's refusals", () => {
-  const included = (message: string, code?: string, status?: number) => cloudRefusal({ message, code, status }, true);
+  const check = (message: string, code?: string, status?: number) => cloudRefusal({ message, code, status });
 
   it("reads today's English, before the Admin sends its own codes", () => {
-    expect(included("Your Pro plan's 50 cloud computer hours for October are used up. They reset on 1 November.", "limit_reached", 429))
+    expect(check("Your Pro plan's 50 cloud computer hours for October are used up. They reset on 1 November.", "limit_reached", 429))
       .toEqual({ state: "cc-no-hours", params: { plan: "Pro", hours: 50, month: "November" } });
-    expect(included("Your Personal plan includes 1 cloud computer at once. Delete one to start another.", "limit_reached", 429))
+    expect(check("Your Personal plan includes 1 cloud computer at once. Delete one to start another.", "limit_reached", 429))
       .toEqual({ state: "cc-at-once", params: { plan: "Personal", max: 1 } });
-    expect(included("Your cloud computers were started too often. Try again in a minute.", "limit_reached", 429).state).toBe("cc-unavailable");
-    expect(included("Cloud computers are busy right now. Try again in a few minutes.", "rate_limited", 429).state).toBe("cc-unavailable");
-    expect(included("Cloud computers are temporarily unavailable. Try again later.", undefined, 503).state).toBe("cc-unavailable");
+    expect(check("Your cloud computers were started too often. Try again in a minute.", "limit_reached", 429).state).toBe("cc-unavailable");
+    expect(check("Cloud computers are busy right now. Try again in a few minutes.", "rate_limited", 429).state).toBe("cc-unavailable");
+    expect(check("Cloud computers are temporarily unavailable. Try again later.", undefined, 503).state).toBe("cc-unavailable");
   });
 
   it("maps the existing inactive-plan code, and the codes the Admin is adding", () => {
-    expect(included("Cloud computers are included with an active Cloud subscription.", "subscription_inactive", 402).state).toBe("cc-ended");
-    expect(included("x", "hours_used").state).toBe("cc-no-hours");
-    expect(included("x", "at_once").state).toBe("cc-at-once");
-    expect(included("x", "too_many_starts").state).toBe("cc-unavailable");
+    expect(check("Cloud computers are included with an active Cloud subscription.", "subscription_inactive", 402).state).toBe("cc-ended");
+    expect(check("x", "hours_used").state).toBe("cc-no-hours");
+    expect(check("x", "at_once").state).toBe("cc-at-once");
+    expect(check("x", "too_many_starts").state).toBe("cc-unavailable");
   });
 
   it("reads this app's own start failures, and an own key's provider words", () => {
-    expect(included("box did not become ready within 90s — retry in a minute").state).toBe("cc-no-start");
-    expect(included("box desktop link could not be created").state).toBe("cc-no-start");
-    expect(included("this cloud computer is being deleted — wait for it to finish, or retry Delete if it needs attention").state).toBe("cc-clearing");
-    expect(cloudRefusal({ message: "Start the $20/month Boat plan to create sandboxes.", status: 402 }, false))
+    expect(check("box did not become ready within 90s — retry in a minute").state).toBe("cc-no-start");
+    expect(check("box desktop link could not be created").state).toBe("cc-no-start");
+    expect(check("this cloud computer is being deleted — wait for it to finish, or retry Delete if it needs attention").state).toBe("cc-clearing");
+    expect(cloudRefusal({ message: "Start the $20/month Boat plan to create sandboxes.", status: 402 }))
       .toEqual({ state: "cc-provider", params: { words: "Start the $20/month Boat plan to create sandboxes." } });
-    expect(included("something new").state).toBe("cc-no-start");
   });
 });

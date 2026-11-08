@@ -22,7 +22,7 @@ export interface PlaceSeat {
   mode: "simple" | "advanced";
 }
 
-export function serverKind(_config: unknown, platform: DesktopCapabilities["host"]["platform"]): ServerKind {
+export function serverKind(platform: DesktopCapabilities["host"]["platform"]): ServerKind {
   return platform === "darwin" ? "mac" : platform === "win32" ? "pc" : "linux";
 }
 
@@ -54,7 +54,7 @@ export function placeFacts(input: {
     server: seat.server,
     bot: bot.name,
     plan: seat.plan,
-    boat: config?.box?.configured ? (config.box.included ? "included" : "own-key") : "none",
+    boat: config?.box?.configured ? "own-key" : "none",
     backend: bot.cloudBackend === "vps" ? "vps" : "box",
     engine: engineFacts(instance, bot.modelSelection.model),
     toolsAllowComputer: canUseMcpServer(bot.toolScope, "computer"),
@@ -87,10 +87,10 @@ export function placeHasIssue(view: PlaceView): boolean {
 }
 
 
-export function usePlaceSeat(config: Pick<ConfigStatus, "cloudHome"> | null | undefined, platform: DesktopCapabilities["host"]["platform"]): PlaceSeat {
+export function usePlaceSeat(platform: DesktopCapabilities["host"]["platform"]): PlaceSeat {
   const ownerOrAdmin = useOwnerOrAdmin();
   const advanced = useAdvancedMode();
-  return { server: serverKind(config, platform), plan: false, role: ownerOrAdmin === false ? "user" : "admin", mode: advanced ? "advanced" : "simple" };
+  return { server: serverKind(platform), plan: false, role: ownerOrAdmin === false ? "user" : "admin", mode: advanced ? "advanced" : "simple" };
 }
 
 export function openPlaceAction(

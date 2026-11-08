@@ -1,7 +1,6 @@
 // The device link end to end in one process: the real shared-computers routes behind a real HTTP server's upgrades,
 // My Cloud's DeviceLinks, and the computer's own link client with its own check on each connection.
 import { randomUUID } from "node:crypto";
-import { getEventListeners } from "node:events";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { connect as tcpConnect, createServer as createTcpServer, type AddressInfo, type Socket } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
@@ -21,17 +20,15 @@ const cleanups: Array<() => unknown> = [];
 afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); });
 
 /** My Cloud's HTTP side for lending: a bearer of `session-<id>` is that paired session. */
-async function cloud(options: { sleeping?: () => boolean; sleep?: AbortController } = {}) {
+async function cloud() {
   const live = new Set(["owner", "other"]);
   const links = new DeviceLinks({ pingMs: 100 });
   const lent = new LentComputers(`/nonexistent-${randomUUID()}/lent-computers.json`);
   const computers = new SharedComputers((id) => live.has(id), lent, links);
   const upgrades = createUpgrades();
-  const sleep = options.sleep ?? new AbortController();
   const route = createSharedComputerRoutes({
     enabled: () => true, computers, sessionLive: (id) => live.has(id), environmentId: "11111111-1111-4111-8111-111111111111",
     cloudHomeLender: PERSON, principal: () => PERSON, personKey: () => PERSON,
-    power: () => ({ sleeping: options.sleeping ?? (() => false), sleepSignal: () => sleep.signal }),
     links, upgrades,
   });
   const handle = async (req: IncomingMessage, res: ServerResponse) => {
@@ -56,7 +53,7 @@ async function cloud(options: { sleeping?: () => boolean; sleep?: AbortControlle
     expect(response.status, await response.clone().text()).toBe(200);
     return id;
   };
-  return { base, links, computers, lent, live, register, sleep };
+  return { base, links, computers, lent, live, register };
 }
 
 /** A web server standing in for the public internet, reached only through the computer's own connect. */
@@ -205,35 +202,6 @@ describe("the device link", () => {
     expect((await mac.ended).code).toBe(LINK_ENDED);
   });
 
-  it("leaves no sleep listener behind when a link ends, however often the computer reconnects while My Cloud stays awake", async () => {
-    const sleep = new AbortController();
-    const home = await cloud({ sleep });
-    const site = await website();
-    const id = await home.register();
-    for (let round = 0; round < 5; round++) {
-      const mac = link(home.base, id, site.port);
-      await until(() => mac.opens() === 1, "the link");
-      mac.stop.abort();
-      await mac.ended;
-      await until(() => home.links.route(PERSON) === null, "the link to end on My Cloud");
-    }
-    await until(() => getEventListeners(sleep.signal, "abort").length === 0, "every ended link's sleep listener to go", 2_000);
-  });
-
-  it("closes as asleep when My Cloud agrees to sleep, and refuses a new link while it sleeps", async () => {
-    let sleeping = false;
-    const sleep = new AbortController();
-    const home = await cloud({ sleeping: () => sleeping, sleep });
-    const site = await website();
-    const id = await home.register();
-    const mac = link(home.base, id, site.port);
-    await until(() => mac.opens() === 1, "the link");
-    sleeping = true;
-    sleep.abort();
-    expect(await mac.ended).toEqual({ code: 4001, reason: "asleep" });
-    expect(home.links.route(PERSON)).toBeNull();
-    expect((await link(home.base, id, site.port).ended).code, "a link dialled while My Cloud sleeps is told so at once").toBe(4001);
-  });
 
   it("a Chrome stream goes only to a computer that lends Chrome, through its own door", async () => {
     const home = await cloud();

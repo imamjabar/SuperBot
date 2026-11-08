@@ -751,7 +751,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
   };
   if (options.local) delete env.OMB_PUBLIC_URL;
   // The per-launch secret goes over stdin, not the environment that every engine the server starts inherits.
-  const serviceTrust = resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: false }).trust === "service";
+  const serviceTrust = resolveLoopbackTrust({ env, desktopManaged: false }).trust === "service";
   const ownerToken = serviceTrust ? randomBytes(32).toString("base64url") : undefined;
   if (ownerToken) env.OMB_CLI_OWNER_STDIN = "1";
   else delete env.OMB_CLI_OWNER_STDIN;

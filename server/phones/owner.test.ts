@@ -10,7 +10,7 @@ const card = (answeredBy?: { kind: string; person?: string; name?: string }) =>
 /** What server/index.ts hands over off a Cloud home: the Cloud test's own owner, which knows nobody here. */
 const base = (overrides: Partial<DesktopTurn> = {}): DesktopTurn => ({
   request: { messageId: "m1", generations: new Set(["g1"]) }, generation: "g1", thread: [said("m1"), reply("r1")],
-  ownerPerson: () => false, cardAnswerer: (c) => (c.answeredBy?.kind === "session" ? c.answeredBy.person : undefined),
+  ownerPerson: () => false, cardAnswerer: (c) => (c?.answeredBy?.kind === "session" ? c.answeredBy.person : undefined),
   routineRun: () => null, reportsFromOthers: true, ...overrides,
 });
 /** `written`: the routines the owner wrote and nobody has changed since. */

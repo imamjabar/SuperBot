@@ -162,7 +162,7 @@ export function ComputerPanel({
   const localSelectable = localComputerSelectable({ capabilities, providerSupportsLocal });
   const [localAutoWarningTarget, setLocalAutoWarningTarget] = useState<string | null>(null);
   const localDisabledReason = localComputerDisabledReason({ capabilities, providerSupportsLocal });
-  const placeSeat = usePlaceSeat(state.config, capabilities.host.platform);
+  const placeSeat = usePlaceSeat(capabilities.host.platform);
   const [phase, setPhase] = useState<Phase>("checking");
   const [persistedComputerSelection, setPersistedComputerSelection] = useState<{
     botId: string;
@@ -1111,7 +1111,7 @@ export function ComputerPanel({
     ...(refusal ? { refusal } : {}),
   });
   const cloudRefused = bot.computer === "cloud" && cloudBackend === "box" && phase === "error" && error && !(error instanceof LocalizedPanelError)
-    ? cloudRefusal({ message: errorText ?? "", status: Number((error as { status?: unknown }).status ?? 0) || undefined }, state.config?.box?.included === true)
+    ? cloudRefusal({ message: errorText ?? "", status: Number((error as { status?: unknown }).status ?? 0) || undefined })
     : undefined;
   const cloudView = viewOf("cloud", cloudRefused);
   const autoView = viewOf("auto");

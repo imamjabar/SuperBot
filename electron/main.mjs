@@ -35,11 +35,7 @@ import { windowBackground, windowChromeOptions } from "./window-chrome.mjs";
 import { createAllWindowsClosedQuit } from "./window-all-closed.mjs";
 import { createStartupScreen } from "./startup-screen.mjs";
 import { createSystemTray } from "./system-tray.mjs";
-import { createLendingIndicator } from "./lending-indicator.mjs";
 import { createLendingDialogs } from "./lending-dialogs.mjs";
-import { createActivityWindow } from "./lending-activity-window.mjs";
-import { missingPermissions } from "./lent-screen-failures.mjs";
-import { createScreenControl } from "./screen-control.mjs"; import { createAskPrompt } from "./ask-prompt.mjs";
 let startupScreen = null;
 let desktopTray = null;
 import { collisionFreeDownloadPath, defaultSaveName, openHtmlCopy, openLogsFolder, revealDownloadWhenDone, revealInFolder, withSavableFile } from "./save-file.mjs";
@@ -438,6 +434,7 @@ import {
   companionOriginTarget,
   companionPairing,
   companionRefreshTailscale,
+  companionCloudDesktopAccess,
   companionBrowserControlAccess,
   companionRevoke,
   companionRunning,
@@ -2249,6 +2246,9 @@ ipcMain.handle("companion:pairing", localOnly("companion:pairing", (_event, open
   if (refusal) throw new Error(refusal);
   return companionPairing(Boolean(open), expectedToken).then(decorateDesktopCompanionState);
 }));
+ipcMain.handle("companion:cloud-desktop", localOnly("companion:cloud-desktop", (_event, deviceId, allowed) =>
+  companionCloudDesktopAccess(deviceId, Boolean(allowed)).then(() => desktopCompanionState()),
+));
 ipcMain.handle("companion:browser-control", localOnly("companion:browser-control", (_event, deviceId, allowed) =>
   companionBrowserControlAccess(deviceId, Boolean(allowed)).then(() => desktopCompanionState()),
 ));

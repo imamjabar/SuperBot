@@ -20,7 +20,6 @@ const ACTIONS = ["list", "add", "update", "enable", "disable", "restart", "test"
 type McpAction = (typeof ACTIONS)[number];
 const MAX_TOOL_NAMES = 100;
 
-const OWNER_ONLY = "MCP servers are managed by the owner.";
 const ASK_ADMIN = "Ask a workspace admin to add it.";
 
 /** When a change reaches the bot's tools: a turn's servers are fixed when it starts, and the person's answer to a card
@@ -41,8 +40,7 @@ export interface InternalMcpDeps {
   sender: { id: string; mcpServers?: string[] };
   threadId: string;
   fullAccess(): boolean;
-  /** Refuses every action, list included. */
-  guestDriven(): boolean;
+
   /** True off a Team Cloud; on one, the person this turn acts for is an owner or admin. */
   teamAdmin(): boolean;
   /** The bot's tool selection reaches this server; never widened here. */
@@ -88,7 +86,6 @@ export type McpCall = { action: McpAction; name?: string };
 export function createInternalMcpRoutes(deps: InternalMcpDeps): RouteHandler {
   return async ({ res, path, method, json }) => {
     if (path !== PATH || (method !== "GET" && method !== "POST")) return PASS;
-    if (deps.guestDriven()) return json(res, 403, { error: OWNER_ONLY });
     const controller = new AbortController();
     const disconnect = () => { if (!res.writableEnded) controller.abort(); };
     res.once("close", disconnect);

@@ -145,7 +145,11 @@ export type DesktopLine = Line & {
   automation?: { routineId?: string };
   routineRun?: { routineId?: string };
 };
-export type DesktopTurn = Omit<CloudLendingTurn, "thread"> & { thread: readonly DesktopLine[] };
+export type DesktopTurn = Omit<CloudLendingTurn, "thread" | "ownerPerson" | "cardAnswerer"> & {
+  thread: readonly DesktopLine[];
+  ownerPerson?: (person: string | undefined) => boolean;
+  cardAnswerer?: (card: Line["card"]) => string | undefined;
+};
 
 export interface DesktopOwnerDeps {
   /** Person keys of the live admin sessions: the owner's own paired devices. */
@@ -198,8 +202,8 @@ export function desktopLendingTurn(base: DesktopTurn, deps: DesktopOwnerDeps): C
     thread,
     ownerPerson,
     cardAnswerer: (card) => {
-      const by = card.answeredBy;
-      if (!by) return base.cardAnswerer(card);
+      const by = card?.answeredBy;
+      if (!by) return base.cardAnswerer?.(card);
       if (by.kind === "loopback") return undefined;
       return by.kind === "session" && by.person ? by.person : NOT_THE_OWNER;
     },

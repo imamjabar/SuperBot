@@ -30,12 +30,12 @@ export interface McpChatDeps {
   secretCards(): SecretCards;
   /** Built after this module, so read when used. */
   mcpConfig(): McpConfig;
-  teamCloud: boolean;
+
   threadLanguage(threadId: string): string | undefined;
   answerCardNode(threadId: string, messageId: string, text: string): boolean;
   followCard(threadId: string, from: string, to: string): void;
   fullAccessForSource(botId: string, threadId: string): boolean;
-  cloudGuestDriven(threadId: string): boolean;
+
   liveTurnByThread: ReadonlyMap<string, string>;
   broadcast(payload: Record<string, unknown>): void;
   publicOrigins(): ReadonlyArray<string | null | undefined>;
@@ -45,9 +45,9 @@ export interface McpChatDeps {
 const mcpServerUrl = (server: object) => ("url" in server && typeof server.url === "string" ? server.url : undefined);
 
 export function createMcpChat(deps: McpChatDeps) {
-  const { store, cfg, mcpOAuth, mcpServersHost, managedPolicy, threadLanguage, answerCardNode, fullAccessForSource, cloudGuestDriven, liveTurnByThread, broadcast } = deps;
+  const { store, cfg, mcpOAuth, mcpServersHost, managedPolicy, threadLanguage, answerCardNode, fullAccessForSource, liveTurnByThread, broadcast } = deps;
   const mcpRequests = new McpRequestService({
-    store, teamCloud: deps.teamCloud, language: threadLanguage,
+    store, language: threadLanguage,
     apply: async (request, fields) => {
       const bot = store.bot(request.botId);
       return bot ? applyMcpChange(mcpServerDeps(bot, request.threadId), request, fields) : { state: "failed", text: "This bot no longer exists." };
@@ -84,7 +84,6 @@ export function createMcpChat(deps: McpChatDeps) {
     return {
       sender, threadId,
       fullAccess: () => fullAccessForSource(sender.id, threadId),
-      guestDriven: () => cloudGuestDriven(threadId),
       teamAdmin: () => false,
       canUse: (name) => canUseMcpServer(sender.toolScope, name),
       config: deps.mcpConfig(), cfg: () => cfg, personal: () => [],

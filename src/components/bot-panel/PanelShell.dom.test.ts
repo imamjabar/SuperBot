@@ -227,7 +227,7 @@ describe("the chat header's pill", () => {
     document.body.append(header);
     const headerRoot = createRoot(header);
     const onToggle = vi.fn();
-    flushSync(() => headerRoot.render(createElement(ChatHeadPill, { bot: withTasks, avatar: { state: "idle" }, privacy: null, onToggle, ...props })));
+    flushSync(() => headerRoot.render(createElement(ChatHeadPill, { bot: withTasks, avatar: { state: "idle" }, onToggle, ...props })));
     return { header, onToggle, done: () => { flushSync(() => headerRoot.unmount()); header.remove(); } };
   };
 
@@ -280,11 +280,10 @@ describe("the chat header's pill", () => {
     }
   });
 
-  it("has no dot when the other conversations are quiet, and says who can read a team chat", () => {
-    const quiet = pill({ bot: { ...withTasks, tasks: withTasks.tasks!.map((task) => ({ ...task, unread: false })) }, privacy: { kind: "private" } });
+  it("has no dot when the other conversations are quiet", () => {
+    const quiet = pill({ bot: { ...withTasks, tasks: withTasks.tasks!.map((task) => ({ ...task, unread: false })) } });
     try {
       expect(quiet.header.querySelector("[data-chathead-elsewhere]")).toBeNull();
-      expect(quiet.header.querySelector('[data-chathead-privacy="private"]')!.textContent).toBe("Private · only you");
     } finally {
       quiet.done();
     }

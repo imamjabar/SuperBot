@@ -190,16 +190,10 @@ describe("in the chat (Simple mode)", () => {
     expect(f.detect).not.toHaveBeenCalled();
   });
 
-  it("opens Cloud settings on Try Cloud", async () => {
-    await show();
-    await act(async () => { host.querySelector<HTMLElement>('[data-helper-step="cloud"]')!.click(); });
-    expect(f.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
-  });
 
   it("opens the app's own flow for each chip", () => {
     expect(chipAction("apps")).toEqual({ type: "togglePlugins", open: true, surface: "apps" });
     expect(chipAction("phone")).toMatchObject({ type: "toggleAppSettings", section: "companion", phonePairing: true });
-    expect(chipAction("cloud")).toEqual({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   });
 
   it("says nothing while the Chief step still introduces MausBot", async () => {
@@ -288,6 +282,5 @@ describe("in Advanced mode", () => {
     expect(setupAction("bots")).toEqual({ type: "newBot" });
     expect(setupAction("apps")).toEqual({ type: "togglePlugins", open: true, surface: "apps" });
     expect(setupAction("phone")).toMatchObject({ type: "toggleAppSettings", section: "companion", phonePairing: true });
-    expect(setupAction("cloud")).toEqual({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   });
 });

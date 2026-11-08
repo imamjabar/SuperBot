@@ -8,13 +8,11 @@ import { readMcpPaste, type McpPasteError } from "@/lib/mcp-paste";
 import { McpResultBudgetField, withResultBudget, type McpMessage } from "./McpResultBudgetField";
 import { McpSecretRows } from "./McpSecretRows";
 import { Select } from "./Select";
-import { draftBody, draftFor, draftFromPaste, emptyDraft, isRemoteMcpListing, soleKey, type McpDraft, type McpServerListing } from "./mcp-draft";
+import { draftBody, draftFor, draftFromPaste, emptyDraft, isRemoteMcpListing, type McpDraft, type McpServerListing } from "./mcp-draft";
 
 export interface McpServerSubmission {
   name: string;
   body: Record<string, unknown>;
-  /** On a Team Cloud, "Only for me": the key kept as this person's own. */
-  ownKey?: string;
 }
 
 const FIELD = "mt-1.5 w-full rounded-lg border border-hairline/60 bg-raised px-3 py-2.5 text-[13px] text-ink outline-none focus:border-accent";
@@ -27,11 +25,10 @@ function where(draft: McpDraft): string {
 
 /** Add: one box for a link, a setup command or a config block, and the form only for what it couldn't fill. Edit: the
  * form, or with `fixKeys` only the header values, typed again. */
-export function McpServerEditor({ server, fixKeys = false, taken, team, busy, onCancel, onSubmit }: {
+export function McpServerEditor({ server, fixKeys = false, taken, busy, onCancel, onSubmit }: {
   server?: McpServerListing;
   fixKeys?: boolean;
   taken: readonly string[];
-  team: boolean;
   busy: boolean;
   onCancel: () => void;
   onSubmit: (items: McpServerSubmission[]) => void;
@@ -42,13 +39,11 @@ export function McpServerEditor({ server, fixKeys = false, taken, team, busy, on
   const [pasteError, setPasteError] = useState<McpPasteError | null>(null);
   const keysOnly = fixKeys && server !== undefined && isRemoteMcpListing(server);
   const [details, setDetails] = useState(!adding && !keysOnly);
-  const [onlyMe, setOnlyMe] = useState(false);
   const [error, setError] = useState<McpMessage | null>(null);
   const draft = drafts.length === 1 ? drafts[0]! : null;
   const setDraft = (update: (current: McpDraft) => McpDraft) => setDrafts((current) => current.length === 1 ? [update(current[0]!)] : current);
   const savedOAuth = server && isRemoteMcpListing(server) ? server.oauth : undefined;
   const secretKept = Boolean(savedOAuth?.clientSecretConfigured && !draft?.oauthForgetSecret);
-  const canKeepOwn = team && adding && draft !== null && soleKey(draft) !== null;
 
   const paste = (value: string) => {
     setText(value);
@@ -63,8 +58,7 @@ export function McpServerEditor({ server, fixKeys = false, taken, team, busy, on
     for (const each of drafts) {
       const prepared = withResultBudget(each.resultBudget, () => draftBody(each, server));
       if (!prepared.ok) { setError(prepared.error); return; }
-      const ownKey = canKeepOwn && onlyMe ? soleKey(each) : null;
-      items.push({ name: each.name.trim(), body: prepared.body, ...(ownKey ? { ownKey } : {}) });
+      items.push({ name: each.name.trim(), body: prepared.body });
     }
     setError(null);
     onSubmit(items);
@@ -209,16 +203,6 @@ export function McpServerEditor({ server, fixKeys = false, taken, team, busy, on
             )}
             <McpResultBudgetField value={draft.resultBudget} onChange={(resultBudget) => setDraft((current) => ({ ...current, resultBudget }))} />
           </div>
-        </div>
-      )}
-      {team && adding && drafts.length > 0 && (
-        <div data-mcp-team-scope className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg bg-raised/50 px-3 py-2 text-[12px]">
-          <span className="text-ink-secondary">{t(canKeepOwn && onlyMe ? "mcp.team.onlyMeOn" : "mcp.team.everyone")}</span>
-          {canKeepOwn && (
-            <label className="flex items-center gap-1.5 text-ink">
-              <input type="checkbox" checked={onlyMe} onChange={(event) => setOnlyMe(event.target.checked)} /> {t("mcp.team.onlyMe")}
-            </label>
-          )}
         </div>
       )}
       {error && <p role="alert" className="mt-3 text-[12px] text-danger">{t(error.key, error.params)}</p>}

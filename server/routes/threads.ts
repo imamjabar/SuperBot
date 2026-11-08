@@ -10,7 +10,6 @@ import { memberBot, memberGroup, type Viewer, type VisibleSet } from "../bot-vis
 import type { ComputerControl } from "../computer-control.ts";
 import { speakerOf, type PersonName } from "../replies.ts";
 import type { Coordinator } from "../coordinator.ts";
-import type { WorkspaceAccess } from "../enterprise.ts";
 import type { GroupUsageReader } from "../group-thread-usage.ts";
 import { readMessage, searchMessagesAsync } from "../message-db.ts";
 import {
@@ -37,11 +36,11 @@ export interface ThreadRouteDeps {
   userName(threadId: string): PersonName;
   sessions: ResolveOptions["sessions"];
   groupUsageReader: Pick<GroupUsageReader, "refresh">;
-  hostedWorkspace: boolean;
+
   sessionCookie: string;
   loopback: { trust: ResolveOptions["loopbackTrust"]; localBrowsers: boolean };
   lendingEnabled(): boolean;
-  workspaceAccess(): WorkspaceAccess | null;
+
   desktopMutationToken(): string | undefined;
   companionMutationToken(): string | undefined;
   cliOwnerToken(): string | undefined;
@@ -70,7 +69,7 @@ export interface ThreadRouteDeps {
 export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
   const {
     store, userName: userNameFor, sessions, groupUsageReader, lendingEnabled,
-    hostedWorkspace: HOSTED_WORKSPACE, sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
+    sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
     pageSize, messagePage, messageWindow, publicBotQueuedMessages, publicGroupState, wireBot,
     botComputerControlSnapshot, messageFileRootsForThread, viewerFor, visibleTo,
   } = deps;
@@ -80,7 +79,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
     const member = auth.kind === "session" && auth.session.membershipAuthority === "team" ? auth.session.email : undefined;
     if (member && method === "GET" && path === "/api/bots") deps.memberDefaultBot?.(member);
     const visible = visibleTo(viewerFor(auth));
-    const workspaceAccess = deps.workspaceAccess();
+
     const desktopMutationToken = deps.desktopMutationToken();
     const companionMutationToken = deps.companionMutationToken();
     const cliOwnerToken = deps.cliOwnerToken();
@@ -446,12 +445,7 @@ export function createThreadRoutes(deps: ThreadRouteDeps): RouteHandler {
         return ids.has(messageId);
       };
       const found = await searchMessagesAsync(q, visible.everything ? limit : Math.min(limit * 10, 1_000), threadId);
-      // A scan may outlive a revocation or audience edit: authorize again after the await.
-      if (HOSTED_WORKSPACE && auth.kind === "session") {
-        const failure = workspaceAccess ? await workspaceAccess.authorize(req, auth)
-          : { status: 503, error: "Workspace sign-in is unavailable." };
-        if (failure) return json(res, failure.status, { error: failure.error });
-      }
+
       const current = resolveRequestAuth(req, {
         sessions, cookieName: SESSION_COOKIE, streamPath: "/api/events", url,
         loopbackMutationToken: desktopMutationToken, companionMutationToken,

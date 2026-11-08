@@ -65,7 +65,6 @@ export interface BotMessageRouteDeps {
   directTurnDispatchClaims: { get(threadId: string): { threadId: string } | undefined };
   groupSpeakers: ReadonlyMap<string, { botId: string }>;
   desktopManaged: boolean;
-  cloudHome: boolean;
   DirectSendRefused: abstract new (...args: never[]) => { readonly status: number; readonly body: Record<string, unknown> };
   acceptDirectSend(input: DirectSendInput, guardedStart?: (currentAtStart: BotRecord) => Promise<DirectSendReceipt>): Promise<DirectSendReceipt>;
   directSendRefusal(botId: string, threadId: string): { status: number; body: Record<string, unknown> } | null;
@@ -163,7 +162,7 @@ const guardedSendSchema = z.object({
 export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler {
   const {
     store, registry, handoffs, liveTurn, phoneSecretSubmissions, directTurnDispatchClaims, groupSpeakers,
-    desktopManaged: DESKTOP_MANAGED, cloudHome: CLOUD_HOME, DirectSendRefused,
+    desktopManaged: DESKTOP_MANAGED, DirectSendRefused,
     acceptDirectSend, directSendRefusal, startTurn, usageTriggerFor, messageSender, cloudGuestSendRefusal, cloudThreadRefusal,
     cardAnswerRefusal, commandRememberRefusal, requestBehavior, requestedTaskBot, botForThread, threadBusy,
     botAtThreadCapacity, parksBehindCoordination, activeGroupTurnForBot, runningTurnInstance, engineSteersImages, resolveReplyTarget,
@@ -521,8 +520,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const quoted = source.replyToId ? resolveReplyTarget(bot.threadId, source.replyToId) : undefined;
       const replyTo: ReplyTarget | undefined = quoted && source.reaction && text === source.text ? { ...quoted, reactedWith: source.reaction } : quoted;
       const dataContext = parseDataContext(body.dataContext) ?? (text === source.text ? source.dataContext : undefined);
-      const message = await startTurn(bot.id, text, { threadId: bot.threadId, editedMessageId: messageId, replyTo, sendId, trigger: usageTriggerFor(auth), dataContext,
-        ...(CLOUD_HOME ? { sender: messageSender(auth) } : {}) });
+      const message = await startTurn(bot.id, text, { threadId: bot.threadId, editedMessageId: messageId, replyTo, sendId, trigger: usageTriggerFor(auth), dataContext });
       return json(res, 202, { ok: true, message });
     }
 

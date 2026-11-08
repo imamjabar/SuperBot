@@ -85,7 +85,6 @@ async function fixture() {
     routines: () => null,
     desktopManaged: true,
     mainChat: () => undefined,
-    cloudHome: false,
     DirectSendRefused,
     acceptDirectSend: accept,
     directSendRefusal: (botId: string, thread: string) => (store.taskByThread(botId, thread) ? null : { status: 409, body: { error: "gone" } }),

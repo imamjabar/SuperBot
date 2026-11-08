@@ -4,10 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { setLocale } from "@/lib/i18n";
 
-const storeFixture = vi.hoisted(() => ({ config: null as unknown }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
-  return { ...original, useStore: () => ({ state: { ...original.initialState, config: storeFixture.config }, dispatch: vi.fn() }) };
+  return { ...original, useStore: () => ({ state: original.initialState, dispatch: vi.fn() }) };
 });
 
 import {
@@ -561,20 +560,11 @@ describe("VPS computer inventory UI", () => {
   });
 });
 
-describe("Settings → Computers on an OMB Cloud home", () => {
-  afterEach(() => { storeFixture.config = null; });
+describe("Settings → Computers", () => {
   const cards = () => [...renderToStaticMarkup(createElement(LocalComputerSection)).matchAll(/<div class="text-\[16px\] font-semibold text-ink[^"]*">([^<]+)<\/div>/g)].map((match) => match[1]);
 
   it("sets up a Local VM on a desktop or self-hosted server", () => {
     expect(cards()).toEqual(expect.arrayContaining(["Cloud desktops", "Private desktops", "Setup"]));
-  });
-
-  it("shows no Local VM, and no steps to install one, where it cannot exist", () => {
-    storeFixture.config = { cloudHome: true };
-    const titles = cards();
-    expect(titles).toContain("Cloud desktops");
-    expect(titles).not.toContain("Private desktops");
-    expect(titles).not.toContain("Setup");
   });
 });
 
