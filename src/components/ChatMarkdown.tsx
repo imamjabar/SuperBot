@@ -716,7 +716,7 @@ const MARKDOWN_COMPONENTS: Components = {
     return <div dir={blockDirection(node)} className="mt-1.5 text-body-sm font-semibold text-ink-secondary">{children}</div>;
   },
   blockquote({ node, children }: BlockProps) {
-    const callout = node?.properties?.dataCallout;
+    const callout = (node as { properties?: Record<string, unknown> } | undefined)?.properties?.dataCallout;
     if (typeof callout === "string" && (CALLOUT_KINDS as readonly string[]).includes(callout)) {
       return <AnswerCallout kind={callout as CalloutKind} dir={blockDirection(node)}>{children}</AnswerCallout>;
     }
