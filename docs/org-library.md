@@ -2,7 +2,7 @@
 
 An organization's Admin can share packages (whole teams, or skills on their
 own) with the desktops that belong to it, and with its Customers. In
-OpenMausBot they appear under **Templates → From {Organization}**, the first
+SuperBot they appear under **Templates → From {Organization}**, the first
 tab. One click on **Add** adds a package. There is no confirmation step,
 because the person's click is the decision. **Details** opens the same
 preview a shared file gets.
@@ -241,7 +241,7 @@ These routes use admin scope, like import.
 Fixtures have no Electron parent. For tests, `POST /api/testing/org-library
 {library}` relays a catalog instead. The route exists only when the server
 starts with `OMB_TEST_ORG_LIBRARY_KEY`, and the request carries that key in
-`x-openmausbot-test-org-library`. Production never sets the key.
+`x-superbot-test-org-library`. Production never sets the key.
 
 ## Not in this version
 

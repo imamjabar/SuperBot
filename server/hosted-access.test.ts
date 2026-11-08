@@ -157,7 +157,7 @@ describe("hosted bridge in the full server", () => {
     expect((await call("/")).location).toBe("/api/auth/hosted/start");
     expect((await call("/pair")).location).toBe("/api/auth/hosted/start");
     expect((await call("/", { local: true })).body).toContain("Fixture workspace");
-    expect((await call("/.well-known/openmausbot/environment")).body.capabilities.emailSignIn).toBe(false);
+    expect((await call("/.well-known/superbot/environment")).body.capabilities.emailSignIn).toBe(false);
     for (const path of ["/api/auth/pair", "/api/auth/pairing", "/api/auth/email/start", "/api/auth/email/verify"]) {
       expect((await call(path, { method: "POST" })).status).toBe(403);
     }

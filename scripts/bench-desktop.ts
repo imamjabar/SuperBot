@@ -121,7 +121,7 @@ async function startFixture(options: { dataDir?: string; staticDir?: string; fak
     if (child.exitCode !== null) break;
     try {
       const response = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(1_000) });
-      if (response.ok && (await response.json() as { app?: string }).app === "openmausbot") { readyMs = performance.now() - started; break; }
+      if (response.ok && (await response.json() as { app?: string }).app === "superbot") { readyMs = performance.now() - started; break; }
     } catch { /* not listening yet */ }
     await sleep(25);
   }
@@ -189,7 +189,7 @@ async function serveDist(dir: string, target: string): Promise<{ url: string; cl
   const upstream = new URL(target);
   const server: Server = createServer((req, res) => {
     const path = (req.url ?? "/").split("?")[0]!;
-    if (path.startsWith("/api") || path.startsWith("/.well-known/openmausbot")) {
+    if (path.startsWith("/api") || path.startsWith("/.well-known/superbot")) {
       const forward = httpRequest({ host: upstream.hostname, port: upstream.port, path: req.url, method: req.method, headers: req.headers }, (answer) => {
         res.writeHead(answer.statusCode ?? 502, answer.headers);
         answer.pipe(res);

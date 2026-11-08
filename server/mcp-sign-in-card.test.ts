@@ -130,7 +130,7 @@ describe("the Sign in card", () => {
     const f = await setup();
     const posted = await f.signIn();
     expect(posted.status).toBe(202);
-    expect(posted.body.text).toBe("A Sign in card for linear is now visible to the person. End this turn and wait; OpenMausBot resumes you when they finish.");
+    expect(posted.body.text).toBe("A Sign in card for linear is now visible to the person. End this turn and wait; SuperBot resumes you when they finish.");
     expect(posted.card).toMatchObject({
       role: "bot", kind: "connector",
       text: "Linear's MCP server needs a sign-in. Open this conversation in SuperBot to sign in.",

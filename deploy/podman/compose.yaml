@@ -1,4 +1,4 @@
-name: ${COMPOSE_PROJECT_NAME:-openmausbot-podman}
+name: ${COMPOSE_PROJECT_NAME:-superbot-podman}
 services:
   omb:
     build:
@@ -30,7 +30,7 @@ services:
       OMB_PUBLIC_URL: ${OMB_PUBLIC_URL:-http://localhost:8080}
       OMB_WEBHOOK_PUBLIC_URL: ${OMB_PUBLIC_URL:-http://localhost:8080}
     healthcheck:
-      test: [CMD-SHELL, 'curl -fsS http://127.0.0.1:$$OMB_PORT/api/health | grep -q openmausbot']
+      test: [CMD-SHELL, 'curl -fsS http://127.0.0.1:$$OMB_PORT/api/health | grep -q superbot']
       interval: 15s
       timeout: 5s
       start_period: 30s

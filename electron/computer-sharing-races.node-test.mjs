@@ -25,7 +25,7 @@ async function fixture(t) {
         if (held) { held.entered.resolve(); await held.released.promise; }
         return Response.json({ kind: "session", id: info.sessionId });
       }
-      if (route === "/.well-known/openmausbot/environment") return Response.json({ environmentId: info.environmentId, capabilities: { sharedComputers: true } });
+      if (route === "/.well-known/superbot/environment") return Response.json({ environmentId: info.environmentId, capabilities: { sharedComputers: true } });
       if (route === "/api/shared-computers/connect") connects.push(JSON.parse(body));
       if (route.endsWith("/poll")) await new Promise((resolve, reject) => {
         polled.resolve();

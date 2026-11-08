@@ -14,7 +14,7 @@ let tailscaleRefreshes = 0;
 let completedTailscaleRefreshes = 0;
 const CONTROL_TOKEN = "c".repeat(43);
 let controlToken: string | null = CONTROL_TOKEN;
-const withToken = { "x-openmausbot-control-token": CONTROL_TOKEN };
+const withToken = { "x-superbot-control-token": CONTROL_TOKEN };
 
 const ask = async (
   method: string,
@@ -75,15 +75,15 @@ describe("the per-launch control token", () => {
       expect(tokenless.status, `${method} ${path}`).toBe(403);
       expect(JSON.stringify(tokenless.body)).not.toMatch(/omb_pair_|"code"/);
     }
-    expect((await ask("POST", "/pairing", {}, undefined, { "x-openmausbot-control-token": "d".repeat(43) })).status).toBe(403);
-    expect((await ask("POST", "/pairing", {}, undefined, { "x-openmausbot-control-token": CONTROL_TOKEN.slice(1) })).status).toBe(403);
+    expect((await ask("POST", "/pairing", {}, undefined, { "x-superbot-control-token": "d".repeat(43) })).status).toBe(403);
+    expect((await ask("POST", "/pairing", {}, undefined, { "x-superbot-control-token": CONTROL_TOKEN.slice(1) })).status).toBe(403);
     expect(devices.pairing()).toBeNull();
   });
 
   it("serves the page itself, which holds no state, without one", async () => {
     const page = await ask("GET", "/", {}, undefined, {});
     expect(page.status).toBe(200);
-    expect(page.body).toContain("x-openmausbot-control-token");
+    expect(page.body).toContain("x-superbot-control-token");
     expect(page.body).not.toContain(CONTROL_TOKEN);
   });
 

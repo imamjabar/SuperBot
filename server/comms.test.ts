@@ -782,7 +782,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
         expect(taskId).toBeTruthy();
         const minted = await request("/api/testing/internal-capability", {
           method: "POST",
-          headers: { "content-type": "application/json", "x-openmausbot-test-capability": TEST_CAPABILITY_KEY },
+          headers: { "content-type": "application/json", "x-superbot-test-capability": TEST_CAPABILITY_KEY },
           body: JSON.stringify({ botId: chief.id, threadId: sourceThreadId, kind: "agents" }),
         });
         expect(minted.status).toBe(201);
@@ -819,7 +819,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
   );
 
   it(
-    "keeps OpenMausBot tools authorized for Hermes after Stop issues a new bearer",
+    "keeps SuperBot tools authorized for Hermes after Stop issues a new bearer",
     async () => {
       // Stop issues a new bearer; a pooled Hermes keeps its first agents server, so the next turn must run on a fresh process.
       for (const existing of (await api("GET", "/api/bots")).body.bots) {

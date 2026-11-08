@@ -1,4 +1,4 @@
-# Self-hosting the OpenMausBot server
+# Self-hosting the SuperBot server
 
 Run the harness server on an always-on Linux box (a VPS, a home server, a
 Mac mini in a closet) and pair browsers, the desktop app, or phones with it.
@@ -14,7 +14,7 @@ The npm CLI supports a managed public tunnel, Tailscale, or your own proxy.
 > session. If several people use one server, read
 > [Loopback trust](#loopback-trust-owner-or-service) below.
 
-Step by step, for a server you do not have yet: [Deploy OpenMausBot on a
+Step by step, for a server you do not have yet: [Deploy SuperBot on a
 VPS](deploy-vps.md) walks through the three ways in (public address, own
 domain, Tailscale), signing engines in, pairing, keeping it running,
 updating and backups. This page is the reference behind it.
@@ -483,7 +483,7 @@ To move by hand instead, export a backup from this computer in **Settings →
 Backups → Export backup**, then import it on the server in **Settings → Backups
 → Import backup**. API keys, engine sign-ins and paired devices stay where they
 are on both sides; routines arrive paused. An older desktop app's **Copy this
-computer here** is answered with "Update OpenMausBot to bring your bots here by
+computer here** is answered with "Update SuperBot to bring your bots here by
 itself."
 
 Only conversations you start yourself on that server can use what you share;
@@ -513,7 +513,7 @@ and take a 5-minute ticket from `POST /api/auth/stream-ticket` for the
 event stream, because `EventSource` cannot set headers:
 `GET /api/events?ticket=…`.
 
-`GET /.well-known/openmausbot/environment` is public and tells a client what
+`GET /.well-known/superbot/environment` is public and tells a client what
 it is talking to: a stable `environmentId`, the label, the version and
 capabilities. Saved connections check the id so a reused address that now
 points at a different server is refused loudly.
@@ -606,7 +606,7 @@ With `service` on a self-hosted server:
   in with their email (`openmausbot access add you@example.com`, which edits
   the sign-in list on disk).
 - A browser on an SSH tunnel gets the sign-in page instead of the app.
-- The MCP server script works with `OPENMAUSBOT_TOKEN` set to a paired session.
+- The MCP server script works with `SUPERBOT_TOKEN` set to a paired session.
 
 **What `service` does not close yet.** Any bot's shell can still do
 everything the Slack worker does, and on a shared workspace that is a real
@@ -678,7 +678,7 @@ hosted workspace refuses them.
 
 ### Who may answer a card
 
-Approval cards are the provider's own (see the approval modes); OpenMausBot
+Approval cards are the provider's own (see the approval modes); SuperBot
 adds none. On a workspace several people share — portal membership, or an
 email sign-in list that names users — it narrows only whose answer counts,
 and only when the card can be traced to a person:
@@ -806,7 +806,7 @@ is the reference implementation.
 
 In a paired admin browser, as in the desktop app, **Take control** turns the
 Computer panel's picture into the live desktop for Local VMs and your own VPS,
-through the same address as OpenMausBot; **Full screen** fills the window with
+through the same address as SuperBot; **Full screen** fills the window with
 the same session. Shared, per-bot and pool Local VMs connect through their
 managed container's loopback port. VPS desktops connect
 through an SSH tunnel opened by the server. Neither needs an additional public

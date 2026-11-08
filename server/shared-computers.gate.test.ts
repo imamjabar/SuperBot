@@ -35,7 +35,7 @@ const api = async (method: string, path: string, body?: unknown): Promise<ApiRes
 const internal = async (method: string, path: string, body?: unknown): Promise<ApiResult> => {
   const minted = await fetch(`${BASE}/api/testing/internal-capability`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-openmausbot-test-capability": TEST_CAPABILITY_KEY },
+    headers: { "content-type": "application/json", "x-superbot-test-capability": TEST_CAPABILITY_KEY },
     body: JSON.stringify({ botId, threadId: botId, kind: "agents" }),
   });
   const { token } = await minted.json() as { token: string };
@@ -49,7 +49,7 @@ const internal = async (method: string, path: string, body?: unknown): Promise<A
 };
 
 const descriptorCapabilities = async (): Promise<Record<string, unknown>> =>
-  ((await api("GET", "/.well-known/openmausbot/environment")).body.capabilities ?? {}) as Record<string, unknown>;
+  ((await api("GET", "/.well-known/superbot/environment")).body.capabilities ?? {}) as Record<string, unknown>;
 
 const PUBLIC_ROUTES = [
   "/api/shared-computers/connect",

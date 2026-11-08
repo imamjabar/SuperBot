@@ -1,12 +1,12 @@
 <div align="center">
 
-# OpenMausBot
+# SuperBot
 
 **The open-source Grok Bot alternative: your own team of AI bots, in a chat app.**
 
 [**openmausbot.com**](https://www.openmausbot.com) &nbsp;·&nbsp; [Download](https://www.openmausbot.com/download) &nbsp;·&nbsp; [Open source Grok Bot alternative, compared](https://www.openmausbot.com/blog/grok-bot-vs-openmausbot)
 
-<sub>OpenMausBot is an open-source Grok Bot alternative: an independent project inspired by **Grok Bot**, and the open-source alternative to **Meta Muse**, **OpenAI dots** and **Cue by Manus** — bring-your-own-agent, local-first, on the models you already have. Also known as **MausBot**; formerly **OpenGrokBot**. Not affiliated with xAI, Meta, OpenAI or Manus.</sub>
+<sub>SuperBot is an open-source Grok Bot alternative: an independent project inspired by **Grok Bot**, and the open-source alternative to **Meta Muse**, **OpenAI dots** and **Cue by Manus** — bring-your-own-agent, local-first, on the models you already have. Also known as **MausBot**; formerly **OpenGrokBot**. Not affiliated with xAI, Meta, OpenAI or Manus.</sub>
 
 Every bot in the sidebar is a real agent — Claude or Codex running locally under the hood — with its own
 personality, its own model, its own cloud computer, and its own connected apps.
@@ -41,17 +41,17 @@ Talk to them like contacts. Watch them work. Approve what matters.
 
 <br>
 
-<img src="docs/screenshots/hero.png" alt="OpenMausBot — a Telegram-style chat app where every chat is a real AI agent" width="900">
+<img src="docs/screenshots/hero.png" alt="SuperBot — a Telegram-style chat app where every chat is a real AI agent" width="900">
 
 </div>
 
 ---
 
-> ⚠️ **No affiliation with any cryptocurrency.** OpenMausBot has no token. Any coin using the OpenMausBot, Maus, or SupaMaus name is not created, endorsed, or affiliated with this project or its maintainer. I have received no tokens, payment, or allocation from anyone, and I will not be endorsing any token.
+> ⚠️ **No affiliation with any cryptocurrency.** SuperBot has no token. Any coin using the SuperBot, Maus, or SupaMaus name is not created, endorsed, or affiliated with this project or its maintainer. I have received no tokens, payment, or allocation from anyone, and I will not be endorsing any token.
 
 ## Why
 
-One assistant in one box is the wrong shape for agents. OpenMausBot is an independent, open-source project inspired by **Grok Bot** —
+One assistant in one box is the wrong shape for agents. SuperBot is an independent, open-source project inspired by **Grok Bot** —
 it keeps the idea (AI as a *messaging app*: a roster of bots you chat with, each with its own personality,
 memory of its thread, model, computer, and apps) and rebuilds it open, local-first, and on the agents you
 already have:
@@ -69,12 +69,12 @@ already have:
 ## The open-source alternative to Grok Bot, Muse, dots and Cue
 
 Four closed personal-agent products shipped in seven weeks of 2026, and each one keeps the model, the
-computer and your data on its maker's side of the line. OpenMausBot is the open-source version of that
+computer and your data on its maker's side of the line. SuperBot is the open-source version of that
 shape: a team of agents in a chat app, each with its own model, its own computer and its own connected
 apps, running on your machine under Apache 2.0. If you searched for an *open Muse*, *open dots*, an
 *open-source Grok Bot*, an *open Instinct* or an *open Cue*, this is the repository.
 
-| Looking for | What it is | How OpenMausBot differs | Read more |
+| Looking for | What it is | How SuperBot differs | Read more |
 | --- | --- | --- | --- |
 | **Open source Grok Bot** | xAI's roster of bots on one shared cloud computer, Grok only, from a SuperGrok or Cursor plan | Same roster shape; any model per bot; your own machine; approval cards | [Grok Bot vs OpenMausBot](https://www.openmausbot.com/blog/grok-bot-vs-openmausbot) |
 | **Open Muse** | Meta's single personal agent in a Meta cloud VM, US and Canada only | A team instead of one agent; runs anywhere; data in `~/.openmausbot` | [Meta Muse alternative](https://www.openmausbot.com/blog/open-source-alternative-to-meta-muse) |
@@ -170,12 +170,12 @@ See [docs/decision-model.md](docs/decision-model.md).
 
 ### 📦 Install a complete team from one Markdown file
 
-Browse outcome-driven teams on [BotMRR](https://botmrr.io), then choose **Add to OpenMausBot**. The app
+Browse outcome-driven teams on [BotMRR](https://botmrr.io), then choose **Add to SuperBot**. The app
 opens a review screen before creating the bots, Chief of Staff, channels, playbooks, connector checklist,
 and suggested routines. You can also import the same `.md` file from disk or paste its public GitHub URL
 in **Teams → Import**.
 
-The format stays portable: OpenMausBot reads the structured YAML frontmatter for a reliable one-click
+The format stays portable: SuperBot reads the structured YAML frontmatter for a reliable one-click
 install, while Grok, Claude, ChatGPT, and people can follow the ordinary Markdown playbook. Connections
 remain off until you approve them, routines arrive paused, and packages never carry credentials,
 conversations, permissions, memory, or computer access. Browse the
@@ -281,9 +281,9 @@ flowchart LR
 | App | `src/` | The chat shell. Server-backed store, one reducer, zero client-side transports. |
 | Desktop | `electron/` | macOS, Windows, and Ubuntu shells with an embedded harness and platform capabilities; Apple speech stays macOS-only, Ubuntu Xorg has opt-in local control, and Wayland remains fail-closed. |
 
-### Orchestrate OpenMausBot over MCP
+### Orchestrate SuperBot over MCP
 
-OpenMausBot ships a stdio MCP server for external clients such as Claude Desktop and Cursor. It exposes a
+SuperBot ships a stdio MCP server for external clients such as Claude Desktop and Cursor. It exposes a
 deliberately bounded team control plane: inspect bots and channels, read/search compact transcript pages,
 create and configure bots/channels/tasks, send work, wait for completion, switch models, and interrupt turns.
 It does **not** expose approval grants, deletion, arbitrary settings, credentials, or computer lifecycle.
@@ -302,7 +302,7 @@ openmausbot team apply team.yaml
 openmausbot run "Room Lead" "Rehearse the launch of https://example.com" --export ./out
 ```
 
-See [Run OpenMausBot from scripts and CI](docs/headless-cli.md).
+See [Run SuperBot from scripts and CI](docs/headless-cli.md).
 
 ## Quick start
 
@@ -372,7 +372,7 @@ in the sidebar footer) when you want to enable its integration:
 
 | Credential | What it enables | Where to get it |
 |---|---|---|
-| Composio project key (`ak_…`) | Connect Gmail, GitHub, Slack, Notion, and other apps to your bots | [OpenMausBot Composio setup](docs/composio.md) |
+| Composio project key (`ak_…`) | Connect Gmail, GitHub, Slack, Notion, and other apps to your bots | [SuperBot Composio setup](docs/composio.md) |
 | Boat API key | Give bots an isolated remote Linux computer with a desktop and terminal | [Boat API key guide](https://docs.boat.dev/api-keys) |
 | ElevenLabs key | Read replies aloud, and call your bots | [ElevenLabs API keys](https://elevenlabs.io/app/settings/api-keys) |
 | Fish Audio key | Read replies aloud with Fish Audio voices, and call your bots | [Fish Audio API keys](https://fish.audio/app/api-keys/) |
@@ -409,17 +409,17 @@ receipts.
 **App events** start a bot when something happens in a connected app ("whenever I get an email from Acme, draft
 a reply"). The bot finds the app's events with `trigger_info` (`action: "events"`) and calls `trigger` with
 `action: "create"` and `when: "app_event"`; the person can also choose **New → Set it up yourself → When something happens in an app**.
-Composio sends each event to OpenMausBot's connected-apps service, which queues it; the app collects the queue
+Composio sends each event to SuperBot's connected-apps service, which queues it; the app collects the queue
 with a long poll, so a desktop needs no public address and events wait while it is closed. Gmail is checked every
 15 minutes; Slack, GitHub and other push apps arrive at once. A desktop keeps up to 500 events a day;
 what is skipped shows on the automation. Details: [docs/composio.md](docs/composio.md#app-events).
 
-OpenMausBot starts a webhook-only receiver on `127.0.0.1:8800` by default (or one port above `OMB_PORT`).
+SuperBot starts a webhook-only receiver on `127.0.0.1:8800` by default (or one port above `OMB_PORT`).
 Set `OMB_WEBHOOK_PORT` to choose another port. A webhook secret is shown once when the trigger is created
 or rotated. Bearer authentication is recommended so the secret stays out of request URLs and most access
 logs; a single capability URL remains available for senders that cannot configure headers. The receiver
 exposes only `/health` and secret `/hooks/...` endpoints; it never exposes the app's broader API.
-OpenMausBot must remain running to accept a delivery. For public internet delivery, proxy only this
+SuperBot must remain running to accept a delivery. For public internet delivery, proxy only this
 dedicated receiver through a hosted relay or a tool such as Tailscale Funnel.
 
 ## Status
@@ -456,7 +456,7 @@ openmausbot
 Or use `npx openmausbot` without a global install. First launch guides you with
 arrow-key choices: choose AI access, sign in or paste a hidden API key, choose
 a model, and optionally connect a phone. Next time, the same command reuses your
-saved setup and opens OpenMausBot on this computer. Keep the terminal open; Ctrl-C stops
+saved setup and opens SuperBot on this computer. Keep the terminal open; Ctrl-C stops
 the server, not your saved work. Use `--no-open` to skip opening the browser.
 
 Phone access is optional and defaults to skipping. Choose an explicitly
@@ -489,7 +489,7 @@ AI-provider sign-in. Devices pair once with a short code. The deployment guide i
 
 ## License
 
-[Apache License 2.0](LICENSE) © 2026 Milind Soni and OpenMausBot contributors,
+[Apache License 2.0](LICENSE) © 2026 Milind Soni and SuperBot contributors,
 except `enterprise/`, which is source-available under its
 [own license](enterprise/LICENSE); delete that folder and what remains is the
 open-source edition. Details, including how contributions are signed off, are
@@ -499,6 +499,6 @@ Packaged Cua Driver components retain their upstream MIT, SIL OFL 1.1, MPL-2.0, 
 the corresponding notices, license texts, source locations, and SBOM are in
 [`third_party/cua-driver/`](third_party/cua-driver/) and ship beside the native runtime.
 
-OpenMausBot is an independent, open-source project inspired by Grok Bot. It is
+SuperBot is an independent, open-source project inspired by Grok Bot. It is
 not affiliated with, endorsed by, or associated with xAI; "Grok" is a trademark
 of its respective owner.

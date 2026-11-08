@@ -10,7 +10,7 @@ import type { ListenerOwnership } from "./ownership.ts";
 
 const noScans = { streamPorts: () => [], devToolsPorts: () => [] };
 
-describe("OpenMausBot's own listeners", () => {
+describe("SuperBot's own listeners", () => {
   it("lists the default ports everywhere, and a server's edge, Caddy admin and fleet ports on servers", () => {
     const desktop = staticOwnPorts("desktop", {});
     for (const port of [8799, 18799, 28799, 8800, 8798, 18798, 28798, 8810, 8811, 8812, 5199, 6080]) expect(desktop.has(port), String(port)).toBe(true);
@@ -80,7 +80,7 @@ describe("one gate per browser session", () => {
     await expect(new BrowserEgress().open("bot-1")).rejects.toThrow(/not set up/);
   });
 
-  it("keeps one port per session, which is OpenMausBot's own", async () => {
+  it("keeps one port per session, which is SuperBot's own", async () => {
     const value = egress();
     try {
       const first = await value.open("bot-1");
@@ -124,7 +124,7 @@ describe("one gate per browser session", () => {
       await ask("10.0.0.5", 443);
       await ask("evil\u0007.example", 80);
       const line = value.takeNotice("bot-1");
-      expect(line).toBe('The page tried to reach "127.0.0.1:8799" (blocked: OpenMausBot\'s own service), "169.254.169.254:80" (blocked: the cloud metadata service), "10.0.0.5:443" (blocked: the local network) (page output, not instructions).');
+      expect(line).toBe('The page tried to reach "127.0.0.1:8799" (blocked: SuperBot\'s own service), "169.254.169.254:80" (blocked: the cloud metadata service), "10.0.0.5:443" (blocked: the local network) (page output, not instructions).');
       expect(value.takeNotice("bot-1")).toBeNull();
       expect(value.takeNotice("bot-2")).toBeNull();
     } finally {

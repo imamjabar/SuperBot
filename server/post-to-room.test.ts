@@ -44,7 +44,7 @@ const api = async (method: string, path: string, body?: unknown): Promise<ApiRes
 const startTurn = async (botId: string, threadId: string): Promise<string> => {
   const minted = await fetch(`${BASE}/api/testing/internal-capability`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-openmausbot-test-capability": TEST_CAPABILITY_KEY },
+    headers: { "content-type": "application/json", "x-superbot-test-capability": TEST_CAPABILITY_KEY },
     body: JSON.stringify({ botId, threadId, kind: "agents", skillAuthoring: true }),
   });
   return (await minted.json() as { token: string }).token;

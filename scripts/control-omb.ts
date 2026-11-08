@@ -61,7 +61,7 @@ read-only (every verb also takes --url URL):
   export --thread ID --out DIR
   events --job THREAD_ID --until-settled
 
-mutating (an explicit --url or OPENMAUSBOT_URL/OMB_PORT is required):
+mutating (an explicit --url or SUPERBOT_URL/OMB_PORT is required):
   new-bot --name NAME [--section TEAM]
   new-channel --name NAME --members ID,ID
   send --bot ID --text TEXT [--task ID] [--dry-run]
@@ -382,7 +382,7 @@ export async function launchVerificationServer(
           signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
         });
         const body = response.ok ? await response.json() as { app?: string } : null;
-        if (body?.app === "openmausbot") break;
+        if (body?.app === "superbot") break;
       } catch {
       }
       if (Date.now() >= deadline) throw new Error(`verification server did not become ready; see ${logPath}${logTail()}`);

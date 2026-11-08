@@ -1915,7 +1915,7 @@ describe("workspace credential env strip", () => {
     // What an engine deliberately receives (the hosted model token as its provider key), plus look-alike names.
     const engine = {
       PATH: "/usr/bin", ANTHROPIC_API_KEY: "hosted-token", ANTHROPIC_AUTH_TOKEN: "hosted-token",
-      ANTHROPIC_BASE_URL: "https://admin.example.test/api/gateway/w/anthropic", OPENMAUSBOT_COMPANY_API_KEY: "hosted-token",
+      ANTHROPIC_BASE_URL: "https://admin.example.test/api/gateway/w/anthropic", SUPERBOT_COMPANY_API_KEY: "hosted-token",
       OMB_MANAGED_CODEX_TOKEN: "hosted-token", CODEX_HOME: "/data/codex", OMB_HOOK_TOKEN_FILE: "/data/hook-tokens/a.token",
       OMB_CLOUDFLARED_PATH: "/usr/local/bin/cloudflared", OMB_CLOUD: "not-prefixed", MY_OMB_CLOUD_NOTE: "user",
     };

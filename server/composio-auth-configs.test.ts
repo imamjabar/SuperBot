@@ -380,7 +380,7 @@ describe("custom auth configs made in the Composio dashboard", () => {
     const failed = await callTool(cfg, "BUFFER_LIST_POSTS");
     expect(failed.result.content[0]!.text).toContain(NO_MANAGED_AUTH("buffer"));
     expect(failed.result.content[1]!.text).toBe(
-      "OpenMausBot note: buffer has no Composio-managed sign-in. buffer connects with the person's own Composio auth config "
+      "SuperBot note: buffer has no Composio-managed sign-in. buffer connects with the person's own Composio auth config "
       + 'ac_buffer_new. Call COMPOSIO_MANAGE_CONNECTIONS with toolkits ["buffer"] to show the person a card that connects '
       + "it, then end the turn. Do not retry this call before that.",
     );
@@ -410,11 +410,11 @@ describe("custom auth configs made in the Composio dashboard", () => {
 
     await expect(authorizeService(cfg, "xero")).rejects.toMatchObject({
       status: 409,
-      message: "OpenMausBot could not turn on Tool Router for your xero auth config ac_xero_scoped, which Composio needs before "
+      message: "SuperBot could not turn on Tool Router for your xero auth config ac_xero_scoped, which Composio needs before "
         + "it uses it. Check that your Composio project key may edit auth configs. Composio said: This API key may not edit auth configs",
     });
     const reply = await callTool(cfg, "XERO_LIST_INVOICES");
-    expect(reply.result.content[1]!.text).toMatch(/^OpenMausBot note: OpenMausBot could not turn on Tool Router for your xero auth config/);
+    expect(reply.result.content[1]!.text).toMatch(/^SuperBot note: SuperBot could not turn on Tool Router for your xero auth config/);
   });
 });
 

@@ -108,7 +108,7 @@ const mintedToken = async (botId: string, threadId: string, depth = 0): Promise<
     "POST",
     "/api/testing/internal-capability",
     { botId, threadId, kind: "agents", depth },
-    { "x-openmausbot-test-capability": TEST_CAPABILITY_KEY },
+    { "x-superbot-test-capability": TEST_CAPABILITY_KEY },
   );
   expect(minted.status).toBe(201);
   return { authorization: `Bearer ${minted.body.token}` };

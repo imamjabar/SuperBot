@@ -15,8 +15,8 @@ export const HEADLESS_USAGE = `Drive a running workspace (scripts, CI, other age
   openmausbot connect URL --code CODE --out FILE              get a token for a workspace elsewhere
   openmausbot new-bot | new-channel | set-model | edit | mcp
 
-  Server: --url URL (or OPENMAUSBOT_URL), --port N (or OMB_PORT), else this computer's.
-  Token: OPENMAUSBOT_TOKEN or --token-file FILE. --json prints one JSON document;
+  Server: --url URL (or SUPERBOT_URL), --port N (or OMB_PORT), else this computer's.
+  Token: SUPERBOT_TOKEN or --token-file FILE. --json prints one JSON document;
   progress goes to stderr (--quiet drops it). openmausbot help VERB for the details.`;
 
 export const USAGE = `openmausbot — your team of AI bots, ready in a few steps
@@ -49,7 +49,7 @@ serve   starts the server without prompts and prints a pairing link + QR code
 pair    mints a pairing code against a running server (--client: chat only)
 sessions lists paired devices; "sessions revoke ID" signs one out
 status  what the server says about itself
-login   signs this machine in to an OpenMausBot account (an emailed code)
+login   signs this machine in to an SuperBot account (an emailed code)
         and reserves its public address for --tunnel
 logout  releases that address and signs out
 access  who may sign in with an emailed code at /pair: an address or

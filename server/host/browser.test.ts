@@ -199,7 +199,7 @@ describe("a deleted bot's browser", () => {
     vi.unstubAllEnvs();
     for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true });
   });
-  /** agent-browser on PATH, as the Cloud image installs it; with `managed`, also the one OpenMausBot installed. */
+  /** agent-browser on PATH, as the Cloud image installs it; with `managed`, also the one SuperBot installed. */
   function engines({ managed = false }: { managed?: boolean } = {}) {
     vi.mocked(browserEngineStatus).mockImplementation((options) => (options?.managedOnly && !managed
       ? { kind: "unavailable", reason: "not installed", installable: true }
@@ -219,7 +219,7 @@ describe("a deleted bot's browser", () => {
   const closed = () => vi.mocked(closeBrowserSession).mock.calls.map(([binary, env]) => `${binary} ${env.AGENT_BROWSER_SESSION}`);
 
 
-  it("elsewhere, is erased only with the agent-browser OpenMausBot installed, and otherwise just closed", async () => {
+  it("elsewhere, is erased only with the agent-browser SuperBot installed, and otherwise just closed", async () => {
     engines();
     const { host } = setup(undefined);
     expect(await host.eraseDeletedBrowser(deleted)).toBe(true);
