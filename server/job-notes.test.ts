@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createJobNotes } from "./job-notes.ts";
-import type { Message } from "../shared/wire.ts";
+import type { Message } from "./store.ts";
 import type { Store, TaskRecord } from "./store.ts";
 
 describe("job-notes", () => {

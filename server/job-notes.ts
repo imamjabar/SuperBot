@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { DATA_DIR } from "./config.ts";
 import { saveFile } from "./attachments.ts";
 import type { Store } from "./store.ts";
-import type { Message } from "../shared/wire.ts";
+import type { Message } from "./store.ts";
 
 function safe(id: string): string {
   return id.replace(/[^a-zA-Z0-9_-]/g, "_");
