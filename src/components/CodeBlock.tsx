@@ -1,5 +1,5 @@
 // Security: Shiki's output is generator-escaped; nothing else reaches the DOM as HTML.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { HighlighterCore } from "shiki/core";
 import { Check, Copy, Download, MoreHorizontal, WrapText, X } from "lucide-react";
 
@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import { useAdvancedMode } from "@/lib/interface-mode";
+import { useOnScreen } from "@/lib/on-screen";
 import { countLines, downloadSnippetFile, formatLineCount, getLanguageDisplayName, getSnippetFileName } from "../lib/code-block";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 
@@ -202,6 +203,8 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
   const markup = useMemo(() => (html ? { __html: html } : null), [html]);
   const { state: copied, copy } = useCopyFeedback(code);
   const [wrapLines, setWrapLines] = useState(initialWrap);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const onScreen = useOnScreen(rootRef);
   useEffect(() => {
     setWrapLines(initialWrap);
   }, [initialWrap]);
@@ -211,6 +214,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
     const key = highlightKey(lang, code);
     const cached = highlightCache.get(key);
     if (cached) return setHtml(cached);
+    if (!onScreen) return setHtml(null);
     let alive = true;
     highlightFence(code, lang || "text")
       .then((out) => {
@@ -223,7 +227,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
     return () => {
       alive = false;
     };
-  }, [code, lang, highlightable]);
+  }, [code, lang, highlightable, onScreen]);
 
   const download = () => {
     const filename = getSnippetFileName(lang);
@@ -247,7 +251,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
 
   if (simple) {
     return (
-      <div dir="ltr" className="chat-code-block group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
+      <div ref={rootRef} dir="ltr" className="chat-code-block group/code relative my-2.5 overflow-hidden rounded-lg bg-ink/[0.04]">
         <CodePlate copied={copied} onCopy={copy} copyLabel={t("code.copyTitle")} items={[
           { key: "wrap", label: t("code.wrapLines"), icon: <WrapText size={14} aria-hidden="true" />, active: wrapLines, onSelect: () => setWrapLines((wrap) => !wrap) },
           { key: "save", label: t("code.saveAsFile"), icon: <Download size={14} aria-hidden="true" />, onSelect: download },
@@ -259,7 +263,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
   }
 
   return (
-    <div dir="ltr" className="chat-code-block my-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset">
+    <div ref={rootRef} dir="ltr" className="chat-code-block my-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline/30 bg-raised/30 px-3 py-1.5 text-xs">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <span title={displayLanguage} className="min-w-0 truncate rounded border border-hairline/40 bg-raised px-1.5 py-0.5 text-micro font-medium tracking-wide text-ink select-none">
