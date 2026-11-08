@@ -175,7 +175,7 @@
     },
     {
       "name": "job_notes",
-      "description": "Your notes table for this job, kept outside your memory: add one row per item you checked (for a job search: company, title, location, link, date, salary, visa, fit, reason) and read it back any time. In a long job, page text you read earlier can be dropped from your memory; these rows are not. When the job ends the whole table reaches the person's chat as a CSV file by itself, so your final answer gives the summary and the top items, not the full table.",
+      "description": "Your notes table for this job, kept outside your memory: add one row per item you checked (its name, the link you opened, the date the source states, the facts that matter, kept or excluded and why) and read it back any time. In a long job, page text you read earlier can be dropped from your memory; these rows are not. When the job ends the whole table reaches the person's chat as a CSV file by itself, so your final answer gives the summary and the top items, not the full table.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,

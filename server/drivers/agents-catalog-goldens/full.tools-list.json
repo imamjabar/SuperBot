@@ -402,7 +402,7 @@
     },
     {
       "name": "job_notes",
-      "description": "Your notes table for this job, kept outside your memory: add one row per item you checked (for a job search: company, title, location, link, date, salary, visa, fit, reason) and read it back any time. In a long job, page text you read earlier can be dropped from your memory; these rows are not. When the job ends the whole table reaches the person's chat as a CSV file by itself, so your final answer gives the summary and the top items, not the full table.",
+      "description": "Your notes table for this job, kept outside your memory: add one row per item you checked (its name, the link you opened, the date the source states, the facts that matter, kept or excluded and why) and read it back any time. In a long job, page text you read earlier can be dropped from your memory; these rows are not. When the job ends the whole table reaches the person's chat as a CSV file by itself, so your final answer gives the summary and the top items, not the full table.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -1206,7 +1206,7 @@
     },
     {
       "name": "web_fetch",
-      "description": "Read a public web page, RSS feed or JSON/text address: readable text plus the page's embedded data (structured data such as a job posting's date and salary, or app data), so script-built pages usually read fine. Up to 12,000 characters per call; pass offset to read on, or find to get only the passages around some words in a long page or JSON feed. One call per page; prefer a site's RSS or section page for headlines. Use this before any browser or screen. Public http(s) only, no sign-in: with neither text nor data it returns needsBrowser and next, which says how to open it in the built-in browser.",
+      "description": "Read a public web page, PDF (read as text), RSS feed or JSON/text address: readable text plus the page's embedded data (structured data such as a job posting's date and salary, or app data), so script-built pages usually read fine. Up to 12,000 characters per call; pass offset to read on, or find to get only the passages around some words in a long page or JSON feed. One call per page; prefer a site's RSS or section page for headlines. Use this before any browser or screen. Public http(s) only: a sign-in, a site blocking automated reads, or no text returns needsBrowser and next, which says how to open it in the built-in browser.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
