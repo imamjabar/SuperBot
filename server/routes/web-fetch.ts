@@ -4,8 +4,9 @@ import type { ServerResponse } from "node:http";
 
 import type { json as sendJson } from "../harness/http.ts";
 import { redactSecretsInText } from "../redact.ts";
-import { fetchPublicPage, PAGE_MAX_BYTES, PAGE_TIMEOUT_MS, pageText } from "../wait-probes.ts";
+import { fetchPublicPage, pageText } from "../wait-probes.ts";
 import { embeddedPageData, jsonDataText, postingDataUrl } from "./page-data.ts";
+import { pdfText } from "./pdf-text.ts";
 import { PASS } from "./table.ts";
 
 export interface WebFetchContext {
@@ -23,6 +24,9 @@ export interface WebFetchDeps {
 export type WebFetchRoute = (ctx: WebFetchContext) => Promise<typeof PASS | void>;
 
 const WEB_FETCH_PATH = "/api/internal/web/fetch";
+const FETCH_MAX_BYTES = 20 * 1024 * 1024;
+const FETCH_TIMEOUT_MS = 30_000;
+
 
 const NAMED_ENTITIES: Record<string, string> = {
   amp: "&",
@@ -99,9 +103,10 @@ function parseFeedItems(xml: string): string[] | null {
   return lines.length > 0 ? lines : null;
 }
 
-export type BrowserNeed = "sign-in" | "script";
+export type BrowserNeed = "sign-in" | "script" | "blocked";
 
-const SIGN_IN_STATUS: ReadonlySet<number> = new Set([401, 403, 407]);
+const SIGN_IN_STATUS: ReadonlySet<number> = new Set([401, 407]);
+const BLOCKED_STATUS: ReadonlySet<number> = new Set([403, 429, 503]);
 const SIGN_IN_PATH = /(?:^|[/._-])(?:log-?in|sign-?in|auth|sso)(?:$|[/._-])/i;
 const PASSWORD_FIELD = /<input\b[^>]*\btype\s*=\s*["']?password\b/i;
 /** Below this a page with a password field is a sign-in form, not an article with a sign-in box. */
@@ -109,13 +114,23 @@ const SIGN_IN_TEXT_MAX = 1_500;
 /** Below this a page that ships scripts and an empty app mount or a noscript notice shows its words only once they run. */
 const SCRIPT_TEXT_MAX = 200;
 const SCRIPT_SHELL = /<noscript\b|<div\b[^>]*\bid\s*=\s*["']?(?:root|app|__next|__nuxt)["']?[^>]*>\s*<\/div>/i;
+const BOT_CHALLENGE_TEXT = /Just a moment|Attention Required|Access denied|Are you a robot|verify you are (?:a )?human|captcha/i;
+const BOT_CHALLENGE_HTML = /cf-chl|challenge-platform|_Incapsula_/;
+const CHALLENGE_TEXT_MAX = 1_500;
 
 /** Why a page's text needs the built-in browser, or undefined when web_fetch read it. */
-export function browserNeed(page: { status?: number; requested: URL; url?: URL; html?: string; text?: string }): BrowserNeed | undefined {
+export function browserNeed(page: { status?: number; requested: URL; url?: URL; html?: string; text?: string; title?: string }): BrowserNeed | undefined {
+  if (page.status !== undefined && BLOCKED_STATUS.has(page.status)) return "blocked";
   if (page.status !== undefined && SIGN_IN_STATUS.has(page.status)) return "sign-in";
   if (page.url && SIGN_IN_PATH.test(page.url.pathname) && !SIGN_IN_PATH.test(page.requested.pathname)) return "sign-in";
   if (page.html === undefined) return undefined;
   const length = page.text?.length ?? 0;
+  if (length < CHALLENGE_TEXT_MAX) {
+    const title = page.title ?? (page.html.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i)?.[1] ?? "");
+    if (BOT_CHALLENGE_TEXT.test(title) || BOT_CHALLENGE_TEXT.test(page.text ?? "") || BOT_CHALLENGE_HTML.test(page.html)) {
+      return "blocked";
+    }
+  }
   if (PASSWORD_FIELD.test(page.html) && length < SIGN_IN_TEXT_MAX) return "sign-in";
   if (length < SCRIPT_TEXT_MAX && /<script\b/i.test(page.html) && SCRIPT_SHELL.test(page.html)) return "script";
   return undefined;
@@ -124,9 +139,13 @@ export function browserNeed(page: { status?: number; requested: URL; url?: URL; 
 const BROWSER_NEXT: Record<BrowserNeed, string> = {
   "sign-in": "This page asks to sign in, so web_fetch cannot read it.",
   script: "This page shows its text only after its scripts run, so web_fetch got almost nothing.",
+  blocked: "This site refuses automated reads from SuperBot's server (a bot wall), so web_fetch cannot read it.",
 };
 
 function browserNext(need: BrowserNeed): string {
+  if (need === "blocked") {
+    return `${BROWSER_NEXT.blocked} Try it once in the built-in browser (browser_navigate, then browser_snapshot); if that is blocked too, get the same facts from another source (search for them) and say which site could not be read. Do not call web_fetch on it again.`;
+  }
   return `${BROWSER_NEXT[need]} Open it in the built-in browser (browser_navigate, then browser_snapshot)${need === "sign-in" ? "; the person may need to sign in there" : ""}. Do not call web_fetch on it again. With no browser this turn, say that this page needs the browser; use a desktop only when no browser can open it.`;
 }
 
@@ -164,50 +183,83 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
     }
 
     const requested = URL.canParse(body.url.trim()) ? new URL(body.url.trim()) : undefined;
-    const page = await fetchPage(body.url.trim(), { maxBytes: PAGE_MAX_BYTES, timeoutMs: PAGE_TIMEOUT_MS });
+    const page = await fetchPage(body.url.trim(), { maxBytes: FETCH_MAX_BYTES, timeoutMs: FETCH_TIMEOUT_MS });
     if (!page.ok) {
       const need = requested ? browserNeed({ status: page.status, requested }) : undefined;
-      if (need) return void ctx.json(ctx.res, 200, { url: requested!.href, needsBrowser: need, next: browserNext(need) });
+      if (need) {
+        return void ctx.json(ctx.res, 200, {
+          url: requested!.href,
+          ...(page.status !== undefined ? { status: page.status } : {}),
+          needsBrowser: need,
+          next: browserNext(need),
+        });
+      }
       const status = page.refused ? 400 : 502;
       return void ctx.json(ctx.res, status, { error: page.error });
     }
 
-    const decoded = page.body.toString("utf8");
     const contentTypeHeader = String(page.headers["content-type"] ?? "");
     const mimeType = contentTypeHeader.split(";")[0].trim().toLowerCase();
-    const isHtml = mimeType.includes("html") || /^\s*<!doctype|^\s*<html/i.test(decoded);
-    const isFeedOrXml = mimeType.includes("xml") || mimeType.includes("rss") || mimeType.includes("atom") || /^\s*<\?xml|^\s*<(?:rss|feed)[\s>]/i.test(decoded);
+    const isPdf = contentTypeHeader.toLowerCase().includes("application/pdf") || page.body.subarray(0, 5).toString("latin1") === "%PDF-";
 
     let title: string | undefined;
     let text = "";
+    let isHtml = false;
 
-    if (isHtml) {
-      const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);
-      if (titleMatch) title = cleanXmlText(titleMatch[1]) || undefined;
-      text = pageText(decoded);
-      const thin = text.length < 1500;
-      const postingApi = thin ? postingDataUrl(page.url) : undefined;
-      const posting = postingApi ? await fetchPage(postingApi, { maxBytes: PAGE_MAX_BYTES, timeoutMs: PAGE_TIMEOUT_MS }) : undefined;
-      const postingData = posting?.ok ? postingJson(posting.body.toString("utf8")) : "";
-      const data = [postingData && `Posting data (${postingApi}):\n${postingData}`, embeddedPageData(decoded, { appState: thin && !postingData })].filter(Boolean).join("\n\n");
-      const need = requested ? browserNeed({ requested, url: page.url, html: decoded, text }) : undefined;
-      if (need && (need !== "script" || !data)) {
-        return void ctx.json(ctx.res, 200, { url: page.url.href, ...(title !== undefined ? { title: redactSecretsInText(title) } : {}), needsBrowser: need, next: browserNext(need) });
+    if (isPdf) {
+      const parsed = await pdfText(page.body);
+      if (!parsed) {
+        return void ctx.json(ctx.res, 502, { error: "This PDF could not be read (damaged or password-protected)." });
       }
-      if (data) {
-        text = thin ? (text ? `${data}\n\n${text}` : data) : `${text}\n\n${data}`;
+      const stripped = parsed.text.replace(/\[page \d+\]/g, "").trim();
+      if (!stripped) {
+        return void ctx.json(ctx.res, 502, { error: "This PDF has no text layer (scanned pages), so web_fetch cannot read it." });
       }
-    } else if (isFeedOrXml) {
-      const feedLines = parseFeedItems(decoded);
-      const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);
-      if (titleMatch) title = cleanXmlText(titleMatch[1]) || undefined;
-      if (feedLines && feedLines.length > 0) {
-        text = feedLines.join("\n");
-      } else {
-        text = pageText(decoded);
+      text = parsed.text;
+      const firstLine = stripped.split(/\r?\n/).map((l) => l.trim()).find((l) => l.length > 0);
+      if (firstLine) {
+        title = firstLine.slice(0, 200);
       }
     } else {
-      text = decoded;
+      const decoded = page.body.toString("utf8");
+      isHtml = mimeType.includes("html") || /^\s*<!doctype|^\s*<html/i.test(decoded);
+      const isFeedOrXml = mimeType.includes("xml") || mimeType.includes("rss") || mimeType.includes("atom") || /^\s*<\?xml|^\s*<(?:rss|feed)[\s>]/i.test(decoded);
+
+      if (isHtml) {
+        const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);
+        if (titleMatch) title = cleanXmlText(titleMatch[1]) || undefined;
+        text = pageText(decoded);
+        const thin = text.length < 1500;
+        const postingApi = thin ? postingDataUrl(page.url) : undefined;
+        const posting = postingApi ? await fetchPage(postingApi, { maxBytes: FETCH_MAX_BYTES, timeoutMs: FETCH_TIMEOUT_MS }) : undefined;
+        const postingData = posting?.ok ? postingJson(posting.body.toString("utf8")) : "";
+        const data = [postingData && `Posting data (${postingApi}):\n${postingData}`, embeddedPageData(decoded, { appState: thin && !postingData })].filter(Boolean).join("\n\n");
+        const need = requested ? browserNeed({ requested, url: page.url, html: decoded, text, title }) : undefined;
+        if (need && (need !== "script" || !data)) {
+          const pageStatus = "status" in page && typeof page.status === "number" ? page.status : 200;
+          return void ctx.json(ctx.res, 200, {
+            url: page.url.href,
+            ...(title !== undefined ? { title: redactSecretsInText(title) } : {}),
+            status: pageStatus,
+            needsBrowser: need,
+            next: browserNext(need),
+          });
+        }
+        if (data) {
+          text = thin ? (text ? `${data}\n\n${text}` : data) : `${text}\n\n${data}`;
+        }
+      } else if (isFeedOrXml) {
+        const feedLines = parseFeedItems(decoded);
+        const titleMatch = decoded.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i);
+        if (titleMatch) title = cleanXmlText(titleMatch[1]) || undefined;
+        if (feedLines && feedLines.length > 0) {
+          text = feedLines.join("\n");
+        } else {
+          text = pageText(decoded);
+        }
+      } else {
+        text = decoded;
+      }
     }
 
     text = redactSecretsInText(text);
@@ -263,7 +315,7 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
       return void ctx.json(ctx.res, 200, {
         url: page.url.href,
         ...(title !== undefined ? { title } : {}),
-        contentType: contentTypeHeader || (isHtml ? "text/html" : "text/plain"),
+        contentType: isPdf ? "application/pdf" : (contentTypeHeader || (isHtml ? "text/html" : "text/plain")),
         total,
         find,
         matches,
@@ -277,7 +329,7 @@ export function createWebFetchRoutes(deps?: WebFetchDeps) {
     return void ctx.json(ctx.res, 200, {
       url: page.url.href,
       ...(title !== undefined ? { title } : {}),
-      contentType: contentTypeHeader || (isHtml ? "text/html" : "text/plain"),
+      contentType: isPdf ? "application/pdf" : (contentTypeHeader || (isHtml ? "text/html" : "text/plain")),
       text: slice,
       offset,
       total,

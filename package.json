@@ -132,6 +132,7 @@
     "tar": "7.5.22",
     "tldts": "7.4.18",
     "undici": "8.11.2",
+    "unpdf": "2.1.0",
     "vega": "6.4.0",
     "vega-embed": "7.3.0",
     "vega-interpreter": "2.3.2",

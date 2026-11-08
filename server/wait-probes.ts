@@ -125,7 +125,7 @@ function markupEnd(body: string, open: number): number {
     const close = body.indexOf("-->", open + 2);
     return close === -1 ? body.length : close + 3;
   }
-  const close = body.indexOf(">", open + 1);
+  const close = tagClose(body, open);
   if (close === -1) return -1;
   HIDDEN_OPEN.lastIndex = open;
   const hidden = HIDDEN_OPEN.exec(body)?.[1]?.toLowerCase();
@@ -135,6 +135,24 @@ function markupEnd(body: string, open: number): number {
   const found = end.exec(body);
   const after = found ? body.indexOf(">", found.index) : -1;
   return after === -1 ? body.length : after + 1;
+}
+
+/** The `>` closing the tag opened at `open`, past any `>` inside a quoted attribute value (Wikipedia's `data-mw` JSON
+ * carries them), or -1 when none follows. */
+function tagClose(body: string, open: number): number {
+  for (let at = open + 1; at < body.length; at++) {
+    const char = body[at];
+    if (char === ">") return at;
+    if (char !== "=") continue;
+    let value = at + 1;
+    while (value < body.length && /\s/.test(body[value]!)) value++;
+    const quote = body[value];
+    if (quote !== '"' && quote !== "'") continue;
+    const end = body.indexOf(quote, value + 1);
+    if (end === -1) return body.indexOf(">", open + 1);
+    at = end;
+  }
+  return -1;
 }
 
 /**

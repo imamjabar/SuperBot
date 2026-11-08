@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 
 import { fetchPublicPage } from "../wait-probes.ts";
 import { PASS } from "./table.ts";
+import { createValidPdf } from "./pdf-text.test.ts";
 import { createWebFetchRoutes, type WebFetchContext, type WebFetchRoute } from "./web-fetch.ts";
 
 interface RouteResponse {
@@ -87,6 +88,21 @@ describe("web_fetch internal route", () => {
       } else if (path === "/long-with-next") {
         res.setHeader("content-type", "text/html");
         res.end(`<!doctype html><html><head><title>Long Next Page</title><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"company":"Acme"}}}</script></head><body><article>${"Visible article content that exceeds fifteen hundred characters. ".repeat(30)}</article></body></html>`);
+      } else if (path === "/pdf") {
+        res.setHeader("content-type", "application/pdf");
+        res.end(createValidPdf());
+      } else if (path === "/pdf-notext") {
+        res.setHeader("content-type", "application/pdf");
+        res.end(createValidPdf(null));
+      } else if (path === "/blocked-403") {
+        res.writeHead(403).end();
+      } else if (path === "/blocked-429") {
+        res.writeHead(429).end();
+      } else if (path === "/blocked-503") {
+        res.writeHead(503).end();
+      } else if (path === "/cloudflare") {
+        res.setHeader("content-type", "text/html; charset=utf-8");
+        res.end(`<!DOCTYPE html><html><head><title>Just a moment...</title><script src="/cdn-cgi/challenge-platform/scripts/cf-chl.js"></script></head><body><div id="challenge">Verify you are human</div></body></html>`);
       } else {
         res.writeHead(404).end();
       }
@@ -228,16 +244,63 @@ describe("web_fetch internal route", () => {
   });
 
   it.each([
-    ["a redirect to a sign-in form", "/news/today", "sign-in"],
-    ["a 401 answer", "/members", "sign-in"],
-    ["a page that shows nothing until its scripts run", "/app", "script"],
-  ] as const)("hands %s to the built-in browser instead of returning its text", async (_case, path, need) => {
+    ["a redirect to a sign-in form", "/news/today", "sign-in", 200],
+    ["a 401 answer", "/members", "sign-in", 401],
+    ["a page that shows nothing until its scripts run", "/app", "script", 200],
+  ] as const)("hands %s to the built-in browser instead of returning its text", async (_case, path, need, expectedStatus) => {
     const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
     const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}${path}` } });
     expect(status).toBe(200);
     expect(body.needsBrowser).toBe(need);
+    expect(body.status).toBe(expectedStatus);
     expect(String(body.next)).toContain("built-in browser (browser_navigate");
     expect(body.text).toBeUndefined();
+  });
+
+  it("reads PDF served as application/pdf with text and supports find", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}/pdf` } });
+    expect(status).toBe(200);
+    expect(body.contentType).toBe("application/pdf");
+    expect(body.text).toContain("[page 1]");
+    expect(body.text).toContain("Hello SuperBot");
+
+    const findRes = await callRoute(handler, { body: { url: `http://status.test:${port}/pdf`, find: "SuperBot" } });
+    expect(findRes.status).toBe(200);
+    expect(findRes.body.contentType).toBe("application/pdf");
+    expect(findRes.body.find).toBe("SuperBot");
+    expect(Array.isArray(findRes.body.matches)).toBe(true);
+    const matches = findRes.body.matches as Array<{ text: string }>;
+    expect(matches[0]?.text).toContain("SuperBot");
+  });
+
+  it("returns 502 with no-text-layer error when reading a PDF with no text", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}/pdf-notext` } });
+    expect(status).toBe(502);
+    expect(body).toEqual({ error: "This PDF has no text layer (scanned pages), so web_fetch cannot read it." });
+  });
+
+  it.each([
+    ["403", "/blocked-403", 403],
+    ["429", "/blocked-429", 429],
+    ["503", "/blocked-503", 503],
+  ] as const)("returns needsBrowser blocked with status for HTTP %s", async (_name, path, expectedStatus) => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}${path}` } });
+    expect(status).toBe(200);
+    expect(body.needsBrowser).toBe("blocked");
+    expect(body.status).toBe(expectedStatus);
+    expect(String(body.next)).toContain("This site refuses automated reads from SuperBot's server (a bot wall)");
+  });
+
+  it("detects Cloudflare challenge page and returns needsBrowser blocked", async () => {
+    const handler = createWebFetchRoutes({ fetchPage: testFetchPage });
+    const { status, body } = await callRoute(handler, { body: { url: `http://status.test:${port}/cloudflare` } });
+    expect(status).toBe(200);
+    expect(body.needsBrowser).toBe("blocked");
+    expect(body.status).toBe(200);
+    expect(String(body.next)).toContain("This site refuses automated reads from SuperBot's server (a bot wall)");
   });
 
   it("reads an article that carries a sign-in box as text", async () => {

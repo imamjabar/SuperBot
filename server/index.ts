@@ -615,7 +615,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
-import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_LANGUAGE_NOTE, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { createJobNotes } from "./job-notes.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
+import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_LANGUAGE_NOTE, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { createJobNotes } from "./job-notes.ts"; import { deepJobBrief } from "./deep-research.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 
@@ -13755,7 +13755,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             ...outcome,
           });
         }
-        const result = await coordinateBots({ botIds: [target.id], message, rework: false, thread: "new", reply: "resume", consult: false, title, projectId, deep: Boolean(body.deep) });
+        const result = await coordinateBots({ botIds: [target.id], message: body.deep ? deepJobBrief(message) : message, rework: false, thread: "new", reply: "resume", consult: false, title, projectId, deep: Boolean(body.deep) });
         return json(res, result.status, result.body);
       }
       if (method === "POST" && path === "/api/internal/create-bot") {

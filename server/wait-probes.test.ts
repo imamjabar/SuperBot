@@ -77,10 +77,13 @@ describe("file and process probes", () => {
     expect(pageText("<!-- <p>Sold out</p> -->In stock<!-->!<script>never closed <p>Sold out</p>")).toBe("In stock !");
     expect(pageText("In stock<!-- never closed <p>Sold out</p>")).toBe("In stock");
   });
+  it("ends a tag at its own >, not one inside a quoted attribute value", () => {
+    expect(pageText(`<span data-mw='{"html":"<b>x</b>","n":1}'>Population</span> 42 million <a href="?a>b">here</a>`)).toBe("Population 42 million here");
+  });
   it("reads a hostile 2 MB page in well under a second", () => {
     // 64 KB first, so a reader that backtracks fails here in a second or two instead of running for minutes at 2 MB.
     for (const [size, budgetMs] of [[64 * 1024, 250], [PAGE_MAX_BYTES, 1000]] as const) {
-      for (const unit of ["<", "<a ", "<!--", "<script>", "<style ", "<<>", "&lt;"]) {
+      for (const unit of ["<", "<a ", "<!--", "<script>", "<style ", "<<>", "&lt;", "<a b='x'", "<a b='", "<a b=\""]) {
         const page = unit.repeat(Math.ceil(size / unit.length)).slice(0, size);
         const started = performance.now();
         pageText(page);
