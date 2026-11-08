@@ -307,7 +307,7 @@ function runContext({ boat = "on", event = "pull_request", actor = "milind-soni"
   };
 }
 
-describe("CI on Boat", () => {
+describe.skipIf(!workflow)("CI on Boat", () => {
   const routed = (context: ReturnType<typeof runContext>) => ({
     runsOn: interpolate(workflow.jobs.static["runs-on"], context),
     name: interpolate(workflow.jobs.static.name, context),

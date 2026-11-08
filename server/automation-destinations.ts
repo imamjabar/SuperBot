@@ -15,9 +15,6 @@ function legacyResultsThread(routineName: string, task: TaskRecord): boolean {
 export function createAutomationDestinations(deps: AutomationDestinationDeps) {
   const { store } = deps;
   return {
-    eventChat(_run: Pick<RoutineRun, "botId" | "routineName" | "resultsThreadId" | "eventSource">): string | undefined {
-      return undefined;
-    },
     routine(routine: Routine, forceNew: boolean): { threadId: string; main?: true } | undefined {
       const bot = store.bot(routine.botId);
       const chosen = !forceNew && routine.resultsThreadId && bot && !bot.hidden ? store.taskByThread(bot.id, routine.resultsThreadId) : undefined;

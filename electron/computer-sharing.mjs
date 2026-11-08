@@ -292,7 +292,7 @@ export function createComputerSharing({ file, fetch: fetchImpl, environments, cu
   };
   const state = id => {
     const grant = records[id];
-    return { enabled: grant?.enabled === true, folders: Array.isArray(grant?.folders) ? grant.folders : [], terminal: grant?.terminal === true, computer: grant?.computer === true, ...status.get(id) };
+    return { enabled: grant?.enabled === true, folders: Array.isArray(grant?.folders) ? grant.folders : [], terminal: grant?.enabled === true && grant.terminal === true, computer: grant?.computer === true, ...status.get(id) };
   };
   const disconnect = (env, grant) => {
     stop(env.id);

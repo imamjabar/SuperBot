@@ -7,6 +7,8 @@ import { CALENDAR_LIST_TOOL, CALENDARS_TOOL, GMAIL_FETCH_TOOL, GMAIL_MESSAGE_TOO
 export interface FakeConnectedApps {
   url: string;
   token: string;
+  apiKey: string;
+  env: Record<string, string>;
   connected: Record<string, boolean>;
   address: string;
   /** Google Calendar event resources of the primary calendar. */
@@ -61,6 +63,46 @@ export async function startFakeConnectedApps(): Promise<FakeConnectedApps> {
     let raw = "";
     for await (const chunk of req) raw += chunk;
     res.setHeader("content-type", "application/json");
+    const reqUrl = req.url ?? "";
+    const reqPath = reqUrl.split("?")[0]!;
+    if (req.method === "POST" && reqPath === "/api/v3.1/tool_router/session") {
+      const body = (raw ? JSON.parse(raw) : {}) as Record<string, unknown>;
+      return res.end(JSON.stringify({
+        session_id: "trs_fake_session",
+        mcp: { type: "http", url: `http://127.0.0.1:${port}/v1/mcp` },
+        config: { user_id: body.user_id ?? "openmausbot_test", auth_configs: body.auth_configs ?? {} },
+      }));
+    }
+    if (req.method === "GET" && reqPath.startsWith("/api/v3.1/tool_router/session/") && reqPath.endsWith("/toolkits")) {
+      return res.end(JSON.stringify({
+        items: Object.entries(fake.connected).filter(([, c]) => c).map(([slug]) => ({
+          slug,
+          connected_account: { id: `ca_${slug}`, status: "ACTIVE" },
+        })),
+      }));
+    }
+    if (req.method === "GET" && reqPath.startsWith("/api/v3.1/tool_router/session/")) {
+      return res.end(JSON.stringify({
+        session_id: "trs_fake_session",
+        mcp: { type: "http", url: `http://127.0.0.1:${port}/v1/mcp` },
+        config: { user_id: "openmausbot_test", auth_configs: {} },
+      }));
+    }
+    if (req.method === "GET" && reqPath.startsWith("/api/v3.1/connected_accounts")) {
+      return res.end(JSON.stringify({
+        items: Object.entries(fake.connected).filter(([, c]) => c).map(([slug]) => ({
+          id: `ca_${slug}`,
+          app_unique_id: slug,
+          status: "ACTIVE",
+        })),
+      }));
+    }
+    if (req.method === "GET" && reqPath === "/api/v3.1/auth_configs") {
+      return res.end(JSON.stringify({ items: [] }));
+    }
+    if (req.method === "GET" && reqPath.startsWith("/api/v3/toolkits")) {
+      return res.end(JSON.stringify({ items: [] }));
+    }
     if (req.method === "GET" && req.url === "/v1/connectors/connected") {
       return res.end(JSON.stringify({ services: Object.fromEntries(Object.entries(fake.connected).map(([slug, connected]) => [slug, { connected }])) }));
     }
@@ -106,6 +148,11 @@ export async function startFakeConnectedApps(): Promise<FakeConnectedApps> {
   return Object.assign(fake, {
     url: `http://127.0.0.1:${port}`,
     token: "c".repeat(64),
+    apiKey: "ak_fake_project_key",
+    env: {
+      OMB_COMPOSIO_API: `http://127.0.0.1:${port}/api/v3.1`,
+      OMB_COMPOSIO_TOOLKITS_API: `http://127.0.0.1:${port}/api/v3`,
+    },
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   });
 }

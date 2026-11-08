@@ -30,7 +30,7 @@ esac
 server_changed=0
 case $(sync_branch "$HOME/SuperBot/server-dist" server-dist) in
   1)
-    test -f "$HOME/SuperBot/server-dist/index.js" && test -f "$HOME/SuperBot/server-dist/cloud-home-start.js" \
+    test -f "$HOME/SuperBot/server-dist/index.js" \
       || { echo "server-dist has no compiled bundle; not restarting omb" >&2; exit 1; }
     server_changed=1 ;;
   2) echo "server-dist branch not found yet; updating the web build only" >&2 ;;
@@ -40,7 +40,7 @@ esac
 
 chmod -R a-w "$HOME/SuperBot/server-dist"
 # Never switch the app to a bundle that fails its compiled self-check. index.js boots the whole server on import, so it is only syntax-checked.
-$C run -T --rm --no-deps --entrypoint sh omb -c 'test ! -w /app/dist-server && timeout 60 node --check /app/dist-server/index.js && timeout 60 node -e "import(\"/app/dist-server/cloud-home-start.js\").catch((e) => { console.error(e); process.exit(3); })" || exit 3' || rc=$?
+$C run -T --rm --no-deps --entrypoint sh omb -c 'test ! -w /app/dist-server && timeout 60 node --check /app/dist-server/index.js || exit 3' || rc=$?
 if [ "${rc:-0}" -ne 0 ]; then echo "Compiled server validation failed ${rc}" >&2; chmod -R u+w "$HOME/SuperBot/server-dist"; exit "$rc"; fi
 # Compose leaves a container whose config is unchanged running, and server-dist is a bind mount, so only
 # --force-recreate swaps in the new bundle. Caddy joins omb's network namespace (network_mode: service:omb),

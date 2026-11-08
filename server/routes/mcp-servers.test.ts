@@ -82,38 +82,22 @@ it("says when a server is added, imported or removed on purpose, so a Cloud home
   expect(changes).toEqual(["added", "added", "removed"]);
 });
 
-it.each([["private", "person"], ["public", "team"]])("lists the scope of %s in reads and mutation responses", async (name, scope) => {
+it("lists the scope of team servers in reads and mutation responses", async () => {
   const { post, get } = await serve();
-  const response = await post("/api/mcp/servers", { name, url: "https://mail.example.com/mcp", headers: { Authorization: "" } });
+  const response = await post("/api/mcp/servers", { name: "public", url: "https://mail.example.com/mcp", headers: { Authorization: "" } });
   expect(response.status).toBe(201);
-  expect(await response.json()).toMatchObject({ servers: [{ name, scope }] });
-  expect(await (await get()).json()).toMatchObject({ servers: [{ name, scope }] });
+  expect(await response.json()).toMatchObject({ servers: [{ name: "public", scope: "team" }] });
+  expect(await (await get()).json()).toMatchObject({ servers: [{ name: "public", scope: "team" }] });
 });
 
-it.each(["create", "import"])("rejects personal header values on %s without saving any server", async (action) => {
+it.each(["create", "import"])("retains header values on %s", async (action) => {
   const { cfg, post } = await serve();
-  const entry = { url: "https://mail.example.com/mcp", headers: { Authorization: "Bearer private-secret" } };
+  const entry = { type: "http", url: "https://mail.example.com/mcp", headers: { Authorization: "Bearer team-secret" } };
   const response = action === "create"
-    ? await post("/api/mcp/servers", { name: "private", ...entry })
-    : await post("/api/mcp/servers/import", { json: JSON.stringify({ mcpServers: { public: { url: "https://public.example.com/mcp" }, private: entry } }) });
-
-  expect(response.status).toBe(400);
-  const body = await response.json() as { error: string };
-  expect(body.error).toMatch(/personal.*header|header.*personal/i);
-  expect(JSON.stringify(body)).not.toContain("private-secret");
-  expect(cfg.mcpServers).toEqual({});
-});
-
-it.each(["create", "import"])("accepts blank personal headers on %s and retains team header values", async (action) => {
-  const { cfg, post } = await serve();
-  for (const [name, value] of [["private", ""], ["public", "Bearer team-secret"]] as const) {
-    const entry = { type: "http", url: "https://mail.example.com/mcp", headers: { Authorization: value } };
-    const response = action === "create"
-      ? await post("/api/mcp/servers", { name, ...entry })
-      : await post("/api/mcp/servers/import", { json: JSON.stringify({ mcpServers: { [name]: entry } }) });
-    expect(response.status).toBe(201);
-    expect(cfg.mcpServers?.[name]).toMatchObject({ headers: { Authorization: value } });
-  }
+    ? await post("/api/mcp/servers", { name: "public", ...entry })
+    : await post("/api/mcp/servers/import", { json: JSON.stringify({ mcpServers: { public: entry } }) });
+  expect(response.status).toBe(201);
+  expect(cfg.mcpServers?.public).toMatchObject({ headers: { Authorization: "Bearer team-secret" } });
 });
 
 describe("a bot's MCP servers, as a phone reads them", () => {

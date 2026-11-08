@@ -145,7 +145,7 @@ describe("what the snapshot asks this page's app", () => {
 
   it("asks nothing of the desktop app as a remote client, and does not wait for webhooks it never loads", async () => {
     vi.stubGlobal("ogb", { remoteClient: { active: true }, ...bridges });
-    await draw(ready({ config: ready().config! }));
+    await draw(ready({ webhookIngress: null }));
     expect(asked).toEqual([]);
     expect(sent()[0]![1]).toMatchObject({ remote_client: true });
     expect(sent()[0]![1]).not.toHaveProperty("webhooks");

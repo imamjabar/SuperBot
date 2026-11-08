@@ -149,7 +149,7 @@ describe("attachment download destination", () => {
     assert.notEqual(handler, -1);
     assert.match(main.slice(handler), /item\.setSavePath\(collisionFreeDownloadPath\(/);
     assert.match(main.slice(handler), /revealDownloadWhenDone\(item, /);
-    assert.ok(handler < main.indexOf("!deliveredCloudEntry) await showHome();"));
+    assert.ok(handler < main.indexOf("if (!mainWindow || mainWindow.isDestroyed()) createWindow();"));
   });
 
   it("reveals only a completed download at its actual save path", () => {

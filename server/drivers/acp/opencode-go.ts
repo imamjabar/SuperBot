@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from
 
 import { ATTACHMENTS_DIR } from "../../attachments.ts";
 import { DATA_DIR, OPENCODE_PROVIDER_ENV } from "../../config.ts";
+import { hostedWorkspaceConfigured } from "../../enterprise.ts";
 import { decodeInjectId, hostApiKey, localHost, mergeLocalInject } from "../local-inject.ts";
 import { applyStandaloneSpawnEnv } from "../../engine-install.ts";
 import { OPENCODE_STANDALONE } from "./opencode-release.ts";
@@ -478,13 +479,15 @@ export const resetOpenCodeGoModelCache = resetOpenCodeModelCache;
 
 /** Provider keys come from the server's env only when it is the person's own shell: never on a managed desktop or open sign-in list, where every bot would bill the operator's key. */
 export function openCodeProviderKeysAllowed(state: {
+  hostedWorkspace?: boolean;
   organisationManaged: boolean;
   sharedSignIn: boolean;
 }): boolean {
-  return !state.organisationManaged && !state.sharedSignIn;
+  return !state.hostedWorkspace && !state.organisationManaged && !state.sharedSignIn;
 }
 
 let providerKeysAllowed = (): boolean => openCodeProviderKeysAllowed({
+  hostedWorkspace: hostedWorkspaceConfigured(),
   organisationManaged: false,
   sharedSignIn: false,
 });

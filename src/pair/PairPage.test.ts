@@ -29,7 +29,7 @@ it("the desktop app connects from a link with no click and no code to type", asy
   vi.stubGlobal("window", { ogb: { workspaces: {} } });
   f.pair.mockResolvedValue({ ok: true });
   const html = render(code);
-  expect(html).toContain("Connecting to this MausBot…");
+  expect(html).toContain("Connecting to this SuperBot…");
   expect(html).not.toContain("Pairing code"); expect(html).not.toContain("<form");
   f.effects[0](); await flush();
   expect(f.pair).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code }));

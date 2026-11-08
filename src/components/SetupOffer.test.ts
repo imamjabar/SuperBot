@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Message } from "@/state/store";
 import { SetupOffer, SetupRequestChip, setupRequestPlaceholder } from "./SetupOffer";
 
-const fixture = vi.hoisted(() => ({ values: [] as unknown[], index: 0, api: vi.fn(), focus: vi.fn(), dispatch: vi.fn(), bots: [] as unknown[], instances: [] as unknown[], reactor: "user" }));
+const fixture = vi.hoisted(() => ({ values: [] as unknown[], index: 0, api: vi.fn(), focus: vi.fn(), dispatch: vi.fn(), bots: [] as unknown[], instances: [] as unknown[] }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useState: (initial: unknown) => {
@@ -14,7 +14,6 @@ vi.mock("react", async (original) => ({
   },
 }));
 vi.mock("@/state/store", () => ({ api: fixture.api, useStore: () => ({ state: { bots: fixture.bots, instances: fixture.instances }, dispatch: fixture.dispatch }) }));
-vi.mock("@/lib/cloud-guest", () => ({ useReactor: () => fixture.reactor, currentReactor: () => fixture.reactor }));
 vi.mock("./AskCard", async (original) => ({ ...await original<typeof import("./AskCard")>(), returnFocusToComposer: fixture.focus }));
 
 type Node = ReactElement<Record<string, unknown> & { children?: ReactNode }>;
@@ -172,15 +171,6 @@ describe("while the bot waits for what to set itself up for", () => {
     expect(setupRequestPlaceholder(waiting, "t1")).toBe("Tell Ava what you'd like help with");
   });
 
-  it("is only the presser's where people share the place", () => {
-    const theirs = bot({ tasks: [{ threadId: "t1", title: "New thread", createdAt: 1, setupRequest: { at: 2, by: "member-a" } }] });
-    fixture.reactor = "member-b";
-    expect(renderChip(theirs).html).toBe("");
-    expect(setupRequestPlaceholder(theirs, "t1")).toBeUndefined();
-    fixture.reactor = "member-a";
-    expect(renderChip(theirs).html).toContain("Ava is ready to be set up");
-    expect(setupRequestPlaceholder(theirs, "t1")).toBe("Tell Ava what you'd like help with");
-  });
 
   it("shows nothing in a conversation that is not waiting", () => {
     expect(renderChip(bot()).html).toBe("");

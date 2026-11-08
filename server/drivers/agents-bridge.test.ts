@@ -25,14 +25,14 @@ import {
 } from "./agents-bridge.ts";
 
 const flag = (on: boolean) => (on ? "1" : "0");
-const profile = (options: { chief?: boolean; skills?: boolean; shared?: boolean; voice?: boolean; cloudHome?: boolean; memory?: boolean; botId?: string } = {}): CatalogProfile =>
+const profile = (options: { chief?: boolean; skills?: boolean; shared?: boolean; voice?: boolean; reportsBack?: boolean; memory?: boolean; botId?: string } = {}): CatalogProfile =>
   catalogProfileFromEnv({
     OMB_BOT_ID: options.botId ?? "bot-bridge",
     OMB_CHIEF_OF_STAFF: flag(options.chief ?? false),
     OMB_SKILL_AUTHORING_ENABLED: flag(options.skills ?? false),
     OMB_SHARED_COMPUTERS_ENABLED: flag(options.shared ?? false),
     OMB_VOICE_NOTES: flag(options.voice ?? false),
-    OMB_CLOUD_HOME: flag(options.cloudHome ?? false),
+    OMB_REPORTS_BACK: flag(options.reportsBack ?? false),
     OMB_MEMORY_ENABLED: flag(options.memory ?? true),
     // A person's own request, which may pick its computer.
     OMB_COMPUTER_SELECTION: "1",
@@ -42,9 +42,10 @@ const profile = (options: { chief?: boolean; skills?: boolean; shared?: boolean;
  * matrix does, plus the two the matrix leaves out: memory off and Watcher. */
 function everyProfile(): Array<{ name: string; profile: CatalogProfile }> {
   const all: Array<{ name: string; profile: CatalogProfile }> = [];
-  for (const chief of [true, false]) for (const skills of [false, true]) for (const shared of [false, true]) for (const voice of [false, true]) for (const cloudHome of [false, true]) {
-    all.push({ name: JSON.stringify({ chief, skills, shared, voice, cloudHome }), profile: profile({ chief, skills, shared, voice, cloudHome }) });
+  for (const chief of [true, false]) for (const skills of [false, true]) for (const shared of [false, true]) for (const voice of [false, true]) {
+    all.push({ name: JSON.stringify({ chief, skills, shared, voice }), profile: profile({ chief, skills, shared, voice }) });
   }
+  all.push({ name: "reports-back", profile: profile({ reportsBack: true }) });
   all.push({ name: "memory off", profile: profile({ memory: false }) });
   all.push({ name: "watcher", profile: profile({ botId: WATCHER_OPTIONS_CARD_BOT_ID }) });
   return all;
@@ -344,8 +345,6 @@ describe("find_tool", () => {
       const matches = answer.isError ? [] : (JSON.parse(answer.text) as FindPayload).matches;
       for (const match of matches) expect(allowed.has(match.name), `${query} → ${match.name}`).toBe(true);
     }
-    // and a Cloud home, which has no Local VM, cannot find its shell
-    expect(names((await found(bridgeFor({ cloudHome: true }), "run a shell command in the VM")).matches)).not.toContain("vm_exec");
     expect(names((await found(bridgeFor(), "run a shell command in the VM")).matches)).toContain("vm_exec");
   });
 

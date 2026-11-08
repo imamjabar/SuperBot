@@ -111,7 +111,7 @@ const PEOPLE = { tool: "research_call", arguments: { id: "apollo.people.search",
 
 it("shows no research tools without a treg key or a Cloud plan, even to a bot switched on", async () => withFixture(async (f) => {
   const config = await f.api("/api/config", undefined, "GET");
-  expect(await f.status()).toEqual({ using: null, ownKey: false, included: false });
+  expect(await f.status()).toEqual({ using: null, ownKey: false });
   expect(config.xResearch).toEqual({ included: false });
   expect(config.treg).toEqual({ configured: false });
   const bot = await f.newBot("No research");
@@ -123,7 +123,7 @@ it("shows no research tools without a treg key or a Cloud plan, even to a bot sw
 
 it("with the person's own treg key, every bot has the tools by default and calls go straight to treg, never the relay", async () => withFixture(async (f) => {
   expect((await f.api("/api/config", undefined, "GET")).treg).toEqual({ configured: true, last4: OWN_KEY.slice(-4) });
-  expect(await f.status()).toEqual({ using: "own", ownKey: true, included: false });
+  expect(await f.status()).toEqual({ using: "own", ownKey: true });
   expect(await f.api("/api/keys/test", { provider: "treg" })).toEqual({ ok: true, check: "treg", balanceUsd: 4.25 });
   const bot = await f.newBot("Own key");
   expect(bot.xResearch).toBeUndefined();
@@ -161,7 +161,7 @@ it("with only a Cloud plan, calls go through the relay with the plan's token, an
   ]);
   expect(calls[1].body).toEqual({ params: { q_organization_domains: "openmausbot.com" } });
   expect(calls[1].idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
-  expect(await f.status()).toEqual({ using: "included", ownKey: false, included: true, usage: USAGE });
+  expect(await f.status()).toEqual({ using: "included", ownKey: false, usage: USAGE });
   expect(f.seen.at(-1)).toMatchObject({ method: "GET", path: `${RELAY_PATH}/usage`, authorization: `Bearer ${PLAN_TOKEN}`, tregToken: undefined });
   const usedUp = await f.turn(on, [{ tool: "x_search", arguments: { query: "used up" } }], { failing: true });
   expect(usedUp.results).toEqual([`${USED_UP} Add your own treg key to keep going.`]);
@@ -172,7 +172,7 @@ it("with both a treg key and a Cloud plan, the person's own key wins and the car
   const { tools, evidence } = await f.turn(bot, [SEARCH]);
   expect(tools).toEqual(expect.arrayContaining(RESEARCH_TOOLS));
   expect(f.seen.filter((seen: Seen) => !isProbe(seen)).map((seen: Seen) => [seen.path, seen.tregToken, seen.authorization])).toEqual([["/call/anyapi.x.search.posts", OWN_KEY, undefined]]);
-  expect(await f.status()).toEqual({ using: "own", ownKey: true, included: true, usage: USAGE });
+  expect(await f.status()).toEqual({ using: "own", ownKey: true, usage: USAGE });
   // Security: neither the person's key nor the plan's token reaches the bot: not its engine's arguments, environment,
   // prompt or tool servers, and not its tool list or results.
   for (const secret of [OWN_KEY, PLAN_TOKEN]) {
@@ -180,7 +180,7 @@ it("with both a treg key and a Cloud plan, the person's own key wins and the car
     expect(evidence).not.toContain(secret);
   }
   await f.api("/api/config", { treg: { key: "" } }, "PUT");
-  expect(await f.status()).toEqual({ using: "included", ownKey: false, included: true, usage: USAGE });
+  expect(await f.status()).toEqual({ using: "included", ownKey: false, usage: USAGE });
   const after = f.seen.length;
   expect((await f.turn(bot, [SEARCH])).tools).toEqual(expect.arrayContaining(RESEARCH_TOOLS));
   expect(f.seen.slice(after).filter((seen: Seen) => !isProbe(seen)).map((seen: Seen) => [seen.path, seen.tregToken, seen.authorization])).toEqual([[`${RELAY_PATH}/call/anyapi.x.search.posts`, undefined, `Bearer ${PLAN_TOKEN}`]]);

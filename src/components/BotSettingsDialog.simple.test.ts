@@ -36,7 +36,7 @@ const fixture = vi.hoisted(() => {
       refresh: (() => Promise.resolve()) as () => Promise<void>,
       putAssignments: (() => Promise.resolve()) as (name: string, remove?: boolean) => Promise<void>,
     },
-    memory: { docs: null as MemoryDoc[] | null, error: false, mine: false, setDoc: (() => {}) as (doc: MemoryDoc) => void, reload: () => Promise.resolve() },
+    memory: { docs: null as MemoryDoc[] | null, error: false, setDoc: (() => {}) as (doc: MemoryDoc) => void, reload: () => Promise.resolve() },
     saveMemory: (() => Promise.resolve({ ok: true })) as (...args: unknown[]) => Promise<unknown>,
     openExternal: (() => Promise.resolve()) as (url: string) => Promise<void>,
     derived: {} as Record<string, unknown>,
@@ -1028,14 +1028,14 @@ describe("the drill-in pages", () => {
     for (const text of ["Tidy now", "Upkeep", "Obsidian", "Daily logs", "Journal"]) expect(rendered.html).not.toContain(text);
     click(rendered.nodes.filter((node) => node.props.label === "Forget")[0]!);
     await Promise.resolve();
-    expect(fixture.saveMemory).toHaveBeenLastCalledWith("scout", "MEMORY.md", "# Notes\n\n- Uses Resolve Studio\n", "h1", false);
+    expect(fixture.saveMemory).toHaveBeenLastCalledWith("scout", "MEMORY.md", "# Notes\n\n- Uses Resolve Studio\n", "h1");
     await Promise.resolve();
     expect(fixture.memory.setDoc).toHaveBeenLastCalledWith(expect.objectContaining({ text: "# Notes\n\n- Uses Resolve Studio\n", hash: "h2" }));
 
     (find(body("memory"), "data-panel-form", "memory-add").props.onChange as (value: string) => void)("  Prefers the free version ");
     (find(body("memory"), "data-panel-form", "memory-add").props.onSubmit as () => void)();
     await Promise.resolve();
-    expect(fixture.saveMemory).toHaveBeenLastCalledWith("scout", "MEMORY.md", "# Notes\n- Likes short replies\n\n- Uses Resolve Studio\n- Prefers the free version\n", "h1", false);
+    expect(fixture.saveMemory).toHaveBeenLastCalledWith("scout", "MEMORY.md", "# Notes\n- Likes short replies\n\n- Uses Resolve Studio\n- Prefers the free version\n", "h1");
   });
 
   it("says when memory is off, empty or unreadable, and re-reads on a conflict", async () => {

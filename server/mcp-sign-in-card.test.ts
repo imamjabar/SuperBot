@@ -86,9 +86,6 @@ async function setup(options: { origins?: string[]; lifetimeMs?: number } = {}) 
       readBody: async () => ({ action: "sign_in", name }),
       sender: { id: "kiwi" }, threadId,
       fullAccess: () => true,
-      teamAdmin: () => true,
-      canUse: () => true, cfg: () => cfg,
-      personal: () => [],
       authState: (server: string, at: string) => mcpOAuth.authState(server, at),
       activity: () => {}, language: () => undefined,
       requestSignIn: (server: string, stored: Parameters<InternalMcpDeps["requestSignIn"]>[1]) =>
@@ -115,7 +112,8 @@ async function setup(options: { origins?: string[]; lifetimeMs?: number } = {}) 
     expect(page.origin).toBe(SIGN_IN_PAGE);
     const sent = await fetch(`${provider.url}${page.pathname}${page.search}`, { redirect: "manual" });
     const back = new URL(sent.headers.get("location")!);
-    return (await fetch(back)).status;
+    if (back.protocol === "http:") return (await fetch(back)).status;
+    return (await mcpOAuth.publicCallback(back.host, back.search)).status;
   }
 
   const fixture = {
@@ -138,7 +136,7 @@ describe("the Sign in card", () => {
     expect(posted.body.text).toBe("A Sign in card for linear is now visible to the person. End this turn and wait; OpenMausBot resumes you when they finish.");
     expect(posted.card).toMatchObject({
       role: "bot", kind: "connector",
-      text: "Linear's MCP server needs a sign-in. Open this conversation in OpenMausBot to sign in.",
+      text: "Linear's MCP server needs a sign-in. Open this conversation in SuperBot to sign in.",
       connector: {
         source: "mcp", slug: "linear", label: "Linear", status: "required",
         description: `Kiwi added Linear's MCP server (${new URL(f.url).host}). Sign in so Kiwi can use it.`,
@@ -364,7 +362,7 @@ describe("the Sign in card", () => {
   it("the next turn after sign-in has the server's tools", async () => {
     const f = await setup();
     f.mcpOAuth.markNeedsSignIn("linear", f.url);
-    expect(f.mcpOAuth.authState("linear", f.url)).toBe("none");
+    expect(f.mcpOAuth.authState("linear", f.url)).toBe("needs-sign-in");
     const { card } = await f.signIn();
     expect(await f.approve((await f.authorize(card)).body.url as string)).toBe(200);
     expect(f.mcpOAuth.authState("linear", f.url)).toBe("signed-in");

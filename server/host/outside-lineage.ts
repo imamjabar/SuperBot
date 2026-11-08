@@ -144,13 +144,10 @@ export function createOutsideLineage(deps: OutsideLineageDeps) {
   }
 
   /** At every start: what ran without a record of its own, or was still in flight, keeps its lineage. */
-  function settle(runs: readonly RoutineRun[], eventChat: (run: RoutineRun) => string | undefined): void {
+  function settle(runs: readonly RoutineRun[]): void {
     for (const run of runs) {
       if (run.triggerSource !== "webhook" || !run.threadId) continue;
-      // Off a Cloud a wait's follow-up runs in the person's own chat.
       if (deps.home || run.eventSource !== "wait") mark(run.threadId);
-      const chat = eventChat(run);
-      if (chat) mark(chat);
     }
     for (const node of deps.active()) {
       if (handedFrom(node.id).some((threadId) => outsideDrivenThread(threadId))) mark(node.threadId);

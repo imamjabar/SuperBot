@@ -48,6 +48,8 @@ export interface BotPatchRouteDeps {
   supportsApprovalMode: ReturnType<typeof createApprovalModeSupport>;
   routines(): RoutineManager | null;
   activeVpsThreads: { has(botId: string): boolean };
+  hostedWorkspace: boolean;
+  hostedFullAccessRefusal: string;
   desktopManaged: boolean;
   maxWorkspaceBots: number;
   broadcast(payload: Record<string, unknown>): void;
@@ -77,7 +79,7 @@ export interface BotPatchRouteDeps {
 export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
   const {
     store, cfg, registry, sessions, browserRuntime, browserLive, memoryUpkeep, cacheKeepWarm, hostedModels, supportsApprovalMode, activeVpsThreads,
-    desktopManaged: DESKTOP_MANAGED, maxWorkspaceBots: MAX_WORKSPACE_BOTS,
+    hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, desktopManaged: DESKTOP_MANAGED, maxWorkspaceBots: MAX_WORKSPACE_BOTS,
     broadcast, wireBot, publicGroupState, audienceChanged, storedAvatarExists, requestedTaskBot, threadBusy, activeGroupTurnForBot,
     checkedModelSelection, engineSwitchNeedsAsk, currentBrowserSession, interruptAllDirectThreads, cancelGroupTurnOperations,
     revokeInternalCapabilitiesForThread, runningTurnInstance, closeOpenApprovals, assertTeamComputerChangeIdle, forgetTemporaryBrowser,
@@ -492,6 +494,10 @@ export function createBotPatchRoutes(deps: BotPatchRouteDeps): RouteHandler {
         return json(res, 403, {
           error: "This approval-level change can only be made from the packaged desktop app",
         });
+      }
+      if (HOSTED_WORKSPACE && requestedApprovalMode === "full" &&
+        (currentApprovalMode !== "full" || body.applyToAllThreads === true)) {
+        return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
       }
       if (body.applyToAllThreads !== undefined) {
         if (typeof body.applyToAllThreads !== "boolean") return json(res, 400, { error: "applyToAllThreads must be true or false" });

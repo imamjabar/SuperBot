@@ -22,8 +22,6 @@ import { PASS, type RouteContext } from "./table.ts";
 const BOT = "kiwi";
 const THREAD = "thread-1";
 const MAC = { environmentId: "env-mac", label: "Ada's Mac" };
-const OWNER_ONLY = "MCP servers are managed by the owner.";
-const ASK_ADMIN = "Ask a workspace admin to add it.";
 
 const linear = { type: "http", url: "https://mcp.linear.app/mcp", headers: {}, enabled: true };
 const notes = { command: "npx", args: ["-y", "notes-mcp"], env: { NOTES_TOKEN: "saved-token" }, enabled: true };
@@ -89,15 +87,12 @@ function fixture(options: Options = {}) {
     sender, threadId: THREAD,
     fullAccess: () => options.full ?? true,
 
-    teamAdmin: () => options.admin ?? true,
     canUse: (name) => !options.leftOut?.includes(name),
     config, cfg: () => cfg as AppConfig,
-    personal: () => options.personal ?? [],
     authState: (name, url) => mcpOAuth.authState(name, url),
     managedBy: (name) => options.refuse?.(name) ? "Acme IT" : undefined,
     policyRefusal: (name) => options.refuse?.(name),
     signOut: (name, url) => mcpOAuth.signOut(name, url),
-    testAs: () => null,
     redeem: (raw) => vault.redeem(raw, owner, (path) => path.length === 2 && (path[0] === "env" || path[0] === "headers" || (path[0] === "oauth" && path[1] === "clientSecret")), "mcp_server's env, headers and oauth.clientSecret"),
     addToBotList: (name) => { listedOn.push({ bot: sender.id, name }); },
     botAdd: (current, raw) => addBotMcpServer(current, raw, BOT, dataDir, options.boxed ?? false),
@@ -203,11 +198,6 @@ describe("internal mcp_server restart", () => {
     expect((await post({ action: "restart", name: "missing" })).status).toBe(404);
   });
 
-  it("is an admin's on a team's shared server, and a guest's turn gets nothing", async () => {
-    probeWith({ ok: true, tools: [] });
-    expect(await fixture({ admin: false, servers: { notes } }).post({ action: "restart", name: "notes" })).toMatchObject({ status: 403, body: { error: ASK_ADMIN } });
-    expect(await fixture({ guest: true, servers: { notes } }).post({ action: "restart", name: "notes" })).toMatchObject({ status: 403, body: { error: OWNER_ONLY } });
-  });
 
   it("says plainly that a test only proves the server started", async () => {
     probeWith({ ok: true, tools: [] });
@@ -381,32 +371,6 @@ describe("internal mcp_server route, Full access", () => {
     expect(stored("linear")?.enabled).toBe(false);
   });
 
-  it("a non-admin on a Team Cloud is refused with \"Ask a workspace admin to add it.\" for add, update, enable, disable, sign_out and remove", async () => {
-    const probe = probeWith({ ok: true, tools: [] });
-    const { post, cfg } = fixture({ admin: false, servers: { linear } });
-    const before = structuredClone(cfg.mcpServers);
-    for (const payload of [
-      { action: "add", name: "github", url: "https://api.github.example/mcp" },
-      { action: "update", name: "linear", url: "https://mcp.linear.app/v2" },
-      { action: "enable", name: "linear" },
-      { action: "disable", name: "linear" },
-      { action: "sign_out", name: "linear" },
-      { action: "remove", name: "linear" },
-    ]) {
-      expect(await post(payload), payload.action).toEqual({ status: 403, body: { error: ASK_ADMIN } });
-    }
-    expect(cfg.mcpServers).toEqual(before);
-    expect(probe).not.toHaveBeenCalled();
-  });
-
-  it("every action, list included, is refused in a guest-driven thread with \"MCP servers are managed by the owner.\"", async () => {
-    const { call, post, cfg } = fixture({ guest: true, servers: { linear } });
-    expect(await call("GET")).toEqual({ status: 403, body: { error: OWNER_ONLY } });
-    for (const action of ["list", "add", "update", "enable", "disable", "restart", "test", "sign_in", "sign_out", "remove"]) {
-      expect(await post({ action, name: "linear" }), action).toEqual({ status: 403, body: { error: OWNER_ONLY } });
-    }
-    expect(cfg.mcpServers).toEqual({ linear });
-  });
 
   it("add for a bot whose tool selection leaves the server out says so and does not widen toolScope", async () => {
     probeWith({ ok: true, tools: [] });
@@ -907,8 +871,8 @@ describe("a card answered after OpenMausBot restarts", () => {
     await respond("allow");
     expect(stored("notes")).toMatchObject({ args: ["-y", "notes-mcp"], env: { NOTES_TOKEN: "saved-token" } });
     expect(probe).not.toHaveBeenCalled();
-    expect(card()).toMatchObject({ expired: true, held: "OpenMausBot restarted, so this request expired.", mcpRequest: { result: { state: "expired" } } });
-    expect(answers[0]).toContain("OpenMausBot restarted, so this request expired. Ask again if you still need it.");
+    expect(card()).toMatchObject({ expired: true, held: "SuperBot restarted, so this request expired.", mcpRequest: { result: { state: "expired" } } });
+    expect(answers[0]).toContain("SuperBot restarted, so this request expired. Ask again if you still need it.");
     for (const sent of [fresh, "sk-live-9", "fresh-token", "saved-token"]) expect(JSON.stringify(chat), sent).not.toContain(sent);
   });
 

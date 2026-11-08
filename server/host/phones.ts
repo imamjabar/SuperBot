@@ -13,7 +13,7 @@ import { adoptExistingRoutines, desktopLendingTurn, desktopPhonesOffered } from 
 import { PhoneRegistry } from "../phones/registry.ts";
 import { createPhoneSends } from "../phones/sends.ts";
 import type { LoopbackTrust, RequestAuth } from "../request-auth.ts";
-import type { Routine } from "../routines.ts";
+import type { Routine, RoutineRun } from "../routines.ts";
 import { createPhoneRoutes, PHONE_ACCESS_CHANGED, phoneKey } from "../routes/phones.ts";
 import type { SessionRegistry } from "../sessions.ts";
 import type { BotRecord, Store } from "../store.ts";
@@ -30,7 +30,7 @@ export interface PhonesDeps {
   sharedMembership(): boolean;
   store: Pick<Store, "appendMessage" | "bot" | "groupByThread" | "messagesFor">;
   sessions: Pick<SessionRegistry, "list" | "isLive" | "onSessionRevoked">;
-  routines(): { listRoutines(): Routine[] } | null;
+  routines(): { listRoutines(): Routine[]; runForThread?(threadId: string): RoutineRun | null } | null;
   ownerOrAdmin(auth: RequestAuth): boolean;
   /** The harness's record says this turn's work came from the user. */
   originIsUser(turn: Turn): boolean;
@@ -75,7 +75,15 @@ export function createPhones(deps: PhonesDeps) {
       generation: turn.generation,
       thread: store.messagesFor(turn.threadId),
       request: req ? { ...req, generations: new Set([turn.generation]) } : undefined,
-      routineRun: () => null,
+      routineRun: () => {
+        const run = deps.routines()?.runForThread?.(turn.threadId);
+        if (!run) return null;
+        return {
+          triggerSource: run.triggerSource ?? (run.manual ? "manual" : "schedule"),
+          ownerStarted: true,
+          ownerAuthored: Boolean(routineAuthors?.authored(run.routineId, run)),
+        };
+      },
     }, {
       adminPersons: () => new Set(deps.sessions.list().filter((session) => session.scopes.includes("admin")).map((session) => personKey(session))),
       originIsUser: () => deps.originIsUser(turn),

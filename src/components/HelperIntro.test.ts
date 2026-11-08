@@ -227,7 +227,7 @@ describe("as a first run lands in the chat", () => {
     expect(host.querySelector("[data-helper-typing]")).toBeNull();
     expect(chips()).toEqual([]);
     await tick(INTRO_TIMING.chips);
-    expect(chips()).toEqual(["apps", "phone", "cloud"]);
+    expect(chips()).toEqual(["apps", "phone"]);
     await show();
     expect(f.followups, "never asked twice").toHaveLength(1);
   });
@@ -253,7 +253,7 @@ describe("as a first run lands in the chat", () => {
     await show();
     expect(f.followups).toHaveLength(1);
     expect(lines()).toHaveLength(4);
-    expect(chips()).toEqual(["apps", "phone", "cloud"]);
+    expect(chips()).toEqual(["apps", "phone"]);
   });
 });
 
@@ -265,7 +265,7 @@ describe("in Advanced mode", () => {
     expect(host.textContent).toContain(t("helperIntro.title", { name: "MausBot" }));
     expect(host.textContent).toContain(t("helperIntro.chief"));
     expect(host.querySelector('[data-helper-ask="helperIntro.ask.overview"]')).not.toBeNull();
-    expect(chips()).toEqual(["bots", "apps", "phone", "cloud"]);
+    expect(chips()).toEqual(["bots", "apps", "phone"]);
     expect(host.querySelector("[data-helper-line]"), "no Simple bubbles").toBeNull();
     expect(f.followups).toEqual([]);
   });

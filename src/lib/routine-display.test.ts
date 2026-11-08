@@ -6,10 +6,10 @@ import { routineRunLabel, routineRunTone, routineRunsOn } from "./routine-displa
 describe("where a routine runs", () => {
   it("on a desktop, a routine starts while MausBot is open there", () => {
     expect(routineRunsOn({ roomGoal: false })).toEqual({
-      label: "This computer", hint: "Starts while MausBot is open here.",
+      label: "This computer", hint: "Starts while SuperBot is open here.",
     });
     expect(routineRunsOn({ roomGoal: false, runOn: "cloud" })).toEqual({
-      label: "Cloud desktop", hint: "Runs the whole job on the bot's cloud desktop while MausBot is open.",
+      label: "Cloud desktop", hint: "Runs the whole job on the bot's cloud desktop while SuperBot is open.",
     });
     expect(routineRunsOn({ roomGoal: false, computer: "vm" }).label).toBe("The bot's private desktop");
     expect(routineRunsOn({ roomGoal: true }).label).toBe("This computer, with the whole group");

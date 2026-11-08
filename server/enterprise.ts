@@ -67,6 +67,11 @@ export interface WorkspaceAccess {
   authorize(req: IncomingMessage, auth: RequestAuth): Promise<{ status: 401 | 403 | 503; error: string } | null>;
   revalidate(): Promise<void>;
 }
+export function hostedWorkspaceConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.OMB_ADMIN_URL !== undefined || env.OMB_ADMIN_WORKSPACE !== undefined || env.OMB_ADMIN_MEMBERSHIP !== undefined;
+}
+
+/** A partial setting is never standalone. */
 
 export function hostedWorkspaceConfiguration(env: NodeJS.ProcessEnv = process.env): { admin: URL; tenant: URL; workspace: string; portalMembership: boolean } | null {
   try {
@@ -82,13 +87,27 @@ export function hostedWorkspaceConfiguration(env: NodeJS.ProcessEnv = process.en
   } catch { return null; }
 }
 
-export function workspaceMembership(_env?: NodeJS.ProcessEnv):
-  { authority: "local"; pairingCodes: boolean; peopleUrl?: string } {
-  return { authority: "local", pairingCodes: true };
+/** A hosted workspace never issues pairing codes or email sign-in: people come in through the portal. */
+export function workspaceMembership(env: NodeJS.ProcessEnv = process.env):
+  { authority: "local" | "portal"; pairingCodes: boolean; peopleUrl?: string } {
+  const hosted = hostedWorkspaceConfiguration(env);
+  const pairingCodes = !hostedWorkspaceConfigured(env);
+  if (!hosted?.portalMembership) return { authority: "local", pairingCodes };
+  const people = new URL("/people", hosted.admin);
+  people.search = new URLSearchParams({ workspace: hosted.workspace }).toString();
+  return { authority: "portal", pairingCodes, peopleUrl: people.href };
+}
+
+/** Only on a dedicated, portal-managed server; never an HTTP setting or a desktop grant. */
+export function sharedWorkspaceFullAccessConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.OMB_SHARED_WORKSPACE_FULL_ACCESS === "1" && env.OMB_DESKTOP_PARENT !== "1" &&
+    hostedWorkspaceConfiguration(env)?.portalMembership === true;
 }
 
 
+/** A configured server without this hook must refuse hosted access, never fall back to email or QR credentials. */
 export function createWorkspaceAccess(options: Omit<WorkspaceAccessOptions, "entitled">): WorkspaceAccess | null {
+  if (!hostedWorkspaceConfigured(options.env)) return null;
   return workspaceAccessFactory?.({ ...options, entitled: () => entitled("admin") }) ?? null;
 }
 

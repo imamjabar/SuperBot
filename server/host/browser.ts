@@ -101,7 +101,6 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   const browserLive = new LiveRouter(agentBrowserLive, chromeEngine);
   const usedBrowserSessions = new Map<string, Spec>();
   const audiences = new AudienceBrowsers(join(DATA_DIR, "browser", "audiences.json"));
-  const browserAudience = (_threadId: string | undefined): Audience => "team";
   const egressHost = DESKTOP_MANAGED ? "desktop" : "server";
   const sitesSwitch = egressHost === "server";
   browserEgress.configure({ host: egressHost, config: () => cfg.browserEngine?.egress });
@@ -225,7 +224,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
       },
     };
   }
-  async function browserIntegration(botId: string, profile: string | undefined, turn?: { threadId: string; generation: string }, audience = browserAudience(turn?.threadId)) {
+  async function browserIntegration(botId: string, profile: string | undefined, _turn?: { threadId: string; generation: string }, audience: Audience = "team") {
     const profileTarget = profile && profile !== "guest" ? browserProfilePartitionTarget(cfg, profile) : null;
     const partitionId = profile === "guest" ? "guest" : (profileTarget?.partitionId ?? "");
     const browserProfileId = profileTarget?.profileId ?? profile;
@@ -306,7 +305,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   function threadBrowser(threadId: string): { session: string | undefined; spec: Spec | undefined } | null {
     const bot = store.botByThread(threadId);
     if (!bot || bot.browser === false || bot.computer === "off" || !builtInBrowserEnabled(cfg) || usesMyChrome(bot.browserProfile)) return null;
-    const audience = browserAudience(threadId);
+    const audience: Audience = "team";
     const session = bot.browserProfile === "guest" ? temporaryBrowserSessions.get(bot.id + audienceBrowserSuffix(audience)) : currentBrowserSession(bot.id, bot.browserProfile, audience);
     return { session, spec: session === undefined ? undefined : usedBrowserSessions.get(session) };
   }
@@ -429,7 +428,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     browserRuntime, browserLive, usedBrowserSessions, browserSweep, temporaryBrowserSessions, browserIdleMs: idleMs,
     currentBrowserSession, forgetTemporaryBrowser, myChromeAvailable, lentChromeSummary, usesMyChrome, browserSessionSpec, browserIntegration,
     browserReady, currentBrowserSpec, loginInput, browserSystemPrompt, signedInSitesRefusal, closeBrowser, browserEngineSwitched,
-    eraseDeletedBrowser, engineSummary, engineBrowsers, browserAudience, browserSessionsOf, signedInSitesTarget, uploadPaths,
+    eraseDeletedBrowser, engineSummary, engineBrowsers, browserSessionsOf, signedInSitesTarget, uploadPaths,
     eraseAudienceBrowsers,
   };
 }

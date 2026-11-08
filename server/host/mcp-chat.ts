@@ -58,10 +58,6 @@ export function createMcpChat(deps: McpChatDeps) {
 
   const mcpSignInCards = createMcpSignInCards({
     store, cfg: () => cfg, mcpOAuth,
-    personal: () => [],
-    turnPerson: () => null,
-    oauthFor: () => mcpOAuth,
-    personName: () => "",
     publicOrigins: deps.publicOrigins,
     language: threadLanguage,
     answer: answerCardNode,
@@ -84,13 +80,11 @@ export function createMcpChat(deps: McpChatDeps) {
     return {
       sender, threadId,
       fullAccess: () => fullAccessForSource(sender.id, threadId),
-      teamAdmin: () => false,
       canUse: (name) => canUseMcpServer(sender.toolScope, name),
-      config: deps.mcpConfig(), cfg: () => cfg, personal: () => [],
+      config: deps.mcpConfig(), cfg: () => cfg,
       authState: (name, url) => mcpOAuth.authState(name, url),
       managedBy: mcpManagedBy, policyRefusal: mcpPolicyRefusal, addRefusal: () => managedPolicy.botMcpRefusal(),
       signOut: async (name, url) => { await mcpOAuth.signOut(name, url); broadcast({ kind: "mcp.changed" }); },
-      testAs: () => null,
       redeem: (body) => deps.secretCards().redeemMcpServer(body, sender.id, threadId),
       addToBotList: (name) => { const bot = store.bot(sender.id); if (bot?.mcpServers) store.patchBot(bot.id, { mcpServers: [...new Set([...bot.mcpServers, name])] }); },
       botAdd: (current, body) => mcpServersHost.botAdd(current, body, sender.id),

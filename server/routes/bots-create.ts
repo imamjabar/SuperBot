@@ -24,6 +24,8 @@ export interface BotCreateRouteDeps {
   cfg: AppConfig;
   presetStore: Pick<PresetStore, "resolve">;
   orgInstallStatuses(): ReadonlyMap<string, OrgInstallStatus>;
+  hostedWorkspace: boolean;
+  hostedFullAccessRefusal: string;
   desktopManaged: boolean;
   maxWorkspaceBots: number;
   hostedModels: ReturnType<typeof hostedModelPolicy>;
@@ -62,6 +64,7 @@ function askedSettings(body: Record<string, unknown>): Record<string, unknown> {
 export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
   const {
     store, cfg, presetStore, orgInstallStatuses,
+    hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL,
     desktopManaged: DESKTOP_MANAGED,
     maxWorkspaceBots: MAX_WORKSPACE_BOTS,
     hostedModels,
@@ -103,6 +106,7 @@ export function createBotCreateRoutes(deps: BotCreateRouteDeps): RouteHandler {
       if (settings.approvalMode === "custom") {
         return json(res, 403, { error: "Custom approval requires the desktop permission flow. Use the bot creation dialog or choose another level for API creation." });
       }
+      if (settings.approvalMode === "full" && HOSTED_WORKSPACE) return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
       if (settings.computer === "local" && settings.approvalMode === "auto" && body.acknowledgeLocalAuto !== true) {
         return json(res, 400, { error: "Auto mode on this computer requires confirming the warning first (acknowledgeLocalAuto)" });
       }

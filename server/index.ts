@@ -264,7 +264,7 @@ import { ENGINE_LIST_REUSE_MS, engineMemory, enginesByUse, ProviderRegistry } fr
 import { ManagedDesktopProviders } from "./managed-desktop.ts";
 import { mainThread, wasOldestThread } from "./main-thread.ts";
 import { computerKindForResource, ManagedDesktopPolicy, type ComputerKind } from "./managed-policy.ts";
-import { hostedModelPolicy } from "./hosted-models.ts";
+import { hostedModelPolicy, HOSTED_MODEL_POLICY_HEADER } from "./hosted-models.ts"; import { HOSTED_CONTRACT_HEADER, HOSTED_CONTRACT_METADATA, HOSTED_CONTRACT_VERSION } from "./hosted-contract.ts";
 import { botBox, startBotBoxAtBoot } from "./bot-box/boot.ts"; import { attachmentsForBox } from "./box-attachments.ts"; import { brokerPath } from "./bot-box/broker-probe.ts";
 import { createBotNameClash } from "./host/bot-name-clash.ts"; import { createUploadOwners, uploadsFor } from "./host/member-uploads.ts"; import { createVisibilityHost } from "./host/visibility-host.ts"; import { createBotAccessHost, refusalFor } from "./host/bot-access-gate.ts";
 import { createSharedComputerRoutes } from "./routes/shared-computers.ts"; import { createInboxRoutes } from "./routes/inbox.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts";
@@ -506,7 +506,7 @@ import {
 } from "./turn-dispatch-guard.ts";
 import { createGracefulShutdown } from "./graceful-shutdown.ts";
 import { acquireDataDirLeaseForProcess } from "./data-dir-lease.ts";
-import { createWorkspaceAccess, describeEdition, editionForSettings, editionStatus, entitled, licenseWarning, loadEnterpriseLayer, workspaceMembership, type WorkspaceAccess } from "./enterprise.ts";
+import { createWorkspaceAccess, describeEdition, editionForSettings, editionStatus, entitled, hostedWorkspaceConfiguration, hostedWorkspaceConfigured, licenseWarning, loadEnterpriseLayer, workspaceMembership, type WorkspaceAccess } from "./enterprise.ts";
 import { environmentDescriptor, loadEnvironmentId, serverVersion } from "./environment.ts";
 import { WorkspaceBackupMaintenance } from "./workspace-backup-maintenance.ts";
 import { createWorkspaceBackupRoutes, isWorkspaceBackupSessionControl } from "./workspace-backup-http.ts";
@@ -516,7 +516,7 @@ import { createCustomDomainVerifier, customDomainIpv4, normalizeCustomDomain } f
 import { allowedScopes, createEmailSignIn, parseAllowList } from "./account-signin.ts";
 import { ProviderAuthSessions } from "./provider-auth-sessions.ts";
 import {
-  clearSessionCookie,
+  clearSessionCookie, isLoopbackHost, isProxied,
   labelFromUserAgent,
   requestOrigin,
   requestSource,
@@ -696,9 +696,9 @@ const onePassword = new OnePasswordLogins({
 if (logins.onePasswordToken()) void onePassword.refresh();
 const botLogins = new BotLogins(logins, onePassword);
 const SESSION_COOKIE = sessionCookieName(PORT, ENVIRONMENT_ID);
-let workspaceAccess: WorkspaceAccess | null = null;
-const DESKTOP_MANAGED = process.env.OMB_DESKTOP_PARENT === "1";
-const LOOPBACK = resolveLoopbackTrust({ desktopManaged: DESKTOP_MANAGED, fromSource: import.meta.url.endsWith(".ts") });
+let workspaceAccess: WorkspaceAccess | null = null; const HOSTED_WORKSPACE = hostedWorkspaceConfigured();
+const DESKTOP_MANAGED = process.env.OMB_DESKTOP_PARENT === "1", HOSTED_FULL_ACCESS_REFUSAL = "On a shared company workspace Full access comes only from the operator's dedicated policy"; if (HOSTED_WORKSPACE) setDefaultApprovalMode("ask");
+const LOOPBACK = resolveLoopbackTrust({ desktopManaged: DESKTOP_MANAGED, hostedWorkspace: HOSTED_WORKSPACE, fromSource: import.meta.url.endsWith(".ts") });
 // The CLI's per-launch secret comes on stdin, never an env var: every engine this server starts inherits its environment.
 let cliOwnerToken: string | undefined;
 if (process.env.OMB_CLI_OWNER_STDIN === "1" && LOOPBACK.trust === "service" && process.stdin) {
@@ -771,7 +771,7 @@ function messageSender(auth: RequestAuth): ResolvedSender | undefined {
 /** What people's lines are called in this conversation's turns. Where one person uses the server, the profile's name; on
  * a Team Cloud each line its own speaker's, and a line with none the person whose conversation it is. The server's
  * profile names nobody on a team. */
-function userNameFor(_threadId: string): PersonName {
+function userNameFor(): PersonName {
   return cfg.profile?.name?.trim() || "User";
 }
 
@@ -1200,7 +1200,7 @@ const mcpOAuth = new McpOAuthManager({
 // OpenCode reads provider keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, …) from its environment. Wired before the first catalog probe below.
 let openCodeOrganisationManaged = (): boolean => false;
 const openCodeKeysAllowed = (): boolean => openCodeProviderKeysAllowed({
-  organisationManaged: openCodeOrganisationManaged(),
+  hostedWorkspace: HOSTED_WORKSPACE, organisationManaged: openCodeOrganisationManaged(),
   sharedSignIn: sharedSignIn(signInAllowList()),
 });
 setOpenCodeProviderKeyPolicy(openCodeKeysAllowed);
@@ -2176,7 +2176,7 @@ const {
   browserRuntime, browserLive, usedBrowserSessions, browserSweep, temporaryBrowserSessions,
   currentBrowserSession, forgetTemporaryBrowser, myChromeAvailable, usesMyChrome, lentChromeSummary, browserSessionSpec, browserIntegration,
   browserReady, currentBrowserSpec, loginInput, browserSystemPrompt, closeBrowser, browserEngineSwitched, eraseDeletedBrowser, engineSummary, browserSessionsOf, signedInSitesTarget, uploadPaths,
-} = createBrowserHost({ cfg, store: () => store, turnResources, activeInternalGenerationByThread, mintInternalCapability, DESKTOP_MANAGED, PORT, engineMemory });
+} = createBrowserHost({ cfg, store: () => store, turnResources, activeInternalGenerationByThread, mintInternalCapability, DESKTOP_MANAGED, HOSTED_WORKSPACE, PORT, engineMemory });
 
 const dataSheets = new DataSheetRegistry({
   broadcast: (frame) => broadcast({ ...frame }),
@@ -2624,7 +2624,7 @@ const { stopThreadForPerson, stopOnTypedCommand, restartForPerson } = createPers
   stopGoal: (threadId) => oneOnOneGoals.stop(threadId), markStopped: (threadId) => personStops.stop(threadId, liveTurns.running(threadId), directTurnDispatchClaims.has(threadId)), working: (botId, threadId) => threadBusy(botId, threadId) || coordinator.activeDirect(threadId), asking: (threadId) => coordinator.awaitingAnswer(threadId) || Boolean(openPersonCard(threadId)), language: threadLanguage,
 });
 const botNameClash = createBotNameClash({ store, people: () => [], profileName: () => cfg.profile?.name });
-const refusedHandoffs = createRefusedHandoffs({ bots: () => store.bots, runOf: (threadId) => (routines?.isActiveThread(threadId) ? routines.runForThread(threadId) ?? undefined : undefined), language: conversationLanguage }); const devsReports = createDevsReports({ dataDir: DATA_DIR, store, installId: ENVIRONMENT_ID, appVersion: serverVersion(), runsOn: DESKTOP_MANAGED ? "desktop app" : "self-hosted server", recentLog: captureRecentLog(), send: devsReportSender(bugReportEndpoint(process.env, undefined)), askStatus: devsStatusAsker(bugReportEndpoint(process.env, undefined), null), statusEveryMs: Number(process.env.OMB_DEVS_STATUS_MS) || undefined, tell: (threadId, text, _person) => { const group = store.groupByThread(threadId), bot = group ? store.bot(group.memberIds[0] ?? "") : store.botByThread(threadId); if (bot) notify({ ...buildNoticeNotification(bot, threadId, text), ...(group ? { groupId: group.id } : {}) }); }, working: (threadId) => { const group = store.groupByThread(threadId), bot = group ? null : store.botByThread(threadId); return group ? Boolean(group.busyBotId) || groupThreadIsWorking(group.id, threadId) : Boolean(bot && threadBusy(bot.id, threadId)); }, automated: (threadId) => Boolean(routines?.isActiveThread(threadId)), engine: (instanceId) => (registry.get(instanceId) ? { name: engineName(instanceId), snapshot: registry.lastSnapshot(instanceId) } : null), appsReady: () => composio.configured(cfg), sessions: () => sessions.list(), profileEmail: () => cfg.profile?.email, language: appLanguage, lineLanguage: personLanguages.forLine });
+const refusedHandoffs = createRefusedHandoffs({ bots: () => store.bots, runOf: (threadId) => (routines?.isActiveThread(threadId) ? routines.runForThread(threadId) ?? undefined : undefined), language: conversationLanguage }); const devsReports = createDevsReports({ dataDir: DATA_DIR, store, installId: ENVIRONMENT_ID, appVersion: serverVersion(), runsOn: DESKTOP_MANAGED ? "desktop app" : HOSTED_WORKSPACE ? "hosted server" : "self-hosted server", recentLog: captureRecentLog(), send: devsReportSender(bugReportEndpoint(process.env, undefined)), askStatus: devsStatusAsker(bugReportEndpoint(process.env, undefined), null), statusEveryMs: Number(process.env.OMB_DEVS_STATUS_MS) || undefined, tell: (threadId, text, _person) => { const group = store.groupByThread(threadId), bot = group ? store.bot(group.memberIds[0] ?? "") : store.botByThread(threadId); if (bot) notify({ ...buildNoticeNotification(bot, threadId, text), ...(group ? { groupId: group.id } : {}) }); }, working: (threadId) => { const group = store.groupByThread(threadId), bot = group ? null : store.botByThread(threadId); return group ? Boolean(group.busyBotId) || groupThreadIsWorking(group.id, threadId) : Boolean(bot && threadBusy(bot.id, threadId)); }, automated: (threadId) => Boolean(routines?.isActiveThread(threadId)), engine: (instanceId) => (registry.get(instanceId) ? { name: engineName(instanceId), snapshot: registry.lastSnapshot(instanceId) } : null), appsReady: () => composio.configured(cfg), sessions: () => sessions.list(), profileEmail: () => cfg.profile?.email, language: appLanguage, lineLanguage: personLanguages.forLine });
 const skillsHost = createSkillsLibraryHost({ store, cfg, appendSkillRequestCard, engineConfig: (instanceId) => providerConfigs()[instanceId], instanceOf: (instanceId) => { const instance = registry.get(instanceId); return instance ? { instanceId, driverKind: instance.driverKind } : undefined; } });
 const { listBotSkills, readBotSkillFile } = skillsHost;
 const highlevelHost = createHighLevelHost({ service: highlevel, dataDir: DATA_DIR, bot: (id) => store.bot(id),
@@ -5363,7 +5363,7 @@ const reviewAnswerThreads = new Set<string>(); const firstHourHooks = createFirs
 let routines: RoutineManager | null = null;
 const automationReports = createAutomationReports({ store, routines: () => routines, busy: threadBusy, wrote: markTaskContextExternallyUpdated, brief: (run, turnId) => proactive.runSettled(run, turnId), threadLanguage,
   notify: (kind, bot, threadId, detail) => notify(buildNotification(kind, bot, threadId, detail, { avatarUrl: bot.avatarUrl })) });
-const proactive = createProactive({ store, cfg, composio, registry, dataDir: DATA_DIR, ideas: (botId) => memoryUpkeep.ideas(botId), ...firstHourHooks.proactive, team: false, frozen: moveFreeze.frozen, routines: () => routines, mainThread: botMainThread, threadBusy, notify, helpers: { decider, extractor }, cloud: false,
+const proactive = createProactive({ store, cfg, composio, registry, dataDir: DATA_DIR, ideas: (botId) => memoryUpkeep.ideas(botId), ...firstHourHooks.proactive, team: Boolean(HOSTED_WORKSPACE), frozen: moveFreeze.frozen, routines: () => routines, mainThread: botMainThread, threadBusy, notify, helpers: { decider, extractor }, cloud: Boolean(HOSTED_WORKSPACE),
   engineName: (instanceId) => engineName(instanceId), hostTimeZone: () => hostTimeZone(), decide: (row) => appendDecision(DATA_DIR, row), stale: shouldIgnoreProviderEvent, release: (threadId) => watchdog.setWaitingOnHuman(threadId, false),
   owned: (routine) => { phones.routineAuthors?.record(routine.id, routine); }, needsYou: () => needsYouNow({ bots: store.bots, groups: store.groups, routines, parked: coordinator.active(), engines: registry.instances().map((instance) => ({ instanceId: instance.instanceId, snapshot: registry.lastSnapshot(instance.instanceId) })) }, { admin: true, thread: () => true, routine: () => true }) });
 let calendarCalls: CalendarCallManager | null = null;
@@ -8218,7 +8218,7 @@ async function beginTurn(
           cwd: liveBot?.cwd ?? bot.cwd,
           connectedApps: setupConnectedApps(bot, instance.adapter.capabilities.composioMcp === true, Boolean(integrations.composio)),
         }) },
-        { id: "files", label: "File locations", text: worksInWorkspace ? workspaceLocationsPrompt(bot.id, cwd, liveBot?.cwd ?? bot.cwd, { attachFile: Boolean(integrations.agents) }) : "" },
+        { id: "files", label: "File locations", text: worksInWorkspace ? workspaceLocationsPrompt(bot.id, cwd, liveBot?.cwd ?? bot.cwd, { attachFile: Boolean(integrations.agents) && !HOSTED_WORKSPACE }) : "" },
         { id: "shell", label: "Long-running commands", text: worksInWorkspace ? longCommandsPrompt(computerPromptKind) : "" },
         { id: "computer", label: "Computer", text: computerPrompt(computerPromptKind) },
         { id: "team-computer", label: "Team computer", text: teamComputerPrompt(teamComputer) },
@@ -8737,7 +8737,7 @@ routines = new RoutineManager({
     notify(buildNotification("routine-deferred", routineSourceOwner(run)?.bot ?? bot, routineSourceThread(run) ?? bot.threadId, detail));
   },
 });
-phones.adoptRoutines(); outsideLineage.settle(routines.listRuns(), automationDestinations.eventChat);
+phones.adoptRoutines(); outsideLineage.settle(routines.listRuns());
 // Only now: an earlier owner key is the owner's once settled.
 routines.clearFrozenResultsThreads(); proactive.ensureWatch();
 orgLibrary = new OrgLibrary({
@@ -10019,7 +10019,7 @@ async function runClaimedGroupMemberTurn(
   applyAgentsBridge(threadId, integrations, cfg, bot, turnEngine(instance, providerConfigs(), registry.lastSnapshot(instance.instanceId), cwd));
   const roomSystem = buildSystemPrompt(system, store.bot(bot.id)?.soul ?? bot.soul ?? "", [
     { id: "user-profile", label: "About the user", text: userProfileSystemPrompt(cfg.profile) },
-    { id: "files", label: "File locations", text: workspace ? workspaceLocationsPrompt(bot.id, cwd, readyBot.cwd, { attachFile: Boolean(integrations.agents) }) : "" },
+    { id: "files", label: "File locations", text: workspace ? workspaceLocationsPrompt(bot.id, cwd, readyBot.cwd, { attachFile: Boolean(integrations.agents) && !HOSTED_WORKSPACE }) : "" },
     { id: "shell", label: "Long-running commands", text: workspace ? longCommandsPrompt(roomComputerPromptKind) : "" },
     { id: "mcp", label: "MCP servers", text: customMcpPrompt(Object.keys(integrations.custom ?? {}), mcpServersHost.off(bot)) },
     { id: "computer", label: "Computer", text: computerPrompt(roomComputerPromptKind) },
@@ -11766,12 +11766,12 @@ const { react } = createReactions({
   store, reply: (input) => personReplies.deliver({ ...input, about: "message" }),
   answerCard: (input) => respondToCard({ ...input, via: "reaction" }), withdraw: personReplies.withdraw,
 });
-const publishedPages = createPublishedPages({ dataDir: DATA_DIR, selfHosted: utilityParentPort === undefined, patch: (threadId, messageId, text, publishedPage) => void store.patchMessage(threadId, messageId, { text, publishedPage }), apps: { chat: chatApps, store } }); ROUTES.push(createReactionRoutes({ react, reactorFor }), publishedPages.routes, savedSteps.routes, createPlacesElsewhereRoutes({ elsewhere: placesElsewhere, owner: (auth) => !sharedMembership() && auth.kind === "loopback" }));
+const publishedPages = createPublishedPages({ dataDir: DATA_DIR, selfHosted: utilityParentPort === undefined, patch: (threadId, messageId, text, publishedPage) => void store.patchMessage(threadId, messageId, { text, publishedPage }), apps: { chat: chatApps, store } }); ROUTES.push(createReactionRoutes({ react, reactorFor }), publishedPages.routes, savedSteps.routes, createPlacesElsewhereRoutes({ elsewhere: placesElsewhere, owner: (auth) => !sharedMembership() && !HOSTED_WORKSPACE && auth.kind === "loopback" }));
 // `let` slots are read per request.
 ROUTES.push(createThreadRoutes({
   groupFor: personRooms.groupForAuth,
   store, userName: userNameFor, sessions, groupUsageReader, lendingEnabled,
-  sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
+  hostedWorkspace: HOSTED_WORKSPACE, sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
 
   desktopMutationToken: () => desktopMutationToken,
   companionMutationToken: () => companionMutationToken,
@@ -11785,7 +11785,7 @@ ROUTES.push(createThreadRoutes({
 })); offerAttachmentClear(true);
 ROUTES.push(createBotCreateRoutes({
   store, cfg, presetStore, orgInstallStatuses,
-  desktopManaged: DESKTOP_MANAGED,
+  hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, desktopManaged: DESKTOP_MANAGED,
   maxWorkspaceBots: MAX_WORKSPACE_BOTS,
   hostedModels,
   routines: () => routines,
@@ -11802,7 +11802,7 @@ ROUTES.push(createBotOrderRoutes({ store, visibleFor: (auth) => visibleTo(viewer
 ROUTES.push(createBotPatchRoutes({
   store, cfg, registry, sessions, browserRuntime, browserLive, memoryUpkeep, cacheKeepWarm, hostedModels, supportsApprovalMode,
   routines: () => routines, activeVpsThreads,
-  desktopManaged: DESKTOP_MANAGED, maxWorkspaceBots: MAX_WORKSPACE_BOTS,
+  hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, desktopManaged: DESKTOP_MANAGED, maxWorkspaceBots: MAX_WORKSPACE_BOTS,
   broadcast, wireBot, publicGroupState, audienceChanged, storedAvatarExists, requestedTaskBot, threadBusy, activeGroupTurnForBot,
   checkedModelSelection, engineSwitchNeedsAsk, currentBrowserSession, interruptAllDirectThreads, cancelGroupTurnOperations,
   revokeInternalCapabilitiesForThread, runningTurnInstance, closeOpenApprovals, assertTeamComputerChangeIdle, forgetTemporaryBrowser, levelOf, mainThreadTasks,
@@ -11888,11 +11888,7 @@ ROUTES.push(createChannelRoutes({
   stagedSkillCleanupsForThread,
   rejectDeletedThreadSkillStages,
 }));
-const taskRoutes = createTaskRoutes({
-  desktopManaged: DESKTOP_MANAGED,
-  store,
-  hostedModels,
-  routines: () => routines,
+const taskRoutes = createTaskRoutes({ desktopManaged: DESKTOP_MANAGED, hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, store, hostedModels, routines: () => routines,
   coordinator,
   handoffs,
   skillReview,
@@ -11987,7 +11983,7 @@ const mcpConfig = createMcpConfig({
   probeAs: mcpServersHost.probeAs,
   changed: () => broadcast({ kind: "mcp.changed" }) });
 const persistAnnouncedMcpServers = (next: Record<string, unknown>) => { persistMcpServers(next); broadcast({ kind: "mcp.changed" }); };
-const postiz = createPostiz({ cfg: () => cfg, mcpOAuth, persistMcpServers: persistAnnouncedMcpServers, mcpConfigBusy: mcpConfig.busy, mcpPolicyRefusal, appCatalog: chatAppsMcp, loopback: true }); ROUTES.push(createPostizRoutes({ postiz }), createConfigRoutes({
+const postiz = createPostiz({ cfg: () => cfg, mcpOAuth, persistMcpServers: persistAnnouncedMcpServers, mcpConfigBusy: mcpConfig.busy, mcpPolicyRefusal, appCatalog: chatAppsMcp, loopback: !HOSTED_WORKSPACE }); ROUTES.push(createPostizRoutes({ postiz }), createConfigRoutes({
   store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,
   sharedComputers, sharedComputerControl, closeBrowser, browserEngineSwitched,
   hostedModels: Boolean(hostedModels),
@@ -12011,7 +12007,7 @@ ROUTES.push(createMcpServerRoutes({
   cfg, bot: (id) => store.bot(id), sessions, mcpOAuth,
   fallbackPublicUrl: FALLBACK_PUBLIC_URL,
   mcpServerResponse, savedCustomDomain, appCatalog: chatAppsMcp, config: mcpConfig }));
-ROUTES.push(createSetupImportRoutes({ local: DESKTOP_MANAGED, cfg, mcpPolicyRefusal, persistMcpServers: persistAnnouncedMcpServers,
+ROUTES.push(createSetupImportRoutes({ local: DESKTOP_MANAGED && !HOSTED_WORKSPACE, cfg, mcpPolicyRefusal, persistMcpServers: persistAnnouncedMcpServers,
   mcpConfigBusy: mcpConfig.busy }));
 ROUTES.push(createComputerRoutes({
   store, cfg, sessions, teamComputers, computerControl,
@@ -12172,6 +12168,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
   const method = req.method ?? "GET";
   let m: RegExpMatchArray | null = null;
   let releaseWorkspaceRequest: (() => void) | undefined;
+    if (method === "GET" && path === "/api/health/hosted") { res.setHeader("cache-control", "no-store"); const hosted = hostedWorkspaceConfiguration(); if (!hosted?.portalMembership || !workspaceAccess || !entitled("admin")) return json(res, 503, { error: "Hosted workspace readiness is unavailable." }); res.setHeader(HOSTED_CONTRACT_HEADER, String(HOSTED_CONTRACT_VERSION)); if (hostedModels) res.setHeader(HOSTED_MODEL_POLICY_HEADER, "1"); return json(res, 200, { ok: true, service: "openmausbot", membershipAuthority: "portal", workspace: hosted.workspace, ...HOSTED_CONTRACT_METADATA }); }
+    if (HOSTED_WORKSPACE) { if (method === "POST" && ["/api/auth/pair", "/api/pair", "/api/auth/pairing", "/api/auth/email/start", "/api/auth/email/verify"].includes(path)) return json(res, 403, { error: "Sign in through the workspace portal." }); if (workspaceAccess) { if (await workspaceAccess.handlePublic(req, res, url)) return; } else if (path.startsWith("/api/auth/hosted/") || path === "/pair" || (path === "/" && (!isLoopbackHost(req.headers.host) || isProxied(req)))) return json(res, 503, { error: "Workspace sign-in is unavailable." }); }
   try {
     if (method === "POST" && ["/api/auth/pair", "/api/pair", "/api/auth/pairing", "/api/auth/email/start", "/api/auth/email/verify"].includes(path)) {
       const refusal = managedPolicy.remoteAccessRefusal();
@@ -12189,7 +12187,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     // Two public routes come first; everything else needs the loopback owner or a paired session with the right scope.
     if (method === "GET" && !path.startsWith("/api/") && !path.startsWith("/.well-known/") && (moveFreeze.screen(path) ? (res.writeHead(302, { location: moveFreeze.screen(path)!, "cache-control": "no-store" }).end(), true) : serveStatic(res, path, STATIC_DIR))) return;
     if (method === "GET" && path === "/.well-known/openmausbot/environment") {
-      return json(res, 200, environmentDescriptor({ environmentId: ENVIRONMENT_ID, desktopManaged: DESKTOP_MANAGED, emailSignIn: emailSignIn.enabled(), sharedComputers: lendingEnabled() }));
+      return json(res, 200, environmentDescriptor({ environmentId: ENVIRONMENT_ID, desktopManaged: DESKTOP_MANAGED, emailSignIn: !HOSTED_WORKSPACE && emailSignIn.enabled(), sharedComputers: lendingEnabled() }));
     }
     const domainCheck = /^\/\.well-known\/openmausbot\/domain-check\/([a-f0-9]{64})$/.exec(path);
     if (method === "GET" && domainCheck) {
@@ -12227,7 +12225,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       sessions.clearFailures(source);
       const issued = sessions.issue({ label: label.trim() || labelFromUserAgent(req.headers["user-agent"]), scopes: verified.scopes, userId: verified.userId, email: verified.email });
       const environment = environmentDescriptor({ environmentId: ENVIRONMENT_ID, desktopManaged: DESKTOP_MANAGED, emailSignIn: true, sharedComputers: lendingEnabled() });
-      const secure = requestOrigin(req)?.startsWith("https://") === true;
+      const secure = HOSTED_WORKSPACE || requestOrigin(req)?.startsWith("https://") === true;
       res.setHeader("set-cookie", serializeSessionCookie(SESSION_COOKIE, issued.token, { secure, maxAgeSeconds: cookieMaxAgeSeconds(issued.session) }));
       return json(res, 200, { session: issued.session, environment });
     }
@@ -12259,7 +12257,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       if (wantsCookie) {
         const previous = browser ? sessions.authenticate(parseCookies(req.headers.cookie).get(SESSION_COOKIE)) : null;
         if (previous && previous.id !== result.session.id) sessions.revoke(previous.id);
-        const secure = requestOrigin(req)?.startsWith("https://") === true;
+        const secure = HOSTED_WORKSPACE || requestOrigin(req)?.startsWith("https://") === true;
         res.setHeader("set-cookie", serializeSessionCookie(SESSION_COOKIE, result.token, { secure, maxAgeSeconds: cookieMaxAgeSeconds(result.session) }));
         return json(res, 200, { session: result.session, environment });
       }
@@ -12306,7 +12304,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     if (gate.auth?.kind === "session" && gate.auth.via === "cookie") {
       const presented = parseCookies(req.headers.cookie).get(SESSION_COOKIE);
       if (presented) {
-        const secure = requestOrigin(req)?.startsWith("https://") === true;
+        const secure = HOSTED_WORKSPACE || requestOrigin(req)?.startsWith("https://") === true;
         res.setHeader("set-cookie", serializeSessionCookie(SESSION_COOKIE, presented, { secure, maxAgeSeconds: cookieMaxAgeSeconds(gate.auth.session) }));
       }
     }
@@ -12319,7 +12317,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       return json(res, 200, loadBrand());
     }
     if (!gate.auth) return json(res, gate.status, { error: gate.error });
-    const auth = gate.auth;
+    const auth = gate.auth; if (HOSTED_WORKSPACE && auth.kind === "session") { const failure = workspaceAccess ? await workspaceAccess.authorize(req, auth) : { status: 503, error: "Workspace sign-in is unavailable." }; if (failure) return json(res, failure.status, { error: failure.error }); }
     // A member reaches a restricted bot, its threads, rooms, routines and files exactly as an id that does not exist.
     const viewer = viewerFor(auth), visible = visibleTo(viewer);
     const subject = visible.everything ? null : pathSubject(path);
@@ -14307,8 +14305,8 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       return routine ? json(res, 200, { routine }) : json(res, 404, { error: "no such routine" });
     }
     if (routineMatch && method === "DELETE") {
-      const removed = routines!.remove(routineMatch[1]);
-      if (removed) phones.routineAuthors?.remove(routineMatch[1]);
+      const removed = routines!.remove(routineMatch[1]); if (removed) phones.routineAuthors?.remove(routineMatch[1]);
+      return removed ? json(res, 200, { ok: true }) : json(res, 404, { error: "no such routine" });
     }
     if (path === "/api/routine-runs/seen-all" && method === "POST") {
       return json(res, 200, { runs: routines!.markAllSeen((run) => routineVisible(run, visible)) });

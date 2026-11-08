@@ -183,6 +183,12 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
   // A loopback stand-in for Postiz Cloud only (server/testing/fake-postiz.ts): no test signs in to the real one.
   const postizUrl = parentEnv.OMB_POSTIZ_CLOUD_URL?.trim() ?? "";
   if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(postizUrl)) childEnv.OMB_POSTIZ_CLOUD_URL = postizUrl;
+  // Connected-apps loopback backend only (server/testing/fake-connected-apps.ts).
+  const composioApi = parentEnv.OMB_COMPOSIO_API?.trim() ?? "";
+  if (/^http:\/\/127\.0\.0\.1:\d{1,5}/.test(composioApi)) {
+    childEnv.OMB_COMPOSIO_API = composioApi;
+    if (parentEnv.OMB_COMPOSIO_TOOLKITS_API) childEnv.OMB_COMPOSIO_TOOLKITS_API = parentEnv.OMB_COMPOSIO_TOOLKITS_API;
+  }
   // Research against loopback stubs only (server/x-research.e2e.test.ts): the relay token crosses only with its stub,
   // and a treg stand-in replaces treg.to, so no test reaches a real relay or treg.
   const xUrl = parentEnv.OMB_CLOUD_X_URL?.trim() ?? "";
@@ -297,6 +303,7 @@ export async function launchVerificationServer(
   const logPath = join(evidenceDir, `server-${Date.now()}-${process.pid}.log`);
   writeFileSync(join(dataDir, "config.json"), JSON.stringify({
     ...(boatFixtureApi ? { box: { token: "box_verification_fixture" } } : {}),
+    ...(parentEnv.OMB_COMPOSIO_API ? { composio: { apiKey: "ak_verification_fixture" } } : {}),
     // A setup card's answers would be one more engine call at every new bot, taking replies a test scripts for its turns.
     // Front desk is off: many tests drive the computer, browser and full prompt from a bot's main chat; front-desk tests turn it on.
     features: { smartSetupChoices: false, frontDesk: false },

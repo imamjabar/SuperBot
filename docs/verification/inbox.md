@@ -1,6 +1,6 @@
 # The Inbox
 
-`server/place-inbox.e2e.test.ts` boots the server with the synthetic Claude CLI:
+`server/host/place-inbox.test.ts` exercises the place inbox:
 
 1. An empty inbox answers with no rows, not 404.
 2. A bot's approval and question, in two threads at once, are listed with count 2, each labelled with its thread.
@@ -8,7 +8,7 @@
    the same card is refused.
 
 ```sh
-pnpm exec vitest run server/place-inbox.e2e.test.ts
+pnpm exec vitest run server/host/place-inbox.test.ts
 ```
 
 ## The panel
