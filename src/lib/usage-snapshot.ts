@@ -3,7 +3,7 @@
 import { engineReady } from "@/components/EngineLibrary";
 import { analyticsEnabled, track } from "@/lib/analytics";
 import {
-  allow, APP, CLOUD_TIER, CONNECTORS_MODE, DECIDER, EDITION, engineForDriver, LOCAL_VM_MODE, TRIAL_CREDIT, VOICE,
+  allow, APP, CONNECTORS_MODE, DECIDER, EDITION, engineForDriver, LOCAL_VM_MODE, TRIAL_CREDIT, VOICE,
   type EventProps, type KeyProvider, type PropValue,
 } from "@/lib/analytics-allowlist";
 import { hasActiveConnection, type ConnectorStatus } from "@/lib/connector-status";

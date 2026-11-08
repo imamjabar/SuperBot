@@ -1,4 +1,4 @@
-import { FolderOpen, LayoutGrid, Puzzle, Search, UsersRound, X, Zap } from "lucide-react";
+import { LayoutGrid, Puzzle, Search, UsersRound, X, Zap } from "lucide-react";
 
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";

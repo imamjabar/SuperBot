@@ -398,7 +398,6 @@ export class SessionRegistry {
     this.failures.delete(input.source);
     if (this.personal(pairing.scopes)) return { ok: false, status: 403, error: this.adminOnly! };
     const token = `omb_sess_${randomBytes(32).toString("base64url")}`;
-    const checkedAt = pairing.memberCheckedAt ?? now;
     const record: SessionRecord = {
       id: randomUUID(),
       tokenHash: sha256(token),

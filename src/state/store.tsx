@@ -2548,7 +2548,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           creatingBot = true;
           rawDispatch({ type: "botCreationPending", on: true });
           void import("@/lib/new-bot")
-            .then(({ makeNewBot }) => makeNewBot(action, stateRef.current.bots, wrapped, showThreadsRef.current))
+            .then(({ makeNewBot }) => makeNewBot(action, stateRef.current.bots, wrapped))
             .catch(showError)
             .finally(() => {
               creatingBot = false;

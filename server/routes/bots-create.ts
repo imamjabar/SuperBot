@@ -10,7 +10,7 @@ import { MAX_MCP_SERVERS, mcpServerNameError } from "../mcp-registry.ts";
 import { journalMemoryWrite } from "../memory-journal.ts";
 import { resolveBotCreationDefaults } from "../new-bot-defaults.ts";
 import { PRESET_UNAVAILABLE_MESSAGE, applyPresetToBot, presetOffered, type OrgInstallStatus, type PresetStore } from "../presets.ts";
-import { adminOnlyBotSetting, clientBotPatchViolation, type RequestAuth } from "../request-auth.ts";
+import { adminOnlyBotSetting, clientBotPatchViolation } from "../request-auth.ts";
 import type { RoutineManager } from "../routines.ts";
 import { installOrgSkill, installSkill, parseSkillMd, setSkillEnabled } from "../skills.ts";
 import type { BotRecord, Store } from "../store.ts";

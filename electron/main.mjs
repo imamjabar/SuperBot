@@ -13,7 +13,7 @@ import { installTalk, isTalkPanel } from "./talk-main.mjs";
 import { openBlankTerminal } from "./terminal-launch.mjs";
 import { linuxDisablesGpu } from "./linux-gpu.mjs";
 import { pasteMenuItem } from "./paste-menu-item.mjs";
-import { attachUpdaterWindow, startUpdater, registerUpdaterIpc, sendUpdaterState, reopenedOutOfSight, quietSignals } from "./updater.mjs";
+import { attachUpdaterWindow, startUpdater, registerUpdaterIpc, reopenedOutOfSight, quietSignals } from "./updater.mjs";
 import {
   appendDesktopCrashRecord,
   buildDiagnosticsReport,
@@ -253,7 +253,7 @@ let desktopDataDirLease = null;
 let runningDataDir = null;
 let localSwitchInFlight = false;
 let managedDesktop = null;
-let updatesConsent = null, desktopPrefs = null, windowFrameMade = null;
+let desktopPrefs = null, windowFrameMade = null;
 let orgLibrary = null;
 let companyBackupController = null;
 let companyBackupState = { busy: false };
@@ -1322,7 +1322,7 @@ ipcMain.on("desktop:unread-count", (event, value) => {
   applyUnreadBadge(sender);
 });
 
-const { LOCAL_ID, activeEnvironment, activeRemote, allowedOrigins, bootEnvironmentDir, otherPlaces, parseHostedWorkspaceLink, savedPlace, startupEnvironmentDir, withActive, withEnvironment, withEnvironmentLook, withLocalEnvironment, withMicrophone, withPlaceColor, withoutEnvironment, withOwnCloud, withTeam, placesMenuOptions, workspaceMenuTemplate, workspaceNavigationAllowed, workspaceSenderAllowed, workspaceSummary, workspaceWindowTitle } = environmentsModule;
+const { LOCAL_ID, activeEnvironment, activeRemote, allowedOrigins, bootEnvironmentDir, parseHostedWorkspaceLink, savedPlace, startupEnvironmentDir, withActive, withEnvironment, withLocalEnvironment, withMicrophone, withPlaceColor, withoutEnvironment, workspaceMenuTemplate, workspaceNavigationAllowed, workspaceSenderAllowed, workspaceSummary, workspaceWindowTitle } = environmentsModule;
 let environmentsState = { environments: [], activeId: LOCAL_ID };
 let computerSharing;
 const sharingPrompts = new Set();
@@ -1451,7 +1451,6 @@ function navigateMainWindow(url) {
   return mainWindow.loadURL(url).then(() => true, () => false);
 }
 
-let rememberedHome = null;
 
 function acquireDataDirLeaseFor(dir) {
   return dir === desktopDataDir()
@@ -2735,7 +2734,7 @@ app.whenReady().then(async () => {
   androidDevice.registerIpc(ipcMain);
   registerUpdaterIpc({ pageAllowed: updaterPageAllowed });
   desktopPrefs = createDesktopPrefs(jsonFile(path.join(app.getPath("userData"), "desktop-prefs.json")));
-  updatesConsent = registerDesktopPrefs({ ipcMain, prefs: desktopPrefs, localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read, cloudOffered: () => Promise.resolve(false),
+  registerDesktopPrefs({ ipcMain, prefs: desktopPrefs, localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read, cloudOffered: () => Promise.resolve(false),
     frame: { made: () => windowFrameMade, restarts: process.platform === "win32", changed: () => void broadcastDesktopCapabilities() },
     languageChanged: (language, sender) => {
       for (const win of appWindows()) if (!win.isDestroyed() && win.webContents !== sender) win.webContents.send("desktop-language:changed", language);

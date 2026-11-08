@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effectivePlace, isComputerPlace, PLACES, placeLabelKey, toolPlace } from "./place";
+import { effectivePlace, isComputerPlace, placeLabelKey, toolPlace } from "./place";
 import { toolSurfaceKind } from "../../shared/tool-surface";
 
 describe("where a conversation works", () => {

@@ -90,7 +90,6 @@ import { HIGHLEVEL_INTERNAL_MCP_PATH } from "./highlevel/rpc.ts";
 import { createHighLevelService } from "./highlevel/service.ts";
 import { createHighLevelRoutes } from "./routes/highlevel.ts"; import { createEmailRoutes } from "./routes/email.ts"; import { createEmailHost, EMAIL_INTERNAL_MCP_PATH } from "./email/host.ts"; import { createEmailService } from "./email/service.ts"; import { createPostizRoutes } from "./routes/postiz.ts"; import { createPostiz } from "./postiz/service.ts";
 import { createPhones } from "./host/phones.ts";
-import { NOT_THE_OWNER } from "./phones/owner.ts";
 import { PHONE_INTERNAL_MCP_PATH } from "./phones/rpc.ts";
 import { isLongPollPath } from "./routes/phones.ts";
 import { createDataRoutes } from "./data/routes.ts";
@@ -108,7 +107,7 @@ import { vpsLeftBehindNotice } from "./cloud-backend.ts";
 import * as composio from "./composio.ts"; import { APP_TOOL_NAMES_ENV, APP_TOOLS_ENV, appToolsFor } from "./connector-app-tools.ts";
 import { connectorCallFromFrame, connectorRefusalText, connectorScopeRefusalText, connectorUnrecognizedText, evaluateConnectorTools } from "./connector-verdict.ts";
 import { connectorCardDescription, connectorCardText, signInCardText } from "./connector-card-text.ts";
-import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts"; import { createBotLimit } from "./host/starter-bot-limit.ts"; import { chiefOfStaffSystemPrompt } from "./chief-of-staff.ts"; import { chiefLevel } from "./chief-level.ts"; import { defaultBotRefusal, ensureDefaultBot } from "./default-bot.ts";
+import { BOT_LIMIT_CODE } from "../shared/bot-limit.ts"; import { chiefOfStaffSystemPrompt } from "./chief-of-staff.ts"; import { chiefLevel } from "./chief-level.ts"; import { defaultBotRefusal, ensureDefaultBot } from "./default-bot.ts";
 import { buildRecall, recallRooms, recallThreadIds, withRecalled } from "./recall.ts";
 import { hostTimeZone, takesTurnClock, turnClockLine, withTurnClock } from "./turn-clock.ts";
 import { createMemoryUpkeep, dreamConversations, upkeepEnabled } from "./memory-upkeep.ts";
@@ -268,10 +267,10 @@ import { mainThread, wasOldestThread } from "./main-thread.ts";
 import { computerKindForResource, ManagedDesktopPolicy, type ComputerKind } from "./managed-policy.ts";
 import { hostedModelPolicy, HOSTED_MODEL_POLICY_HEADER } from "./hosted-models.ts";
 import { botBox, startBotBoxAtBoot } from "./bot-box/boot.ts"; import { attachmentsForBox } from "./box-attachments.ts"; import { brokerPath } from "./bot-box/broker-probe.ts";
-import { createBotNameClash } from "./host/bot-name-clash.ts"; import { createUploadOwners, uploadsFor } from "./host/member-uploads.ts"; import { createMemberOwnBot } from "./host/member-own-bot.ts"; import { createVisibilityHost } from "./host/visibility-host.ts"; import { createBotAccessHost, refusalFor, relayedSendRefusal } from "./host/bot-access-gate.ts"; import { createBotAccessRoutes } from "./routes/bot-access.ts";
+import { createBotNameClash } from "./host/bot-name-clash.ts"; import { createUploadOwners, uploadsFor } from "./host/member-uploads.ts"; import { createVisibilityHost } from "./host/visibility-host.ts"; import { createBotAccessHost, refusalFor } from "./host/bot-access-gate.ts";
 import { createSharedComputerRoutes } from "./routes/shared-computers.ts";
 import { mcpReconnectLine, retryBrokeredMcp } from "./bot-box/broker-mcp.ts";
-import { baseBotId, layerId, memberAudience } from "./audience.ts"; import { createPersonRooms, type OwnGroupFrames } from "./host/room-reads.ts";
+import { baseBotId } from "./audience.ts"; import { createPersonRooms, type OwnGroupFrames } from "./host/room-reads.ts";
 import { RESTART_EXIT_CODE } from "./restart.ts";
 import { applyIncludedXMessage, researchCredential, xCredential, xResearchStatus } from "./included-services.ts"; import { createResearchAvailability } from "./research.ts";
 import type { ProviderInstance } from "./contracts.ts";
@@ -479,7 +478,7 @@ import {
   mergeSkills,
   renderSkillInstructions,
   selectBundledSkills,
-  skillsLibraryEnabled, readSkillLibraryIndex, type BundledSkill,
+  skillsLibraryEnabled, type BundledSkill,
 } from "./skill-library.ts";
 import { runSkillsLibraryBootSweep } from "./skills-library-migration.ts";
 import { installedPlaybookInstructions } from "./installed-playbooks.ts";
@@ -519,8 +518,6 @@ import { allowedScopes, createEmailSignIn, parseAllowList } from "./account-sign
 import { ProviderAuthSessions } from "./provider-auth-sessions.ts";
 import {
   clearSessionCookie,
-  isLoopbackHost,
-  isProxied,
   labelFromUserAgent,
   requestOrigin,
   requestSource,
@@ -564,7 +561,6 @@ import { deliverSseFrame, openSseHeartbeat } from "./sse-fanout.ts";
 import { PhoneSecretBridge, PhoneSecretSubmissionRegistry } from "./phone-secret.ts";
 // Keep these two last, so loading the route table leaves module start-up order as is.
 import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf, readBody } from "./harness/http.ts";
-import { holdBodyDeadline } from "./body-deadline.ts";
 import { PASS, ROUTES, dispatchRoutes } from "./routes/table.ts"; import { createSecretCards } from "./host/secret-cards.ts"; import { createInternalCredentialRequestRoutes, createSecretCardRoutes } from "./routes/secret-cards.ts"; import { applyIncludedPagesMessage } from "./pages/access.ts"; import { createPublishedPages } from "./pages/service.ts"; import { createInternalToolRoutes } from "./routes/internal-tools.ts"; import { createHelperSuggestionRoutes } from "./routes/helper-suggestion.ts"; import { createXConnectorRoutes } from "./routes/x-connector.ts"; import { createMoveFreeze, switchAutomationsOff } from "./move-freeze.ts"; import { createMoveFreezeRoutes } from "./routes/move-freeze.ts"; import { createMoveWaits } from "./move-waits.ts";
 import { createHostedSlackRoutes } from "./routes/hosted-slack.ts";
 import { commandCodeSearch } from "./routes/web-search.ts";
@@ -578,7 +574,7 @@ import { createBotLifecycleRoutes } from "./routes/bot-lifecycle.ts";
 import { createBotSkillsRoutes } from "./routes/bot-skills.ts";
 import { createSkillShareRoutes } from "./routes/skill-share.ts";
 import { createTeamContextRoutes } from "./routes/team-context.ts";
-import { createDeciderRoutes } from "./routes/decider.ts"; import { claudeCodeSkillInputs } from "./setup-import.ts";
+import { createDeciderRoutes } from "./routes/decider.ts";
 import { createUpdateCheckRoutes, serverUpdateChecker } from "./routes/update-check.ts"; import { createTimeZoneRoutes } from "./routes/time-zone.ts";
 import { createBrowserSiteRoutes } from "./routes/browser-sites.ts";
 import { createInternalSignInRoutes } from "./routes/sign-in.ts";
@@ -622,10 +618,10 @@ import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
 import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_LANGUAGE_NOTE, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
-import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { OUTSIDE_REFUSAL, outsideRouteRefused } from "./host/outside-fence.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
+import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 
 import { createDevsReports } from "./host/devs-reports.ts"; import { bugReportEndpoint, devsReportSender, devsStatusAsker } from "./devs-report-send.ts"; import { captureRecentLog } from "./recent-log.ts"; import { createShareAnswer } from "./host/share-answer.ts";
-import { createCardRequester, linePersonKey } from "./host/thread-person.ts"; import { DELIVER_REPORTS_REFUSAL, selfThreadRefusal } from "./host/self-threads.ts"; import { lookedAfterBy } from "./host/looked-after.ts"; import { createActingPeople, HANDED_PEOPLE_FILE, HandedPeople, type HandedRun, withPerson } from "./host/acting-person.ts";
+import { createCardRequester, linePersonKey } from "./host/thread-person.ts"; import { DELIVER_REPORTS_REFUSAL, selfThreadRefusal } from "./host/self-threads.ts"; import { createActingPeople, HANDED_PEOPLE_FILE, HandedPeople, type HandedRun, withPerson } from "./host/acting-person.ts";
 import { createThreadRoutes } from "./routes/threads.ts";
 import { createWebhookRoutes } from "./routes/webhooks.ts";
 import { withScopeHint } from "./connector-scope-hint.ts";
@@ -701,7 +697,6 @@ const onePassword = new OnePasswordLogins({
 if (logins.onePasswordToken()) void onePassword.refresh();
 const botLogins = new BotLogins(logins, onePassword);
 const SESSION_COOKIE = sessionCookieName(PORT, ENVIRONMENT_ID);
-const HOSTED_WORKSPACE = false;
 let workspaceAccess: WorkspaceAccess | null = null;
 const DESKTOP_MANAGED = process.env.OMB_DESKTOP_PARENT === "1";
 const sharedWorkspaceFullAccessEnabled = () => false;
@@ -762,7 +757,6 @@ registerEnginesBinDir();
 
 // Set only when a turn is admitted, never on queue or steer, so a second person's words cannot re-book the first person's turn.
 const turnTriggers = new Map<string, UsageTrigger>();
-const NOBODY_PROFILE: MemberProfile = { name: "", email: "", aboutMe: "" };
 
 /** What a signed-in person is called on their lines, cards and reactions: their address or device label, and on a Team
  * Cloud the name they chose first. */
@@ -904,9 +898,6 @@ function cloudOwnerPerson(person: string | undefined): boolean {
   return person ? cloudOwnerDevice(person) : false;
 }
 
-function cloudProvenOwnerPerson(person: string | undefined): boolean {
-  return person ? cloudOwnerDevice(person) : false;
-}
 
 function cloudOwnerDevice(person: string): boolean {
   return sessions.list().some((session) => session.scopes.includes("admin") && personKey(session) === person);
@@ -969,20 +960,12 @@ function cardAnswererFor(auth: RequestAuth): CardAnswerer {
     person: actorKey(auth) };
 }
 
-/** The answer reaches the turn before `answeredBy` is written, so a lending turn reads its answerer here. */
-const cloudCardAnswersInFlight = new Map<string, string | undefined>();
-
-function cloudCardAnswerer(card: { requestId?: string; answeredBy?: { kind: string; person?: string } }): string | undefined {
-  if (card.answeredBy) return card.answeredBy.kind === "session" ? card.answeredBy.person : undefined;
-  return card.requestId ? cloudCardAnswersInFlight.get(card.requestId) : undefined;
-}
 
 async function answeringCardAs(auth: RequestAuth, threadId: string, requestId: string, work: () => Promise<unknown>, via?: DecisionVia): Promise<void> {
   const open = (() => {
     const card = store.messagesFor(threadId).find((message) => message.card?.requestId === requestId)?.card;
     return Boolean(card && !card.answered && !card.dismissed && !card.expired);
   })();
-  if (open) cloudCardAnswersInFlight.set(requestId, auth.kind === "session" ? actorKey(auth) : auth.trust === "service" ? NOT_THE_OWNER : undefined);
   try {
     await withDecisionActor(decisionActorFor(auth), work, via);
   } finally {
@@ -991,7 +974,6 @@ async function answeringCardAs(auth: RequestAuth, threadId: string, requestId: s
     if (message && card && !card.answeredBy && card.answered !== "unavailable" && (card.answered || card.dismissed)) {
       store.patchMessage(threadId, message.id, { card: { ...card, answeredBy: { ...cardAnswererFor(auth), ...(via ? { via } : {}) } } });
     }
-    if (open) cloudCardAnswersInFlight.delete(requestId);
   }
 }
 
@@ -2226,7 +2208,7 @@ function cancelDirectTurnDispatch(botId: string, expectedThreadId?: string): Dir
 const {
   browserRuntime, browserLive, usedBrowserSessions, browserSweep, temporaryBrowserSessions,
   currentBrowserSession, forgetTemporaryBrowser, myChromeAvailable, usesMyChrome, lentChromeSummary, browserSessionSpec, browserIntegration,
-  browserReady, currentBrowserSpec, loginInput, browserSystemPrompt, closeBrowser, browserEngineSwitched, eraseDeletedBrowser, engineSummary, browserSessionsOf, signedInSitesTarget, uploadPaths, eraseAudienceBrowsers,
+  browserReady, currentBrowserSpec, loginInput, browserSystemPrompt, closeBrowser, browserEngineSwitched, eraseDeletedBrowser, engineSummary, browserSessionsOf, signedInSitesTarget, uploadPaths,
 } = createBrowserHost({ cfg, store: () => store, turnResources, activeInternalGenerationByThread, mintInternalCapability, DESKTOP_MANAGED, PORT, engineMemory, audienceOf: () => "team" });
 
 const dataSheets = new DataSheetRegistry({
@@ -4603,11 +4585,6 @@ function broadcast(payload: Record<string, unknown>, options: { adminOnly?: bool
   }
 }
 
-/** A Team Cloud's config frame is each person's own: it carries their profile as "you". */
-function teamConfigFrame(client: SseClient, seq: number, payload: Record<string, unknown>): string {
-  const own = configForAccess(payload as ReturnType<typeof configStatus>, client.admin, client.person);
-  return `id: ${STREAM_ID}:${seq}\ndata: ${JSON.stringify({ ...own, seq })}\n\n`;
-}
 
 const streamFor = (client: SseClient, person: string | undefined) => !person || (client.person !== undefined && personKey(client.person) === person);
 
@@ -8909,8 +8886,6 @@ const routineRequests = new RoutineRequestService({
     return null;
   },
 });
-const memberOwnBot = createMemberOwnBot({ store: () => store, routines: () => routines, activeGroupTurnForBot, cancelGroupTurnOperations, revokeInternalCapabilitiesForThread, interruptAllDirectThreads,
-  interruptTurn: (bot, threadId) => runningTurnInstance(bot, threadId)?.adapter.interruptTurn(threadId), closeOpenApprovals, deleteBot: (botId) => deleteBotWithLifecycle(botId) });
 
 async function deleteBotWithLifecycle(botId: string, revalidate: () => void = () => {}, setupRequest?: TeamSetupRequest) {
   const deletionResponse = (status: number, body: { error?: string; ok?: boolean; notice?: string }) => ({ status, body });
@@ -11366,7 +11341,7 @@ function browserPromptFor(bot: { id: string; browserProfile?: string }, agentsMo
 }
 
 /** Null while the browser engine is not installed. */
-async function botBrowserTarget(bot: BotRecord, threadId: string): Promise<{ session: string; spec: { command: string; env: Record<string, string> }; env: NodeJS.ProcessEnv } | null> {
+async function botBrowserTarget(bot: BotRecord): Promise<{ session: string; spec: { command: string; env: Record<string, string> }; env: NodeJS.ProcessEnv } | null> {
   const target = await currentBrowserSpec(bot.id, bot.browserProfile, "team");
   return target && { ...target, env: browserRuntimeEnv({ ...target.spec.env, AGENT_BROWSER_SESSION: target.session }) };
 }
@@ -11541,7 +11516,7 @@ function configStatus() {
 }
 
 /** `session`: who is asking. On a Team Cloud the profile is theirs alone, never the server's. */
-function configForAccess(status: ReturnType<typeof configStatus>, admin: boolean, session?: SessionRecord | null) {
+function configForAccess(status: ReturnType<typeof configStatus>, admin: boolean) {
   const profile: MemberProfile = status.profile;
   if (admin) return status;
   // Client sessions get configured-or-not only: no SSH alias, email, browser partition id or sign-in list.
@@ -11803,7 +11778,6 @@ const workspaceBackupAccess = {
 const workspaceCopyAccess = { dataDir: DATA_DIR, appVersion: serverVersion(), readBody, restored: workspaceRestore, ...workspaceBackupAccess };
 const workspaceBackupRoutes = createWorkspaceBackupRoutes(workspaceCopyAccess);
 let restartRequested = false;
-const cloudMoveRoutes = createCloudMoveRoutes();
 
 // `workspaceAccess` is assigned at boot, after this line: read it per request.
 ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: () => Boolean(workspaceAccess) && entitled("admin") })); ROUTES.push(createStopLineRoutes());
@@ -12077,7 +12051,7 @@ const postiz = createPostiz({ cfg: () => cfg, mcpOAuth, persistMcpServers: persi
   providerConfigBusy: { get: () => providerConfigBusy, set: (busy) => { providerConfigBusy = busy; } },
   computerProviderConfigTransitions, managedBoatOwners, providerOperationConflict, perBotLocalVmCountForModeChange,
   checkedModelSelection, policyModelRefusal, browserSessionSpec, configStatus,
-  configForAccess: (status, auth) => configForAccess(status as ReturnType<typeof configStatus>, auth.scopes.includes("admin"), auth.kind === "session" ? auth.session : null),
+  configForAccess: (status, auth) => configForAccess(status as ReturnType<typeof configStatus>, auth.scopes.includes("admin")),
   resyncOpenCodeProviderKeys, revokeEngineCapabilities, reloadProviders, broadcast, drainQueuedSends, postiz,
 }));
 ROUTES.push(createInstanceRoutes({
@@ -12345,8 +12319,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         console.warn(`pairing refused from ${requestSource(req)}: ${result.error}`);
         return json(res, result.status, { error: result.error });
       }
-      if (CLOUD_TEAM) teamHost.met(result.session);
-      const environment = environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED, emailSignIn: !CLOUD_HOME && emailSignIn.enabled(), sharedComputers: lendingEnabled(), cloudHome: Boolean(CLOUD_HOME), cloudTeam: CLOUD_TEAM !== null, ownHome: ownHome.takesMove() });
+      const environment = environmentDescriptor({ environmentId: ENVIRONMENT_ID, ...TEAM_LABEL, desktopManaged: DESKTOP_MANAGED, emailSignIn: emailSignIn.enabled(), sharedComputers: lendingEnabled(), cloudHome: false, cloudTeam: false, ownHome: ownHome.takesMove() });
       if (wantsCookie) {
         const previous = browser ? sessions.authenticate(parseCookies(req.headers.cookie).get(SESSION_COOKIE)) : null;
         if (previous && previous.id !== result.session.id) sessions.revoke(previous.id);
@@ -13070,8 +13043,6 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         }
         const proposedInput = { ...request.proposal, forBot };
         if (proposedInput.action !== "create" && proposedInput.action === "update" && outsideWorkStaysHere(fromThreadId) && !outsideLineage.routineRunsConfined(String(proposedInput.routineId))) return json(res, 403, { error: OUTSIDE_STAYS_HERE });
-        const wasOwners = proposedInput.action !== "create" && typeof proposedInput.routineId === "string" ? cloudRoutineIsOwners(proposedInput.routineId) : false;
-        const run = activeRoutineRunForThread(fromThreadId);
         const proposed = await routineRequests.submit({
           botId: from.id,
           threadId: fromThreadId,

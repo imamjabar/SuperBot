@@ -10,11 +10,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { WireMessage as Message } from "../shared/wire.ts";
 import type { AppConfig } from "./config.ts";
-import type { McpServerSpec } from "./contracts.ts";
 import { createMcpSignInCards, isCardOwnerLive } from "./host/mcp-sign-in-cards.ts";
 import { resumableCards } from "./host/resumable-cards.ts";
 import { McpOAuthManager, type McpSignInPhase } from "./mcp-oauth.ts";
-import { personKey } from "./person-key.ts";
 import type { RequestAuth } from "./request-auth.ts";
 import { createInternalMcpRoutes, type InternalMcpDeps } from "./routes/internal-mcp.ts";
 import type { RouteContext } from "./routes/table.ts";
@@ -22,18 +20,6 @@ import type { Scope, SessionRecord } from "./sessions.ts";
 import { startFakePostiz, type FakePostiz } from "./testing/fake-postiz.ts";
 
 const SIGN_IN_PAGE = "https://postiz.example";
-const OLIVE = personKey({ id: "", email: "olive@acme.test" });
-const ADA = personKey({ id: "", email: "ada@acme.test" });
-const CLEO = personKey({ id: "", email: "cleo@acme.test" });
-/** Olive owns the team; Ada and Cleo are Users. */
-const ROSTER = [
-  { person: OLIVE, email: "olive@acme.test", role: "owner" as const },
-  { person: ADA, email: "ada@acme.test", role: "member" as const },
-  { person: CLEO, email: "cleo@acme.test", role: "member" as const },
-];
-/** Ada's private chat, where her turns act for her, and the bot's main chat, where Olive's do. */
-const AUDIENCES: Record<string, string> = { "ada-chat": `member:${ADA}` };
-const REQUESTER: Record<string, string> = { "ada-chat": ADA, "main-chat": OLIVE };
 const DESKTOP: RequestAuth = { kind: "loopback", scopes: ["admin", "client"] };
 const ON_THE_MAC = { host: "127.0.0.1:8799" };
 const NOT_SIGNED_IN = "The person didn't sign in. The server stays on but signed out.";
@@ -379,7 +365,6 @@ describe("the Sign in card", () => {
 
   it("the next turn after sign-in has the server's tools", async () => {
     const f = await setup();
-    const kiwi = { id: "kiwi", name: "Kiwi" };
     f.mcpOAuth.markNeedsSignIn("linear", f.url);
     expect(f.mcpOAuth.authState("linear", f.url)).toBe("none");
     const { card } = await f.signIn();

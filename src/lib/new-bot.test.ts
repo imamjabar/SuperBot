@@ -34,7 +34,7 @@ function server(answer: Partial<BotDefaultsAnswer> = {}, fail?: { on: "POST" | "
 
 async function newBot(request: never, action: Partial<Extract<Action, { type: "newBot" }>> = {}, bots: Bot[] = []) {
   const dispatch = vi.fn<(action: Action) => void>();
-  await makeNewBot({ type: "newBot", ...action }, bots, dispatch, false, request);
+  await makeNewBot({ type: "newBot", ...action }, bots, dispatch, request);
   return dispatch.mock.calls.map(([sent]) => sent);
 }
 

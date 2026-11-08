@@ -15,7 +15,6 @@ import {
   accountLabel,
   toolMenuItems,
   type PlanUsageWindows,
-  selectPhoneDestination,
   profileLabel,
   updateBusy,
   updateNoteworthy,
@@ -27,7 +26,6 @@ import { profileForSession } from "@/lib/session";
 import {
   connectPhoneEntry,
   phoneDestinations,
-  phonePairingSettingsAction,
   type PhonePairingAccess,
   type PhonePairingTarget,
 } from "@/lib/phone-pairing";

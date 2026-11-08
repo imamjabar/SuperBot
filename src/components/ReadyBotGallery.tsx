@@ -26,7 +26,7 @@ export function ReadyBotGallery({ search, onDialog, onAdded }: {
   onAdded: (bot: Bot) => void;
 }) {
   const [category, setCategory] = useState<ReadyBotCategory | null>(null);
-  const { state, dispatch } = useStore();
+  const { dispatch } = useStore();
   const [adding, setAdding] = useState<string | null>(null);
   const open = (id: string | null) => {
     // A paired device may not read the host's New bot defaults that the review is filled from.

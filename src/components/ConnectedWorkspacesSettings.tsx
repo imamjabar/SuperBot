@@ -8,9 +8,6 @@ import { sharedComputersEnabled } from "@/lib/feature-flags";
 import { productName } from "@/lib/brand";
 
 type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["ogb"]>["environments"]>["state"]>>;
-type SavedEntry = SavedWorkspaces["environments"][number] | { id: string; name: string; origin: string; color: undefined };
-
-/** My Cloud, or another Cloud of the person's own: this computer is lent to it by itself, never through Computer access. */
 
 export function ConnectedWorkspacesSettings() {
   const bridge = window.ogb?.environments;

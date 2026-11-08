@@ -1,10 +1,10 @@
 import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FileStamp, PageResult, ProcessEntry } from "./wait-probes.ts";
-import { describeCondition, WAIT_WAKE_MS, WaitManager, waitList, type NewWaitCondition, type WaitManagerOptions, type WaitNotice, type WaitRecord } from "./waits.ts";
+import { describeCondition, WaitManager, waitList, type NewWaitCondition, type WaitManagerOptions, type WaitNotice, type WaitRecord } from "./waits.ts";
 
 const T0 = 1_800_000_000_000;
 const dirs: string[] = [];

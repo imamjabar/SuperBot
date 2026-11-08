@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { cloudHomeLendingRefusal, createCloudRoutineAuthors, type CloudLendingTurn } from "../phones/owner.ts";
+import { cloudHomeLendingRefusal, createCloudRoutineAuthors } from "../phones/owner.ts";
 import { personKey } from "../person-key.ts";
 import type { PhoneBot, PhonePlace } from "../phones/access.ts";
 import { createPhoneHost } from "../phones/host.ts";

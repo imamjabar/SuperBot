@@ -46,7 +46,6 @@ export function usePlaceMenuItem({ bot, task, disabled = false, onPin }: {
   disabled?: boolean;
   onPin: (surface: Place | null) => void;
 }): SidebarMenuItem {
-  const { state } = useStore();
   const places = usePlaceViews(bot);
   const effective = effectivePlace(bot, task);
   const pin = personPin(task);
@@ -104,7 +103,6 @@ export function PlaceChip({ bot, task, live, disabled = false, onPin }: {
   const [open, setOpen] = useState(false);
   const motion = useMenuMotion(open);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { state } = useStore();
   const places = usePlaceViews(bot);
   const effective = effectivePlace(bot, task);
   const pin = personPin(task);

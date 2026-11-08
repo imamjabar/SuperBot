@@ -12,7 +12,6 @@ import type { LocaleKey } from "@/locales";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { announceNewBot, startingTemplate, type BotDefaultsAnswer } from "@/lib/new-bot";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { visibilityFromForm, type VisibilityMode } from "./bot-settings/VisibilitySection";
 import type { Routine } from "@/lib/routines";
 import { IdentitySection } from "./bot-settings/IdentitySection";
@@ -60,7 +59,6 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
   const [audience, setAudience] = useState<VisibilityMode>("everyone");
   const [people, setPeople] = useState("");
   const ownerOrAdmin = useOwnerOrAdmin();
-  const showThreads = useShowThreads();
   const sections = useAdvancedMode() ? SECTIONS : SECTIONS.filter((section) => section !== "Model");
   const choosesVisibility = !defaultsMode && typeof window !== "undefined" && !window.ogb && ownerOrAdmin === true;
   const dialog = useRef<HTMLDivElement>(null);
@@ -115,7 +113,7 @@ export function NewBotDialog({ defaultsMode = false, onClose, onCreated, readyBo
       if (defaultsMode) await api("/api/config", { method: "PATCH", body: JSON.stringify({ newBotDefaults: await preparedBotTemplate(draft) }) });
       else {
         const { bot, warnings } = await createConfiguredBot(draft, undefined, undefined, undefined, visibility?.ok ? visibility.visibility : undefined);
-        announceNewBot(parent.dispatch, bot, warnings, { showThreads, source: draft.preset ? "preset" : draft.role ? "template" : "blank", role: draft.role });
+        announceNewBot(parent.dispatch, bot, warnings, { source: draft.preset ? "preset" : draft.role ? "template" : "blank", role: draft.role });
         try { await onCreated?.(bot); }
         catch (cause) { parent.dispatch({ type: "error", message: cause instanceof Error ? cause.message : String(cause) }); }
       }

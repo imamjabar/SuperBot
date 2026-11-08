@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { activeLocale, t } from "@/lib/i18n";
 import { engineSignedOut } from "@/lib/failed-turn";
 import { browserAvailable, builtInBrowserEnabled, type FeatureFlagConfig } from "@/lib/feature-flags";

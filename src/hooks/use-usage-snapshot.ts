@@ -3,11 +3,11 @@ import { preloadConnectedApps } from "@/lib/connected-apps";
 import { localDesktopPage } from "@/components/onboarding/WelcomeGate";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { sendDailySnapshot, SNAPSHOT_CHECK_MS, snapshotReady, type UsageSources } from "@/lib/usage-snapshot";
-import { api, useStore, type ConfigStatus } from "@/state/store";
+import { api, useStore } from "@/state/store";
 
 type CompanionDevices = { state(): Promise<{ devices?: unknown }> };
 
-function browserSources(config: ConfigStatus | null): UsageSources {
+function browserSources(): UsageSources {
   const ogb = window.ogb;
   const remoteClient = ogb?.remoteClient?.active === true;
   const local = !remoteClient && localDesktopPage();
@@ -33,7 +33,7 @@ export function useUsageSnapshot(): void {
   const ready = owner === true && snapshotReady(state, window.ogb?.remoteClient?.active !== true);
   useEffect(() => {
     if (!ready) return;
-    const check = () => void sendDailySnapshot(latest.current, browserSources(latest.current.config));
+    const check = () => void sendDailySnapshot(latest.current, browserSources());
     check();
     const timer = setInterval(check, SNAPSHOT_CHECK_MS);
     return () => clearInterval(timer);

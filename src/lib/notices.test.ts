@@ -3,7 +3,7 @@ import { EMPTY_ONBOARDING, type OnboardingStatus } from "@/lib/onboarding";
 import { withTourReset } from "@/lib/guided-tour";
 import { DESKTOP_NOTICES } from "../../electron/desktop-prefs.mjs";
 import { dismissNotice, GROK_MOVE_NOTICE, launchNotice, markLaunchNotice, nextNotice, noticeSeen,
-  NOTICES, SIMPLE_MODE_NOTICE, type NoticeFacts } from "./notices";
+  SIMPLE_MODE_NOTICE, type NoticeFacts } from "./notices";
 
 let storage: Map<string, string>, session: Map<string, string>;
 beforeEach(() => {

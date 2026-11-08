@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { markedThread, openBotRow, openRoomThread } from "./thread-navigation";
 
 type Task = { threadId: string; activity?: string; unread?: boolean; busy?: boolean; routineRunId?: string; archivedAt?: number; createdAt?: number; updatedAt?: number };

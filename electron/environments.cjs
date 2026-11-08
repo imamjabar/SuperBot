@@ -15,8 +15,6 @@ const cleanCloud = (value) => (value && typeof value === "object" && typeof valu
   ? { id: value.id, role: value.role } : null);
 /** A place the Admin lists and removes: a team's Cloud, or another Cloud of the person's own. */
 const listedPlace = (entry) => Boolean(entry?.team || entry?.cloud);
-/** My Cloud first, then each Cloud and team, then saved servers. */
-const placeRank = (entry, homeOrigin) => (entry.origin === homeOrigin ? 0 : listedPlace(entry) ? 1 : 2);
 
 function normalizeOrigin(input) {
   if (typeof input !== "string") return null;
@@ -133,21 +131,6 @@ function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, iconFor =
   ];
 }
 
-function homeMenuTemplate(state, { onSwitch, onForget, sublabels, iconFor, foldSublabels, homeOrigin }) {
-  const active = activeEnvironment(state);
-  const places = state.environments.filter((entry) => entry.kind !== "local").sort((a, b) => placeRank(a, homeOrigin) - placeRank(b, homeOrigin));
-  return [
-    ...places.map((entry) => {
-      const icon = iconFor && cleanColor(entry.color) ? iconFor(entry.color) : null;
-      const status = Object.hasOwn(sublabels, entry.id) ? sublabels[entry.id] : entry.team ? teamRoleLabel(entry.team.role) : null;
-      return {
-        id: `workspace-${entry.id}`, label: foldSublabels && status ? `${entry.name} · ${status}` : entry.name, sublabel: status ?? new URL(entry.origin).host,
-        ...(icon ? { icon } : {}), type: "radio", checked: entry.id === state.activeId, click: () => onSwitch(entry.id),
-      };
-    }),
-    ...(active && active.origin !== homeOrigin && !listedPlace(active) ? [{ type: "separator" }, { id: "workspace-forget", label: `Forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
-  ];
-}
 
 /** Places besides My Cloud the window can show once My Cloud is home: teams' Clouds and saved self-hosted servers. */
 function otherPlaces(state, homeOrigin) {

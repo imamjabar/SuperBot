@@ -20,7 +20,6 @@ export type ChatHeadPrivacy = { kind: "private" } | { kind: "ownHelper" } | { ki
 const PRIVACY_ICONS = { private: Lock, ownHelper: UserRound, shared: Users } as const;
 
 function privacyLabelOf(_privacy: ChatHeadPrivacy): string | null { return null; }
-}
 
 /** Simple mode's whole chat header: the bot's face and name in one pill, which opens and closes the bot panel. Away from
  * the bot's main conversation it also names the one on screen. A dot says another of the bot's conversations needs a
