@@ -1,4 +1,3 @@
-import { hostedWorkspaceConfiguration } from "../enterprise.ts";
 import { runsElsewhere, type McpConfig, type McpConfigDeps, type McpConfigResult } from "../host/mcp-config.ts";
 import { McpOAuthError, McpSignInError, mcpCallbackOrigin } from "../mcp-oauth.ts";
 import { isRemoteMcpServer, mcpServerBody, mcpServerServes, parseMcpServerMutation, parseMcpServersImport, parseStoredMcpServer } from "../mcp-registry.ts";
@@ -7,7 +6,6 @@ import { toolBudgetOf } from "../tool-budgets.ts";
 import { isLoopbackHost, isProxied, provesSameOrigin, requestOrigin } from "../request-auth.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 import type { json } from "../harness/http.ts";
-import { sessionMember } from "./team-phone.ts";
 
 type ListedMcpServer = { name: string; enabled: boolean; bot?: string; offFor?: readonly string[] };
 
@@ -22,7 +20,7 @@ function botMcpServers(listed: readonly ListedMcpServer[], bot: { id: string; mc
   }));
 }
 
-export interface McpServerRouteDeps extends Pick<McpConfigDeps, "cfg" | "sessions" | "mcpOAuth" | "teamConnections" | "cloudHome" | "fallbackPublicUrl" | "savedCustomDomain" | "appCatalog"> {
+export interface McpServerRouteDeps extends Pick<McpConfigDeps, "cfg" | "sessions" | "mcpOAuth" | "fallbackPublicUrl" | "savedCustomDomain" | "appCatalog"> {
   config: McpConfig;
   bot(id: string): { id: string; mcpServers?: readonly string[] | null } | null;
   /** Secrets as booleans, sign-in state attached. */
@@ -34,18 +32,17 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
     const hasApps = deps.appCatalog?.hasApps;
     const servers = (body as { servers?: unknown }).servers;
     if (!Array.isArray(servers)) return body;
-    const personal = deps.teamConnections.personMcp();
     return {
       ...body,
       servers: servers.map((server: { name?: unknown }) => {
         const known = typeof server?.name === "string" ? hasApps?.(server.name) : undefined;
-        return { ...server, scope: typeof server.name === "string" && personal.includes(server.name) ? "person" : "team",
+        return { ...server, scope: "team",
           ...(known === undefined ? {} : { hasApps: known }) };
       }),
     };
   };
   const {
-    cfg, sessions, mcpOAuth, cloudHome: CLOUD_HOME, fallbackPublicUrl: FALLBACK_PUBLIC_URL,
+    cfg, sessions, mcpOAuth, fallbackPublicUrl: FALLBACK_PUBLIC_URL,
     mcpServerResponse, savedCustomDomain, config,
   } = deps;
   const answer = (res: Parameters<typeof json>[0], send: typeof json, result: McpConfigResult) => "body" in result
@@ -80,10 +77,7 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
         const name = mcpTest[1]!;
         const result = await config.test(name, {
           signal: controller.signal,
-          person: (url) => {
-            const member = auth.kind === "session" ? sessionMember(auth.session) : null;
-            return member ? deps.teamConnections.people.connection(personKey({ id: "", email: member.member.email }), name, url) : null;
-          },
+          person: () => null,
         });
         return answer(res, json, result);
       } finally {
@@ -128,7 +122,7 @@ export function createMcpServerRoutes(deps: McpServerRouteDeps): RouteHandler {
           const remote = auth.kind === "session" && (isProxied(req) || !isLoopbackHost(req.headers.host));
           const origin = remote
             ? mcpCallbackOrigin(provesSameOrigin(req) ? requestOrigin(req) : null,
-              [CLOUD_HOME?.publicOrigin, hostedWorkspaceConfiguration()?.tenant.origin, savedCustomDomain(), FALLBACK_PUBLIC_URL])
+              [savedCustomDomain(), FALLBACK_PUBLIC_URL])
             : null;
           const started = await mcpOAuth.start(name!, url, undefined, owner, { remote, origin });
           if (auth.kind === "session" && !sessions.isLive(auth.session.id)) {

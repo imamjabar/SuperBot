@@ -4,7 +4,6 @@ import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FileStamp, PageResult, ProcessEntry } from "./wait-probes.ts";
-import { CLOUD_IDLE_AWAKE_MS, createCloudPower } from "./cloud-power.ts";
 import { describeCondition, WAIT_WAKE_MS, WaitManager, waitList, type NewWaitCondition, type WaitManagerOptions, type WaitNotice, type WaitRecord } from "./waits.ts";
 
 const T0 = 1_800_000_000_000;
@@ -273,22 +272,6 @@ describe("WaitManager", () => {
     expect(h.posts).toEqual([{ status: "fired", text: "the shoes: done. https://shop.test/ no longer says “sold out”." }]);
   });
 
-  it("lets a sleeping Cloud sleep while a wait is open and wake for it 30 minutes on, not at a page's next minute", async () => {
-    const h = harness();
-    expect(h.manager.nextWakeAt()).toBeNull();
-    h.page = { ok: true, text: "building" };
-    await h.create({ kind: "url_contains", url: "https://x.test/", text: "shipped" });
-    const idle = () => false;
-    const power = createCloudPower({ dataDir: dirname(h.file), now: h.now, broadcast: () => {}, probes: {
-      turn: idle, run: idle, liveCall: idle, computer: idle, maintenance: idle, nextDueAt: () => h.manager.nextWakeAt(),
-    } });
-    try {
-      for (let left = CLOUD_IDLE_AWAKE_MS; left > 0; left -= 5_000) { h.advance(5_000); power.tick(); }
-      expect(power.prepareSleep()).toEqual({ ok: true, nextDueAt: h.now() + WAIT_WAKE_MS });
-    } finally { power.close(); }
-    h.page = { ok: true, text: "shipped" }; h.advance(60_000); await h.manager.tick();
-    expect([h.posts.length, h.manager.nextWakeAt()]).toEqual([1, null]);
-  });
 
   it("never fetches two pages at once, even for concurrent creates", async () => {
     const h = harness();

@@ -105,8 +105,7 @@ export function createComputerSharing(options: {
   /** Signs this app back in to the person's own Cloud after its session there ended; true when it did. */
   reconnect?: ((origin: string) => Promise<boolean> | boolean) | null;
   now?: () => number;
-  /** My Cloud's power gate: lending to it waits, calling nothing, while it sleeps. */
-  power?: import("./cloud-power.mjs").CloudPowerGate;
+  power?: unknown;
   /** `busy.action` is "internet" while a Cloud's browsing goes through this computer. */
   onChange?: (summary: LendingSummary) => void;
   /** The device link's sign-in for My Cloud, as the poll's fetch carries it (its session cookie). */

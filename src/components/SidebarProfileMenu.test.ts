@@ -25,20 +25,15 @@ import {
 import { ANDROID_APK_URL, DOCS_URL, FEEDBACK_URL, HELP_CENTER_URL, IOS_APP_STORE_URL, platformLabel } from "@/lib/app-links";
 import { profileForSession } from "@/lib/session";
 import {
-  cloudPhoneDestination,
   connectPhoneEntry,
   phoneDestinations,
   phonePairingSettingsAction,
   type PhonePairingAccess,
   type PhonePairingTarget,
 } from "@/lib/phone-pairing";
-import type { CloudAccountState } from "../../electron/cloud-account.mjs";
-import type { CloudMachine } from "../../electron/cloud-home.mjs";
 import { PHONE_APPS, PhoneAppDialog, type PhoneAppConnect } from "./PhoneAppDialog";
 import type { UpdaterState } from "@/lib/updater";
 import type { SidebarMenuItem } from "./SidebarPopoverMenu";
-import { moveMenuItems } from "./AccountMove";
-import { moveLine } from "@/lib/cloud-send";
 import { InitialsAvatar } from "./Avatar";
 
 const state = (patch: Partial<UpdaterState>): UpdaterState => ({ status: "idle", ...patch }) as UpdaterState;
@@ -214,9 +209,9 @@ describe("the phone entries", () => {
   const paid = (tier: string, machine?: CloudMachine): CloudAccountState => ({ ...signedIn, entitlement: { plan: "pro", tier, status: "active", expiresAt: null, version: 1 }, ...(machine ? { machine } : {}) });
   const ready: CloudMachine = { status: "ready", origin: "https://home-7f3k2.fly.dev" };
   const free: CloudAccountState = { ...signedIn, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
-  const items = (target: PhonePairingTarget, access: PhonePairingAccess | null, account: CloudAccountState | null = null, connected = false) => {
+  const items = (target: PhonePairingTarget, access: PhonePairingAccess | null, _account = null, connected = false) => {
     const onConnect = vi.fn(), onGetApp = vi.fn();
-    const destinations = phoneDestinations(connectPhoneEntry(target, access), cloudPhoneDestination(account));
+    const destinations = phoneDestinations(connectPhoneEntry(target, access));
     return { list: phoneMenuItems({ destinations, connected, onConnect, onGetApp }), onConnect, onGetApp };
   };
   const shown = (...args: Parameters<typeof items>) => items(...args).list.map((item) => [item.label, item.subtitle ?? null, ...(item.note ? [item.note] : [])]);
@@ -295,36 +290,6 @@ describe("the phone entries", () => {
   });
 });
 
-describe("choosing where the phone connects", () => {
-  const destinations = (account: CloudAccountState | null) => phoneDestinations(connectPhoneEntry("computer", null), cloudPhoneDestination(account));
-  const readyCloud: CloudAccountState = { status: "connected", entitlement: { plan: "pro", status: "active", expiresAt: null, version: 1 }, machine: { status: "ready", origin: "https://home-7f3k2.fly.dev" } };
-  const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
-
-  it("to My Cloud opens the Cloud on its phone pairing, as Use the Cloud on your phone does, sending nothing", async () => {
-    const bridge = { connectHomeForPhone: vi.fn().mockResolvedValue({ status: "connected" }) };
-    const dispatch = vi.fn();
-    selectPhoneDestination(destinations(readyCloud)[0]!, { bridge, dispatch });
-    await flush();
-    expect(bridge.connectHomeForPhone).toHaveBeenCalledExactlyOnceWith();
-    expect(dispatch).not.toHaveBeenCalled();
-  });
-
-  it("when the Cloud cannot be opened, lands on Settings → MausBot Cloud, which says what to do", async () => {
-    const bridge = { connectHomeForPhone: vi.fn().mockRejectedValue(new Error("offline")) };
-    const dispatch = vi.fn();
-    selectPhoneDestination(destinations(readyCloud)[0]!, { bridge, dispatch });
-    await flush();
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
-  });
-
-  it("to this computer opens this computer's phone pairing and never touches the Cloud", () => {
-    const bridge = { connectHomeForPhone: vi.fn() };
-    const dispatch = vi.fn();
-    selectPhoneDestination(destinations(readyCloud)[1]!, { bridge, dispatch });
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith(phonePairingSettingsAction());
-    expect(bridge.connectHomeForPhone).not.toHaveBeenCalled();
-  });
-});
 
 describe("Get the phone app", () => {
   it("offers iPhone and Android with the links the website and Cloud page use", () => {
@@ -516,37 +481,6 @@ describe("Simple mode's account menu", () => {
     expect(accountDot({ automationsNeedYou: false, update: "news", move: "sending" })).toBe("accent");
   });
 
-  it("puts the move's row first, in its own group, above a raised update", () => {
-    const move = [{ key: "cloud-move", label: "Try My Cloud move again", title: "My Cloud did not answer.", onSelect: noop }];
-    const update = { key: "update", label: "OpenMausBot 0.2.0 ready, restart", onSelect: noop };
-    expect(groups(build({ move }))).toEqual([
-      ["cloud-move"],
-      ["usage", "phone-app", "support", "settings"],
-      ["automations", "team-map"],
-      ["place", "switch-place", "account"],
-    ]);
-    expect(groups(build({ move, update, updateTop: { label: "Update ready", action: "Restart" } })).slice(0, 2)).toEqual([["cloud-move"], ["update"]]);
-    expect(groups(build({ move: [] }))[0]).toEqual(["usage", "phone-app", "support", "settings"]);
-  });
-
-  it("gives a moving move one row shaped like Usage and Settings, and a failing one the reason written under its Try again", () => {
-    const shape = (item: SidebarMenuItem) => ({ lines: [item.subtitle, item.note].filter(Boolean).length, wrap: item.wrap === true, icon: Boolean(item.icon) });
-    const failing = moveMenuItems(moveLine({ phase: "copy", failing: { error: "Some of this computer's things did not reach My Cloud." } }, "local"), { onOpen: noop, onRetry: noop, onClose: noop });
-    const moving = moveMenuItems(moveLine({ phase: "copy", chats: { done: 34, total: 120 } }, "local"), { onOpen: noop, onRetry: noop, onClose: noop });
-    const items = build({ move: moving });
-    expect(groups(items)[0]).toEqual(["cloud-move"]);
-    expect(shape(items[0]!)).toEqual(shape(items.find((item) => item.key === "settings")!));
-    const failed = build({ move: failing });
-    expect(groups(failed)[0]).toEqual(["cloud-move"]);
-    expect(shape(failed[0]!)).toEqual({ lines: 1, wrap: true, icon: true });
-    expect(failed[0]!.note).toBe("Some of this computer's things did not reach My Cloud.");
-  });
-
-  it("puts the move's row first in Advanced's account menu too, under its own divider", () => {
-    const move = [{ key: "cloud-move", label: "Moving to My Cloud…", title: "Moving your bots to My Cloud… 34 of 120 chats", onSelect: noop }];
-    expect(groups(build({ simple: undefined, move }))).toEqual([["cloud-move"], ["usage", "phone-app", "support", "settings", "update"], ["account"]]);
-    expect(groups(build({ simple: undefined }))).toEqual([["usage", "phone-app", "support", "settings", "update"], ["account"]]);
-  });
 
   it("draws a person instead of a question mark for someone with no name, at the trigger's own size", () => {
     const glyph = createElement("svg", { "data-glyph": "" });

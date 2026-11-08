@@ -1,8 +1,7 @@
 import { useState } from "react";
-import type { CloudSwatch } from "../../electron/cloud-list.mjs";
 import type { PlaceColorOutcome } from "../../electron/place-look.mjs";
 import { t } from "@/lib/i18n";
-import { choosePlaceColor, usePlaceLook } from "@/lib/place-look";
+import { choosePlaceColor, usePlaceLook, type PlaceSwatch } from "@/lib/place-look";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useStore } from "@/state/store";
 import { PlacePicture } from "./PlacePicture";
@@ -18,10 +17,10 @@ export function PlaceLookRows() {
   const { state } = useStore();
   const admin = useOwnerOrAdmin() === true;
   const computer = window.ogb?.app?.ownPage === true;
-  const [pending, setPending] = useState<CloudSwatch | null>(null);
+  const [pending, setPending] = useState<PlaceSwatch | null>(null);
   const [outcome, setOutcome] = useState<PlaceColorOutcome | null>(null);
   const locked = look?.change === null;
-  const choose = (swatch: CloudSwatch) => {
+  const choose = (swatch: PlaceSwatch) => {
     if (!look || locked || pending || swatch === look.swatch) return;
     setPending(swatch); setOutcome(null);
     void choosePlaceColor(swatch).then((answer) => { setPending(null); setOutcome(answer); });

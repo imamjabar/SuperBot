@@ -10,7 +10,6 @@ import { openCredentialBroker, type CredentialBroker } from "../bot-box/broker.t
 import type { BrokerPath } from "../bot-box/broker-probe.ts";
 import { DATA_DIR, type AppConfig } from "../config.ts";
 import { json, readBody } from "../harness/http.ts";
-import type { TeamConnectionsHost } from "../host/team-connections-host.ts";
 import { McpOAuthManager } from "../mcp-oauth.ts";
 import { listMcpServers } from "../mcp-registry.ts";
 import { startFakeHttpMcp, type FakeHttpMcp } from "../testing/fake-http-mcp-server.ts";
@@ -34,12 +33,9 @@ async function serve(options: { botsPath?: () => BrokerPath | null; bots?: Bot[]
   const changes: string[] = [];
   let busy = false;
   const mcpOAuth = new McpOAuthManager({ file: join(DATA_DIR, "mcp-route-oauth.json") });
-  const teamConnections = { personMcp: () => ["private"], people: {} as TeamConnectionsHost["people"] };
   const mcpServerResponse = () => ({ servers: listMcpServers(cfg.mcpServers).map((server) => ({ ...server, ...options.listed?.[server.name] })) });
   const sessions = { isLive: () => true };
   const config = createMcpConfig({
-    cfg, sessions, mcpOAuth, teamConnections,
-    cloudHome: null,
     fallbackPublicUrl: null,
     mcpConfigBusy: { get: () => busy, set: (value) => { busy = value; } },
     mcpServerResponse,
@@ -52,8 +48,7 @@ async function serve(options: { botsPath?: () => BrokerPath | null; bots?: Bot[]
     ...(options.probeAs ? { probeAs: options.probeAs } : {}),
   });
   const route = createMcpServerRoutes({
-    cfg, bot: (id) => options.bots?.find((bot) => bot.id === id) ?? null, sessions, mcpOAuth, teamConnections,
-    cloudHome: null,
+    cfg, bot: (id) => options.bots?.find((bot) => bot.id === id) ?? null, sessions, mcpOAuth,
     fallbackPublicUrl: null,
     mcpServerResponse,
     savedCustomDomain: () => null,

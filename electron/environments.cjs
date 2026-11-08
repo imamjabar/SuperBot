@@ -112,32 +112,27 @@ function workspaceSenderAllowed(event, contents, state, localOrigin) {
 /** Native menu choices, never renderer-supplied destinations or callbacks. `iconFor`: a saved colour's small dot, when main can draw one.
  * `places`: the one line saying which side has which bots, shown first; `copyToCloud`: the send line under the list. `foldSublabels`: where menus show no sublabels (Windows, Linux), My Cloud's status line
  * joins its name instead of vanishing. */
-function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, onAddCloud, sublabels = {}, iconFor = null, places = null, copyToCloud = null, foldSublabels = false, homeOrigin = null }) {
+function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, iconFor = null }) {
   const active = activeEnvironment(state);
-  if (homeOrigin) return homeMenuTemplate(state, { onSwitch, onForget, sublabels, iconFor, foldSublabels, homeOrigin });
   return [
-    ...(places ? [{ id: "workspace-places", label: places, enabled: false }, { type: "separator" }] : []),
-    { id: "workspace-local", label: "This computer", type: "radio", checked: !active, ...(iconFor && cleanColor(state.localColor) ? { icon: iconFor(state.localColor) } : {}), click: () => onSwitch(LOCAL_ID) },
-    ...[...state.environments].sort((a, b) => listedPlace(b) - listedPlace(a)).map((entry) => {
-      const icon = iconFor && cleanColor(entry.color) ? iconFor(entry.color) : null;
-      const status = Object.hasOwn(sublabels, entry.id) ? sublabels[entry.id] : entry.team ? teamRoleLabel(entry.team.role) : null;
+    ...state.environments.map((entry) => {
+      const isCurrent = entry.id === state.activeId;
+      const dot = iconFor && entry.color ? iconFor(entry.color) : null;
       return {
-        id: `workspace-${entry.id}`, label: foldSublabels && status ? `${entry.name} · ${status}` : entry.name,
-        sublabel: status ?? (entry.kind === "local" ? entry.dataDir : new URL(entry.origin).host),
-        ...(icon ? { icon } : {}), type: "radio", checked: entry.id === state.activeId, click: () => onSwitch(entry.id),
+        id: `workspace-${entry.id}`,
+        label: entry.name,
+        type: "checkbox",
+        checked: isCurrent,
+        ...(dot ? { icon: dot } : {}),
+        click: () => onSwitch(entry.id),
       };
     }),
-    ...(copyToCloud ? [{ id: "workspace-copy-to-cloud", label: copyToCloud.label, click: copyToCloud.click }] : []),
-    ...(onAddCloud ? [{ id: "workspace-add-cloud", label: "Add a Cloud…", sublabel: "Keeps your bots running 24/7", click: onAddCloud }] : []),
     { type: "separator" },
     { id: "workspace-connect", label: "Connect to a server…", click: onConnect },
-    ...(active && !listedPlace(active) ? [{ id: "workspace-forget", label: `Forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
+    ...(active && active.kind !== "local" ? [{ id: "workspace-forget", label: `Forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
   ];
 }
 
-/** Once My Cloud is the person's home: My Cloud, each Cloud of theirs and each team's Cloud (with this person's role),
- * then the other saved servers, each a whole place of its own; this computer is not one of them, and nothing here sends
- * or copies. A Cloud or a team is the Admin's to list and remove, so it has no Forget. */
 function homeMenuTemplate(state, { onSwitch, onForget, sublabels, iconFor, foldSublabels, homeOrigin }) {
   const active = activeEnvironment(state);
   const places = state.environments.filter((entry) => entry.kind !== "local").sort((a, b) => placeRank(a, homeOrigin) - placeRank(b, homeOrigin));
@@ -350,10 +345,9 @@ function parseEnvironments(raw) {
     if (!origin || (entry?.kind !== undefined && entry.kind !== "remote") || seen.has(origin)) continue;
     seen.add(id);
     seen.add(origin);
-    const color = cleanColor(entry?.color), team = entry?.home === true ? null : cleanTeam(entry?.team);
-    const cloud = entry?.home === true || team ? null : cleanCloud(entry?.cloud);
+    const color = cleanColor(entry?.color);
     environments.push({ id, kind: "remote", name: cleanName(entry?.name, nameFromOrigin(origin)), origin, ...(entry?.microphone === true ? { microphone: true } : {}),
-      ...(color ? { color } : {}), ...(entry?.home === true ? { home: true } : {}), ...(team ? { team } : {}), ...(cloud ? { cloud } : {}) });
+      ...(color ? { color } : {}) });
   }
   const activeId = typeof value?.activeId === "string" && environments.some((e) => e.id === value.activeId) ? value.activeId : LOCAL_ID;
   const localColor = cleanColor(value?.localColor);

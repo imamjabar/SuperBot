@@ -6,7 +6,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Sparkles, X } from "lucide-react";
 
-import { currentReactor, useReactor } from "@/lib/cloud-guest";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
@@ -148,15 +147,15 @@ export function SetupOffer({ botId, threadId, message, transcript }: { botId: st
 
 /** Waiting here, for this viewer: where people share the place only the presser sees it. `viewer` is read only then,
  * as the viewer's reactor key ("user" where one person uses the place). */
-function waiting(bot: Bot | undefined, threadId: string, viewer: () => string): boolean {
+function waiting(bot: Bot | undefined, threadId: string): boolean {
   const request = bot?.tasks?.find((task) => task.threadId === threadId)?.setupRequest;
-  return Boolean(request && (!request.by || request.by === viewer()));
+  return Boolean(request);
 }
 
 /** The message box's hint while the bot waits to hear what to set itself up for. Read during the composer's render,
  * so it takes the viewer's key without a hook; the chat view subscribes to it, so it is known by then. */
 export function setupRequestPlaceholder(bot: Bot | undefined, threadId: string): string | undefined {
-  return bot && waiting(bot, threadId, () => currentReactor()) ? t("composer.setupRequest.placeholder", { name: bot.name }) : undefined;
+  return bot && waiting(bot, threadId) ? t("composer.setupRequest.placeholder", { name: bot.name }) : undefined;
 }
 
 /** "Ava is ready to be set up ×" above the message box, while this conversation waits. */
@@ -166,8 +165,7 @@ export function SetupRequestChip({ bot, threadId }: { bot: Bot; threadId: string
 
 function WaitingChip({ bot, threadId }: { bot: Bot; threadId: string }) {
   const [stopping, setStopping] = useState(false);
-  const viewer = useReactor();
-  if (!waiting(bot, threadId, () => viewer)) return null;
+  if (!waiting(bot, threadId)) return null;
   const stop = () => {
     if (stopping) return;
     setStopping(true);

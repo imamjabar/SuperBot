@@ -2,8 +2,6 @@ import { hintSeen, hintSeenPatch, type OnboardingStatus } from "@/lib/onboarding
 
 /** The Simple mode popup, once per browser (simple-mode-prompt.ts keeps whether it was closed). */
 export const SIMPLE_MODE_NOTICE = "simple-mode-prompt";
-/** Bots on this computer and on another place of the person's (two-places.ts): dismissed per place, by main. */
-export const TWO_PLACES_NOTICE = "two-places";
 /** The Move from Grok Bot popup: each person sees it once, first of all, after their welcome. */
 export const GROK_MOVE_NOTICE = "grok-move-2026-11";
 
@@ -14,7 +12,6 @@ export const GROK_MOVE_NOTICE = "grok-move-2026-11";
 export const NOTICES = [
   GROK_MOVE_NOTICE,
   SIMPLE_MODE_NOTICE,
-  TWO_PLACES_NOTICE,
 ] as const;
 
 export type NoticeId = (typeof NOTICES)[number];

@@ -14,7 +14,7 @@ import { isRemoteMcpServer, parseStoredMcpServer, type StoredRemoteMcpServer } f
 import { personKey } from "../person-key.ts";
 import { isLoopbackHost, isProxied, provesSameOrigin, requestOrigin, type RequestAuth } from "../request-auth.ts";
 import { serverLine, type ServerLineKey } from "../server-lines.ts";
-import { appLabel } from "../team-connections.ts";
+import { appLabel } from "../app-event-catalog.ts";
 import { runsElsewhere } from "./mcp-config.ts";
 
 interface CardStore {

@@ -19,13 +19,11 @@ import { McpRequestService } from "./mcp-requests.ts";
 import type { McpServersHost } from "./mcp-servers-host.ts";
 import { createMcpSignInCards } from "./mcp-sign-in-cards.ts";
 import type { SecretCards } from "./secret-cards.ts";
-import type { TeamConnectionsHost } from "./team-connections-host.ts";
 
 export interface McpChatDeps {
   store: Store;
   cfg: AppConfig;
   mcpOAuth: McpOAuthManager;
-  teamConnections: TeamConnectionsHost;
   mcpServersHost: McpServersHost;
   managedPolicy: ManagedDesktopPolicy;
   /** Built after this module, so read when used. */
@@ -47,7 +45,7 @@ export interface McpChatDeps {
 const mcpServerUrl = (server: object) => ("url" in server && typeof server.url === "string" ? server.url : undefined);
 
 export function createMcpChat(deps: McpChatDeps) {
-  const { store, cfg, mcpOAuth, teamConnections, mcpServersHost, managedPolicy, threadLanguage, answerCardNode, fullAccessForSource, cloudGuestDriven, liveTurnByThread, broadcast } = deps;
+  const { store, cfg, mcpOAuth, mcpServersHost, managedPolicy, threadLanguage, answerCardNode, fullAccessForSource, cloudGuestDriven, liveTurnByThread, broadcast } = deps;
   const mcpRequests = new McpRequestService({
     store, teamCloud: deps.teamCloud, language: threadLanguage,
     apply: async (request, fields) => {
@@ -60,10 +58,10 @@ export function createMcpChat(deps: McpChatDeps) {
 
   const mcpSignInCards = createMcpSignInCards({
     store, cfg: () => cfg, mcpOAuth,
-    personal: () => teamConnections.personMcp(),
-    turnPerson: (threadId) => teamConnections.turnPerson(threadId),
-    oauthFor: (person) => teamConnections.people.oauth(person),
-    personName: (person) => teamConnections.nameOf(person),
+    personal: () => [],
+    turnPerson: () => null,
+    oauthFor: () => mcpOAuth,
+    personName: () => "",
     publicOrigins: deps.publicOrigins,
     language: threadLanguage,
     answer: answerCardNode,
@@ -81,22 +79,19 @@ export function createMcpChat(deps: McpChatDeps) {
 
   /** The mcp_server route for one bot in one conversation. `generation` is the live turn's; absent when the person's answer
    * to a card applies the change. */
-  function mcpServerDeps(sender: BotRecord, threadId: string, generation?: string): Omit<InternalMcpDeps, "readBody"> {
+  function mcpServerDeps(sender: BotRecord, threadId: string, _generation?: string): Omit<InternalMcpDeps, "readBody"> {
     const from = store.groupByThread(threadId) ? { botId: sender.id, name: sender.name, color: sender.color } : undefined;
     return {
       sender, threadId,
       fullAccess: () => fullAccessForSource(sender.id, threadId),
       guestDriven: () => cloudGuestDriven(threadId),
-      teamAdmin: () => teamConnections.actsForAdmin(threadId, generation),
+      teamAdmin: () => false,
       canUse: (name) => canUseMcpServer(sender.toolScope, name),
-      config: deps.mcpConfig(), cfg: () => cfg, personal: () => teamConnections.personMcp(),
+      config: deps.mcpConfig(), cfg: () => cfg, personal: () => [],
       authState: (name, url) => mcpOAuth.authState(name, url),
       managedBy: mcpManagedBy, policyRefusal: mcpPolicyRefusal, addRefusal: () => managedPolicy.botMcpRefusal(),
       signOut: async (name, url) => { await mcpOAuth.signOut(name, url); broadcast({ kind: "mcp.changed" }); },
-      testAs: (name, url) => {
-        const person = teamConnections.turnPerson(threadId, generation);
-        return person ? teamConnections.people.connection(person, name, url) : null;
-      },
+      testAs: () => null,
       redeem: (body) => deps.secretCards().redeemMcpServer(body, sender.id, threadId),
       addToBotList: (name) => { const bot = store.bot(sender.id); if (bot?.mcpServers) store.patchBot(bot.id, { mcpServers: [...new Set([...bot.mcpServers, name])] }); },
       botAdd: (current, body) => mcpServersHost.botAdd(current, body, sender.id),

@@ -1,4 +1,3 @@
-import { cloudAsleep, onCloudPower } from "../lib/cloud-power";
 import { api, ApiError, snapshotArrays } from "./api";
 import {
   createContext,
@@ -11,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { flushSync } from "react-dom";
-import type { BotMovedTo, BotVisibility, CardAnswerer, CloudBackend, ConnectorToolGrant, EffortLevel, InstalledPackageMetadata, LiveCallState, ServerFrame, GroupThreadUsage, SteerQueueReason, WireBot, WireGroup, WireTask, OptionCardData as WireOptionCard } from "../../shared/wire";
+import type { BotVisibility, CardAnswerer, CloudBackend, ConnectorToolGrant, EffortLevel, InstalledPackageMetadata, LiveCallState, ServerFrame, GroupThreadUsage, SteerQueueReason, WireBot, WireGroup, WireTask, OptionCardData as WireOptionCard } from "../../shared/wire";
 import { movesThreadToTop } from "../../shared/wire"; import type { DefaultBotFields } from "../../shared/default-bot";
 import { reorderStable } from "../../shared/bot-order";
 import { withOneChief } from "../../shared/bot-owner";
@@ -34,7 +33,7 @@ import type { ModelVariantOption, RuntimeEvent } from "../../shared/runtime-even
 import type { MausColor, MausMotion } from "@/lib/mascot";
 import type { BotAvatarCrop } from "../../shared/bot-avatar";
 import { approvalModeFor, type ApprovalMode } from "../../shared/approval-mode";
-import { askResetBridge, desktopCapabilitiesNow } from "@/lib/desktop"; import { isBotLimitRefusal, stoppedAtBotLimit } from "@/lib/bot-limit";
+import { askResetBridge, desktopCapabilitiesNow } from "@/lib/desktop";
 import { sameModelSelection } from "../../shared/thread-model";
 import type { BotBodyId } from "../../shared/bot-body";
 import { StoreRefContext } from "./store-ref-context";
@@ -215,8 +214,8 @@ export interface ModelSelection {
   variant?: string;
 }
 
-export interface Task extends Pick<WireTask, "private" | "setupRequest" | "inbox" | "openAsks"> {
-  waitingForTeammates?: boolean; sharedChat?: true;
+export interface Task extends Pick<WireTask, "setupRequest" | "inbox" | "openAsks"> {
+  waitingForTeammates?: boolean;
   threadId: string;
   routineRunId?: string;
   projectId?: string;
@@ -281,7 +280,7 @@ export interface Bot extends DefaultBotFields, Pick<WireBot, "mascotFaceColor" |
   projects?: BotProject[];
   name: string;
   title: string;
-  description: string; movedTo?: BotMovedTo;
+  description: string;
   soul?: string;
   soulDrift?: boolean;
   notifications: boolean;
@@ -467,7 +466,6 @@ export type AppSettingsSection =
   | "general"
   | "desktopWorkspaces"
   | "organization"
-  | "cloudAccount"
   | "appearance"
   | "experimental"
   | "connections"
@@ -521,9 +519,8 @@ export interface AppState {
   liveCallVersion: number;
   liveCallLookupSeq: number;
   selectedId: string;
-  activeView: "chat" | "team-map" | "routines" | "files" | "web-panel";
-  /** Folders a finished move left on this computer, for Files to offer sharing. */
-  filesSuggest: string[] | null; webPanelId?: string;
+  activeView: "chat" | "team-map" | "routines" | "web-panel";
+  webPanelId?: string;
   routines: Routine[];
   routineRuns: RoutineRun[];
   routinesLoadState: "loading" | "ready" | "error"; routineRunsSince: number | null;
@@ -544,11 +541,8 @@ export interface AppState {
   notifications: NotificationLogEntry[];
   appSettingsOpen: boolean;
   appSettingsSection: AppSettingsSection;
-  appSettingsCloudLink: number;
   appSettingsPhonePairing: number;
   shortcutsOpen: boolean;
-  cloudAdd: { source: import("@/lib/cloud-plan").CloudSource; signIn?: true } | null;
-  cloudHowTo: boolean;
   welcomeOpen: boolean;
   tourOpen: boolean;
   botSettingsSection: BotSettingsSection;
@@ -604,7 +598,6 @@ export type Action =
   | { type: "sectionDeleted"; section: string; sections: string[] }
   | { type: "showRoutines"; section?: "schedule" | "logs"; view?: "calendar" | "list"; botId?: string; routineId?: string; runStatus?: RoutineRunStatusFilter }
   | { type: "showTeamMap" } | { type: "showWebPanel"; id: string }
-  | { type: "showFiles"; suggest?: string[] }
   | { type: "showChat" }
   | { type: "routinesHydrated"; routines: Routine[]; runs: RoutineRun[]; since?: number }
   | { type: "routinesLoadFailed" } | { type: "routineRunsLoaded"; runs: RoutineRun[]; from?: number; to?: number }
@@ -753,9 +746,6 @@ export type Action =
   | { type: "unreadDividerDone"; threadId: string }
   | { type: "toggleAppSettings"; open?: boolean; section?: AppSettingsSection; cloudLink?: boolean; phonePairing?: boolean }
   | { type: "toggleShortcuts"; open?: boolean }
-  | { type: "openCloudAdd"; source: import("@/lib/cloud-plan").CloudSource; signIn?: true }
-  | { type: "closeCloudAdd" }
-  | { type: "cloudHowTo"; open: boolean }
   | { type: "toggleWelcome"; open?: boolean }
   | { type: "toggleTour"; open?: boolean }
   | {
@@ -842,7 +832,6 @@ function dismissOnboardingCard(state: AppState, botId: string): AppState {
   return quiz ? patchCard(state, botId, quiz.id, { dismissed: true }) : state;
 }
 
-export const CLOUD_LINK_SETTINGS = { type: "toggleAppSettings", open: true, section: "cloudAccount", cloudLink: true } as const satisfies Action;
 
 export function reducer(state: AppState, action: Action): AppState {
   if (action.type === "messageAdded" || action.type === "messagePatched" || action.type === "threadActive" || action.type === "optimisticMessageRemoved") {
@@ -948,11 +937,11 @@ export function reducer(state: AppState, action: Action): AppState {
     case "showChat":
       return state.activeView === "chat" ? state : { ...state, activeView: "chat" };
     case "showTeamMap":
-    case "showFiles": case "showWebPanel":
+    case "showWebPanel":
       return {
         ...state,
-        activeView: action.type === "showFiles" ? "files" : action.type === "showWebPanel" ? "web-panel" : "team-map",
-        filesSuggest: action.type === "showFiles" && action.suggest?.length ? action.suggest : null, webPanelId: action.type === "showWebPanel" ? action.id : state.webPanelId,
+        activeView: action.type === "showWebPanel" ? "web-panel" : "team-map",
+        webPanelId: action.type === "showWebPanel" ? action.id : state.webPanelId,
         settingsOpen: false, computerOpen: false, inspectorOpen: false, activityOpen: false, appSettingsOpen: false, pluginsOpen: false,
       };
     case "routinesHydrated":
@@ -1496,7 +1485,6 @@ export function reducer(state: AppState, action: Action): AppState {
         appSettingsOpen: open,
         activityOpen: open ? false : state.activityOpen,
         appSettingsSection: action.section ?? state.appSettingsSection,
-        appSettingsCloudLink: action.cloudLink && open ? state.appSettingsCloudLink + 1 : 0,
         appSettingsPhonePairing: action.phonePairing && open ? state.appSettingsPhonePairing + 1 : 0,
         settingsOpen: open ? false : state.settingsOpen,
         computerOpen: open ? false : state.computerOpen,
@@ -1512,12 +1500,6 @@ export function reducer(state: AppState, action: Action): AppState {
         shortcutsOpen: open,
       };
     }
-    case "openCloudAdd":
-      return { ...state, cloudAdd: state.cloudAdd ?? { source: action.source, ...(action.signIn ? { signIn: true as const } : {}) }, cloudHowTo: false };
-    case "closeCloudAdd":
-      return state.cloudAdd ? { ...state, cloudAdd: null } : state;
-    case "cloudHowTo":
-      return state.cloudHowTo === action.open ? state : { ...state, cloudHowTo: action.open };
     case "toggleTour": {
       const open = action.open ?? !state.tourOpen;
       return { ...state, tourOpen: open, appSettingsOpen: open ? false : state.appSettingsOpen };
@@ -1828,7 +1810,6 @@ export const initialState: AppState = {
   routineRuns: [], routineRunsSince: null,
   routinesLoadState: "loading",
   routinesFocus: { nonce: 0 },
-  filesSuggest: null,
   webhooks: [],
   webhookAttempts: [],
   webhookIngress: null,
@@ -1844,11 +1825,8 @@ export const initialState: AppState = {
   notifications: [],
   appSettingsOpen: false,
   appSettingsSection: "general",
-  appSettingsCloudLink: 0,
   appSettingsPhonePairing: 0,
   shortcutsOpen: false,
-  cloudAdd: null,
-  cloudHowTo: false,
   welcomeOpen: false,
   tourOpen: false,
   botSettingsSection: "overview",
@@ -2115,7 +2093,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const olderPagesInFlight = new Set<string>();
     const newTaskOnce = createNewTaskOnce();
     let creatingBot = false;
-    const showError = (e: unknown) => { if (isBotLimitRefusal(e)) return; if (isNoAiRefusal(e)) wrapped({ type: "notice", notice: { kind: "note", botName: null, text: e.message } }); else rawDispatch({ type: "error", message: e instanceof Error ? e.message : String(e) }); };
+    const showError = (e: unknown) => { if (isNoAiRefusal(e)) wrapped({ type: "notice", notice: { kind: "note", botName: null, text: e.message } }); else rawDispatch({ type: "error", message: e instanceof Error ? e.message : String(e) }); };
     const showSavedState = (owner: SavedOwner) => (error: unknown) => {
       showError(error);
       void api<SavedSnapshot>("/api/bots?messages=0").then((snapshot) => {
@@ -2215,7 +2193,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
 
     const wrapped: React.Dispatch<Action> = (action) => {
-      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showRoutines", "showTeamMap", "showFiles", "showWebPanel"].includes(action.type)) selectionRevision.current++;
+      if (["select", "newTask", "switchTask", "newGroupTask", "switchGroupTask", "showChat", "showRoutines", "showTeamMap", "showWebPanel"].includes(action.type)) selectionRevision.current++;
       if (action.type === "newTask" && oneMainChat()) {
         const botId = action.botId, main = stateRef.current.bots.find((bot) => bot.id === botId)?.mainThreadId;
         action.onCreated?.();
@@ -2564,7 +2542,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
           break;
         }
-        case "newBot": { if (stoppedAtBotLimit(stateRef.current)) break;
+        case "newBot": {
           // A double click lands before React paints the pending state.
           if (creatingBot || stateRef.current.botCreationPending) break;
           creatingBot = true;
@@ -2578,7 +2556,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             });
           break;
         }
-        case "duplicateBot": { if (stoppedAtBotLimit(stateRef.current)) break;
+        case "duplicateBot": {
           const source = stateRef.current.bots.find((b) => b.id === action.botId);
           if (!source) break;
           const duplicateProfile = duplicateBotProfile(source);
@@ -2969,9 +2947,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       refresh.timer = setTimeout(() => {
         refresh.timer = null;
         const retry = () => void loadPeripheral(part, true).catch((nextError) => schedulePeripheralRetry(part, nextError));
-        // A Cloud home asleep: retry once it is awake again, never wake it for this.
-        if (!cloudAsleep()) return retry();
-        const stop = onCloudPower((asleep) => { if (!asleep) { stop(); if (alive) retry(); } });
+        retry();
       }, delay);
     };
     const loadPeripheral = async (part: PeripheralPart, protectLiveFrames: boolean): Promise<void> => {

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ArrowUpRight, Check, Copy, Globe, Loader2, X } from "lucide-react";
 import type { PublishedPageCard as Card } from "../../shared/published-page";
-import { cloudPlanLabel } from "@/lib/cloud-plan";
 import { cn } from "@/lib/cn";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { usePageOpener } from "@/lib/page-open";
@@ -14,7 +13,7 @@ const usageLine = (card: Card) => card.usage ? t("chat.page.usage", { pages: car
 function limitLine(card: Card): string {
   const limit = card.usage?.limit;
   if (limit === undefined) return card.message ?? "";
-  return card.plan === "free" ? t("chat.page.freeLimit", { limit }) : t("chat.page.planLimit", { limit, plan: cloudPlanLabel(card.plan) });
+  return card.message ?? t("chat.page.freeLimit", { limit });
 }
 
 /** A page a bot published: its link, Copy link, Open and Unpublish; or, at the plan's limit, why not and where to get more.

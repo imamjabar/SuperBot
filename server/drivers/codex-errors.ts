@@ -1,4 +1,3 @@
-import { cloudHomeConfigured } from "../cloud-home.ts";
 import { hostTimeZone } from "../turn-clock.ts";
 import { USAGE_LIMIT } from "./retry.ts";
 import { CODEX_USAGE_LIMIT_REACHED } from "../../shared/codex-usage-limit.ts";
@@ -10,7 +9,7 @@ export type CodexRoute = "plan" | "own" | "other";
 export const CODEX_MISSING_CREDENTIALS = /missing bearer or basic authentication/i;
 
 export function codexNotSignedIn(): string {
-  return `Codex isn't signed in on this computer.${cloudHomeConfigured() ? " Sign-ins don't copy over when you move to My Cloud." : ""} Sign in to Codex in Settings → Model providers → Codex.`;
+  return "Codex isn't signed in on this computer. Sign in to Codex in Settings → Model providers → Codex.";
 }
 
 /** Codex's own words name ChatGPT's plans ("Upgrade to Pro"), which read as MausBot's. codex-cli 0.160.1 ends them

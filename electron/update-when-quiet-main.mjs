@@ -1,5 +1,5 @@
 // What tells a quiet moment for a downloaded update, from Electron and from the servers this app's window talks to.
-import { BACKGROUND_HEADERS } from "./cloud-power.mjs";
+import { BACKGROUND_HEADERS } from "./place-inbox-watch.mjs";
 
 /** A server's JSON answer; a failure or a server error throws, since nothing can be known from it. */
 async function answer(response) {
@@ -21,7 +21,7 @@ async function answer(response) {
  * }} deps `local`: this computer's server, as its owner. `place`: the origin of My Cloud or a team while the window shows
  * it, where a Live call in this window runs; `asleep`: that Cloud sleeps, so no call runs there, and asking would wake it.
  */
-export function quietSignals({ powerMonitor, window, lastInput, local, place, cloudFetch, asleep, busy }) {
+export function quietSignals({ powerMonitor, window, lastInput, local, place, cloudFetch, asleep = () => false, busy }) {
   const timeout = () => AbortSignal.timeout(10_000);
   return {
     locked: () => powerMonitor.getSystemIdleState(1) === "locked",

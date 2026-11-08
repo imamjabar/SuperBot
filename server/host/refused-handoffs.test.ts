@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { RosterMember } from "../peer-roster.ts";
 import { createRefusedHandoffs } from "./refused-handoffs.ts";
-import type { Delivery } from "./person-inbox.ts";
+import type { Delivery } from "./refused-handoffs.ts";
 
 const B = { people: ["mara@acme.test"] };
 const rooms: RosterMember = { id: "rooms", name: "Rooms", visibility: B };

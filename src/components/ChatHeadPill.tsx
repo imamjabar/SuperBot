@@ -10,7 +10,6 @@ import { BotAvatar } from "./Avatar";
 import { ELEVATED_FLOAT, ELEVATED_HOVER } from "./elevated";
 import { sidebarBotActivityTasks } from "./SidebarBotActivity";
 import { BOT_PANEL_ID } from "./bot-panel/side-panel";
-import { sharedChatAudience } from "./TeamPrivateChatsLine";
 
 /** The factory title a new conversation starts with. */
 const UNTITLED = "New thread";
@@ -20,13 +19,7 @@ export type ChatHeadPrivacy = { kind: "private" } | { kind: "ownHelper" } | { ki
 
 const PRIVACY_ICONS = { private: Lock, ownHelper: UserRound, shared: Users } as const;
 
-function privacyLabelOf(privacy: ChatHeadPrivacy): string | null {
-  switch (privacy?.kind) {
-    case "private": return t("team.privateHeader");
-    case "ownHelper": return t("team.ownHelperHeader");
-    case "shared": return sharedChatAudience(privacy.team, privacy.onlyPeopleAdded);
-    default: return null;
-  }
+function privacyLabelOf(_privacy: ChatHeadPrivacy): string | null { return null; }
 }
 
 /** Simple mode's whole chat header: the bot's face and name in one pill, which opens and closes the bot panel. Away from

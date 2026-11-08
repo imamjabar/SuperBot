@@ -11,7 +11,6 @@ import { setAdvancedMode } from "@/lib/interface-mode";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { openInbox, setInboxView } from "@/state/inbox";
 import { initialState, StoreContext, type AppState, type Bot, type Message } from "@/state/store";
-import { setTeamPeople } from "@/state/team-people";
 import "./styles.css";
 
 const params = new URLSearchParams(location.search);
@@ -140,6 +139,5 @@ window.fetch = async (input, init) => {
   if (!new URL(url, location.href).pathname.startsWith("/api/")) return realFetch(input, init);
   return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
 };
-setTeamPeople({ people: [{ ...CLEO, you: true }, { email: "ben@acme.test", name: "Ben", role: "member" }], me: { ...CLEO, you: true }, admin: true, needsYou: [] });
 
 createRoot(document.getElementById("root")!).render(<StrictMode><Gallery /></StrictMode>);

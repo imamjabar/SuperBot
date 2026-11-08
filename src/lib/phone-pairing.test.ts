@@ -2,9 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setLocale, t } from "@/lib/i18n";
 import type { SessionState } from "./session";
-import type { CloudAccountState } from "../../electron/cloud-account.mjs";
 import {
-  cloudPhoneDestination,
   connectPhoneEntry,
   currentPhonePairingTarget,
   loadPhonePairingAccess,
@@ -32,26 +30,21 @@ afterEach(() => {
 
 describe("where Connect your phone pairs", () => {
   it("pairs with this computer only in the desktop app's own window", () => {
-    expect(phonePairingTarget({ companion: true, remoteClient: false, cloudHome: false })).toBe("computer");
-    expect(phonePairingTarget({ companion: false, remoteClient: false, cloudHome: false })).toBe("server");
-    expect(phonePairingTarget({ companion: true, remoteClient: true, cloudHome: false })).toBe("server");
+    expect(phonePairingTarget({ companion: true, remoteClient: false })).toBe("computer");
+    expect(phonePairingTarget({ companion: false, remoteClient: false })).toBe("server");
+    expect(phonePairingTarget({ companion: true, remoteClient: true })).toBe("server");
   });
 
-  it("pairs with the Cloud wherever the window shows the person's own Cloud", () => {
-    expect(phonePairingTarget({ companion: false, remoteClient: false, cloudHome: true })).toBe("cloud");
-    expect(phonePairingTarget({ companion: true, remoteClient: true, cloudHome: true })).toBe("cloud");
-    expect(phonePairingTarget({ companion: true, remoteClient: false, cloudHome: true })).toBe("cloud");
-  });
 
   it("reads the window's bridges", () => {
     vi.stubGlobal("window", { ogb: { companion: {} } });
     expect(currentPhonePairingTarget(false)).toBe("computer");
     vi.stubGlobal("window", { ogb: { companion: {}, remoteClient: { active: true } } });
-    expect(currentPhonePairingTarget(false)).toBe("server");
-    vi.stubGlobal("window", { ogb: { cloudPlan: {} } });
-    expect(currentPhonePairingTarget(true)).toBe("cloud");
+    expect(currentPhonePairingTarget()).toBe("server");
+    vi.stubGlobal("window", { ogb: { companion: {} } });
+    expect(currentPhonePairingTarget()).toBe("computer");
     vi.stubGlobal("window", {});
-    expect(currentPhonePairingTarget(false)).toBe("server");
+    expect(currentPhonePairingTarget()).toBe("server");
   });
 });
 
@@ -59,11 +52,6 @@ describe("Connect your phone in the account menu", () => {
   it("on this computer: always there, to this computer, without asking the server", () => {
     expect(subtitle(connectPhoneEntry("computer", null))).toBe("to this computer");
     expect(connectPhoneEntry("computer", access(chatOnly, false))?.target).toBe("computer");
-  });
-
-  it("on the person's own Cloud: to the Cloud, for the owner's session", () => {
-    expect(subtitle(connectPhoneEntry("cloud", access(admin)))).toBe("to the Cloud");
-    expect(connectPhoneEntry("cloud", access(chatOnly))).toBeNull();
   });
 
   it("on a Team Cloud: to the team, for every member, whatever their role", () => {
@@ -85,8 +73,6 @@ describe("Connect your phone in the account menu", () => {
 
   it("offers nothing while it does not know yet", () => {
     expect(connectPhoneEntry("server", null)).toBeNull();
-    expect(connectPhoneEntry("cloud", null)).toBeNull();
-    expect(connectPhoneEntry("cloud", access(null))).toBeNull();
   });
 });
 
@@ -175,56 +161,3 @@ describe("the ?desktop-settings=phone request", () => {
   });
 });
 
-describe("the person's Cloud as a destination on this computer", () => {
-  const origin = "https://home-7f3k2.fly.dev";
-  const paid = (patch: Partial<CloudAccountState> = {}): CloudAccountState => ({
-    status: "connected", entitlement: { plan: "pro", tier: "personal", status: "active", expiresAt: null, version: 1 }, machine: { status: "ready", origin }, ...patch,
-  });
-
-  it("a paid plan, any tier, with the Cloud Ready, is offered", () => {
-    for (const tier of [undefined, "personal", "pro", "max", "team"]) {
-      expect(cloudPhoneDestination(paid({ entitlement: { plan: "pro", ...(tier ? { tier } : {}), status: "active", expiresAt: null, version: 1 } }))).toBe("ready");
-    }
-    expect(cloudPhoneDestination(paid({ checking: true }))).toBe("ready");
-  });
-
-  it("a paid plan whose Cloud is not Ready is a hint only", () => {
-    for (const machine of [{ status: "provisioning" }, { status: "stopped", origin }, { status: "payment-problem", origin }, { status: "failed", origin }] as const) {
-      expect(cloudPhoneDestination(paid({ machine }))).toBe("not-ready");
-    }
-    expect(cloudPhoneDestination(paid({ machine: undefined }))).toBe("not-ready");
-  });
-
-  it("a Team or Business plan has no Cloud of its own to pair here: nothing, never 'once it's ready'", () => {
-    const acme = [{ id: "team-acme", name: "Acme", role: "owner" as const, machine: { status: "ready" as const, origin: "https://omb-t-2.fly.dev" } }];
-    for (const tier of ["team", "business"]) {
-      expect(cloudPhoneDestination(paid({ entitlement: { plan: "pro", tier, status: "active", expiresAt: null, version: 1 }, machine: undefined, teams: acme })), tier).toBeNull();
-    }
-  });
-
-  it("no paid plan, signed out or not known yet: nothing", () => {
-    expect(cloudPhoneDestination(null)).toBeNull();
-    expect(cloudPhoneDestination({ status: "signed-out" })).toBeNull();
-    expect(cloudPhoneDestination({ status: "signed-out", message: "restoring" })).toBeNull();
-    expect(cloudPhoneDestination(paid({ entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } }))).toBeNull();
-    expect(cloudPhoneDestination(paid({ entitlement: { plan: "pro", status: "inactive", expiresAt: null, version: 1 } }))).toBeNull();
-    expect(cloudPhoneDestination({ status: "unavailable", lastPlan: { tier: "pro", active: true }, machine: { status: "ready", origin } })).toBeNull();
-    expect(cloudPhoneDestination({ status: "reauth-required", lastPlan: { tier: "pro", active: true } })).toBeNull();
-  });
-
-  it("joins this computer's line, first, and only on this computer", () => {
-    const here = connectPhoneEntry("computer", null);
-    expect(phoneDestinations(here, "ready").map((d) => [d.id, d.target, t(d.subtitleKey)])).toEqual([
-      ["cloud", "cloud", "to the Cloud (always on)"],
-      ["here", "computer", "to this computer"],
-    ]);
-    expect(phoneDestinations(here, "not-ready").map((d) => [d.id, d.noteKey && t(d.noteKey)])).toEqual([["here", "The Cloud shows here once it's ready."]]);
-    expect(phoneDestinations(here, null).map((d) => [d.id, d.noteKey])).toEqual([["here", undefined]]);
-    const cloud = connectPhoneEntry("cloud", access(admin));
-    for (const state of ["ready", "not-ready", null] as const) {
-      expect(phoneDestinations(cloud, state).map((d) => [d.id, t(d.subtitleKey), d.noteKey])).toEqual([["here", "to the Cloud", undefined]]);
-      expect(phoneDestinations(connectPhoneEntry("server", access(admin)), state).map((d) => d.id)).toEqual(["here"]);
-      expect(phoneDestinations(null, state)).toEqual([]);
-    }
-  });
-});

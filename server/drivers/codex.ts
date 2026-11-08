@@ -14,8 +14,6 @@ import { codexConfigMcp, codexConfigRunsServer, mountedMcpServerName } from "./c
 
 import { DATA_DIR, stripWorkspaceCredentialEnv } from "../config.ts";
 import { laterStartup, openStartupModelCatalog, unconfirmedModelCatalog, writeStartupModelCache } from "../startup-model-catalog.ts";
-import { hostedWorkspaceConfigured } from "../enterprise.ts";
-import { cloudHomeConfigured } from "../cloud-home.ts";
 import { serverVersion } from "../environment.ts";
 import { ChatGptPlanAuthController } from "./chatgpt-plan-auth.ts";
 import { captureCliTree, cliVersionReader, describeSpawnFailure, execCli, killCliTree, spawnCli, waitForExit } from "../procs.ts";
@@ -364,9 +362,6 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
   async create(input: DriverCreateInput<CodexConfig>): Promise<ProviderInstance> {
     const { instanceId, config } = input;
     const plan = config.authMode === "chatgpt-plan";
-    const planUnavailable = plan && (hostedWorkspaceConfigured() || cloudHomeConfigured())
-      ? "ChatGPT plan sign-in for hosted Pro requires OpenAI's hosted-app approval. Use a Company model or API key until that integration is approved; the local desktop flow cannot be used here."
-      : undefined;
     const planDirectory = join(DATA_DIR, "providers", "chatgpt-plan", createHash("sha256").update(instanceId).digest("hex"));
     const childEnv = (): Record<string, string | undefined> => {
       const env: Record<string, string | undefined> = {
@@ -396,7 +391,7 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         const kept = preserveExisting && models.options.length > 0 ? models : null;
         if (!kept) models = { default: "", options: [] };
         try {
-          if (!planUnavailable && !planSigningOut && !disposed) {
+          if (!planSigningOut && !disposed) {
             const catalog = await planAuth.models();
             if (generation === planGeneration && !planSigningOut && !disposed && (!kept || catalog.options.length)) models = catalog;
           }
@@ -491,7 +486,6 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
         if (planAuth && (planSigningOut || generation !== planGeneration)) throw new Error("The ChatGPT account changed while this message was preparing. Select a connected account and send again.");
       };
       assertPlanCurrent();
-      if (planUnavailable) throw new Error(planUnavailable);
       const planToken = planAuth ? await planAuth.accessToken() : undefined;
       assertPlanCurrent();
       if (planAuth) {
@@ -1560,7 +1554,6 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
 
   const versionOf = cliVersionReader(config.cli);
   const snapshot = async (): Promise<ProviderSnapshot> => {
-    if (planUnavailable) return { state: "unavailable", authenticated: false, chatgptPlan: true, reason: planUnavailable, authenticationUnavailableReason: planUnavailable };
     const env = childEnv();
     const probe = await new Promise<ReturnType<typeof versionOf>>((resolve) => {
       execCli(config.cli, ["--version"], { timeout: 8000, env }, (err, stdout) => resolve(versionOf(err, stdout)));
@@ -1594,7 +1587,6 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
   const generateMemoryText = async (prompt: string, options: TextGenerationOptions = {}): Promise<string> => {
     if (startupModelRefresh) await startupModelRefresh;
     if (disposed) throw new Error("This provider was removed.");
-    if (planUnavailable) throw new Error(planUnavailable);
     const env = childEnv();
     let providerArgs: string[] = [];
     if (planAuth) {
@@ -1642,7 +1634,6 @@ export const CodexDriver: ProviderDriver<CodexConfig> = {
     generateMemoryText,
     ...(plan ? { authenticationMethod: "browser-pkce" as const } : {}),
     startAuthentication: async () => {
-      if (planUnavailable) throw new Error(planUnavailable);
       if (planSigningOut || disposed) throw new Error("This account is being disconnected. Wait before signing in again.");
       return (planAuth ?? authentication).start();
     },

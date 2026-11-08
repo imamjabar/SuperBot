@@ -32,7 +32,6 @@ vi.mock("@/state/store", async importOriginal => {
   return { ...store, api: fixture.api, BotEditorStore: () => null, useStore: () => ({ state: { ...store.initialState, appSettingsOpen: fixture.appSettingsOpen }, dispatch: fixture.dispatch }) };
 });
 import { NewBotDialog } from "./NewBotDialog";
-import { setTeamChats } from "@/state/team-chats";
 import { Select } from "./Select";
 import type { BotCreationDraft } from "@/lib/bot-creation-draft";
 
@@ -71,7 +70,7 @@ beforeEach(() => {
   fixture.close.mockReset();
   fixture.api.mockReturnValue(new Promise(() => {}));
 });
-afterEach(() => { vi.unstubAllGlobals(); setTeamChats(null); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("bot draft dialog", () => {
   it("preserves upstream audience selection for browser admins before creation", () => {
@@ -179,20 +178,8 @@ describe("bot draft dialog", () => {
     expect(fixture.track.mock.calls).toEqual([["bot_created", props]]);
   });
 
-  it("on a team's Cloud, opens the creator's own private chat with the new bot, never the team's shared main chat", async () => {
-    setTeamChats({ teamId: "acme", member: false, opened: [] });
-    fixture.ready = true;
-    const bot = { id: "created", name: "Fixture" };
-    fixture.create.mockResolvedValue({ bot, warnings: [] });
-    render().nodes.filter(node => node.type === "button").at(-1)!.props.onClick!();
-    await vi.waitFor(() => expect(fixture.openBot).toHaveBeenCalledTimes(1));
-    expect(fixture.openBot.mock.calls[0].slice(0, 2)).toEqual([fixture.dispatch, bot]);
-    const added = fixture.dispatch.mock.calls.findIndex(([action]) => action.type === "botAdded");
-    expect(added).toBeGreaterThanOrEqual(0);
-    expect(fixture.openBot.mock.invocationCallOrder[0]).toBeGreaterThan(fixture.dispatch.mock.invocationCallOrder[added]);
-  });
 
-  it("anywhere but a team's Cloud, leaves the new bot selected as it always was", async () => {
+  it("leaves the new bot selected as it always was", async () => {
     fixture.ready = true;
     fixture.create.mockResolvedValue({ bot: { id: "created", name: "Fixture" }, warnings: [] });
     render().nodes.filter(node => node.type === "button").at(-1)!.props.onClick!();

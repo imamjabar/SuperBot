@@ -6,7 +6,6 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import type { Audience } from "../audience.ts";
-import type { CloudLendingRefusal } from "../cloud-lending.ts";
 import type { AppConfig } from "../config.ts";
 import { browserEngineAttachCdpUrl, browserProfilePartitionId, browserProfilePartitionTarget, builtInBrowserEnabled, DATA_DIR } from "../config.ts";
 import { BrowserRuntime, TransportError, attachesToChrome, browserRuntimeEnv, formatBrowserTiming } from "../browser-runtime.ts";
@@ -34,14 +33,11 @@ import type { BrowserSitesTarget } from "../browser-sites.ts";
 import { namedUploadPaths } from "../browser-upload.ts";
 import type { BrowserSitesRef } from "../routes/browser-sites.ts";
 import { chromeLauncher } from "../browser/chrome/launcher.ts";
-import { LAUNCHER_SECCOMP_FD, type LauncherBox } from "../browser/chrome/wrapper.ts";
 import type { HostKind } from "../browser/chrome/flags.ts";
 import { browserEngineKind, type BrowserEngineKind } from "../browser/config.ts";
 import { ChromeEngine, chromeTarget, LiveRouter, profileKey, RuntimeRouter } from "../browser/engines.ts";
 import { CHROME_BROWSER_SYSTEM_PROMPT } from "../browser/prompt.ts";
 import { passkeyAnnotation } from "../browser/passkey-notice.ts";
-import { LentChromeDoors, lentChromeGuidance, type ChromeLender } from "../browser/lent-chrome.ts";
-import type { ChromeRoute } from "../device-links.ts";
 import type { EngineBrowsers } from "../engine-memory.ts";
 import { augmentedPath } from "../env-path.ts";
 import { harnessMcpTokenEnv } from "../harness-mcp-token.ts";
@@ -61,24 +57,17 @@ export interface BrowserHostDeps {
     depth: number; skillAuthoring: boolean; createdBots: number; openedThreads: number;
   }): string;
   DESKTOP_MANAGED: boolean;
-  CLOUD_HOME: unknown;
-  /** A shared company workspace: the server's network is the operator's, so the stored local-sites switch and allow-list are ignored. */
-  HOSTED_WORKSPACE?: boolean;
   PORT: number;
   /** A Cloud home's way out through the person's own lent computer. */
   device?: EgressSetup["device"];
   /** Why a turn may not use the person's lent computer (cloud-lending.ts plus the memory check), or null when it may.
    * Without it, no browser a turn holds may. */
   lendRefusal?(turn: TurnOwner): LendRefusal | null;
-  /** My Cloud's way to the person's own Chrome on the computer that lends it, and which computer that is. */
-  lentChrome?: { route(): ChromeRoute | null; lender(): ChromeLender | null };
   /** The engine memory guard, told which browsers each thread's turn starts or holds. */
   engineMemory?: { useBrowsers(browsers: EngineBrowsers): void };
   /** Whose browser a conversation's turns use on a Team Cloud: the member's, the group chat's or the team's. Every
    * browser is the bot's own without it. */
   audienceOf?(threadId: string): Audience;
-  /** The box every Chrome of the bots' browsers runs in (a Team Cloud's), or none. */
-  browserBox?(seccompFd: number, ro: readonly string[]): LauncherBox | null;
 }
 
 /** The lent computer's connection for a browser's pages, under the rule for everything it lends: only while the last
@@ -93,11 +82,10 @@ function lentDevice(device: NonNullable<EgressSetup["device"]>, holder: (session
 }
 
 type Spec = { command: string; args?: readonly string[]; env: Record<string, string> };
-type LendRefusal = CloudLendingRefusal | "memory-changed" | "memory-changed-here";
-const BOT_SESSION = /^bot-[A-Za-z0-9_.-]+$/;
+type LendRefusal = "unproven" | "not-owner" | "someone-else" | "memory-changed" | "memory-changed-here";
 
 export function createBrowserHost(deps: BrowserHostDeps) {
-  const { cfg, turnResources, activeInternalGenerationByThread, mintInternalCapability, DESKTOP_MANAGED, CLOUD_HOME, PORT } = deps;
+  const { cfg, turnResources, activeInternalGenerationByThread, mintInternalCapability, DESKTOP_MANAGED, PORT } = deps;
   const store: Pick<Store, "bots" | "bot" | "botByThread"> = { get bots() { return deps.store().bots; }, bot: (id: string) => deps.store().bot(id),
     botByThread: (threadId: string) => deps.store().botByThread(threadId) };
 
@@ -111,14 +99,11 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     steps: browserSteps,
     onTiming: process.env.OMB_BROWSER_TIMING === "1" ? (timing) => console.info(formatBrowserTiming(timing)) : undefined,
   });
-  const browserBox = deps.browserBox;
-  const boxed = Boolean(browserBox?.(LAUNCHER_SECCOMP_FD, []));
-  if (browserBox) chromeLauncher.boxWith(() => browserBox(LAUNCHER_SECCOMP_FD, []));
   const agentBrowserLive = new BrowserLive({ runtime: agentBrowserRuntime, devTools: {
     url: (port) => relay(port, { action: "cdp_url" }, { timeoutMs: 5_000, maxBytes: 65_536 }).then((answer) => answer.data?.cdpUrl),
   } });
-  const host: HostKind = DESKTOP_MANAGED ? "desktop" : CLOUD_HOME || existsSync("/.dockerenv") ? "container" : "server";
-  const idleMs = () => browserIdleMs(cfg, { cloudHome: Boolean(CLOUD_HOME) });
+  const host: HostKind = DESKTOP_MANAGED ? "desktop" : existsSync("/.dockerenv") ? "container" : "server";
+  const idleMs = () => browserIdleMs(cfg, { cloudHome: false });
   const chromeEngine = new ChromeEngine({
     dataDir: DATA_DIR,
     host,
@@ -129,88 +114,18 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   });
   const lendRefusal = deps.lendRefusal ?? ((): LendRefusal => "unproven");
   const mayLend = (turn: TurnOwner) => lendRefusal(turn) === null;
-  const lentChrome = deps.lentChrome;
-  const chromeRefusals = new Map<string, LendRefusal | null>();
-  /** lentDevice's rule for the lent Chrome: the last holder's verdict, and a browser no turn has held is the person's own. */
-  function chromeRefusal(session: string): LendRefusal | null {
-    const turn = turnResources.holder(`browser:${session}`);
-    if (turn) chromeRefusals.set(session, lendRefusal(turn));
-    return chromeRefusals.get(session) ?? null;
-  }
-  const lentChromeAllowed = (session: string) => chromeRefusal(session) === null;
-  /** Each refusal has its own way out: a new conversation can't undo a memory change, for one. */
-  const refusedAs = (session: string) => chromeRefusals.get(session) ?? "not-allowed";
-  // The desktop's idle time, not a Cloud home's shorter one: each reconnect may make Chrome ask the person to Allow again.
-  const doors = lentChrome ? new LentChromeDoors({ route: () => lentChrome.route(), allowed: lentChromeAllowed, idleMs: () => browserIdleMs(cfg, { cloudHome: false }) }) : undefined;
-  const doorUrls = new Map<string, string>();
-  const leftovers = new Map<string, Promise<void>>();
-  async function lentChromeDoor(session: string): Promise<string | undefined> {
-    if (!doors) return undefined;
-    // A browser already running when this server first opens the session's door was told another address: an earlier
-    // server's door, gone after a restart, or none. An attached browser is never swept or idle-closed, so it is closed
-    // before anything uses the new door.
-    if (!doors.owns(session)) leftovers.set(session, closeLeftover(session));
-    const url = await doors.door(session);
-    await leftovers.get(session);
-    doorUrls.set(session, url);
-    return url;
-  }
-  async function closeLeftover(session: string): Promise<void> {
-    const engine = browserEngineStatus();
-    if (engine.kind !== "ready" || !browserRunning(session, undefined)) return;
-    const closed = await closeBrowserSession(engine.binaryPath, browserRuntimeEnv({ AGENT_BROWSER_SESSION: session })).catch(() => false);
-    if (!closed) console.warn(`browser ${session}: could not close the browser left running before its door to your Chrome opened`);
-  }
-  /** A profile switched back to the built-in browser keeps its session name and its door, but its calls no longer use it. */
-  function viaDoor(session: string, spec: { env: NodeJS.ProcessEnv }): boolean {
-    const url = doorUrls.get(session);
-    return url !== undefined && spec.env.AGENT_BROWSER_CDP === url;
-  }
-  // A tool call that would open Reddit from MausBot Cloud is refused before it reaches the browser. My Chrome is the
-  // person's own, outside the egress gate too; on My Cloud a call that can't reach it now says why instead.
   const browserRuntime = new RuntimeRouter(agentBrowserRuntime, chromeEngine, {
     refusal: (_session, spec, params) => (attachesToChrome(spec.env) ? null : browserEgress.callRefusal(params)),
-    // After beforeDispatch's claim the holder is this call's own turn, so the verdict is the caller's, not the last
-    // holder's. Only a caller who may use the computer learns whether it lends Chrome or is online.
-    afterClaim: (session, spec) => {
-      if (!viaDoor(session, spec)) return null;
-      const lender = lentChrome?.lender() ?? null;
-      if (!lentChromeAllowed(session)) return lentChromeGuidance(refusedAs(session), lender);
-      if (!lender) return lentChromeGuidance("not-lent", null);
-      return lender.online ? null : lentChromeGuidance("offline", lender);
-    },
-    annotate: passkeyAnnotation(CLOUD_HOME ? "cloud" : DESKTOP_MANAGED ? "desktop" : "server"),
-    // agent-browser's own error names only the CDP connection; the door knows what went wrong on the way.
-    afterCall: (session, spec, result) => {
-      const failed = result as { isError?: unknown; content?: unknown };
-      const found = failed?.isError === true && viaDoor(session, spec) ? doors?.problem(session) : null;
-      // A door refused under an earlier holder says nothing about a caller that may use it.
-      const problem = found === "not-allowed" && lentChromeAllowed(session) ? null : found;
-      if (!problem) return result;
-      const content = Array.isArray(failed.content) ? failed.content : [];
-      return { ...failed, content: [...content, { type: "text", text: lentChromeGuidance(problem === "not-allowed" ? refusedAs(session) : problem, lentChrome?.lender() ?? null) }] };
-    },
-  });
-  // agent-browser keeps its Chrome connection across turns, so a turn that may not lend must not inherit an open one.
-  if (doors) turnResources.onClaim((resource, owner) => {
-    const session = resource.startsWith("browser:") ? resource.slice("browser:".length) : null;
-    if (session === null || !doors.owns(session)) return;
-    const refused = lendRefusal(owner);
-    if (refused === null) return;
-    chromeRefusals.set(session, refused);
-    doors.drop(session);
+    annotate: passkeyAnnotation(DESKTOP_MANAGED ? "desktop" : "server"),
   });
   const browserLive = new LiveRouter(agentBrowserLive, chromeEngine);
   const usedBrowserSessions = new Map<string, Spec>();
   const audiences = new AudienceBrowsers(join(DATA_DIR, "browser", "audiences.json"));
   const browserAudience = (threadId: string | undefined): Audience => (threadId && deps.audienceOf ? deps.audienceOf(threadId) : "team");
   const device = deps.device && lentDevice(deps.device, (session) => turnResources.holder(`browser:${session}`), mayLend);
-  const egressHost = DESKTOP_MANAGED ? "desktop" : CLOUD_HOME ? "cloud" : "server";
-  // Self-hosted servers only: the owner's switch for this server's own sites and its local network. A shared company
-  // workspace's network is the operator's, so its stored switch and allow-list are ignored, like MausBot Cloud's.
-  const hostedServer = egressHost === "server" && Boolean(deps.HOSTED_WORKSPACE);
-  const sitesSwitch = egressHost === "server" && !hostedServer;
-  browserEgress.configure({ host: egressHost, config: () => (hostedServer ? undefined : cfg.browserEngine?.egress), ...(device ? { device } : {}) });
+  const egressHost = DESKTOP_MANAGED ? "desktop" : "server";
+  const sitesSwitch = egressHost === "server";
+  browserEgress.configure({ host: egressHost, config: () => cfg.browserEngine?.egress, ...(device ? { device } : {}) });
   /** A live bot's, profile's or temporary browser of this data dir, for any audience. */
   const belongs = (session: string) => isTemporaryBrowserSession(session) || audiences.variants().some((suffix) =>
     store.bots.some((bot) => browserSessionId(bot.id + suffix, "") === session)
@@ -219,7 +134,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   // HOME is this server's alone, so a deleted bot's browser there is closed too.
   const agentBrowserSweep = new BrowserSweep({
     engine: () => { const engine = browserEngineStatus(); return engine.kind === "ready" ? engine.binaryPath : null; },
-    owns: (session) => belongs(session) || (Boolean(CLOUD_HOME) && BOT_SESSION.test(session)),
+    owns: (session) => belongs(session),
     live: (session) => usedBrowserSessions.has(session) && belongs(session),
     held: (session) => !turnResources.free(`browser:${session}`),
     closeIdle: (session) => browserRuntime.closeIfIdle(session, idleMs(), usedBrowserSessions.get(session)),
@@ -291,22 +206,13 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     else console.warn(`temporary browser ${session}: could not close its session; run agent-browser --session ${session} close on this server`);
   }
   function myChromeAvailable(): boolean {
-    return DESKTOP_MANAGED || browserEngineAttachCdpUrl(cfg) !== null || Boolean(lentChrome?.lender());
+    return DESKTOP_MANAGED || browserEngineAttachCdpUrl(cfg) !== null;
   }
-  /** A My Chrome profile on My Cloud: the person's lent Chrome, through this session's door. */
-  function lentChromeSession(profileId: string | undefined): boolean {
-    return !DESKTOP_MANAGED && browserEngineAttachCdpUrl(cfg) === null && doors !== undefined && usesMyChrome(profileId);
+  function lentChromeSummary(): { myChromeOn?: unknown; myChromeLendable?: true } {
+    return {};
   }
-  /** Where My Chrome is on My Cloud: the computer that lends it, or that one could. */
-  function lentChromeSummary(): { myChromeOn?: ChromeLender; myChromeLendable?: true } {
-    const lender = lentChrome?.lender() ?? null;
-    if (lender) return { myChromeOn: lender };
-    return lentChrome ? { myChromeLendable: true } : {};
-  }
-  /** On My Cloud a My Chrome profile stays the person's Chrome while no computer lends it: its calls say so, and never
-   * fall back to the built-in browser, whose sign-ins differ. */
   function usesMyChrome(profileId: string | undefined): boolean {
-    return Boolean(profileId) && (myChromeAvailable() || lentChrome !== undefined)
+    return Boolean(profileId) && myChromeAvailable()
       && cfg.browserProfiles?.some((profile) => profile.id === profileId && profile.browser === "chrome") === true;
   }
   function browserSessionSpec(binaryPath: string, session: string, profile: string | undefined, egressPort?: number, cdpUrl?: string) {
@@ -360,7 +266,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
       return null;
     }
     const session = currentBrowserSession(botId, profile, audience);
-    const cdpUrl = lentChromeSession(browserProfileId) ? await lentChromeDoor(session) : undefined;
+    const cdpUrl = undefined;
     const spec = browserSessionSpec(status.binaryPath, session, browserProfileId, usesMyChrome(browserProfileId) ? undefined : await browserEgress.open(session), cdpUrl);
     usedBrowserSessions.set(session, spec);
     await prepareBrowserSessionState(status.binaryPath, session, { env: spec.env, persistent: profile !== "guest" && !attachesToChrome(spec.env), isCurrent: () => {
@@ -381,7 +287,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     const used = usedBrowserSessions.get(session);
     if (used) return { session, spec: used };
     const profileId = browserProfileIdOf(profile);
-    const cdpUrl = lentChromeSession(profileId) ? await lentChromeDoor(session) : undefined;
+    const cdpUrl = undefined;
     return { session, spec: browserSessionSpec(engine.binaryPath, session, profileId, usesMyChrome(profileId) ? undefined : await browserEgress.open(session), cdpUrl) };
   }
   /** fill_login's reads and typing, on whichever engine runs the session. */
@@ -470,8 +376,8 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   function cleanupEngine(): { binaryPath: string } | null {
     const managed = browserEngineStatus({ managedOnly: true });
     if (managed.kind === "ready") return managed;
-    const used = browserEngineStatus();
-    return CLOUD_HOME && used.kind === "ready" ? used : null;
+
+    return null;
   }
   /** A deleted bot's or profile's browser on both engines, for every audience: stopped and its saved sign-ins erased;
    * true once that is done. */

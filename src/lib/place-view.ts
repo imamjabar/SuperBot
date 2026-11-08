@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import type { CloudAccountState } from "../../electron/cloud-account.mjs";
 import { activeLocale, t } from "@/lib/i18n";
-import { cloudPlanView } from "@/lib/cloud-plan";
 import { engineSignedOut } from "@/lib/failed-turn";
 import { browserAvailable, builtInBrowserEnabled, type FeatureFlagConfig } from "@/lib/feature-flags";
 import { writeComputerPanelView } from "@/lib/computer-panel-view";
@@ -25,8 +23,7 @@ export interface PlaceSeat {
   mode: "simple" | "advanced";
 }
 
-export function serverKind(config: Pick<ConfigStatus, "cloudHome"> | null | undefined, platform: DesktopCapabilities["host"]["platform"]): ServerKind {
-  if (config?.cloudHome) return "my-cloud";
+export function serverKind(_config: unknown, platform: DesktopCapabilities["host"]["platform"]): ServerKind {
   return platform === "darwin" ? "mac" : platform === "win32" ? "pc" : "linux";
 }
 
@@ -90,24 +87,11 @@ export function placeHasIssue(view: PlaceView): boolean {
     || view.state === "cc-unavailable";
 }
 
-export function useCloudPlanPaid(): boolean {
-  const bridge = typeof window === "undefined" || window.ogb?.remoteClient?.active ? undefined : window.ogb?.cloudAccount;
-  const [account, setAccount] = useState<CloudAccountState | null>(null);
-  useEffect(() => {
-    if (!bridge) return;
-    let active = true, updated = false;
-    const unsubscribe = bridge.onState((next) => { updated = true; if (active) setAccount(next); });
-    void bridge.state().then((next) => { if (active && !updated) setAccount(next); }).catch(() => {});
-    return () => { active = false; unsubscribe(); };
-  }, [bridge]);
-  return Boolean(bridge) && cloudPlanView(account).kind === "paid";
-}
 
 export function usePlaceSeat(config: Pick<ConfigStatus, "cloudHome"> | null | undefined, platform: DesktopCapabilities["host"]["platform"]): PlaceSeat {
-  const plan = useCloudPlanPaid();
   const ownerOrAdmin = useOwnerOrAdmin();
   const advanced = useAdvancedMode();
-  return { server: serverKind(config, platform), plan, role: ownerOrAdmin === false ? "user" : "admin", mode: advanced ? "advanced" : "simple" };
+  return { server: serverKind(config, platform), plan: false, role: ownerOrAdmin === false ? "user" : "admin", mode: advanced ? "advanced" : "simple" };
 }
 
 export function openPlaceAction(
@@ -115,7 +99,7 @@ export function openPlaceAction(
   target: { botId: string; threadId?: string; place?: Place },
   dispatch: (action: Action) => void,
 ): boolean {
-  const appSettings = (section: "engines" | "computer" | "cloudAccount") =>
+  const appSettings = (section: "engines" | "computer") =>
     dispatch({ type: "toggleAppSettings", open: true, section });
   switch (id) {
     case "choose-model": openBotSettings(dispatch, "model", { botId: target.botId }); return true;
@@ -129,19 +113,6 @@ export function openPlaceAction(
       appSettings("computer");
       return true;
     case "open-team-map": dispatch({ type: "showTeamMap" }); return true;
-    case "see-plan": {
-      const desktop = window.ogb?.remoteClient?.active ? undefined : window.ogb?.cloudAccount;
-      if (desktop) { void desktop.openDashboard().catch(() => {}); return true; }
-      if (window.ogb?.cloudPlan) { void window.ogb.cloudPlan.manage().catch(() => {}); return true; }
-      appSettings("cloudAccount");
-      return true;
-    }
-    case "open-my-cloud": {
-      const desktop = window.ogb?.remoteClient?.active ? undefined : window.ogb?.cloudAccount;
-      if (desktop) void desktop.connectHome().catch(() => {});
-      else appSettings("cloudAccount");
-      return true;
-    }
     case "clear-pin":
       if (!target.threadId) return false;
       dispatch({ type: "updateTask", botId: target.botId, threadId: target.threadId, patch: { surface: null } });

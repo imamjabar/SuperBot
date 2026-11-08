@@ -6,7 +6,7 @@ import {
   TRIAL_CREDIT, VOICE,
 } from "./analytics-allowlist";
 import {
-  buildUsageSnapshot, cloudPlanFromAccount, cloudPlanFromSnapshot, type SnapshotState, type UsageInput, type UsageSources,
+  buildUsageSnapshot, type SnapshotState, type UsageInput, type UsageSources,
 } from "./usage-snapshot";
 
 const HOSTILE = "sk-ant-api03-HOSTILE-0123456789";
@@ -318,7 +318,7 @@ describe("an opted-out install", () => {
 describe("what counts as a key, a computer source and an app", () => {
   const minimal = (config: Partial<ConfigStatus> = {}, input: Partial<UsageInput> = {}): UsageInput => ({
     config: { composio: { configured: false }, box: { configured: false }, vps: { configured: false, sshAlias: "" }, rooms: { turnTimeoutMinutes: 30 }, localVm: { mode: "shared", maxInstances: 1 }, ...config } as ConfigStatus,
-    instances: [], bots: [], groups: [], routines: [], webhooks: 0, apps: null, sessions: null, companionDevices: null, cloud: null,
+    instances: [], bots: [], groups: [], routines: [], webhooks: 0, apps: null, sessions: null, companionDevices: null,
     computers: null, platform: "browser", remoteClient: false, ...input,
   });
 
@@ -380,30 +380,3 @@ describe("what counts as a key, a computer source and an app", () => {
   });
 });
 
-describe("the Cloud plan", () => {
-  const trial = { state: "active", tier: "pro", endsAt: 1, amount: 4900, chargeAt: 1, holdUntil: null };
-  const entitlement = (patch: Record<string, unknown>) => ({ plan: "pro", status: "active", expiresAt: null, version: 1, ...patch });
-
-  it("reads a desktop's Cloud account: unknown while it cannot tell, none when signed out or not paying", () => {
-    expect(cloudPlanFromAccount({ status: "signed-out", message: "restoring" })).toEqual({ plan: "unknown" });
-    expect(cloudPlanFromAccount({ status: "signed-out" })).toEqual({ plan: "none" });
-    for (const status of ["connecting", "reauth-required", "unavailable"] as const) expect(cloudPlanFromAccount({ status }), status).toEqual({ plan: "unknown" });
-    expect(cloudPlanFromAccount(null)).toEqual({ plan: "unknown" });
-    const connected = (patch: Record<string, unknown>, extra: Record<string, unknown> = {}) => cloudPlanFromAccount({ status: "connected", entitlement: entitlement(patch), ...extra } as never);
-    expect(connected({})).toEqual({ plan: "pro", trial: false });
-    expect(connected({ tier: "personal" }, { trial })).toEqual({ plan: "personal", trial: true });
-    expect(connected({ tier: "a-tier-from-a-newer-admin" })).toEqual({ plan: "other", trial: false });
-    expect(connected({ tier: "max", status: "inactive" })).toEqual({ plan: "none", trial: false });
-    expect(connected({ plan: "free" }, { trial })).toEqual({ plan: "none", trial: true });
-  });
-
-  it("reads a Cloud page's own plan, where a paid plan whose payment needs attention counts as none", () => {
-    expect(cloudPlanFromSnapshot({ status: "paid" })).toEqual({ plan: "pro", trial: false });
-    expect(cloudPlanFromSnapshot({ status: "paid", tier: "max" })).toEqual({ plan: "max", trial: false });
-    expect(cloudPlanFromSnapshot({ status: "paid", tier: "a-tier-from-a-newer-admin" })).toEqual({ plan: "other", trial: false });
-    expect(cloudPlanFromSnapshot({ status: "attention", tier: "pro", trial } as never)).toEqual({ plan: "none", trial: true });
-    expect(cloudPlanFromSnapshot({ status: "none" })).toEqual({ plan: "none", trial: false });
-    for (const status of ["checking", "signin"] as const) expect(cloudPlanFromSnapshot({ status }), status).toEqual({ plan: "unknown" });
-    expect(cloudPlanFromSnapshot(undefined)).toEqual({ plan: "unknown" });
-  });
-});

@@ -2,7 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RailPlace, RailState } from "../../electron/cloud-rail.mjs";
+import type { RailPlace, RailState } from "../../electron/rail-places.mjs";
 import { setLocale } from "@/lib/i18n";
 import { placeInitials, refreshPlaces } from "@/lib/places";
 

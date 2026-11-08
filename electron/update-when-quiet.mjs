@@ -2,7 +2,7 @@
 // nothing under way here, nobody typing in the app, and the person away. Only where the updater installs without
 // asking anything: macOS (Squirrel.Mac, from the ZIP) and Windows (the per-user NSIS installer, run with /S). The
 // window comes back only if it was open, and the first launch on the new version says once that the app updated itself.
-import { QUIET_MS } from "./one-home.mjs";
+export const QUIET_MS = 60_000;
 import { isNewerVersion } from "./updater-coordinator.mjs";
 
 /** Nobody has touched this computer's keyboard or mouse for this long: the person is away. */

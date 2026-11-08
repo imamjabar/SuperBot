@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { CLOUD_OUTSIDE_KEY } from "../cloud-sharing.ts";
+import { CLOUD_OUTSIDE_KEY, createOutsideLineage, type OutsideLineageDeps } from "./outside-lineage.ts";
 import type { HandoffView } from "../coordinator.ts";
 import type { RoutineRun } from "../routines.ts";
-import { createOutsideLineage, type OutsideLineageDeps } from "./outside-lineage.ts";
 
 function world(over: Partial<OutsideLineageDeps> = {}) {
   const tasks = new Map<string, { threadId: string; outside?: true }>();

@@ -2,7 +2,16 @@
 // came in from outside stay in the conversation, so once work traces to outside that conversation, and everything it
 // starts, retries, wakes, queues or schedules, stays outside. A person's line in such a conversation runs confined too:
 // its engine reads those words as context, whoever typed last.
-import { CLOUD_OUTSIDE_KEY, outsideDriven } from "../cloud-sharing.ts";
+export const CLOUD_OUTSIDE_KEY = "p_cloud-outside";
+function outsideDriven(threadId: string, records: {
+  marked(threadId: string): boolean;
+  webhookRun(threadId: string): boolean;
+  webhookPosted(threadId: string): boolean;
+  handedFrom(threadId: string): Iterable<string>;
+}): boolean {
+  const driven = (id: string) => records.marked(id) || records.webhookRun(id) || records.webhookPosted(id);
+  return driven(threadId) || [...records.handedFrom(threadId)].some(driven);
+}
 import type { HandoffView } from "../coordinator.ts";
 import type { RoutineRun } from "../routines.ts";
 import { serverLine } from "../server-lines.ts";

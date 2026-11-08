@@ -8,7 +8,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AppConfig } from "../config.ts";
 import { createMcpConfig } from "../host/mcp-config.ts";
-import type { TeamConnectionsHost } from "../host/team-connections-host.ts";
 import { addBotMcpServer, keepForBot } from "../mcp-bot-servers.ts";
 import { botListing, mcpOwner } from "../mcp-bot-rules.ts";
 import { McpOAuthManager } from "../mcp-oauth.ts";
@@ -54,8 +53,6 @@ function fixture(options: Options = {}) {
   let busy = false;
   const config = createMcpConfig({
     cfg, sessions: { isLive: () => true }, mcpOAuth,
-    teamConnections: { personMcp: () => options.personal ?? [], people: {} as TeamConnectionsHost["people"] },
-    cloudHome: null, fallbackPublicUrl: null,
     mcpConfigBusy: { get: () => busy, set: (value) => { busy = value; } },
     mcpServerResponse: () => ({ servers: listMcpServers(cfg.mcpServers) }),
     mcpPolicyRefusal: (name) => options.refuse?.(name),

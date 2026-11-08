@@ -2,7 +2,6 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { DeviceLinks, LinkedComputer } from "./device-links.ts";
 import { awayNotice, deviceWord, lendScreenSteps, LENT_PLATFORMS, type LentComputers, type LentPlatform } from "./lent-computers.ts";
-import type { LentCopies } from "./lent-copies.ts";
 export { LentComputers } from "./lent-computers.ts";
 
 const folder = z.object({ id: z.string().uuid(), name: z.string().min(1).max(120), write: z.boolean() }).strict();
@@ -123,14 +122,11 @@ export class SharedComputers {
   private sessionLive: (id: string) => boolean;
   private lent: LentComputers | undefined;
   private links: Pick<DeviceLinks, "drop"> | undefined;
-  /** A Cloud home's copies of lent folders: what a computer that is away still lends (server/lent-copies.ts). */
-  private copies: Pick<LentCopies, "away" | "answer"> | undefined;
-  /** A computer connected, changed what it lends, or stopped. */
   changed: () => void = () => {};
   /** On the person's own Cloud, the bots' tool that asks them to turn on what their computer doesn't give now. */
   askTool: string | null = null;
-  constructor(sessionLive: (id: string) => boolean, lent?: LentComputers, links?: Pick<DeviceLinks, "drop">, copies?: Pick<LentCopies, "away" | "answer">) {
-    this.sessionLive = sessionLive; this.lent = lent; this.links = links; this.copies = copies;
+  constructor(sessionLive: (id: string) => boolean, lent?: LentComputers, links?: Pick<DeviceLinks, "drop">) {
+    this.sessionLive = sessionLive; this.lent = lent; this.links = links;
   }
   private static key(session: string, id: string) { return `${session}\n${id}`; }
   register(registration: Registration, owner: SharedComputerOwner, secret: string) {
@@ -201,7 +197,7 @@ export class SharedComputers {
   away(principal: string | null) {
     if (!principal) return {};
     const online = this.list(principal);
-    return { ...awayNotice(this.lent?.list(principal) ?? [], new Set(online.map(registration => registration.id)), this.askTool), ...this.copies?.away(principal, online) };
+    return awayNotice(this.lent?.list(principal) ?? [], new Set(online.map(registration => registration.id)), this.askTool);
   }
   /** For a bot: how the person lends apps and screen, when an online computer of theirs lends neither. */
   screenNotLent(principal: string | null): { screen?: string } {
@@ -312,9 +308,6 @@ export class SharedComputers {
       const known = lent();
       if (known && this.online(known)) break;
       if (!known || Date.now() - known.seen > RECONNECTING_MS || Date.now() >= deadline || !active()) {
-        // Away: its lent folders answer from their copy here, a write to one lent with editing waits for it.
-        const copy = active() ? this.copies?.answer(operation, principal, this.list(principal)) : null;
-        if (copy) return copy;
         const why = known && this.sessionLive(known.owner.session)
           ? lentButOffline(known.registration.name, known.seen, deviceWord(known.registration.platform))
           : this.offline(principal, operation.computer_id);

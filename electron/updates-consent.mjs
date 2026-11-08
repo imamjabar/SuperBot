@@ -1,6 +1,14 @@
 // The one-time "Get MausBot updates?" question: this computer's answer, kept in desktop-prefs.json before anything is
 // sent, and the MausBot Cloud Admin's consent record (account or email-only), kept in step with it.
-import { cleanEmail } from "./cloud-signin.mjs";
+// oxlint-disable-next-line no-control-regex
+const CONTROL = /[\x00-\x1f\x7f]/;
+const EMAIL = /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)+$/;
+
+export function cleanEmail(value) {
+  if (typeof value !== "string") return null;
+  const email = value.trim().toLowerCase();
+  return email.length <= 254 && !CONTROL.test(email) && EMAIL.test(email) ? email : null;
+}
 
 /** The consent wording shown, by version: the Admin keeps the version with each answer as proof of what was asked. */
 export const UPDATES_CONSENT_VERSION = "2026-10-23";

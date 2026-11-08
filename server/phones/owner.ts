@@ -3,10 +3,139 @@
 // a bot's ask counts only as this turn's own request, and only while the work it carries came from the user; a routine's
 // run and its reports are the owner's only while the owner wrote it and nobody else has changed it since; a webhook's
 // payload and an outside event's run stay someone else's words.
-import type { CloudLendingTurn } from "../cloud-lending.ts";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { z } from "zod";
+import { writeFileAtomic } from "../atomic.ts";
+
+export type Line = {
+  id: string;
+  role: string;
+  sender?: { id?: string };
+  peerAsk?: unknown;
+  steered?: boolean;
+  relayed?: boolean;
+  card?: {
+    answered?: string;
+    answeredText?: string;
+    dismissed?: boolean;
+    autoApplied?: boolean;
+    answeredBy?: { kind: string; person?: string };
+  };
+};
+
+export interface CloudLendingTurn {
+  generation: string;
+  thread: readonly Line[];
+  request?: { messageId?: string; stopped?: boolean; generations: ReadonlySet<string>; automation?: unknown };
+  ownerPerson(person: string | undefined): boolean;
+  cardAnswerer(card: Line["card"]): string | undefined;
+  botOpened?: boolean;
+  reportsFromOthers?: boolean;
+  starters?: readonly (string | undefined)[];
+  routineRun(): { triggerSource?: string; ownerAuthored?: boolean; ownerStarted?: boolean } | null;
+}
+
+export function ownerOnlyConversation(
+  thread: readonly Line[],
+  ownerPerson: (person: string | undefined) => boolean,
+  cardAnswerer: (card: Line["card"]) => string | undefined,
+  skipId?: string,
+): boolean {
+  for (const line of thread) {
+    if (line.id === skipId) continue;
+    if (line.role === "user") {
+      const person = line.sender?.id;
+      if (!ownerPerson(person)) return false;
+    }
+    if (line.card && (line.card.answered || line.card.answeredText)) {
+      const person = cardAnswerer(line.card);
+      if (!ownerPerson(person)) return false;
+    }
+  }
+  return true;
+}
+
+export function cloudHomeLendingRefusal(turn: CloudLendingTurn): "unproven" | "not-owner" | "someone-else" | null {
+  const { request } = turn;
+  if (!request?.messageId || request.stopped || !request.generations.has(turn.generation)) return "unproven";
+  const index = turn.thread.findIndex((line) => line.id === request.messageId);
+  if (index < 0) return "unproven";
+  let owner: boolean;
+  if (request.automation === undefined) {
+    owner = turn.ownerPerson(turn.thread[index]?.sender?.id);
+  } else {
+    const run = turn.routineRun();
+    owner = request.automation !== "webhook" && request.automation !== "api" && Boolean(run) && run!.triggerSource !== "webhook" &&
+      run!.ownerAuthored === true && (run!.triggerSource !== "manual" || run!.ownerStarted === true);
+  }
+  if (!owner) return "not-owner";
+  if (turn.starters?.some((person) => person !== undefined && !turn.ownerPerson(person))) return "someone-else";
+  if (turn.botOpened || turn.reportsFromOthers) return "someone-else";
+  const clean = ownerOnlyConversation(turn.thread, turn.ownerPerson, turn.cardAnswerer, request.automation !== undefined ? request.messageId : undefined);
+  return clean ? null : "someone-else";
+}
+
+const authorsSchema = z.object({
+  version: z.literal(1),
+  routines: z.record(z.string(), z.string()).default({}),
+  writers: z.record(z.string(), z.string()).default({}),
+});
+
+export function createCloudRoutineAuthors(file: string) {
+  let routines: Record<string, string> = {};
+  let writers: Record<string, string> = {};
+  try {
+    if (existsSync(file)) {
+      const parsed = authorsSchema.parse(JSON.parse(readFileSync(file, "utf8")));
+      routines = parsed.routines;
+      writers = parsed.writers;
+    }
+  } catch {
+    routines = {};
+    writers = {};
+  }
+  const save = () => writeFileAtomic(file, JSON.stringify({ version: 1, routines, writers }), { mode: 0o600 });
+  return {
+    record(id: string, routine: { prompt?: string }) {
+      routines = { ...routines, [id]: routine.prompt ? createHash("sha256").update(routine.prompt).digest("hex") : "" };
+      save();
+    },
+    forget(id: string) {
+      if (Object.hasOwn(routines, id)) {
+        const next = { ...routines };
+        delete next[id];
+        routines = next;
+        save();
+      }
+    },
+    wrote(id: string, person: string) {
+      if (writers[id] !== person) {
+        writers = { ...writers, [id]: person };
+        save();
+      }
+    },
+    writer(id: string): string | undefined {
+      return Object.hasOwn(writers, id) ? writers[id] : undefined;
+    },
+    remove(id: string) {
+      if (!Object.hasOwn(routines, id) && !Object.hasOwn(writers, id)) return;
+      const nextRoutines = { ...routines };
+      delete nextRoutines[id];
+      routines = nextRoutines;
+      const nextWriters = { ...writers };
+      delete nextWriters[id];
+      writers = nextWriters;
+      save();
+    },
+    authored(id: string, routine: { prompt?: string }) {
+      return Object.hasOwn(routines, id) && routines[id] === (routine.prompt ? createHash("sha256").update(routine.prompt).digest("hex") : "");
+    },
+    persist() { save(); },
+  };
+}
 import type { LoopbackTrust } from "../request-auth.ts";
 
-type Line = CloudLendingTurn["thread"][number];
 /** The lines as the store keeps them: what they say about where their words came from, beyond the lending test's fields. */
 export type DesktopLine = Line & {
   kind?: string;

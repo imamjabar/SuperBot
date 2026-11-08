@@ -356,7 +356,7 @@ pnpm package:linux    # Ubuntu x64: .deb + AppImage + verified CUA runtime
 The Linux preview is user-initiated and never enables local bot control or Auto routing. On Xorg, the reviewed Cua
 Driver 0.19.3 runtime starts only after explicit opt-in and without its full-screen cursor overlay. On Wayland the
 app never starts it and clears legacy opt-ins while that real-seat safety gate remains unresolved. Chat, preview,
-Cloud, and Local VM remain available on both sessions. See the [Ubuntu Desktop guide](docs/linux-desktop.md) and tracking
+cloud computers, and Local VM remain available on both sessions. See the [Ubuntu Desktop guide](docs/linux-desktop.md) and tracking
 issues [#29](https://github.com/milind-soni/OpenMausBot/issues/29),
 [#345](https://github.com/milind-soni/OpenMausBot/issues/345), and
 [#113](https://github.com/milind-soni/OpenMausBot/issues/113).
@@ -399,7 +399,7 @@ the sidebar, lists every schedule and webhook, with a calendar and the run histo
 the person copies the link from the card or the Triggers page.
 
 Schedules (routines) can run once, on selected weekdays, or every 5–1,440 minutes, using either a bot's configured
-model/computer or the Cloud VM runner. Interval schedules stay aligned to their chosen start time and skip
+model/computer or the Local VM runner. Interval schedules stay aligned to their chosen start time and skip
 an occurrence when the previous run is still active, so slow work cannot build an unbounded queue. A
 separate optional Advanced run limit can safely stop stuck work; no timeout is imposed unless one is chosen.
 The existing duration field remains calendar/display metadata. Webhook triggers are independent from schedules
@@ -411,9 +411,8 @@ a reply"). The bot finds the app's events with `trigger_info` (`action: "events"
 `action: "create"` and `when: "app_event"`; the person can also choose **New → Set it up yourself → When something happens in an app**.
 Composio sends each event to OpenMausBot's connected-apps service, which queues it; the app collects the queue
 with a long poll, so a desktop needs no public address and events wait while it is closed. Gmail is checked every
-15 minutes; Slack, GitHub and other push apps arrive at once. A desktop keeps up to 500 events a day and a paid
-Cloud 2,000; what is skipped shows on the automation. App events need the included connected apps: a server
-using its own Composio key cannot watch apps yet. Details: [docs/composio.md](docs/composio.md#app-events).
+15 minutes; Slack, GitHub and other push apps arrive at once. A desktop keeps up to 500 events a day;
+what is skipped shows on the automation. Details: [docs/composio.md](docs/composio.md#app-events).
 
 OpenMausBot starts a webhook-only receiver on `127.0.0.1:8800` by default (or one port above `OMB_PORT`).
 Set `OMB_WEBHOOK_PORT` to choose another port. A webhook secret is shown once when the trigger is created

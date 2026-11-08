@@ -18,10 +18,9 @@ too) into areas, and runs only the jobs some area can affect:
 | locales | `src/locales/*.json` except `en.json`, `src/locales/*.test.ts` | the build, the locale tests: every `src/` test and `scripts/generate-locale.test.mjs` in two Linux shards, with the Electron node tests |
 | web | the rest of `src/`, `public/`, the root `*-preview.html` pages | the build, the eight Linux shards, the renderer smoke |
 | script tests | `scripts/**/*.test.*` | the Linux shards (and Windows', see Windows), the renderer smoke, browser identity |
-| server | `server/`, `shared/`, `enterprise/`, `companion/`, `evals/`, `skills/`, `deploy/`, the composio broker, the Dockerfile, and the renderer files the server or a smoke loads | the build, Linux shards (and Windows', see Windows), behavior evals, packaged server, open-source edition, the macOS smokes, renderer smoke, browser identity, browser driver, Linux package |
+| server | `server/`, `shared/`, `enterprise/`, `companion/`, `evals/`, `skills/`, `deploy/`, the Dockerfile, and the renderer files the server or a smoke loads | the build, Linux shards (and Windows', see Windows), behavior evals, packaged server, open-source edition, the macOS smokes, renderer smoke, browser identity, browser driver, Linux package |
 | Windows computer control | the `electron/` modules that start computer control and lend a PC's screen: `cua`, `cua-failure`, `cua-connection`, `capabilities`, `screen-status`, `shared-cua-connection`, `shared-computer-access`, `lent-screen-tools`, `lent-screen-failures`, `paced-typing` | the same as server, and Windows CUA |
 | desktop | the rest of `electron/`, `build/`, `electron-builder.yml`, `index.html` | the same as server |
-| control plane | `cloudflare/control-plane/` | the control-plane job |
 | everything | anything else: `.github/` workflows, `package.json`, the lockfile and workspace, tsconfig, vite and vitest config, `third_party/`, `scripts/` code, unknown paths | every job |
 
 The build is static's typecheck, Electron syntax check and UI build. Several
@@ -71,11 +70,8 @@ lane, which only an emergency `ship_without_ci` release skips.
   CI run of its own. Main's waiting run is replaced by each push, so without
   that check a replaced run's code would never be tested. Every other push runs
   the main lane.
-- A push whose commit already passed the `CI` gate in a merge group runs only
-  the control-plane job (the broker deploy needs it). The merge queue lands
-  its group's own commit, so the merge group's run tested exactly what the push
-  brings; `ci-scope.mjs` reads that run's gate job, which can pass before the
-  run's last job has finished.
+- A push whose commit already passed the `CI` gate in a merge group skips
+  the runtime jobs, because the merge group already tested that exact commit.
 - Merge groups always run the main lane, whatever they change. Empty or
   unreadable push diffs, and a commit whose CI cannot be read, fall back to the
   main lane; a pull request whose diff cannot be read falls back to every job
@@ -472,10 +468,9 @@ JSON
 ```
 
 `ci-stop-closed.yml` only cancels a closed PR's own group (`ci-pr-<n>`), so it
-never touches a merge group's run. The push that lands a group's commit runs
-only the control-plane job and the broker deploy, because the merge group
-already tested that exact commit. To turn the queue off, remove the **Require
-merge queue** rule; nothing in the workflow needs to change.
+never touches a merge group's run. The push that lands a group's commit skips
+the runtime jobs, because the merge group already tested that exact commit.
+To turn the queue off, remove the **Require merge queue** rule; nothing in the workflow needs to change.
 
 While the repository stays user-owned, the one setting that stops two green PRs
 from landing red together is **Require branches to be up to date before

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { cloudHomeLendingRefusal, createCloudRoutineAuthors, type CloudLendingTurn } from "../cloud-lending.ts";
+import { cloudHomeLendingRefusal, createCloudRoutineAuthors, type CloudLendingTurn } from "../phones/owner.ts";
 import { personKey } from "../person-key.ts";
 import type { PhoneBot, PhonePlace } from "../phones/access.ts";
 import { createPhoneHost } from "../phones/host.ts";
@@ -26,21 +26,12 @@ const DESKTOP_OWNER = "owner";
 
 export interface PhonesDeps {
   dataDir: string;
-  /** A Team Cloud or a hosted workspace: several people share it, so no phone is anyone's. */
-  shared: boolean;
-  cloudHome: boolean;
-  /** The Cloud home owner's key; null off a Cloud home. */
-  cloudOwnerKey: string | null;
   loopbackTrust: LoopbackTrust;
   sharedMembership(): boolean;
   store: Pick<Store, "appendMessage" | "bot" | "groupByThread" | "messagesFor">;
   sessions: Pick<SessionRegistry, "list" | "isLive" | "onSessionRevoked">;
   routines(): { listRoutines(): Routine[] } | null;
   ownerOrAdmin(auth: RequestAuth): boolean;
-  cloudOwnerSession(auth: RequestAuth): boolean;
-  /** The lent-Mac test on a Cloud home: null when the turn may use the owner's things. */
-  cloudLendingRefusal(turn: Turn): string | null;
-  cloudLendingTurn(turn: Turn): CloudLendingTurn;
   /** The harness's record says this turn's work came from the user. */
   originIsUser(turn: Turn): boolean;
   /** The thread's latest direct request: the line it answers, a routine's trigger, where its work came from. */
@@ -68,23 +59,24 @@ export function createPhones(deps: PhonesDeps) {
   const ownerRoutinesFile = join(deps.dataDir, "owner-routines.json");
   const routineRecordsExisted = existsSync(ownerRoutinesFile);
   /** Off a Cloud home: the routines the desktop owner wrote, so their runs and reports keep the owner's phones. */
-  const routineAuthors = deps.cloudHome ? null : createCloudRoutineAuthors(ownerRoutinesFile);
+  const routineAuthors = createCloudRoutineAuthors(ownerRoutinesFile);
   const desktopPhones = () => desktopPhonesOffered({ sharedMembership: deps.sharedMembership(), loopbackTrust: deps.loopbackTrust });
   /** Whose phones this server offers at all, before any turn is looked at. */
-  const owner = () => (deps.shared ? null : deps.cloudHome ? deps.cloudOwnerKey : desktopPhones() ? DESKTOP_OWNER : null);
+  const owner = () => (desktopPhones() ? DESKTOP_OWNER : null);
 
   function ownerOf(auth: RequestAuth): string | null {
-    if (deps.shared) return null;
-    if (deps.cloudHome) return deps.cloudOwnerSession(auth) ? deps.cloudOwnerKey : null;
     return desktopPhones() && deps.ownerOrAdmin(auth) ? DESKTOP_OWNER : null;
   }
 
-  /** Whose phones a turn may use: on a Cloud home the owner's, when the lent Mac would allow the turn; elsewhere the desktop owner's. */
   function turnOwner(turn: Turn): string | null {
-    if (deps.shared) return null;
-    if (deps.cloudHome) return deps.cloudLendingRefusal(turn) === null ? deps.cloudOwnerKey : null;
     if (!desktopPhones()) return null;
-    const lending = desktopLendingTurn({ ...deps.cloudLendingTurn(turn), thread: store.messagesFor(turn.threadId) }, {
+    const req = deps.request(turn.threadId);
+    const lending = desktopLendingTurn({
+      generation: turn.generation,
+      thread: store.messagesFor(turn.threadId),
+      request: req ? { ...req, generations: new Set([turn.generation]) } : undefined,
+      routineRun: () => null,
+    }, {
       adminPersons: () => new Set(deps.sessions.list().filter((session) => session.scopes.includes("admin")).map((session) => personKey(session))),
       originIsUser: () => deps.originIsUser(turn),
       ownerWrote: (id) => {

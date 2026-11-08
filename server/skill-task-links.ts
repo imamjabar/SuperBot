@@ -1,7 +1,10 @@
 import { join } from "node:path";
 
 import { IMPORTED_SKILLS_DIR, readImportedSkills, syncImportedSkillLinks, type ImportedSkillView } from "./imported-skills.ts";
-import type { HarnessSkillLinks } from "./lending-memory.ts";
+export type HarnessSkillLinks = {
+  own: Map<string, string>;
+  imported: Map<string, string>;
+};
 import { ownSkillLinks, syncSkillLinks } from "./skills.ts";
 import { ensureTaskWorkspace } from "./workspace.ts";
 

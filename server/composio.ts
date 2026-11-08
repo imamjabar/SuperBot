@@ -29,8 +29,7 @@ import {
 } from "./connector-advertisement.ts";
 import { serviceSlugFor, serviceSlugForCandidates } from "./connector-verdict.ts";
 import { parseMcpResponse, withToolsListFallback } from "./connector-tools-list.ts";
-import { brokerAccess, type BrokerAccess } from "./composio-broker-access.ts";
-export { applyManagedBrokerMessage, brokerAccess, setManagedBrokerAccess, type BrokerAccess } from "./composio-broker-access.ts";
+export type BrokerAccess = { url: string; token: string };
 export { prepareProjectSession, trustedSessionMcpUrl } from "./composio-session.ts";
 
 function toolkitBase() {
@@ -159,9 +158,8 @@ function requestedServiceRecord<T>(services: Record<string, T>, requested: strin
   );
 }
 
-export function connectionMode(cfg: AppConfig): "managed" | "self-hosted" | "unavailable" {
+export function connectionMode(cfg: AppConfig): "self-hosted" | "unavailable" {
   if (projectApiKey(cfg)) return "self-hosted";
-  if (brokerAccess()) return "managed";
   return "unavailable";
 }
 
@@ -191,7 +189,7 @@ export function connectorSetup(
   return managedHost ? "service-unavailable" : "needs-setup";
 }
 
-async function brokerRequest(path: string, init?: RequestInit, broker = brokerAccess()): Promise<Response> {
+async function brokerRequest(path: string, init?: RequestInit, broker?: BrokerAccess): Promise<Response> {
   if (!broker) throw new Error("The connected-apps service is unavailable");
   const headers = new Headers(init?.headers);
   headers.set("authorization", `Bearer ${broker.token}`);
@@ -296,7 +294,7 @@ export async function relayMcp(
     headers.set("x-api-key", apiKey);
     identity = backendFingerprint("project-mcp", url, apiKey);
   } else {
-    const broker = as ?? brokerAccess();
+    const broker = as;
     if (!broker) throw new Error("Connected apps are unavailable");
     url = `${broker.url}/v1/mcp`;
     headers.set("authorization", `Bearer ${broker.token}`);
@@ -574,7 +572,7 @@ let connectorToolsCache: { at: number; identity: string; services: Record<string
 function connectorToolsIdentity(cfg: AppConfig, as?: BrokerAccess): string {
   const apiKey = as ? null : projectApiKey(cfg);
   if (apiKey) return backendFingerprint("project-tools", apiBase(), apiKey);
-  const broker = as ?? brokerAccess();
+  const broker = as;
   return broker ? backendFingerprint("managed-tools", broker.url, broker.token) : "none";
 }
 
@@ -963,16 +961,13 @@ export interface CatalogPagination {
 
 export async function listToolkits(cfg: AppConfig): Promise<{ cards: ToolkitCard[]; source: "api" | "curated"; pagination?: CatalogPagination }> {
   const backendKey = projectApiKey(cfg);
-  const broker = backendKey ? null : brokerAccess();
   const identity = backendKey
     ? backendFingerprint("project-catalog", toolkitBase(), backendKey)
-    : broker
-      ? backendFingerprint("managed-catalog", broker.url, broker.token)
-      : null;
+    : null;
   if (identity && toolkitCache?.identity === identity && Date.now() - toolkitCache.at < 10 * 60_000) {
     return { cards: toolkitCache.cards, source: "api", pagination: toolkitCache.pagination };
   }
-  if (backendKey || broker) {
+  if (backendKey) {
     try {
       const items: any[] = [];
       const seenCursors = new Set<string>();

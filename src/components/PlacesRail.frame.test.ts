@@ -2,7 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RailState } from "../../electron/cloud-rail.mjs";
+import type { RailState } from "../../electron/rail-places.mjs";
 
 const fixture = vi.hoisted(() => ({ windowChrome: "mac-inset" as "mac-inset" | "win-caption", windowFrame: undefined as boolean | undefined }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));

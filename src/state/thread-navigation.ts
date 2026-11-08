@@ -1,5 +1,4 @@
 import type { Action, AppState } from "./store";
-import { openOwnTeamChat, teamChats } from "./team-chats";
 
 interface NotificationThreadOwner {
   id: string;
@@ -41,7 +40,6 @@ export function openBot(
   bot: Pick<NotificationThreadOwner, "id" | "threadId" | "mainThreadId" | "tasks"> & { yourAccess?: string },
   threadsShown: boolean,
 ) {
-  if (openOwnTeamChat(dispatch, bot, (threadId) => openBotThread(dispatch, bot, threadId, threadsShown))) return;
   const opened = botOpensTo(bot, threadsShown);
   if (opened === bot.threadId) dispatch({ type: "select", id: bot.id });
   else openBotThread(dispatch, bot, opened, threadsShown);
@@ -77,7 +75,7 @@ export function openBotRow(
     openBot(dispatch, bot, false);
     return;
   }
-  const marked = teamChats() ? null : markedThread(bot, threadsShown);
+  const marked = markedThread(bot, threadsShown);
   if (!marked || marked === botOpensTo(bot, threadsShown) || (onScreen && marked === bot.threadId)) openBot(dispatch, bot, threadsShown);
   else openBotThread(dispatch, bot, marked, threadsShown);
 }

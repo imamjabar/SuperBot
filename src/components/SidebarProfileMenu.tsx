@@ -5,10 +5,9 @@ import {
   ArrowLeftRight,
   Check,
   CircleUserRound,
-  Cloud,
   Download,
-  FolderOpen,
   Gauge,
+  Server,
   Info,
   HelpCircle,
   Keyboard,
@@ -23,43 +22,26 @@ import {
   Zap,
 } from "lucide-react";
 
-import { accountMenuItems, AccountsSheet, cloudRowLabel, useAccounts } from "./AccountMenu";
-import { AccountMoveStatus, useAccountMove, type AccountMoveKind } from "./AccountMove";
 import { InitialsAvatar } from "./Avatar";
 import { DiscordIcon } from "./DiscordIcon";
 import { AboutDialog } from "./AboutDialog";
 import { PhoneAppDialog } from "./lazy-screens";
-import { CloudTile } from "./CloudTile";
 import type { WorkspacePlace } from "./DesktopWorkspaceSwitcher";
 import { railShown, usePlaces } from "@/lib/places";
 import { useAutomationsNeedYou } from "./SidebarFooterNav";
-import { useCloudFilesReady } from "@/lib/cloud-files";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import { ShortcutHint } from "./ShortcutHint";
 import { useSidebarPhoneStatus } from "./SidebarPhoneButton";
 import { api, useStore, type Action } from "@/state/store";
 import { serverCheckPhase, serverUpdateRow, type ServerUpdateCheck, type ServerUpdatePhase } from "@/lib/server-update";
-import type { CloudAccountBridge, CloudAccountState } from "../../electron/cloud-account.mjs";
 import { useUpdaterState, type UpdaterState } from "@/lib/updater";
 import { productName } from "../lib/brand";
-import { cloudColor } from "@/lib/cloud-look";
 import { cn } from "@/lib/cn";
 import { activeLocale, t } from "@/lib/i18n";
 import { FEEDBACK_URL, HELP_CENTER_URL, appVersion, openExternalLink } from "@/lib/app-links";
 import { useOtherServerName } from "@/lib/other-server";
 import { profileForSession, readSessionState, type SessionState } from "@/lib/session";
-import {
-  cloudPhoneDestination,
-  connectPhoneEntry,
-  currentPhonePairingTarget,
-  loadPhonePairingAccess,
-  phoneDestinations,
-  phonePairingSettingsAction,
-  type CloudPhoneDestination,
-  type ConnectPhoneEntry,
-  type PhoneDestination,
-  type PhonePairingAccess,
-} from "@/lib/phone-pairing";
+import { connectPhoneEntry, currentPhonePairingTarget, loadPhonePairingAccess, phoneDestinations, phonePairingSettingsAction, type ConnectPhoneEntry, type PhoneDestination, type PhonePairingAccess } from "@/lib/phone-pairing";
 
 export function profileInitials(profile?: { name?: string; email?: string }): string {
   const name = profile?.name?.trim();
@@ -273,27 +255,6 @@ function useConnectPhoneEntry(cloudHome: boolean): ConnectPhoneEntry | null {
   return connectPhoneEntry(target, access);
 }
 
-export function useCloudPhoneDestination(enabled: boolean): { cloud: CloudPhoneDestination; bridge?: CloudAccountBridge } {
-  const bridge = enabled && !window.ogb?.remoteClient?.active ? window.ogb?.cloudAccount : undefined;
-  const [account, setAccount] = useState<CloudAccountState | null>(null);
-  useEffect(() => {
-    if (!bridge) return;
-    let active = true, updated = false;
-    const unsubscribe = bridge.onState((next) => { updated = true; if (active) setAccount(next); });
-    void bridge.state().then((next) => { if (active && !updated) setAccount(next); }).catch(() => {});
-    return () => { active = false; unsubscribe(); };
-  }, [bridge]);
-  return bridge ? { cloud: cloudPhoneDestination(account), bridge } : { cloud: null };
-}
-
-export function selectPhoneDestination(destination: PhoneDestination, { bridge, dispatch }: { bridge?: Pick<CloudAccountBridge, "connectHomeForPhone">; dispatch: (action: Action) => void }): void {
-  if (destination.id !== "cloud" || !bridge) {
-    dispatch(phonePairingSettingsAction());
-    return;
-  }
-  void bridge.connectHomeForPhone().catch(() => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" }));
-}
-
 export function phoneMenuItems({
   destinations,
   connected,
@@ -364,79 +325,15 @@ export function accountDot({ automationsNeedYou, update, move }: { automationsNe
 }
 
 /** `besideRail`: the window's rail of places stands beside the page and switches places, so Switch to… isn't offered twice. */
-export function placeMenuItems(place: Pick<WorkspacePlace, "bridge" | "current" | "cloudHome" | "onLine" | "openMenu" | "switchable">, { owner, name, onCloudSettings, besideRail = false }: {
-  owner: string | null;
-  /** A team's name on a team's Cloud. */
-  name?: string;
-  onCloudSettings: () => void;
-  besideRail?: boolean;
-}): SidebarMenuItem[] {
+export function placeMenuItems(place: Pick<WorkspacePlace, "bridge" | "current" | "openMenu" | "switchable">, { besideRail = false }: { besideRail?: boolean } = {}): SidebarMenuItem[] {
   const here = <Check size={15} aria-hidden="true" className="shrink-0 text-ink-secondary" />;
-  if (!place.switchable) {
-    if (!place.cloudHome && !place.current?.home) return [];
-    const subtitle = [place.onLine, owner ? t("sidebar.cloudOwner", { email: owner }) : ""].filter(Boolean).join(" · ");
-    return [{ key: "place", label: name || t("cloudSetup.myCloud"), ...(subtitle ? { subtitle } : {}), icon: <Cloud size={16} />, trailing: here, onSelect: onCloudSettings }];
-  }
+  if (!place.switchable) return [];
   const current = place.current;
-  const icon = cloudColor(current?.color) ? <CloudTile color={current?.color} size={16} />
-    : current?.local === false || (place.cloudHome && !current) ? <Cloud size={16} /> : <Laptop size={16} />;
+  const icon = current?.local === false ? <Server size={16} /> : <Laptop size={16} />;
   return [
-    ...(current ? [{ key: "place", label: current.name, ...(place.cloudHome && place.onLine ? { subtitle: place.onLine } : {}), icon, trailing: here, onSelect: place.openMenu }] : []),
+    ...(current ? [{ key: "place", label: current.name, icon, trailing: here, onSelect: place.openMenu }] : []),
     ...(besideRail ? [] : [{ key: "switch-place", label: t("sidebar.menu.switchTo"), icon: <ArrowLeftRight size={16} />, onSelect: place.openMenu }]),
   ];
-}
-
-export function simplePhoneItems({ connected, onGetApp }: { connected: boolean; onGetApp: () => void }): SidebarMenuItem[] {
-  return [{
-    key: "phone-app",
-    label: t("sidebar.menu.getPhoneApp"),
-    icon: <Smartphone size={18} />,
-    trailing: connected ? <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-success" /> : undefined,
-    onSelect: onGetApp,
-  }];
-}
-
-type PlanWindowUse = { available: boolean; usedPercent: number | null; resetsAt: string | null };
-export type PlanUsageWindows = { providers: Array<{ ok: boolean; plan: string | null; weekly: PlanWindowUse; fiveHour: PlanWindowUse; extra?: Array<{ label: string; usedPercent: number }> }> };
-
-export interface UsageSummary {
-  value: string;
-  weekly?: boolean;
-  resets?: string;
-}
-
-export function resetsIn(at: number | null, now: number): string | undefined {
-  if (at === null || !Number.isFinite(at) || at <= now) return undefined;
-  const hours = (at - now) / 3_600_000;
-  const format = new Intl.RelativeTimeFormat(activeLocale(), { numeric: "auto" });
-  return t("sidebar.menu.resets", { when: hours < 24 ? format.format(Math.max(1, Math.round(hours)), "hour") : format.format(Math.round(hours / 24), "day") });
-}
-
-export function planUsageSummary(report: PlanUsageWindows | null, now = Date.now()): UsageSummary | null {
-  const signedIn = report?.providers.filter((provider) => provider.ok) ?? [];
-  for (const window of ["weekly", "fiveHour"] as const) {
-    const known = signedIn.map((provider) => provider[window]).filter((entry) => entry.available && entry.usedPercent !== null);
-    if (known.length === 0) continue;
-    const tightest = known.reduce((most, entry) => (entry.usedPercent! > most.usedPercent! ? entry : most));
-    const resets = resetsIn(tightest.resetsAt ? Date.parse(tightest.resetsAt) : null, now);
-    return { value: t("sidebar.menu.usageUsed", { percent: Math.round(tightest.usedPercent!) }), weekly: window === "weekly", ...(resets ? { resets } : {}) };
-  }
-  const budgets = signedIn.flatMap((provider) => provider.extra?.filter((extra) => extra.label === "Monthly spend") ?? []);
-  return budgets.length ? { value: t("sidebar.menu.usageUsed", { percent: Math.round(Math.max(...budgets.map((budget) => budget.usedPercent))) }) } : null;
-}
-
-
-function usePlanUsageSummary(enabled: boolean): UsageSummary | null {
-  const [summary, setSummary] = useState<UsageSummary | null>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    let alive = true;
-    void api<PlanUsageWindows>("/api/plan-usage", { background: true })
-      .then((report) => { if (alive) setSummary(planUsageSummary(report)); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [enabled]);
-  return summary;
 }
 
 export function profileMenuItems({
@@ -463,8 +360,6 @@ export function profileMenuItems({
   update: SidebarMenuItem | null;
   updateTop?: { label: string; action: string } | null;
   /** the move to My Cloud's own rows, first of all (AccountMove) */
-  move?: SidebarMenuItem[];
-  account: string | null;
   /** who is signed in on this device: the last rows, next to where the menu opens */
   accounts?: SidebarMenuItem[];
   simple?: { tools: SidebarMenuItem[]; places: SidebarMenuItem[] };
@@ -474,7 +369,6 @@ export function profileMenuItems({
   onAbout: () => void;
   onHelp: () => void;
   onFeedback: () => void;
-  onAccount: () => void;
 }): SidebarMenuItem[] {
   const help: SidebarMenuItem[] = [
     { key: "help", label: t("sidebar.menu.help"), icon: <HelpCircle size={18} />, onSelect: onHelp },
@@ -548,9 +442,8 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
   const [menuOpen, setMenuOpen] = useState(false);
   const engineUsage = usePlanUsageSummary(simple && menuOpen && window.ogb?.remoteClient?.active !== true);
   const phone = useSidebarPhoneStatus();
-  const connectPhone = useConnectPhoneEntry(state.config?.cloudHome === true);
-  const cloudPhone = useCloudPhoneDestination(connectPhone?.target === "computer");
-  const destinations = phoneDestinations(connectPhone, cloudPhone.cloud);
+  const connectPhone = useConnectPhoneEntry(false);
+  const destinations = phoneDestinations(connectPhone, null);
   const desktopUpdate = useUpdateItem();
   const serverUpdate = useServerUpdateItem(!window.ogb?.updater);
   const update = desktopUpdate ?? serverUpdate;
@@ -569,14 +462,11 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
 
   const profile = profileForSession(state.config?.profile, session);
   const name = profileLabel(profile);
-  const connectTo = (destination: PhoneDestination) => selectPhoneDestination(destination, { bridge: cloudPhone.bridge, dispatch });
+  const connectTo = () => dispatch(phonePairingSettingsAction());
   const remote = window.ogb?.remoteClient?.active === true;
   const besideRail = railShown(usePlaces());
-  const filesReady = useCloudFilesReady();
-  const cloudAccount = !remote && Boolean(window.ogb?.cloudAccount || (window.ogb?.cloudPlan && state.config?.cloudHome === true));
-  const openCloudAccount = () => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
-  const move = useAccountMove(state.config?.cloudHome === true, { onOpen: openCloudAccount, onPairPhone: () => dispatch(phonePairingSettingsAction()) });
-  const accounts = useAccounts();
+  
+  
 
   const items = profileMenuItems({
     phone: simple
@@ -591,19 +481,19 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     usageSummary: engineUsage,
     update: update?.item ?? null,
     updateTop: simple ? simpleUpdateTop(update) : null,
-    move: move.items,
-    account: cloudAccount ? cloudRowLabel(accounts.view) : null,
-    accounts: accountMenuItems(accounts),
+    
+    
+    
     ...(account ? { simple: {
       tools: toolMenuItems({
         activeView: state.activeView,
         automationsNeedYou: account.automationsNeedYou,
         onAutomations: () => dispatch({ type: "showRoutines", view: "list" }),
         onTeamMap: () => dispatch({ type: "showTeamMap" }),
-        onFiles: filesReady ? () => dispatch({ type: "showFiles" }) : undefined,
+        
         archived: account.archived,
       }),
-      places: placeMenuItems(account.place, { owner: account.owner, name: state.config?.team?.name, besideRail, onCloudSettings: openCloudAccount }),
+      places: placeMenuItems(account.place, { besideRail }),
     } } : {}),
     onUsage: () => dispatch({ type: "toggleAppSettings", open: true, section: "usage" }),
     onSettings: () => dispatch({ type: "toggleAppSettings" }),
@@ -614,7 +504,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false, circle = fa
     onAbout: () => setAboutOpen(true),
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
     onFeedback: () => void openExternalLink(FEEDBACK_URL),
-    onAccount: openCloudAccount,
+    
   });
   const noteworthy = update && updateNoteworthy(update.phase, update.pending) && !updateHasButton(update.phase);
   const needsYou = account?.automationsNeedYou === true;

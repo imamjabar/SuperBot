@@ -3,11 +3,10 @@
 // server of the person's own by pasting its pairing link.
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Building2, Loader2, Server, UserRound, X } from "lucide-react";
-import type { RailAddChoices } from "../../electron/cloud-rail.mjs";
+import type { RailAddChoices } from "../../electron/rail-places.mjs";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { NewOrganization } from "./NewOrganization";
 import { BackLink, Heading } from "./account-parts";
 
 /** A server's pairing link, pasted here: main checks it and asks "Connect to <host>?" itself, then opens it. The sheet
@@ -88,20 +87,8 @@ export function RailSheet({ wide = false, focusKey, onClose, children }: { wide?
   </div>;
 }
 
-export function PlaceAddSheet({ choices, connect = null, onClose, onAccount }: { choices: RailAddChoices; connect?: { name: string } | null; onClose: () => void; onAccount?: () => void }) {
-  const server = choices.link, organization = choices.organization === true, account = choices.account === true && Boolean(onAccount);
-  const several = [organization, server, account].filter(Boolean).length > 1;
-  const [view, setView] = useState<"choose" | "server" | "organization">(connect ? "server" : several ? "choose" : organization ? "organization" : "server");
-  return <RailSheet focusKey={view} onClose={onClose}>
-    {view === "choose" && <div data-place-add="choose" className="flex flex-col gap-5 px-[30px] pb-[26px] pt-7">
-      <Heading title={t("rail.add")} />
-      <div className="flex flex-col gap-3 sm:flex-row">
-        {organization && <Choice kind="organization" icon={<Building2 size={19} />} title={t("rail.org")} sub={t("rail.orgSub")} onClick={() => setView("organization")} />}
-        {server && <Choice kind="server" icon={<Server size={19} />} title={t("rail.own")} sub={t("rail.ownSub")} onClick={() => setView("server")} />}
-        {account && <Choice kind="account" icon={<UserRound size={19} />} title={t("accounts.add")} sub={t("rail.accountSub")} onClick={() => onAccount!()} />}
-      </div>
-    </div>}
-    {view === "server" && <OwnServerLink onBack={several && !connect ? () => setView("choose") : null} onConnected={onClose} connect={connect} />}
-    {view === "organization" && <NewOrganization onClose={onClose} onBack={several ? () => setView("choose") : null} />}
+export function PlaceAddSheet({ connect = null, onClose }: { choices?: RailAddChoices; connect?: { name: string } | null; onClose: () => void; onAccount?: () => void }) {
+  return <RailSheet focusKey="server" onClose={onClose}>
+    <OwnServerLink onBack={null} onConnected={onClose} connect={connect} />
   </RailSheet>;
 }

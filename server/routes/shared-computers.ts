@@ -1,11 +1,9 @@
 // /api/shared-computers: a desktop lending its computer to this server (on a Cloud home, to My Cloud). A main-process-only
 // secret binds poll, results and the device link to that desktop; with the feature off the family 404s like a build
 // without it.
-import { answerAsleep, type CloudPower } from "../cloud-power.ts";
 import type { DeviceLinks } from "../device-links.ts";
 import { requestSource, type RequestAuth } from "../request-auth.ts";
 import type { SessionRecord } from "../sessions.ts";
-import { desktopPresence, type Answerer, type ComputerAsks } from "../computer-asks.ts";
 import { responseGone, sharedComputerRegistration, type SharedComputers } from "../shared-computers.ts";
 import { PASS, type RouteContext, type RouteHandler } from "./table.ts";
 import type { Upgrades } from "./upgrades.ts";
@@ -21,14 +19,12 @@ export function createSharedComputerRoutes(deps: {
   cloudHomeLender: string | null;
   principal: (auth: RequestAuth) => string | null;
   personKey: (session: Pick<SessionRecord, "id" | "email">) => string;
-  /** A Cloud home that agreed to sleep sends the desktop away until it wakes (server/cloud-power.ts). */
-  power: () => Pick<CloudPower, "sleeping" | "sleepSignal"> | null;
   /** A Cloud home's device links (a lent computer's internet connection); null elsewhere, where the path 404s. */
   links: DeviceLinks | null;
   upgrades: Upgrades;
   /** On the person's own Cloud: what its bots ask of their computer, and the app there saying how it is. */
-  asks?: Pick<ComputerAsks, "present"> | null;
-  answerer?: (auth: RequestAuth) => Answerer;
+  asks?: unknown;
+  answerer?: unknown;
 }): RouteHandler {
   deps.upgrades.route((path) => LINK.test(path));
   return async ({ req, res, path, method, auth, json, readBody }: RouteContext): Promise<typeof PASS | void> => {
@@ -66,26 +62,13 @@ export function createSharedComputerRoutes(deps: {
       return json(res, 200, { ok: true });
     }
     if (path === "/api/shared-computers/asks") {
-      if (!deps.asks || !deps.cloudHomeLender) return json(res, 404, { error: "not found" });
-      if (!auth.scopes.includes("admin")) return json(res, 403, { error: "Only your own computers can answer the Cloud's bots." });
-      const parsed = desktopPresence.safeParse(body);
-      if (!parsed.success) return json(res, 400, { error: "Invalid computer state" });
-      const power = deps.power();
-      if (power?.sleeping()) return answerAsleep(res, json);
-      const { heard, answers, ...state } = parsed.data;
-      const news = await deps.asks.present(state, answers, deps.answerer?.(auth) ?? { kind: "worker" }, heard,
-        power ? AbortSignal.any([responseGone(res), power.sleepSignal()]) : responseGone(res));
-      if (power?.sleeping()) return answerAsleep(res, json);
-      return json(res, 200, news);
+      return json(res, 404, { error: "not found" });
     }
     const route = /^\/api\/shared-computers\/([\w-]+)\/(poll|lease|result|disconnect)$/.exec(path);
     if (!route) return json(res, 404, { error: "not found" });
     const [, id, action] = route;
     if (action === "poll") {
-      const power = deps.power();
-      if (power?.sleeping()) return answerAsleep(res, json);
-      const job = await deps.computers.poll(id, auth.session.id, secret, power ? AbortSignal.any([responseGone(res), power.sleepSignal()]) : responseGone(res));
-      if (!job && power?.sleeping()) return answerAsleep(res, json);
+      const job = await deps.computers.poll(id, auth.session.id, secret, responseGone(res));
       return json(res, 200, { job });
     }
     if (action === "lease") return json(res, 200, { active: deps.computers.liveJob(id, auth.session.id, secret, String(body?.jobId)) });

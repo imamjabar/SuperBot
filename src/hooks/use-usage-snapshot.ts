@@ -17,8 +17,6 @@ function browserSources(config: ConfigStatus | null): UsageSources {
     request: (path) => api(path, { background: true }),
     connectedApps: () => preloadConnectedApps(false, true),
     companion: local ? companion : null,
-    cloudAccount: local ? ogb?.cloudAccount ?? null : null,
-    cloudPlan: !remoteClient && !local && config?.cloudHome === true ? ogb?.cloudPlan ?? null : null,
     platform: navigator.userAgent.includes("Electron") ? "desktop" : "browser",
     remoteClient,
   };

@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ liveConfigured: true, liveCall: null as AppState["liveCall"], cloudHome: false }));
+const fixture = vi.hoisted(() => ({ liveConfigured: true, liveCall: null as AppState["liveCall"],  }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return {
@@ -192,14 +192,6 @@ describe("the call mode menu", () => {
     expect(items[0]).toMatch(/^ aria-checked="false"/);
     expect(items[1]).toContain(">Live<");
     expect(items[1]).toMatch(/^ aria-checked="true"/);
-  });
-
-  it("says where the OpenAI key stays: this computer, or the person's Cloud", () => {
-    const props = { id: "m", mode: "live" as const, onChoose: vi.fn(), onClose: vi.fn() };
-    expect(renderToStaticMarkup(createElement(CallModeMenu, props))).toContain("The OpenAI key stays on your computer.");
-    const cloud = renderToStaticMarkup(createElement(CallModeMenu, { ...props, cloudHome: true }));
-    expect(cloud).toContain("The OpenAI key stays in the Cloud.");
-    expect(cloud).not.toContain("stays on your computer");
   });
 
   it("shows Take turns disabled with its reason where this page can't take turns", () => {

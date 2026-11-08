@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, BellDot, Check, CheckCheck, ChevronRight, ClipboardCopy, Copy, Crown, FolderMinus, FolderOpen, FolderPlus, Loader2, MessagesSquare, MoreHorizontal, Pencil, Pin, PinOff, SquarePen, Star, Trash2, Users } from "lucide-react";
+import { Archive, BellDot, Check, CheckCheck, ChevronRight, ClipboardCopy, Copy, Crown, FolderMinus, FolderOpen, FolderPlus, Loader2, MessagesSquare, MoreHorizontal, Pencil, Pin, PinOff, SquarePen, Star, Trash2 } from "lucide-react";
 import { api, useStore, openBot, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { useHeldMenuMotion } from "./MenuMotion";
@@ -11,15 +11,12 @@ import { HideDefaultBotItem } from "./DefaultBotControls";
 import { navigateThreadMenu } from "./BotProjects";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { botUnreadThreadIds, markBotRead } from "@/lib/folder-read";
-import { ownerMenuLabel, pickOwnerOf } from "./TeamOwner";
-import { mayChangeOwner, useTeamPeople } from "@/state/team-people";
 import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
 import { useShowThreads } from "@/lib/thread-preferences";
 import { useOneMainChat } from "@/lib/one-main-chat";
 import { submenuPosition } from "./SidebarPopoverMenu";
 import { submenuIntent, type SubmenuIntent } from "@/lib/submenu-intent";
 import { useAdvancedMode } from "@/lib/interface-mode";
-import { useMoveToTeam } from "./MoveToTeam";
 import type { MenuState } from "./Sidebar";
 import { departmentNames, moveBotsToSection, useMayMoveBots } from "./bot-sections";
 import { openBotSettings } from "./bot-panel/panel-link";
@@ -73,10 +70,9 @@ export function BotContextMenu({
   const admin = useOwnerOrAdmin();
   const member = admin === false;
   const mayMove = useMayMoveBots();
-  const clearThreads = useDeleteAllThreads(simpleMenu), moveToTeam = useMoveToTeam({ blocked: (bot) => (bot.defaultBot ? t("teamMove.blockedDefault", { name: bot.name }) : bot.chiefOfStaff ? t("teamMove.blockedChief") : state.bots.filter((candidate) => !candidate.hidden).length <= 1 ? t("teamMove.blockedLast") : undefined) });
+  const clearThreads = useDeleteAllThreads(simpleMenu);
   const remoteClient = window.ogb?.remoteClient?.active === true;
   const bot = shown ? state.bots.find((b) => b.id === shown.botId) : undefined;
-  const team = useTeamPeople();
   const menuRef = useRef<HTMLDivElement>(null);
   const latestMenu = useRef(menu);
   useLayoutEffect(() => { latestMenu.current = menu; }, [menu]);
@@ -151,7 +147,7 @@ export function BotContextMenu({
     sheetOut.style.top = `${place.top}px`;
   });
 
-  if (!motion.shown || !bot || !shown) return <>{clearThreads.dialog}{moveToTeam.dialog}</>;
+  if (!motion.shown || !bot || !shown) return <>{clearThreads.dialog}</>;
   const deleting = state.deletingBots[bot.id] === true;
   const engine = state.instances.find((instance) => instance.instanceId === bot.modelSelection.instanceId);
   const canCoordinate = engine?.capabilities?.agentsMcp === true;
@@ -247,7 +243,6 @@ export function BotContextMenu({
       openForSettings();
       if (!state.settingsOpen) dispatch({ type: "toggleSettings", open: true });
     });
-    const owner = team && mayChangeOwner(bot, team) ? item(<Users size={16} className="text-ink-secondary" />, ownerMenuLabel(bot, team), () => pickOwnerOf([bot], team, shown)) : null;
     const deleteAll = !member && allThreadRows(bot).length >= 2 ? [divider("more-threads"), item(<Trash2 size={16} />, t("task.deleteAllConversations"), () => clearThreads.ask(bot.id), { danger: true })] : [];
     const readState = readingBotId === bot.id || botUnreadThreadIds(bot).length > 0
       ? item(
@@ -257,12 +252,10 @@ export function BotContextMenu({
         { disabled: readingBotId !== null, keepOpen: true },
       )
       : item(<BellDot size={16} className="text-ink-secondary" />, t("sidebar.bot.simple.markUnread"), () => dispatch({ type: "markUnread", botId: bot.id }));
-    const moreItems = remoteClient ? [editProfile, owner, ...deleteAll] : [
+    const moreItems = remoteClient ? [editProfile, ...deleteAll] : [
       editProfile,
-      team ? null : chiefItem(),
+      chiefItem(),
       member ? null : item(<Copy size={16} className="text-ink-secondary" />, t("sidebar.bot.duplicate"), () => dispatch({ type: "duplicateBot", botId: bot.id })),
-      owner,
-      ...moveToTeam.items(bot, item),
       ...deleteAll,
     ];
     // Simple view keeps one chat per bot: see every thread (the panel's Conversations) and choose the one it opens.
@@ -283,7 +276,7 @@ export function BotContextMenu({
       item(<Archive size={16} className="text-ink-secondary" />, t("sidebar.bot.archive"), () => onArchive(bot), { disabled: archiveBlocked, hint: archiveHint }),
       <BotDeleteMenuItem key="delete" deleting={deleting} className={MENU_ITEM} onClick={() => { onClose(); onDelete(bot); }} />,
     ];
-    return <>{clearThreads.dialog}{moveToTeam.dialog}{createPortal(
+    return <>{clearThreads.dialog}{createPortal(
       <div
         ref={menuRef}
         data-bot-menu
@@ -360,7 +353,7 @@ export function BotContextMenu({
     )}</>;
   }
 
-  return <>{clearThreads.dialog}{moveToTeam.dialog}{createPortal(
+  return <>{clearThreads.dialog}{createPortal(
     <div
       ref={menuRef}
       data-bot-menu
@@ -378,7 +371,6 @@ export function BotContextMenu({
       </>}
       {!member && item(<Trash2 size={16} />, t("task.deleteAll"), () => clearThreads.ask(bot.id), { danger: true })}
       {divider("threads")}
-      {team && mayChangeOwner(bot, team) && item(<Users size={16} className="text-ink-secondary" />, ownerMenuLabel(bot, team), () => pickOwnerOf([bot], team, shown))}
       {remoteClient ? [
         mayMove && item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.bot.moveToSection"), () => {
           onClose();
@@ -397,7 +389,7 @@ export function BotContextMenu({
           bot.pinned ? t("sidebar.bot.unpin") : t("sidebar.bot.pin"),
           () => dispatch({ type: "updateBot", botId: bot.id, patch: { pinned: !bot.pinned } }),
         ),
-        team ? null : chiefItem(),
+        chiefItem(),
         mayMove && item(<FolderPlus size={16} className="text-ink-secondary" />, t("sidebar.bot.moveToSection"), () => {
           onClose();
           onMoveToSection(bot.id);
@@ -423,7 +415,7 @@ export function BotContextMenu({
         item(<ClipboardCopy size={16} className="text-ink-secondary" />, t("sidebar.copyConversationId"), () => {
           void copyText(bot.threadId);
         }),
-        divider("d3"), ...moveToTeam.items(bot, item),
+        divider("d3"),
         ...(bot.defaultBot ? [<HideDefaultBotItem key="hide" bot={bot} onDone={onClose} className={MENU_ITEM} />] : member ? [] : [
           item(<Archive size={16} className="text-ink-secondary" />, t("sidebar.bot.archive"), () => onArchive(bot), { disabled: archiveBlocked, hint: archiveHint }),
           <BotDeleteMenuItem key="delete" deleting={deleting} className={MENU_ITEM} onClick={() => { onClose(); onDelete(bot); }} />,

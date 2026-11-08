@@ -3,7 +3,7 @@ export function cleanWorkspaceConfig(language?: string | null, now?: Date): { la
 export interface CleanWorkspace {
   active(): boolean;
   ownCopy(): boolean;
-  marker(): { frozen: boolean; cloud?: string; place?: string };
+  marker(): { frozen: boolean; place?: string };
   enter(): Promise<boolean>;
   leave(): Promise<boolean>;
   holding<T>(work: () => Promise<T>): Promise<T>;

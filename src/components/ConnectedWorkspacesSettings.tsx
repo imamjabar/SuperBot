@@ -1,10 +1,8 @@
 import { t } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
-import { Check, Cloud, Laptop, Loader2, Trash2 } from "lucide-react";
+import { Check, Laptop, Loader2, Server, Trash2 } from "lucide-react";
 import { Card } from "./SettingsPrimitives";
 import { ComputerSharingSettings } from "./ComputerSharingSettings";
-import { CloudTile } from "./CloudTile";
-import { cloudColor } from "@/lib/cloud-look";
 import { useStore } from "@/state/store";
 import { sharedComputersEnabled } from "@/lib/feature-flags";
 import { productName } from "@/lib/brand";
@@ -13,7 +11,6 @@ type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["ogb"]>
 type SavedEntry = SavedWorkspaces["environments"][number] | { id: string; name: string; origin: string; color: undefined };
 
 /** My Cloud, or another Cloud of the person's own: this computer is lent to it by itself, never through Computer access. */
-const ownCloud = (entry: SavedEntry) => ("home" in entry && entry.home === true) || ("cloud" in entry && Boolean(entry.cloud));
 
 export function ConnectedWorkspacesSettings() {
   const bridge = window.ogb?.environments;
@@ -148,15 +145,15 @@ export function ConnectedWorkspacesSettings() {
         <ul className="divide-y divide-hairline/40">
           {[{ id: "local", name: "This computer", origin: "", color: undefined }, ...saved.environments.filter((entry) => entry.kind !== "local")].map((entry) => {
             const active = entry.id === saved.activeId;
-            const Icon = entry.id === "local" ? Laptop : Cloud;
+            const Icon = entry.id === "local" ? Laptop : Server;
             return <li key={entry.id} className="flex items-center gap-3 py-3">
-              {cloudColor(entry.color) ? <CloudTile color={entry.color} size={20} /> : <Icon size={18} className="shrink-0 text-ink-secondary" />}
+              <Icon size={18} className="shrink-0 text-ink-secondary" />
               <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-medium text-ink">{entry.name}</div>
                 <div className="break-all text-[12px] text-ink-secondary">{entry.origin || "Local bots and conversations"}</div></div>
               {active ? <span className="flex shrink-0 items-center gap-1 text-[12px] text-ink-secondary"><Check size={13} />Current</span> :
                 <button type="button" disabled={busy} aria-label={`Switch to ${entry.name}`} onClick={() => void perform(async () => { await bridge.switch(entry.id); return true; })}
                   className="rounded-md px-2 py-1.5 text-[12px] text-ink hover:bg-control disabled:opacity-50">Switch</button>}
-              {entry.id !== "local" && !ownCloud(entry) && sharingOffered && <button type="button" disabled={busy} aria-label={`Computer access for ${entry.name}`} onClick={() => setComputerId(entry.id)} className="rounded-md px-2 py-1.5 text-[12px] text-ink hover:bg-control">Computer access</button>}
+              {entry.id !== "local" && sharingOffered && <button type="button" disabled={busy} aria-label={`Computer access for ${entry.name}`} onClick={() => setComputerId(entry.id)} className="rounded-md px-2 py-1.5 text-[12px] text-ink hover:bg-control">Computer access</button>}
               {entry.id !== "local" && <button type="button" disabled={busy} aria-label={`Forget ${entry.name}`} title={`Forget ${entry.name}`}
                 onClick={() => void perform(() => bridge.forget(entry.id))} className="rounded-md p-1.5 text-ink-secondary hover:bg-control hover:text-danger disabled:opacity-50"><Trash2 size={14} /></button>}
             </li>;

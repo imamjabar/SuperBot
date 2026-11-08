@@ -6,9 +6,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { skipped } from "../electron/cloud-sync-rules.mjs";
 import { uploadableFiles } from "./browser-upload.ts";
-import { listBotFiles } from "./cloud-send-files.ts";
 import { listMessageFolder, openMessageFile } from "./message-file.ts";
 import { botFileSource, readPageBundle } from "./pages/bundle.ts";
 import { SECRET_FILE_REFUSAL, SECRET_FOLDER } from "./secret-folder.ts";
@@ -38,10 +36,6 @@ describe("a bot's private secret files", () => {
       expect(omittedFromWorkspaceBackup(path), path).toBe(true);
     }
     expect(excludedWorkspaceAuthPath("workspaces/atlas/notes.txt")).toBe(false);
-    const moved = (await listBotFiles(data, ["atlas"])).map((file) => file.path);
-    expect(moved).toContain("workspaces/atlas/notes.txt");
-    expect(moved.some((path) => path.includes(SECRET_FOLDER))).toBe(false);
-    expect(skipped(SECRET_FOLDER, true)).toBe(true);
   });
 
   it("cannot be opened or listed through a chat link, which attach_file uses too", async () => {

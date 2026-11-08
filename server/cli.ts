@@ -24,7 +24,6 @@ import { phonePairingLink } from "../shared/pairing-link.ts";
 import { parseAllowList } from "./account-signin.ts";
 import { appendAdminAction, flushAdminActivity, sharedSignIn } from "./admin-activity.ts";
 import { bindDecisionRetention, decisionRetentionDays } from "./decision-log.ts";
-import { hostedWorkspaceConfigured } from "./enterprise.ts";
 import { resolveLoopbackTrust } from "./request-auth.ts";
 import { restartPolicy } from "./restart.ts";
 import { writeFileAtomic } from "./atomic.ts";
@@ -494,7 +493,7 @@ export async function runAccess(options: CliOptions, io: CliIo = defaultIo()): P
   const write = async (next: { admins: string[]; members: string[] }) => {
     mkdirSync(options.dataDir, { recursive: true, mode: 0o700 });
     writeFileAtomic(file, `${JSON.stringify({ ...raw, signIn: next }, null, 2)}\n`, { mode: 0o600 });
-    if (!sharedSignIn({ admins, members }) && !sharedSignIn(next) && !hostedWorkspaceConfigured()) return;
+    if (!sharedSignIn({ admins, members }) && !sharedSignIn(next)) return;
     const decisions = raw.decisions && typeof raw.decisions === "object" ? (raw.decisions as { retentionDays?: unknown }).retentionDays : undefined;
     bindDecisionRetention(() => decisionRetentionDays(typeof decisions === "number" ? decisions : undefined));
     const changed = (["admins", "members"] as const).filter((key) => next[key].join(",") !== (key === "admins" ? admins : members).join(","));
@@ -752,7 +751,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
   };
   if (options.local) delete env.OMB_PUBLIC_URL;
   // The per-launch secret goes over stdin, not the environment that every engine the server starts inherits.
-  const serviceTrust = resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: hostedWorkspaceConfigured(env) }).trust === "service";
+  const serviceTrust = resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: false }).trust === "service";
   const ownerToken = serviceTrust ? randomBytes(32).toString("base64url") : undefined;
   if (ownerToken) env.OMB_CLI_OWNER_STDIN = "1";
   else delete env.OMB_CLI_OWNER_STDIN;

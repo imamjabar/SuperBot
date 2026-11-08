@@ -7,19 +7,17 @@ import { sameAccess, visibilityFromAccess } from "../../shared/bot-access.ts";
 import { botOwner } from "../../shared/bot-owner.ts";
 import type { WireBot } from "../../shared/wire.ts";
 import { accessOf, parseBotAccess, sameAudience } from "../bot-visibility.ts";
-import type { CloudTeam } from "../cloud-team.ts";
 import { refusalFor } from "../host/bot-access-gate.ts";
 import type { AdminActionRow } from "../admin-activity.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import type { BotRecord, GroupRecord, Store } from "../store.ts";
-import type { TeamPeople } from "../team-people.ts";
 import { PASS, type RouteHandler } from "./table.ts";
 
 const ONE_BOT = /^\/api\/bots\/([\w-]{1,128})\/access$/;
 
 export interface BotAccessRouteDeps {
-  team: CloudTeam | null;
-  people: Pick<TeamPeople, "has"> | null;
+  team?: { id: string; name: string } | null;
+  people?: { has(email: string): boolean } | null;
   store: Pick<Store, "bot" | "patchBot" | "groups" | "sections">;
   levelOf(auth: RequestAuth, botId: string): string;
   wireBot(bot: BotRecord): WireBot;

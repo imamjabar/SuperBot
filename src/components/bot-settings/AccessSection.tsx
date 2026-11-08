@@ -19,8 +19,6 @@ import { ProposalStatus } from "./ProposalStatus";
 import { ToolSelectionCard } from "./ToolSelectionCard";
 import { BotApiCard } from "./BotApiCard";
 import { ToolBudgetLine } from "./ToolBudgetLine";
-import { useCloudPlan } from "@/lib/cloud-plan-hook";
-import { xResearchAction } from "@/lib/cloud-plan";
 import { HIGHLEVEL_SLUG } from "@/lib/highlevel-sign-in";
 import { useBotApps } from "./useBotApps";
 import {
@@ -479,12 +477,10 @@ function ConnectorToolsGrants({
  * treg key or a Cloud plan's research credential, and switchable off per bot. */
 function ResearchCard({ bot, patch }: { bot: Bot; patch: (patch: { xResearch: boolean }) => void }) {
   const { state, dispatch } = useStore();
-  const connecting = xResearchAction(useCloudPlan()?.view ?? null) === "connecting" && state.config?.xResearch?.unavailable !== true;
-  const ownKey = state.config?.treg?.configured === true, included = state.config?.xResearch?.included === true;
-  const available = ownKey || included;
+  const ownKey = state.config?.treg?.configured === true;
+  const available = ownKey;
   const on = bot.xResearch !== false;
-  const line = !available ? t(connecting ? "research.connecting" : "research.addKey")
-    : !on ? t("research.off") : t(ownKey ? "research.ownOn" : "research.planOn");
+  const line = !available ? t("research.addKey") : !on ? t("research.off") : t("research.ownOn");
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl bg-card p-4" data-testid="access-x-research">
       <div>

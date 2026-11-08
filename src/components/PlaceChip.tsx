@@ -5,7 +5,7 @@ import { useMenuMotion } from "./MenuMotion";
 import { MENU_HEADING, MENU_SHEET } from "./menu-recipe";
 import { t } from "@/lib/i18n";
 import { instanceSupportsLocalComputer, localComputerDisabledReason, localComputerSelectable } from "@/lib/local-computer";
-import { effectivePlace, personPin, PLACES, placeLabelKey, placeOffered, type Place } from "@/lib/place";
+import { effectivePlace, personPin, PLACES, placeLabelKey, type Place } from "@/lib/place";
 import { placeBlocked, placeFacts, placeHasIssue, placeViewFor, usePlaceSeat } from "@/lib/place-view";
 import { useStore, type Bot, type Task } from "@/state/store";
 import type { PlaceView } from "../../shared/place-view";
@@ -28,8 +28,7 @@ export function usePlaceViews(bot: Bot): Record<Place, { view: PlaceView; reacha
   };
   const entry = (place: Place) => {
     const view = placeViewFor(placeFacts({ bot, place, seat, config: state.config, instances: state.instances, local }));
-    const policy = (place === "cloud" ? allowed[backend] : place === "vm" ? allowed.localVm : place === "local" ? allowed.thisComputer : true)
-      && placeOffered(place, state.config);
+    const policy = (place === "cloud" ? allowed[backend] : place === "vm" ? allowed.localVm : place === "local" ? allowed.thisComputer : true);
     return { view, policy, reachable: policy && !placeBlocked(view) };
   };
   return { cloud: entry("cloud"), vm: entry("vm"), local: entry("local"), browser: entry("browser") };
@@ -74,7 +73,7 @@ export function usePlaceMenuItem({ bot, task, disabled = false, onPin }: {
         trailing: !pinned ? check : undefined,
         onSelect: () => choose(null),
       },
-      ...PLACES.filter((place) => placeOffered(place, state.config)).map((place): SidebarMenuItem => {
+      ...PLACES.map((place): SidebarMenuItem => {
         const { view, reachable, policy } = places[place];
         return {
           key: `place:${place}`,
@@ -168,7 +167,7 @@ export function PlaceChip({ bot, task, live, disabled = false, onPin }: {
               </span>
               {!pinned && <Check size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden="true" />}
             </button>
-            {PLACES.filter((place) => placeOffered(place, state.config)).map((place) => {
+            {PLACES.map((place) => {
               const selected = pin === place;
               const { view, reachable, policy } = places[place];
               const detail = !policy ? t("place.unavailable") : placeHasIssue(view) ? view.short : t(DESCRIPTION[place]);

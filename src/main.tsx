@@ -38,7 +38,7 @@ const appPage = PAGES_WITHOUT_THE_APP.has(location.pathname) ? null : loadApp();
 
 async function chooseRoot(): Promise<React.ReactNode> {
   const home = window.ogb?.home;
-  if (location.pathname === "/home" && home) return <HomeScreen bridge={home} manage={window.ogb?.cloudPlan?.manage} />;
+  if (location.pathname === "/home" && home) return <HomeScreen bridge={home} />;
   if (location.pathname === "/pair") {
     const signIn = takeBrowserSignInFromLocation();
     if (signIn) {

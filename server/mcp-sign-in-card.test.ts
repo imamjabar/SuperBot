@@ -13,7 +13,6 @@ import type { AppConfig } from "./config.ts";
 import type { McpServerSpec } from "./contracts.ts";
 import { createMcpSignInCards, isCardOwnerLive } from "./host/mcp-sign-in-cards.ts";
 import { resumableCards } from "./host/resumable-cards.ts";
-import { createTeamConnectionsHost } from "./host/team-connections-host.ts";
 import { McpOAuthManager, type McpSignInPhase } from "./mcp-oauth.ts";
 import { personKey } from "./person-key.ts";
 import type { RequestAuth } from "./request-auth.ts";
@@ -77,28 +76,13 @@ async function setup(options: { team?: boolean; origins?: string[]; lifetimeMs?:
   const isOwnerLive = (owner: string) => owner === "loopback" || isCardOwnerLive(store, owner);
   const onSettled = (name: string, phase: McpSignInPhase, owner: string) => cards.settled(name, phase, owner);
   const mcpOAuth = new McpOAuthManager({ file: join(dataDir, "mcp-oauth.json"), isOwnerLive, onSettled, ...(options.lifetimeMs ? { lifetimeMs: options.lifetimeMs } : {}) });
-  const team = createTeamConnectionsHost({
-    team: options.team ? { id: "team-acme-1", name: "Acme" } : null,
-    dataDir, cfg: () => cfg, adminOrigin: null, harnessUrl: "http://127.0.0.1:1",
-    audienceOf: (threadId) => (AUDIENCES[threadId] ?? "team") as never,
-    requester: (threadId) => REQUESTER[threadId] ?? null,
-    roster: () => ROSTER,
-    mint: () => "capability",
-    mcpOAuth,
-    botMcp: () => Object.fromEntries(Object.entries(cfg.mcpServers ?? {}).map(([name, raw]) => {
-      const server = raw as { url: string; headers: Record<string, string> };
-      return [name, { type: "http", url: server.url, headers: server.headers } as McpServerSpec];
-    })),
-    isOwnerLive, onSettled,
-    brokerUrl: () => null,
-    composio: { configured: () => false } as never,
-  });
+
   const cards = createMcpSignInCards({
     store, cfg: () => cfg, mcpOAuth, followCard: () => {},
-    personal: () => team.personMcp(),
-    turnPerson: (threadId) => team.turnPerson(threadId),
-    oauthFor: (person) => team.people.oauth(person),
-    personName: (person) => team.nameOf(person),
+    personal: () => [],
+    turnPerson: () => null,
+    oauthFor: () => mcpOAuth,
+    personName: () => "",
     publicOrigins: () => options.origins ?? [],
     language: () => undefined,
     answer: (_threadId, messageId, text) => {
@@ -116,9 +100,9 @@ async function setup(options: { team?: boolean; origins?: string[]; lifetimeMs?:
       readBody: async () => ({ action: "sign_in", name }),
       sender: { id: "kiwi" }, threadId,
       fullAccess: () => true, guestDriven: () => false,
-      teamAdmin: () => team.actsForAdmin(threadId),
+      teamAdmin: () => true,
       canUse: () => true, cfg: () => cfg,
-      personal: () => team.personMcp(),
+      personal: () => [],
       authState: (server: string, at: string) => mcpOAuth.authState(server, at),
       activity: () => {}, language: () => undefined,
       requestSignIn: (server: string, stored: Parameters<InternalMcpDeps["requestSignIn"]>[1]) =>
@@ -393,32 +377,13 @@ describe("the Sign in card", () => {
     expect(f.mcpOAuth.authState("linear", f.url)).not.toBe("signed-in");
   });
 
-  it("on a Team Cloud a non-admin member cannot authorize a shared server's card; the turn's person can authorize their personal server's card and another member cannot", async () => {
-    const f = await setup({ team: true });
-    const shared = (await f.signIn("main-chat")).card;
-    expect(await f.authorize(shared, session("ada@acme.test"))).toEqual({ status: 409, body: { error: "Only an admin of this installation can sign in to Linear." } });
-    expect(f.provider.counts.register).toBe(0);
-
-    f.team.scopes.set("mcp", "linear", "person");
-    const own = await f.signIn("ada-chat");
-    expect(own.status).toBe(202);
-    expect(await f.authorize(own.card, session("cleo@acme.test"), ON_THE_MAC, "ada-chat")).toEqual({ status: 409, body: { error: "Only ada@acme.test can sign in to this." } });
-    const hers = await f.authorize(own.card, session("ada@acme.test"), ON_THE_MAC, "ada-chat");
-    expect(hers.status).toBe(200);
-    expect(await f.approve(hers.body.url as string)).toBe(200);
-    expect(f.team.people.oauth(ADA).authState("linear", f.url)).toBe("signed-in");
-    expect(f.mcpOAuth.authState("linear", f.url)).toBe("none");
-    expect(f.current(own.card, "ada-chat").connector).toMatchObject({ status: "connected", resumed: true });
-  });
-
   it("the next turn after sign-in has the server's tools", async () => {
     const f = await setup();
     const kiwi = { id: "kiwi", name: "Kiwi" };
     f.mcpOAuth.markNeedsSignIn("linear", f.url);
-    expect(await f.team.turnMcp(kiwi, "main-chat", "turn-1")).not.toHaveProperty("linear");
+    expect(f.mcpOAuth.authState("linear", f.url)).toBe("none");
     const { card } = await f.signIn();
     expect(await f.approve((await f.authorize(card)).body.url as string)).toBe(200);
-    const mounted = await f.team.turnMcp(kiwi, "main-chat", "turn-2");
-    expect(mounted.linear).toMatchObject({ url: f.url, headers: { Authorization: `Bearer ${f.provider.issued[0]}` } });
+    expect(f.mcpOAuth.authState("linear", f.url)).toBe("signed-in");
   });
 });

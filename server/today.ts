@@ -9,7 +9,6 @@ import type { PlaceRow, PlaceState } from "../shared/place-view.ts";
 import type { RoutineRunReport, RoutineRunStatus, RoutineRunTrigger } from "../shared/routines.ts";
 import { classifyToolCall, isReportRoutine, minutesSaved, OUTCOME_CATEGORIES, toolApps, type OutcomeCategory, type OutcomeCounts } from "../shared/today-outcomes.ts";
 import { NEEDS_YOU_WINDOW_MS, TODAY_MAX_LINES, TODAY_MAX_WINDOW_MS, type NeedsYouItem, type TodayLine, type TodayReport, type TodayStarter } from "../shared/today.ts";
-import { trialCreditKind } from "../shared/trial-credit.ts";
 import { toolkitName } from "./activity.ts";
 import { classifyError } from "./drivers/retry.ts";
 import { attentionRows, requestSenders, successfulCallsMentioning, workRows, type AttentionRow, type WorkRow } from "./message-db.ts";
@@ -293,12 +292,9 @@ function needsYou(sources: TodaySources, viewer: TodayViewer, owners: Map<string
       continue;
     }
     if (settled(botId, row.at)) continue;
-    const credit = trialCreditKind(cause);
     const place = parse<PlaceRow>(row.place);
     const instanceId = engineOf.get(botId);
-    if (credit) {
-      if (credit !== "paused") keep("out-of-credit", { kind: "out-of-credit", id: row.id, at: row.at, credit, botIds: [botId], threadId: row.threadId });
-    } else if (place) {
+    if (place) {
       if (OWNER_PLACES.has(place.state)) keep(`place:${place.state}:${botId}`, { kind: "place", id: row.id, at: row.at, place, botIds: [botId], threadId: row.threadId });
     } else {
       const reason = classifyError({ text: cause }).reason;

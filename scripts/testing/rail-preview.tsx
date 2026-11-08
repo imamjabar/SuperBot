@@ -1,6 +1,33 @@
 import { createRoot } from "react-dom/client";
-import type { CloudSwatch } from "../../electron/cloud-list.mjs";
-import type { AddCloudView, RailPlace, RailState } from "../../electron/cloud-rail.mjs";
+type CloudSwatch = "blue" | "green" | "amber" | "rose" | "violet" | "slate";
+interface RailPlace {
+  id: string;
+  name: string;
+  color?: PlaceLook["color"];
+  kind: "computer" | "cloud" | "team" | "server" | "account";
+  opens: boolean;
+  active?: boolean;
+  progress?: number;
+  waiting?: boolean;
+  attention?: boolean;
+  server?: boolean;
+  offline?: boolean;
+  lastSeenAt?: number;
+  ownNetwork?: boolean;
+  pairs?: boolean;
+  update?: { version: string; latest: string };
+  paint?: { swatch: CloudSwatch | null; locked?: "member" | "signed-out" };
+  ended?: boolean;
+  removable?: boolean;
+  forget?: boolean;
+  makeHome?: boolean;
+}
+interface RailState {
+  places: RailPlace[];
+  add: { cloud: boolean; link: boolean; address: boolean; organization?: boolean; account?: boolean };
+  beside?: boolean;
+}
+type AddCloudView = Record<string, unknown>;
 import type { PlaceLook } from "../../electron/place-look.mjs";
 import App from "../../src/App";
 import { ChromeRail } from "../../src/components/ChromeRail";

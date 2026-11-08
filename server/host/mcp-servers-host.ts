@@ -1,10 +1,9 @@
 // Which config.json MCP servers each bot's turns start: every bot's and the bot's own, minus any that does not start.
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { writeFileAtomic } from "../atomic.ts";
 import type { AppConfig } from "../config.ts";
-import { launcherOf } from "../cloud-connections.ts";
 import { customMcpServers } from "../config.ts";
 import type { McpServerSpec, StdioMcpSpec } from "../contracts.ts";
 import { addBotMcpServer, claimBotMcpServers, keepForBot, withoutBotMcpServers, type BotKept, type BotMcpServerAdd } from "../mcp-bot-servers.ts";
@@ -37,6 +36,9 @@ const CLAIMED_FILE = (dataDir: string) => join(dataDir, "mcp-bot-servers.json");
 /** A package runner fetches its program the first time it starts, and later starts are quick: its check waits for that. */
 const PACKAGE_RUNNERS: ReadonlySet<string> = new Set(["uvx", "npx", "bunx", "pipx", "pnpm", "uv"]);
 const PACKAGE_START_MS = 120_000;
+function launcherOf(command: string): string {
+  return basename(command.replaceAll("\\", "/")).toLowerCase().replace(/\.(?:exe|cmd|bat|ps1)$/u, "");
+}
 export const startCheckTimeout = (command: string): number | undefined => (PACKAGE_RUNNERS.has(launcherOf(command)) ? PACKAGE_START_MS : undefined);
 
 /** What the person hears once when servers in one bot's folder became that bot's own. */
