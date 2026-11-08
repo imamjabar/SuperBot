@@ -109,7 +109,7 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
     stagedSkillCleanupsForThread, rejectDeletedThreadSkillStages,
   } = deps;
   const DESKTOP_MANAGED = deps.desktopManaged;
-  const deleteRefusal = (auth: RequestAuth, groupId: string, threadId: string): { status: 403 | 404 | 409; error: string } | null => {
+  const deleteRefusal = (groupId: string, threadId: string): { status: 404 | 409; error: string } | null => {
     if (phoneSecretSubmissions.hasThread(threadId)) {
       return { status: 409, error: "this task is securely saving a credential — try again when it finishes" };
     }
@@ -165,7 +165,7 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       const allowed: string[] = [];
       const refused: BulkDeleteRefusal[] = [];
       for (const threadId of parsed.threadIds) {
-        const refusal = deleteRefusal(auth, group.id, threadId);
+        const refusal = deleteRefusal(group.id, threadId);
         if (!refusal) allowed.push(threadId);
         else refused.push({ threadId, reason: refusal.status === 409 ? "busy" : "not-found" });
       }
@@ -241,7 +241,7 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       const group = store.group(m[1]);
       if (!group) return json(res, 404, { error: "no such channel" });
       if (group.dm) return json(res, 400, { error: "bot-to-bot channels keep one canonical conversation" });
-      const refusal = deleteRefusal(auth, group.id, m[2]);
+      const refusal = deleteRefusal(group.id, m[2]);
       if (refusal) return json(res, refusal.status, { error: refusal.error });
       const updated = deleteGroupTasks(group.id, [m[2]]);
       if (!updated?.deleted.length) return json(res, 400, { error: "a channel keeps at least one task" });

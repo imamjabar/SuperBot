@@ -14298,8 +14298,6 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       const body = await readBody(req);
       const hidden = hiddenRoutineTarget(body, visible);
       if (hidden) return json(res, 404, { error: hidden });
-      const notYours = routineResultsRefusal(body);
-      if (notYours) return json(res, 403, { error: notYours });
       const authors = phones.routineAuthors;
       const before = authors ? routines!.listRoutines().find((candidate) => candidate.id === routineMatch![1]) : undefined;
       const wasOwners = Boolean(before && authors?.authored(before.id, before));

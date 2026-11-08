@@ -77,7 +77,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
     revokeInternalCapabilitiesForThread, stagedSkillCleanupsForThread, rejectDeletedThreadSkillStages,
   } = deps;
   const DESKTOP_MANAGED = deps.desktopManaged;
-  const deleteRefusal = (auth: RequestAuth, botId: string, threadId: string): { status: 403 | 404 | 409; error: string } | null => {
+  const deleteRefusal = (botId: string, threadId: string): { status: 404 | 409; error: string } | null => {
     if (!store.taskByThread(botId, threadId)) return { status: 404, error: "no such task" };
     if (phoneSecretSubmissions.hasThread(threadId)) {
       return { status: 409, error: "this task is securely saving a credential — try again when it finishes" };
@@ -194,7 +194,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       const allowed: string[] = [];
       const refused: BulkDeleteRefusal[] = [];
       for (const threadId of parsed.threadIds) {
-        const refusal = deleteRefusal(auth, bot.id, threadId);
+        const refusal = deleteRefusal(bot.id, threadId);
         if (!refusal) allowed.push(threadId);
         else refused.push({ threadId, reason: refusal.status === 409 ? "busy" : "not-found" });
       }
@@ -367,7 +367,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
     if (m && method === "DELETE") {
       const bot = store.bot(m[1]);
       if (!bot) return json(res, 404, { error: "no such task" });
-      const refusal = deleteRefusal(auth, bot.id, m[2]);
+      const refusal = deleteRefusal(bot.id, m[2]);
       if (refusal) return json(res, refusal.status, { error: refusal.error });
       const updated = deleteTasks(bot.id, [m[2]]);
       if (!updated?.deleted.length) return json(res, 404, { error: "no such task" });
