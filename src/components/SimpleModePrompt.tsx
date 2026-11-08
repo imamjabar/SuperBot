@@ -68,7 +68,7 @@ export function SimpleModePrompt({ onClose }: { onClose: () => void }) {
         <h2 id={TITLE} tabIndex={-1} className="pe-8 text-[17px] font-medium leading-6 tracking-[-0.008em] outline-none!">
           {t(openedSimple ? "simpleModePrompt.titleOn" : "simpleModePrompt.title")}
         </h2>
-        <p id="simple-mode-prompt-body" className="mt-2 text-[14px] leading-5 text-ink-secondary">{t("simpleModePrompt.body")}</p>
+        <p id="simple-mode-prompt-body" className="mt-2 text-body-sm leading-5 text-ink-secondary">{t("simpleModePrompt.body")}</p>
         <button
           type="button"
           role="switch"
@@ -80,8 +80,8 @@ export function SimpleModePrompt({ onClose }: { onClose: () => void }) {
           className="mt-5 flex min-h-14 w-full items-center gap-4 rounded-[12px] bg-ink/[0.04] px-4 py-3 text-left transition-colors hover:bg-ink/[0.07] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus motion-reduce:transition-none"
         >
           <span className="min-w-0 flex-1">
-            <span id="simple-mode-switch-label" className="block text-[15px] font-medium leading-5">{t("simpleModePrompt.switch")}</span>
-            <span id="simple-mode-switch-hint" className="mt-0.5 block text-[13px] leading-[18px] text-ink-secondary">{t("simpleModePrompt.switchHint")}</span>
+            <span id="simple-mode-switch-label" className="block text-body font-medium leading-5">{t("simpleModePrompt.switch")}</span>
+            <span id="simple-mode-switch-hint" className="mt-0.5 block text-small leading-[18px] text-ink-secondary">{t("simpleModePrompt.switchHint")}</span>
           </span>
           <span aria-hidden="true" className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors motion-reduce:transition-none",
             simple ? "bg-accent" : "bg-ink/[0.14] ring-1 ring-inset ring-ink/40")}>
@@ -89,7 +89,7 @@ export function SimpleModePrompt({ onClose }: { onClose: () => void }) {
               simple ? "left-[22px]" : "left-0.5")} />
           </span>
         </button>
-        <p className="mt-3 text-[13px] leading-[18px] text-ink-tertiary">{t("simpleModePrompt.where")}</p>
+        <p className="mt-3 text-small leading-[18px] text-ink-tertiary">{t("simpleModePrompt.where")}</p>
         <div className="mt-5 flex justify-end">
           <button type="button" data-primary="" onClick={close}
             className="ui-button ui-button-pill min-w-[88px] border-transparent bg-ink text-app hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">

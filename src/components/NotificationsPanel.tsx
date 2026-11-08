@@ -138,11 +138,11 @@ export function NotificationsPanel() {
       className="animate-panel-in flex h-full w-[300px] max-w-full shrink-0 flex-col border-l border-hairline/40 bg-panel max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:z-30"
     >
       <div className="flex items-center gap-1.5 border-b border-hairline/40 px-3.5 py-2.5">
-        <span className="flex-1 text-[13px] font-medium text-ink">
+        <span className="flex-1 text-small font-medium text-ink">
           {t("notifications.title")}
-          {unreadCount > 0 && <span className="ml-1.5 text-[12px] font-normal text-accent">· {t("notifications.unread", { count: unreadCount })}</span>}
+          {unreadCount > 0 && <span className="ml-1.5 text-caption font-normal text-accent">· {t("notifications.unread", { count: unreadCount })}</span>}
         </span>
-        <button type="button" onClick={markAllRead} className="shrink-0 whitespace-nowrap text-[12px] text-accent hover:underline">
+        <button type="button" onClick={markAllRead} className="shrink-0 whitespace-nowrap text-caption text-accent hover:underline">
           {t("notifications.markAllRead")}
         </button>
         <button
@@ -182,13 +182,13 @@ export function NotificationsPanel() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {visible.length === 0 && (
-          <div className="px-3.5 py-6 text-[13px] text-ink-secondary">{state.notifications.length === 0 ? t("notifications.empty") : t("notifications.emptyForBot")}</div>
+          <div className="px-3.5 py-6 text-small text-ink-secondary">{state.notifications.length === 0 ? t("notifications.empty") : t("notifications.emptyForBot")}</div>
         )}
         {visible.map((entry) => (
           <NotificationRow key={entry.id} entry={entry} now={now} bot={notificationBotForAvatar(entry, state.bots)} threadName={notificationThreadName(entry, state)} onOpen={() => openRow(entry)} />
         ))}
       </div>
-      <div className="border-t border-hairline/40 px-3.5 py-2 text-center text-[12px] text-ink-tertiary">
+      <div className="border-t border-hairline/40 px-3.5 py-2 text-center text-caption text-ink-tertiary">
         {t("notifications.retention")}
       </div>
     </aside>
@@ -213,7 +213,7 @@ function NotificationRow({ entry, now, bot, threadName, onOpen }: { entry: Notif
         <Icon size={16} aria-hidden="true" className={cn("mt-0.5 shrink-0", className)} />
       )}
       <span className="min-w-0 flex-1">
-        <span className="flex items-baseline gap-1.5 text-[13px] font-medium text-ink">
+        <span className="flex items-baseline gap-1.5 text-small font-medium text-ink">
           {!entry.read && <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />}
           {threadName ? (
             <>
@@ -224,10 +224,10 @@ function NotificationRow({ entry, now, bot, threadName, onOpen }: { entry: Notif
           ) : (
             <span className="min-w-0 flex-1 truncate">{entry.title}</span>
           )}
-          <span className={cn("shrink-0 text-[11px] font-medium", className)}>{t(status)}</span>
+          <span className={cn("shrink-0 text-micro font-medium", className)}>{t(status)}</span>
         </span>
-        {entry.body && <span className="mt-0.5 block truncate text-[12px] text-ink-secondary">{entry.body}</span>}
-        <span className="mt-0.5 block text-[11px] text-ink-tertiary">{threadUpdatedLabel(entry.at, now)}</span>
+        {entry.body && <span className="mt-0.5 block truncate text-caption text-ink-secondary">{entry.body}</span>}
+        <span className="mt-0.5 block text-micro text-ink-tertiary">{threadUpdatedLabel(entry.at, now)}</span>
       </span>
     </button>
   );

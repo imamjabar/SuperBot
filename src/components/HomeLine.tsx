@@ -43,7 +43,7 @@ export function HomeLine() {
     void bridge.state().then((place) => setNotificationPlace(place.role ? place.name : null)).catch(() => {});
   }, [bridge]);
   if (!line) return null;
-  return <div role="status" data-home-line={line.kind} className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-hairline/40 bg-panel px-3 py-1.5 text-[13px] text-ink-secondary">
+  return <div role="status" data-home-line={line.kind} className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-hairline/40 bg-panel px-3 py-1.5 text-small text-ink-secondary">
     {line.kind === "clean" ? <Cloud size={14} aria-hidden="true" /> : <Users size={14} aria-hidden="true" />}
     <span dir="auto">{homeLineText(line)}</span>
     {line.kind === "clean" && <ConnectAiLink />}

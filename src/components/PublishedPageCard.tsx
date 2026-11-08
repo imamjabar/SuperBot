@@ -43,7 +43,7 @@ export function PublishedPageCard({ message }: { message: Message }) {
       </div>
       {card.state === "live" && card.url && <>
         <a href={card.url} dir="ltr" onClick={(event) => { event.preventDefault(); openPage(card.url!); }}
-          className="mt-1 block truncate text-[13px] text-accent-text hover:underline">{card.url}</a>
+          className="mt-1 block truncate text-small text-accent-text hover:underline">{card.url}</a>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button type="button" onClick={copy} className={cn(ASK_CHIP, ASK_CHIP_IDLE)}>
             {copied === "copied" ? <Check size={14} /> : <Copy size={14} />}
@@ -56,10 +56,10 @@ export function PublishedPageCard({ message }: { message: Message }) {
             {busy ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}{t("chat.page.unpublish")}
           </button>
         </div>
-        {failed && <p role="alert" className="mt-1.5 text-[12px] text-danger">{t("chat.page.unpublishFailed")}</p>}
+        {failed && <p role="alert" className="mt-1.5 text-caption text-danger">{t("chat.page.unpublishFailed")}</p>}
       </>}
-      {card.state === "unpublished" && <p className="mt-1 text-[13px] text-ink-secondary">{t("chat.page.unpublished")}</p>}
-      {card.state === "limit" && <p dir="auto" className="mt-1 text-[13px] leading-snug text-ink-secondary">{limitLine(card)}</p>}
+      {card.state === "unpublished" && <p className="mt-1 text-small text-ink-secondary">{t("chat.page.unpublished")}</p>}
+      {card.state === "limit" && <p dir="auto" className="mt-1 text-small leading-snug text-ink-secondary">{limitLine(card)}</p>}
     </div>
   );
 }

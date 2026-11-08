@@ -83,7 +83,7 @@ export function UpdateIndicator({ className, bar }: { className?: string; bar?: 
   );
 }
 
-const button = "inline-flex h-7 min-w-0 items-center justify-center gap-2 rounded-full px-3.5 text-[13px] font-medium leading-4 transition-colors";
+const button = "inline-flex h-7 min-w-0 items-center justify-center gap-2 rounded-full px-3.5 text-small font-medium leading-4 transition-colors";
 const primary = `${button} bg-accent text-white hover:brightness-110 disabled:cursor-default disabled:bg-control disabled:text-ink-secondary disabled:hover:brightness-100`;
 const secondary = `${button} text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50`;
 
@@ -209,7 +209,7 @@ export function UpdateCard({
             <h2 id="update-card-title" className="text-[17px] font-semibold leading-6 text-ink">
               {t("update.card.title")}
             </h2>
-            <p className="text-[13px] leading-5 text-ink-secondary">
+            <p className="text-small leading-5 text-ink-secondary">
               {[state.version ? `${productName()} ${state.version}` : productName(), appVersion() ? t("update.card.current", { version: appVersion() }) : ""].filter(Boolean).join(" · ")}
             </p>
           </div>
@@ -217,10 +217,10 @@ export function UpdateCard({
 
         {highlights.length > 0 && (
           <div className="mt-5">
-            <h3 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-secondary">{t("update.card.whatsNew")}</h3>
+            <h3 className="text-caption font-semibold uppercase tracking-[0.06em] text-ink-secondary">{t("update.card.whatsNew")}</h3>
             <ul className="mt-2 space-y-2">
               {highlights.map((line) => (
-                <li key={line} className="flex gap-2.5 text-[14px] leading-5 text-ink">
+                <li key={line} className="flex gap-2.5 text-body-sm leading-5 text-ink">
                   <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" />
                   <span className="min-w-0">{line}</span>
                 </li>
@@ -231,7 +231,7 @@ export function UpdateCard({
         <button
           type="button"
           onClick={() => void openExternalLink(RELEASES_URL)}
-          className={cn(highlights.length > 0 ? "mt-3" : "mt-5", "block text-[13px] font-medium leading-5 text-accent hover:underline")}
+          className={cn(highlights.length > 0 ? "mt-3" : "mt-5", "block text-small font-medium leading-5 text-accent hover:underline")}
         >
           {t("update.card.allNotes")}
         </button>
@@ -249,7 +249,7 @@ export function UpdateCard({
           </div>
         )}
 
-        <p id="update-card-note" className="mt-4 text-[13px] leading-5 text-ink-secondary">{note}</p>
+        <p id="update-card-note" className="mt-4 text-small leading-5 text-ink-secondary">{note}</p>
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button

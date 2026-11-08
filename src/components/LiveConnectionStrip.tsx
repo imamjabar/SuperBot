@@ -27,7 +27,7 @@ export function LiveConnectionStrip({ connected, hydrated }: { connected: boolea
   if (!hydrated) return null;
   const notice = !online ? "offline" : !connected && late ? "reconnecting" : null;
   if (!notice) return null;
-  return <div role="status" data-live-connection={notice} className="flex items-center justify-center gap-2 border-b border-hairline/40 bg-panel px-3 py-1.5 text-[13px] text-ink-secondary">
+  return <div role="status" data-live-connection={notice} className="flex items-center justify-center gap-2 border-b border-hairline/40 bg-panel px-3 py-1.5 text-small text-ink-secondary">
     {notice === "offline" ? <CloudOff size={14} aria-hidden="true" /> : <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
     <span>{t(notice === "offline" ? "liveConnection.offline" : "liveConnection.reconnecting")}</span>
   </div>;

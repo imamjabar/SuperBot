@@ -116,10 +116,10 @@ function HtmlFileContent({ path, name, message }: { path: string; name: string; 
       <OpenInBrowserButton source={source} name={name} onError={setOpenFailed} />
       <button type="button" className="table-action" aria-label={t("attach.saveAria", { name })} title={t("attach.saveAria", { name })} disabled={save.state === "saving"} onClick={() => void save.save()}><Download size={14} /></button>
     </div>
-    {save.state === "failed" && <p role="alert" className="text-end text-[12px] text-danger">{save.reason}</p>}
-    {openFailed && <p role="alert" className="text-end text-[12px] text-danger">{openFailed}</p>}
+    {save.state === "failed" && <p role="alert" className="text-end text-caption text-danger">{save.reason}</p>}
+    {openFailed && <p role="alert" className="text-end text-caption text-danger">{openFailed}</p>}
     {showSource
-      ? <pre className="h-[72dvh] overflow-auto rounded-lg border border-hairline/40 bg-inset p-3 text-[12px] leading-5 whitespace-pre-wrap break-words text-ink">{source}</pre>
+      ? <pre className="h-[72dvh] overflow-auto rounded-lg border border-hairline/40 bg-inset p-3 text-caption leading-5 whitespace-pre-wrap break-words text-ink">{source}</pre>
       : <HtmlPreviewFrame source={source} name={name} />}
   </div>;
 }

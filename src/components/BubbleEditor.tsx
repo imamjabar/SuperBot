@@ -55,19 +55,19 @@ export function BubbleEditor({
           if (e.key === "Escape") onCancel();
         }}
         rows={Math.min(10, Math.max(2, draft.split("\n").length))}
-        className={cn("w-full resize-none bg-transparent text-ink focus:outline-none", simple ? "leading-[22px]" : "text-[15px] leading-relaxed")}
+        className={cn("w-full resize-none bg-transparent text-ink focus:outline-none", simple ? "leading-[22px]" : "text-body leading-relaxed")}
       />
       <div className="mt-2 flex items-center justify-end gap-2">
         <button
           onClick={onCancel}
-          className="rounded-full px-3 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink"
+          className="rounded-full px-3 py-1 text-small text-ink-secondary hover:bg-raised hover:text-ink"
         >
           {t("common.cancel")}
         </button>
         <button
           onClick={submit}
           disabled={!draft.trim()}
-          className="rounded-full bg-accent px-3 py-1 text-[13px] font-medium text-white disabled:opacity-40"
+          className="rounded-full bg-accent px-3 py-1 text-small font-medium text-white disabled:opacity-40"
         >
           {t("chat.send")}
         </button>

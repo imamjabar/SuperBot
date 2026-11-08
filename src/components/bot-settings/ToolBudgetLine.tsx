@@ -7,7 +7,7 @@ import type { ToolBudget } from "../../../shared/tool-budget";
 export function ToolBudgetView({ budget }: { budget: ToolBudget }) {
   const searched = budget.servers.filter((server) => !server.direct).map((server) => server.name);
   return (
-    <div data-tool-budget className="mt-3 text-[12px] text-ink-secondary">
+    <div data-tool-budget className="mt-3 text-caption text-ink-secondary">
       <div>{t("botAccess.tools.budget", { listed: budget.listed, limit: budget.limit })}</div>
       {searched.length > 0 && (
         <div data-tool-budget-searched className="mt-0.5">

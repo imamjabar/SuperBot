@@ -68,7 +68,7 @@ export function WidgetChart({ node }: { node: WidgetNode }) {
         aria-label={t("widget.chart.label", { series: series.join(", "), count: (node.data as unknown[]).length })}
         style={{ height }}
       />
-      {failed && <p role="alert" className="mt-1 text-[12px] text-danger">{t("data.chart.failed", { reason: failed })}</p>}
+      {failed && <p role="alert" className="mt-1 text-caption text-danger">{t("data.chart.failed", { reason: failed })}</p>}
     </div>
   );
 }

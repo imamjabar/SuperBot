@@ -55,9 +55,9 @@ export function MoreMenu({ stream, ready, typing, setting, zoom, pip, onViewport
   return (
     <details ref={menu} className="relative shrink-0">
       <summary className="list-none cursor-pointer rounded-md p-1.5 text-ink-secondary hover:bg-inset hover:text-ink [&::-webkit-details-marker]:hidden" aria-label="Browser menu" title="Browser menu"><EllipsisVertical size={16} /></summary>
-      <div className="absolute right-0 top-full z-40 mt-2 flex w-56 flex-col rounded-xl border border-hairline/50 bg-card p-1 text-[12px] text-ink shadow-xl" role="menu">
+      <div className="absolute right-0 top-full z-40 mt-2 flex w-56 flex-col rounded-xl border border-hairline/50 bg-card p-1 text-caption text-ink shadow-xl" role="menu">
         {stream ? section(<>
-          <div className="px-3 pb-1 pt-1.5 text-[11px] text-ink-tertiary">Page size</div>
+          <div className="px-3 pb-1 pt-1.5 text-micro text-ink-tertiary">Page size</div>
           {VIEWPORTS.map((viewport) => (
             <button key={viewport.label} type="button" role="menuitemradio" aria-checked={sameSetting(viewport.setting, setting)} className={item} disabled={!ready} onClick={run(() => onViewport(viewport.setting))}>
               <span className="w-3.5 shrink-0">{sameSetting(viewport.setting, setting) ? <Check size={13} aria-hidden="true" /> : null}</span>{viewport.label}

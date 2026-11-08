@@ -11,7 +11,7 @@ export function MascotFaceColorPicker({ bot, disabled, onPatch }: {
 }) {
   return (
     <div className="mt-3">
-      <div className="mb-1.5 flex items-baseline justify-between gap-2 text-[12px] text-ink-secondary">
+      <div className="mb-1.5 flex items-baseline justify-between gap-2 text-caption text-ink-secondary">
         <span>{t("botIdentity.faceColor")}</span>
         {!bot.mascotFaceColor && <span className="text-ink-tertiary">{t("botIdentity.faceColor.default")}</span>}
       </div>

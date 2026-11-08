@@ -69,8 +69,8 @@ export function PermissionsSection({
             <Crown size={17} />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-medium text-ink">{t("permissions.chief.title")}</div>
-            <div className="text-[12px] text-ink-secondary">{t("permissions.chief.oneFor", { section: displaySectionName })}</div>
+            <div className="text-body font-medium text-ink">{t("permissions.chief.title")}</div>
+            <div className="text-caption text-ink-secondary">{t("permissions.chief.oneFor", { section: displaySectionName })}</div>
           </div>
           <Switch
             checked={Boolean(bot.chiefOfStaff)}
@@ -81,7 +81,7 @@ export function PermissionsSection({
             className="disabled:cursor-not-allowed"
           />
         </div>
-        <div className="mt-3 text-[13px] leading-relaxed text-ink-secondary">
+        <div className="mt-3 text-small leading-relaxed text-ink-secondary">
           {bot.chiefOfStaff && !canCoordinate
             ? t("permissions.chief.unsupportedCurrent")
             : bot.chiefOfStaff
@@ -106,8 +106,8 @@ export function PermissionsSection({
       {shows("peers") && <div className="rounded-xl bg-card p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="text-[15px] font-medium text-ink">{t("permissions.peers.title")}</div>
-            <div className="mt-0.5 text-[13px] text-ink-secondary">
+            <div className="text-body font-medium text-ink">{t("permissions.peers.title")}</div>
+            <div className="mt-0.5 text-small text-ink-secondary">
               {bot.approvePeerComms
                 ? t("permissions.peers.on")
                 : t("permissions.peers.off")}
@@ -128,8 +128,8 @@ export function PermissionsSection({
       </div>}
 
       {shows("approval") && <div className="rounded-xl bg-card p-4">
-        <div className="text-[15px] font-medium text-ink">{t("permissions.approval.title")}</div>
-        <div className="mt-0.5 text-[13px] text-ink-secondary">
+        <div className="text-body font-medium text-ink">{t("permissions.approval.title")}</div>
+        <div className="mt-0.5 text-small text-ink-secondary">
           {draft ? t("permissions.approval.draftHanded") : t("permissions.approval.helpHanded")}
         </div>
         <ProposalStatus bot={bot} kind="owner" />
@@ -149,12 +149,12 @@ export function PermissionsSection({
         </div>
         {!draft && approvalMode === "full" && <button
           type="button"
-          className="mt-3 text-[13px] text-accent hover:underline disabled:opacity-40"
+          className="mt-3 text-small text-accent hover:underline disabled:opacity-40"
           onClick={applyFullEverywhere}
         >{t("permissions.approval.applyFull")}</button>}
         {!draft && ownerOrAdmin === true && <button
           type="button"
-          className="mt-3 block text-[13px] text-accent hover:underline"
+          className="mt-3 block text-small text-accent hover:underline"
           onClick={() => setCommandAllowlistTarget({ botId: bot.id, botName: bot.name })}
         >{t("commandAllowlist.manage")}</button>}
       </div>}
@@ -182,7 +182,7 @@ export function PermissionsSection({
 function PeersListNote({ peers, bots, onOpen }: { peers: readonly string[]; bots: readonly Bot[]; onOpen: () => void }) {
   const names = peers.flatMap((id) => bots.find((other) => other.id === id && !other.hidden)?.name ?? []);
   return (
-    <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-hairline/40 pt-3 text-[13px] text-ink-secondary">
+    <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-hairline/40 pt-3 text-small text-ink-secondary">
       <span>{names.length ? t("permissions.peers.limited", { names: names.join(", ") }) : t("permissions.peers.none")}</span>
       <button type="button" className="text-accent hover:underline" onClick={onOpen}>{t("permissions.peers.everyone")}</button>
     </div>
@@ -222,8 +222,8 @@ function OutboundControl({ bot, onChange }: { bot: Bot; onChange: (policy: Outbo
 
   return (
     <div className="rounded-xl bg-card p-4">
-      <div className="text-[15px] font-medium text-ink">{t("permissions.outbound.title")}</div>
-      <div className="mt-0.5 text-[13px] text-ink-secondary">
+      <div className="text-body font-medium text-ink">{t("permissions.outbound.title")}</div>
+      <div className="mt-0.5 text-small text-ink-secondary">
         {t("permissions.outbound.help")}
       </div>
       <div className="mt-3 flex gap-1 rounded-lg bg-inset p-0.5">
@@ -242,7 +242,7 @@ function OutboundControl({ bot, onChange }: { bot: Bot; onChange: (policy: Outbo
               if (value !== policy.policy) onChange({ policy: value, dailyCap: policy.dailyCap });
             }}
             className={cn(
-              "flex-1 rounded-md px-2.5 py-1.5 text-[13px] font-medium",
+              "flex-1 rounded-md px-2.5 py-1.5 text-small font-medium",
               policy.policy === value ? "bg-raised text-ink" : "text-ink-secondary hover:text-ink",
             )}
           >
@@ -251,7 +251,7 @@ function OutboundControl({ bot, onChange }: { bot: Bot; onChange: (policy: Outbo
         ))}
       </div>
       {policy.policy === "allow" && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] text-ink-secondary">
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-small text-ink-secondary">
           <label className="flex items-center gap-2">
             {t("permissions.outbound.upTo")}
             <input
@@ -265,7 +265,7 @@ function OutboundControl({ bot, onChange }: { bot: Bot; onChange: (policy: Outbo
                 if (event.key === "Enter") (event.target as HTMLInputElement).blur();
               }}
               aria-label={t("permissions.outbound.dailyLimit")}
-              className="w-20 rounded-md bg-inset px-2 py-1 text-[13px] text-ink tabular-nums outline-none focus:ring-1 focus:ring-accent"
+              className="w-20 rounded-md bg-inset px-2 py-1 text-small text-ink tabular-nums outline-none focus:ring-1 focus:ring-accent"
             />
             {t("permissions.outbound.perDay")}
           </label>

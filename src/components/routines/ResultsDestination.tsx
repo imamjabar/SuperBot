@@ -14,7 +14,7 @@ export function ResultsDestination({ bot, value, allowCurrent = false, onChange 
   const selectedMissing = typeof value === "string" && !tasks.some((task) => task.threadId === value);
   const groups = [...(bot?.projects ?? []), { id: "", name: t("folder.none") }];
   return <div className="min-w-0 space-y-1.5">
-    <label htmlFor={id} className="block text-[12px] font-medium text-ink">{t("routines.results.label")}</label>
+    <label htmlFor={id} className="block text-caption font-medium text-ink">{t("routines.results.label")}</label>
     <Select className="w-full" id={id} aria-describedby={`${id}-help`} disabled={!bot} value={value ?? (value === null ? "new" : "current")}
       onChange={(event) => onChange(event.target.value === "new" ? null : event.target.value === "current" ? undefined : event.target.value)}>
       {allowCurrent && <option value="current">{t("routines.results.keep")}</option>}
@@ -27,6 +27,6 @@ export function ResultsDestination({ bot, value, allowCurrent = false, onChange 
         </optgroup> : null;
       })}
     </Select>
-    <p id={`${id}-help`} className="text-[11px] leading-relaxed text-ink-secondary">{t("routines.results.mainHelp")}</p>
+    <p id={`${id}-help`} className="text-micro leading-relaxed text-ink-secondary">{t("routines.results.mainHelp")}</p>
   </div>;
 }

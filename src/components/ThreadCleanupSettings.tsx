@@ -152,7 +152,7 @@ export function ThreadCleanupSettings() {
             onChange={(event) => toggleRetention(event.target.checked)}
             className="size-4 accent-accent"
           />
-          <label htmlFor="thread-log-retention-enabled" className="text-[13px] font-medium text-ink">{t("settings.threadCleanup.retention.enable")}</label>
+          <label htmlFor="thread-log-retention-enabled" className="text-small font-medium text-ink">{t("settings.threadCleanup.retention.enable")}</label>
           <div className={`flex max-w-[160px] items-center rounded-lg border bg-inset ${errorKnob === "retention" ? "border-danger/60" : "border-hairline/40 focus-within:border-focus"}`}>
             <input
               id="thread-log-retention-days"
@@ -174,12 +174,12 @@ export function ThreadCleanupSettings() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") event.currentTarget.blur();
               }}
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px] tabular-nums text-ink focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-body-sm tabular-nums text-ink focus:outline-none"
             />
-            <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.retention.unit")}</span>
+            <span className="pr-3 text-small text-ink-secondary">{t("settings.threadCleanup.retention.unit")}</span>
           </div>
         </div>
-        <p id="thread-log-retention-help" className="text-[12px] leading-relaxed text-ink-secondary">{t("settings.threadCleanup.retention.help")}</p>
+        <p id="thread-log-retention-help" className="text-caption leading-relaxed text-ink-secondary">{t("settings.threadCleanup.retention.help")}</p>
       </div>
       <div className="mt-4 flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -191,7 +191,7 @@ export function ThreadCleanupSettings() {
             onChange={(event) => toggleCap(event.target.checked)}
             className="size-4 accent-accent"
           />
-          <label htmlFor="thread-log-cap-enabled" className="text-[13px] font-medium text-ink">{t("settings.threadCleanup.cap.enable")}</label>
+          <label htmlFor="thread-log-cap-enabled" className="text-small font-medium text-ink">{t("settings.threadCleanup.cap.enable")}</label>
           <div className={`flex max-w-[160px] items-center rounded-lg border bg-inset ${errorKnob === "cap" ? "border-danger/60" : "border-hairline/40 focus-within:border-focus"}`}>
             <input
               id="thread-log-cap-mib"
@@ -213,15 +213,15 @@ export function ThreadCleanupSettings() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") event.currentTarget.blur();
               }}
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px] tabular-nums text-ink focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-body-sm tabular-nums text-ink focus:outline-none"
             />
-            <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.threadCleanup.cap.unit")}</span>
+            <span className="pr-3 text-small text-ink-secondary">{t("settings.threadCleanup.cap.unit")}</span>
           </div>
         </div>
-        <p id="thread-log-cap-help" className="text-[12px] leading-relaxed text-ink-secondary">{t("settings.threadCleanup.cap.help")}</p>
+        <p id="thread-log-cap-help" className="text-caption leading-relaxed text-ink-secondary">{t("settings.threadCleanup.cap.help")}</p>
       </div>
-      {pending !== null && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("settings.threadCleanup.saving")}</p>}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      {pending !== null && <p role="status" className="mt-2 text-caption text-ink-secondary">{t("settings.threadCleanup.saving")}</p>}
+      {error && <p role="alert" className="mt-2 text-caption text-danger">{error}</p>}
     </Card>
   );
 }

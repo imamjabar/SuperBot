@@ -17,7 +17,7 @@ export function NewMessagesDivider({ fading }: { fading: boolean }) {
       <div className="min-h-0 overflow-hidden">
         <div aria-hidden="true" className="animate-msg-in flex items-center gap-3 py-0.5">
           <span className="h-px flex-1 bg-linear-to-r from-transparent to-accent/60 rtl:bg-linear-to-l" />
-          <span className="text-[11px] font-semibold uppercase leading-4 tracking-[0.08em] text-accent-text">
+          <span className="text-micro font-semibold uppercase leading-4 tracking-[0.08em] text-accent-text">
             {t("chat.newMessages")}
           </span>
           <span className="h-px flex-1 bg-linear-to-l from-transparent to-accent/60 rtl:bg-linear-to-r" />

@@ -6,8 +6,8 @@ import { t } from "@/lib/i18n";
 import type { EmailConnectAnswer, EmailServerFields, EmailStatus } from "../../shared/email";
 import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
 
-const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
-const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
+const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-small font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
+const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-small text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
 
 export function EmailIcon() {
   return (
@@ -101,10 +101,10 @@ export function EmailCard({ refreshKey = 0, onConnection }: {
         <EmailIcon />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold leading-5 text-ink">{t("email.title")}</span>
+            <span className="truncate text-body-sm font-semibold leading-5 text-ink">{t("email.title")}</span>
             {connected && <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" aria-label={t("apps.connected")} />}
           </div>
-          <p className="truncate text-[13px] leading-[18px] text-ink-secondary" title={description}>{description}</p>
+          <p className="truncate text-small leading-[18px] text-ink-secondary" title={description}>{description}</p>
         </div>
         {status === null ? (
           loadFailed
@@ -129,21 +129,21 @@ export function EmailCard({ refreshKey = 0, onConnection }: {
         )}
       </div>
       <div className="ps-[52px]">
-        {done && <p role="status" className="mt-1.5 text-[12px] text-ink-secondary">{done}</p>}
-        {problem && !open && <p role="alert" className="mt-1.5 text-[12px] text-warning">{problem}</p>}
-        {error && <p role="alert" className="mt-1.5 text-[12px] text-danger">{error}</p>}
+        {done && <p role="status" className="mt-1.5 text-caption text-ink-secondary">{done}</p>}
+        {problem && !open && <p role="alert" className="mt-1.5 text-caption text-warning">{problem}</p>}
+        {error && <p role="alert" className="mt-1.5 text-caption text-danger">{error}</p>}
         {open && (
           <form data-email-form className="mt-2 flex flex-col gap-2" onSubmit={(event) => { event.preventDefault(); void connect(); }}>
             <input type="email" autoComplete="off" spellCheck={false} dir="ltr" aria-label={t("email.address")} placeholder={t("email.address")} value={address} onChange={(event) => setAddress(event.target.value)} className={field} />
             <input type="password" autoComplete="new-password" spellCheck={false} dir="ltr" aria-label={t("email.password")} placeholder={t("email.password")} value={password} onChange={(event) => setPassword(event.target.value)} className={field} />
             {needsServer && <EmailServerInputs value={server} onChange={setServer} />}
-            <p className="text-[12px] leading-relaxed text-ink-secondary">{t("email.help")}</p>
+            <p className="text-caption leading-relaxed text-ink-secondary">{t("email.help")}</p>
             <div className="flex items-center gap-2">
               <button type="submit" disabled={busy || !address.trim() || !password} className={pill}>
                 {busy ? <Loader2 size={14} className="animate-spin" /> : t("connectors.action.connect")}
               </button>
-              {busy && <span role="status" className="text-[12px] text-ink-secondary">{t("email.checking")}</span>}
-              {!needsServer && !busy && <button type="button" onClick={() => setNeedsServer(true)} className="text-[12px] text-ink-secondary underline underline-offset-2 hover:text-ink">{t("email.typeServer")}</button>}
+              {busy && <span role="status" className="text-caption text-ink-secondary">{t("email.checking")}</span>}
+              {!needsServer && !busy && <button type="button" onClick={() => setNeedsServer(true)} className="text-caption text-ink-secondary underline underline-offset-2 hover:text-ink">{t("email.typeServer")}</button>}
             </div>
           </form>
         )}

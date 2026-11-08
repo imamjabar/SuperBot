@@ -82,15 +82,15 @@ export function InboxQuestionAnswer({ row, question, asker, onAnswer }: {
                     {on && <Check size={11} strokeWidth={3} />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium leading-5 text-ink">{label}</span>
+                    <span className="block text-small font-medium leading-5 text-ink">{label}</span>
                     {recommended && (
-                      <span data-inbox-recommended className="mt-0.5 inline-flex items-center gap-1 rounded-md bg-ink/[0.07] px-1.5 py-px text-[11px] font-medium text-ink-secondary">
+                      <span data-inbox-recommended className="mt-0.5 inline-flex items-center gap-1 rounded-md bg-ink/[0.07] px-1.5 py-px text-micro font-medium text-ink-secondary">
                         <span aria-hidden="true" className="size-1.5 rounded-full bg-warning" />{t("inbox.recommended")}
                       </span>
                     )}
-                    {option.description && <span className="mt-0.5 block text-[12px] leading-[18px] text-ink-secondary">{option.description}</span>}
+                    {option.description && <span className="mt-0.5 block text-caption leading-[18px] text-ink-secondary">{option.description}</span>}
                   </span>
-                  {index < KEYED_CHOICES && <span aria-hidden="true" className="shrink-0 text-[11px] tabular-nums text-ink-tertiary">{index + 1}</span>}
+                  {index < KEYED_CHOICES && <span aria-hidden="true" className="shrink-0 text-micro tabular-nums text-ink-tertiary">{index + 1}</span>}
                 </button>
               );
             })}
@@ -113,7 +113,7 @@ export function InboxQuestionAnswer({ row, question, asker, onAnswer }: {
               event.preventDefault();
               send();
             }}
-            className="block max-h-32 min-h-9 flex-1 resize-none bg-transparent py-2 text-[13px] leading-5 text-ink outline-none placeholder:text-ink-tertiary [field-sizing:content]" />
+            className="block max-h-32 min-h-9 flex-1 resize-none bg-transparent py-2 text-small leading-5 text-ink outline-none placeholder:text-ink-tertiary [field-sizing:content]" />
         ) : <span className="flex-1" />}
         <button type="submit" data-inbox-send disabled={!response || sending} aria-label={t("chat.send")} title={t("chat.send")} aria-busy={sending || undefined}
           {...askPrimary(asker?.color, ASK_ICON_SHAPE)}>

@@ -318,7 +318,7 @@ export function BotContextMenu({
           moreRow,
           ...(leave.length ? [divider("leave"), ...leave] : []),
         ]}
-        {readError?.botId === bot.id && <p role="alert" className="px-2 py-1.5 text-[12px] text-danger">{readError.message}</p>}
+        {readError?.botId === bot.id && <p role="alert" className="px-2 py-1.5 text-caption text-danger">{readError.message}</p>}
       </div>,
       document.body,
     )}{flyout && createPortal(
@@ -421,7 +421,7 @@ export function BotContextMenu({
           <BotDeleteMenuItem key="delete" deleting={deleting} className={MENU_ITEM} onClick={() => { onClose(); onDelete(bot); }} />,
         ]),
       ]}
-      {readError?.botId === bot.id && <p role="alert" className="px-2 py-1.5 text-[12px] text-danger">{readError.message}</p>}
+      {readError?.botId === bot.id && <p role="alert" className="px-2 py-1.5 text-caption text-danger">{readError.message}</p>}
     </div>,
     document.body,
   )}</>;

@@ -123,10 +123,10 @@ export function LocalScreenPreview() {
     <section className="mt-4 rounded-xl bg-card p-4" aria-labelledby="local-preview-title">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div id="local-preview-title" className="text-[15px] font-medium text-ink">
+          <div id="local-preview-title" className="text-body font-medium text-ink">
             {t("computer.screen.title")}
           </div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">
+          <div className="mt-0.5 text-caption leading-relaxed text-ink-secondary">
             {t("computer.screen.subtitle")}
           </div>
         </div>
@@ -151,7 +151,7 @@ export function LocalScreenPreview() {
             ) : (
               <Monitor size={22} />
             )}
-            <span className="text-[12px]" aria-live="polite">
+            <span className="text-caption" aria-live="polite">
               {!ready
                 ? t("computer.screen.checking")
                 : t(preview.available ? message : phaseCopy.unavailable)}
@@ -161,7 +161,7 @@ export function LocalScreenPreview() {
       </div>
 
       {phase === "streaming" && (
-        <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-ink-secondary">
+        <div className="mt-2 flex items-center justify-between gap-3 text-micro text-ink-secondary">
           <span className="truncate" title={screenLabel}>
             {preview.interaction === "portal-picker" ? screenLabel : t("vm.dest.local")}
           </span>
@@ -179,7 +179,7 @@ export function LocalScreenPreview() {
             ? () => releaseStream("idle", phaseCopy.idle)
             : () => void start()
         }
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-raised py-2 text-[13px] text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-raised py-2 text-small text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {phase === "requesting" ? (
           <Loader2 size={14} className="animate-spin" />

@@ -38,7 +38,7 @@ export function ServiceIcon({ card, className = "size-11" }: { card: Pick<Toolki
     );
   }
   return (
-    <div className={cn("flex items-center justify-center rounded-xl bg-raised text-[15px] font-semibold text-ink-secondary", className)}>
+    <div className={cn("flex items-center justify-center rounded-xl bg-raised text-body font-semibold text-ink-secondary", className)}>
       {card.label.slice(0, 1).toUpperCase()}
     </div>
   );

@@ -38,8 +38,8 @@ export function AppHeader({
   return (
     <div data-app-header className={cn("flex items-start gap-3", bordered ? "px-4 pb-3 pt-3.5" : "pb-2")}>
       <div className="min-w-0 flex-1">
-        <div title={title} className="truncate text-[15px] font-semibold leading-6 text-ink"><bdi dir="auto">{title}</bdi></div>
-        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[13px] leading-snug text-ink-secondary">
+        <div title={title} className="truncate text-body font-semibold leading-6 text-ink"><bdi dir="auto">{title}</bdi></div>
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-small leading-snug text-ink-secondary">
           <AppWindow aria-hidden="true" size={13} className="shrink-0 text-ink-tertiary" />
           <span dir="auto" className="min-w-0 truncate">{origin}</span>
         </div>
@@ -80,7 +80,7 @@ export function AppInfo({ id, network, bytes, bordered }: { id: string; network:
   if (bytes > 0) rows.push([t("app.info.size"), formatAppBytes(bytes)]);
   rows.push([t("app.info.off"), t("app.info.offList")]);
   return (
-    <div id={id} data-app-info className={cn("rounded-2xl bg-inset px-3.5 py-3 text-[13px] leading-[18px]", bordered ? "mx-4 mb-3" : "mb-2")}>
+    <div id={id} data-app-info className={cn("rounded-2xl bg-inset px-3.5 py-3 text-small leading-[18px]", bordered ? "mx-4 mb-3" : "mb-2")}>
       <p className="mb-2 text-ink-secondary">{t("app.info.sandbox")}</p>
       <dl className="grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-4 gap-y-1">
         {rows.map(([label, value]) => (
@@ -101,7 +101,7 @@ export function AppStrip({ text, action, bordered, tone = "warning" }: {
   tone?: "warning" | "quiet";
 }) {
   return (
-    <div role="status" data-app-strip className={cn("flex items-center gap-2 border-t border-ink/[0.12] py-2.5 text-[13px] leading-[18px] text-ink-secondary", bordered ? "mx-4" : "mt-2")}>
+    <div role="status" data-app-strip className={cn("flex items-center gap-2 border-t border-ink/[0.12] py-2.5 text-small leading-[18px] text-ink-secondary", bordered ? "mx-4" : "mt-2")}>
       <CircleAlert aria-hidden="true" size={14} className={cn("shrink-0", tone === "warning" ? "text-warning" : "text-ink-tertiary")} />
       <span dir="auto" className="min-w-0 flex-1 break-words">{text}</span>
       {action && <button type="button" onClick={action.onClick} className={ASK_QUIET_BUTTON}>{action.label}</button>}
@@ -127,7 +127,7 @@ export function AppPlaceholder({ height, loading, open, label, children }: {
     <div data-app-placeholder className="flex w-full flex-col items-center justify-center gap-2 px-4 text-center" style={{ height }}>
       {children}
       {loading && slow && (
-        <span role="status" className="flex items-center gap-1.5 text-[13px] text-ink-tertiary">
+        <span role="status" className="flex items-center gap-1.5 text-small text-ink-tertiary">
           <Loader2 aria-hidden="true" size={14} className="animate-spin motion-reduce:animate-none" />
           {t("app.loading")}
         </span>

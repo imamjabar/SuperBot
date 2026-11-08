@@ -10,7 +10,7 @@ import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
 
 /** Simple mode's message text: 15/22, the size whose cap height matches the design. */
-export const SIMPLE_BUBBLE_TEXT = "text-[15px] leading-[22px] max-sm:text-[16px] max-sm:leading-normal";
+export const SIMPLE_BUBBLE_TEXT = "text-body leading-[22px] max-sm:text-[16px] max-sm:leading-normal";
 
 const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] max-sm:px-4 max-sm:py-3 ${SIMPLE_BUBBLE_TEXT}`;
 
@@ -30,7 +30,7 @@ export const SIMPLE_USER_BUBBLE_MAX = `${SIMPLE_DESKTOP_MAX} max-sm:max-w-[85%]`
 export function plainBotBubble(simple: boolean): string {
   return simple
     ? cn("chat-text w-fit whitespace-pre-wrap", SIMPLE_BUBBLE_MAX, SIMPLE_BOT_BUBBLE)
-    : "chat-text w-fit max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-2xl bg-card px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap text-ink";
+    : "chat-text w-fit max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-2xl bg-card px-4 py-2.5 text-body leading-relaxed whitespace-pre-wrap text-ink";
 }
 
 /** Simple mode's transcript spaces rows 16px apart (ChatView's data-simple-rows); a row in the same group pulls up 12px, to 4px. */

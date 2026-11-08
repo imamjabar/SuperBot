@@ -9,19 +9,19 @@ import { Switch } from "../SettingsPrimitives";
 
 export const rowCls = "flex min-h-[46px] items-center gap-2.5 px-3.5 py-[11px]";
 export const roundButtonCls = `flex size-[34px] shrink-0 items-center justify-center rounded-full text-ink ${ELEVATED_CONTROL} ${ELEVATED_HOVER} [:root[data-skin=daylight]_&]:shadow-[0_1px_3px_rgb(28_28_28/0.12)]`;
-const titleCls = "text-[14px] font-medium text-ink";
-const hintCls = "mt-px text-[13px] leading-[1.35] text-ink-secondary";
+const titleCls = "text-body-sm font-medium text-ink";
+const hintCls = "mt-px text-small leading-[1.35] text-ink-secondary";
 export const buttonCls =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[9px] bg-control px-3.5 text-[13px] font-medium text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[9px] bg-control px-3.5 text-small font-medium text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50";
 export const chipCls = (on: boolean) =>
   cn(
-    "rounded-full px-2.5 py-1 text-[12px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+    "rounded-full px-2.5 py-1 text-caption transition-colors disabled:cursor-not-allowed disabled:opacity-50",
     on ? "bg-ink/[0.15] text-ink" : "bg-ink/[0.04] text-ink-secondary enabled:hover:text-ink",
   );
 
 export function CardLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="mx-1 mb-2 mt-5 flex min-h-5 items-center justify-between gap-3 text-[13px] text-ink-secondary">
+    <div className="mx-1 mb-2 mt-5 flex min-h-5 items-center justify-between gap-3 text-small text-ink-secondary">
       <span className="min-w-0 truncate">{children}</span>
       {action}
     </div>
@@ -30,7 +30,7 @@ export function CardLabel({ children, action }: { children: ReactNode; action?: 
 
 export function LabelAction({ children, onClick, ...rest }: { children: ReactNode; onClick: () => void; "aria-label"?: string; "data-panel-action"?: string }) {
   return (
-    <button type="button" {...rest} onClick={onClick} className="shrink-0 rounded-[5px] px-1 py-px text-[13px] text-ink-secondary hover:bg-ink/[0.04] hover:text-ink">
+    <button type="button" {...rest} onClick={onClick} className="shrink-0 rounded-[5px] px-1 py-px text-small text-ink-secondary hover:bg-ink/[0.04] hover:text-ink">
       {children}
     </button>
   );
@@ -133,7 +133,7 @@ export function NavRow({ title, hint, value, icon, onClick, drill = true, danger
         {hint && <div className={hintCls}>{hint}</div>}
       </div>
       {value !== undefined && value !== null && value !== "" && (
-        <span className="inline-flex max-w-[45%] shrink-0 items-center gap-1 truncate text-[13px] text-ink-secondary">{value}</span>
+        <span className="inline-flex max-w-[45%] shrink-0 items-center gap-1 truncate text-small text-ink-secondary">{value}</span>
       )}
       {drill && <ChevronRight size={15} className="shrink-0 text-ink-tertiary" aria-hidden="true" />}
     </button>
@@ -163,7 +163,7 @@ export function ColRow({ children, ...rest }: { children: ReactNode; "data-panel
 export function NoteRow({ children, tone }: { children: ReactNode; tone?: "warn" }) {
   return (
     <div className={rowCls}>
-      <div className={cn("text-[13px] leading-[1.35]", tone === "warn" ? "text-warning" : "text-ink-secondary")}>{children}</div>
+      <div className={cn("text-small leading-[1.35]", tone === "warn" ? "text-warning" : "text-ink-secondary")}>{children}</div>
     </div>
   );
 }
@@ -175,7 +175,7 @@ export function LinkRow({ children, onClick, icon: Icon = ChevronRight, ...rest 
   "data-panel-link"?: string;
 }) {
   return (
-    <button type="button" {...rest} onClick={onClick} className="flex w-full items-center gap-2 px-3.5 py-[11px] text-left text-[13px] text-ink-secondary hover:text-ink">
+    <button type="button" {...rest} onClick={onClick} className="flex w-full items-center gap-2 px-3.5 py-[11px] text-left text-small text-ink-secondary hover:text-ink">
       <span className="min-w-0 flex-1">{children}</span>
       <Icon size={14} className="shrink-0" aria-hidden="true" />
     </button>
@@ -208,7 +208,7 @@ export function Segmented<V extends string>({ options, value, onChange, label, a
           title={option.tooltip}
           onClick={() => onChange(option.value)}
           className={cn(
-            "min-w-0 flex-auto truncate whitespace-nowrap rounded-full px-1.5 py-1.5 text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+            "min-w-0 flex-auto truncate whitespace-nowrap rounded-full px-1.5 py-1.5 text-small transition-colors disabled:cursor-not-allowed disabled:opacity-50",
             value === option.value ? "bg-ink/[0.14] text-ink" : "text-ink-secondary enabled:hover:text-ink",
           )}
         >
@@ -303,7 +303,7 @@ export function TextRow({ value, placeholder, label, action, disabled, onChange,
         aria-label={label}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 min-w-0 flex-1 rounded-lg border border-hairline bg-inset px-2.5 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border disabled:opacity-50"
+        className="h-8 min-w-0 flex-1 rounded-lg border border-hairline bg-inset px-2.5 text-small text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border disabled:opacity-50"
       />
       <button type="submit" disabled={disabled || !value.trim()} className={buttonCls}>{action}</button>
     </form>
@@ -317,13 +317,13 @@ export function PageHeader({ back, title, intro, onBack }: { back: string; title
         type="button"
         data-panel-back
         onClick={onBack}
-        className="mt-0.5 inline-flex items-center gap-0.5 rounded-[7px] py-1 pl-0.5 pr-2 text-[13px] text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
+        className="mt-0.5 inline-flex items-center gap-0.5 rounded-[7px] py-1 pl-0.5 pr-2 text-small text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
       >
         <ChevronLeft size={15} aria-hidden="true" />
         <span>{back}</span>
       </button>
       <h3 className="mx-1 mt-1.5 text-[18px] font-semibold text-ink">{title}</h3>
-      {intro && <p className="mx-1 mt-1.5 text-[13px] leading-normal text-ink-secondary">{intro}</p>}
+      {intro && <p className="mx-1 mt-1.5 text-small leading-normal text-ink-secondary">{intro}</p>}
     </div>
   );
 }

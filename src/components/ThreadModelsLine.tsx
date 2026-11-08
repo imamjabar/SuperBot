@@ -12,7 +12,7 @@ export function ThreadModelsLine({ bot, className }: { bot: Bot; className?: str
   const count = threadsOnOwnModel(bot.modelSelection, bot.tasks ?? []).length;
   if (count === 0) return null;
   return (
-    <div data-thread-models className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-secondary", className)}>
+    <div data-thread-models className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-ink-secondary", className)}>
       <span>{count === 1 ? t("model.threadsOwnModelOne") : t("model.threadsOwnModel", { count })}</span>
       <button
         type="button"
@@ -27,7 +27,7 @@ export function ThreadModelsLine({ bot, className }: { bot: Bot; className?: str
             },
           });
         }}
-        className="h-6 shrink-0 rounded-full px-2.5 text-[12px] font-medium leading-4 text-ink ring-[0.5px] ring-ink/25 hover:bg-ink/[0.06]"
+        className="h-6 shrink-0 rounded-full px-2.5 text-caption font-medium leading-4 text-ink ring-[0.5px] ring-ink/25 hover:bg-ink/[0.06]"
       >
         {count === 1 ? t("model.switchItToo") : t("model.switchThemToo")}
       </button>

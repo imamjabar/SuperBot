@@ -102,7 +102,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
     const element = line({ onMenu, onDelete: () => {} });
     const html = renderToStaticMarkup(element);
     expect(html).toContain('data-sidebar-section-line=""');
-    expect(html).toMatch(/text-\[12px\][^"]*text-ink-secondary/);
+    expect(html).toMatch(/text-caption[^"]*text-ink-secondary/);
     expect(html).not.toContain("bg-hairline");
     expect(html).toContain('aria-label="Actions for Work department" title="Actions for Work department" aria-haspopup="menu" aria-expanded="false"');
     expect(html).toMatch(/aria-label="Actions for Work department"[^>]*class="[^"]*\bopacity-0\b[^"]*\bgroup-hover\/section:opacity-100\b[^"]*\baria-expanded:opacity-100\b/);
@@ -122,7 +122,7 @@ describe("SidebarSectionHeader as a Simple-mode line", () => {
   it("shows how many rows the section holds at rest, crossfading to the chevron on hover or focus", () => {
     const html = renderToStaticMarkup(line({ count: 3 }));
     expect(html).toMatch(/class="h-\[30px\]|group\/section flex h-\[30px\] items-center gap-1\.5 rounded-\[6px\] px-2 pb-1\.5 pt-2 hover:bg-raised\/50/);
-    expect(html).toMatch(/<span class="text-\[12px\] tabular-nums leading-4 text-ink-secondary transition-opacity group-hover\/section:opacity-0 group-focus-within\/section:opacity-0 touch:opacity-0">3<\/span>/);
+    expect(html).toMatch(/<span class="text-caption tabular-nums leading-4 text-ink-secondary transition-opacity group-hover\/section:opacity-0 group-focus-within\/section:opacity-0 touch:opacity-0">3<\/span>/);
   });
 
   it("is dragged by the line itself, and only when it can be reordered", () => {

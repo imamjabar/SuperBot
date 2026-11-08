@@ -189,7 +189,7 @@ export function VoicePicker({
   const heading = (text: string, hint?: string) => (
     <div role="presentation" className="px-2.5 pb-1 pt-2">
       <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-secondary">{text}</div>
-      {hint && <div className="mt-0.5 text-[11px] leading-4 text-ink-tertiary">{hint}</div>}
+      {hint && <div className="mt-0.5 text-micro leading-4 text-ink-tertiary">{hint}</div>}
     </div>
   );
 
@@ -208,8 +208,8 @@ export function VoicePicker({
   } else if (empty) {
     body = (
       <div role="status" className="px-3 py-6 text-center">
-        <div className="text-[13px] text-ink">{t("voice.noMatches")}</div>
-        <div className="mt-0.5 text-[12px] text-ink-secondary">{t("voice.noMatchesHint")}</div>
+        <div className="text-small text-ink">{t("voice.noMatches")}</div>
+        <div className="mt-0.5 text-caption text-ink-secondary">{t("voice.noMatchesHint")}</div>
       </div>
     );
   } else {
@@ -236,9 +236,9 @@ export function VoicePicker({
             )}
           >
             <span className="min-w-0 flex-1">
-              <span className={cn("block truncate text-[13px] leading-5 text-ink", current && "font-medium")}>{voice.label}</span>
+              <span className={cn("block truncate text-small leading-5 text-ink", current && "font-medium")}>{voice.label}</span>
               {voice.description && (
-                <span title={voice.description} className="block truncate text-[12px] leading-4 text-ink-secondary">
+                <span title={voice.description} className="block truncate text-caption leading-4 text-ink-secondary">
                   {voice.description}
                 </span>
               )}
@@ -286,7 +286,7 @@ export function VoicePicker({
             aria-label={t("voice.search")}
             autoComplete="off"
             spellCheck={false}
-            className="w-full bg-transparent text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+            className="w-full bg-transparent text-small text-ink placeholder:text-ink-secondary focus:outline-none [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
       </div>
@@ -326,14 +326,14 @@ export function VoicePicker({
           show();
         }}
         className={cn(
-          "flex w-full items-center gap-2 rounded-lg border bg-inset py-2 pl-3 pr-2 text-start text-[13px] text-ink disabled:cursor-default",
+          "flex w-full items-center gap-2 rounded-lg border bg-inset py-2 pl-3 pr-2 text-start text-small text-ink disabled:cursor-default",
           open ? "border-focus" : "border-hairline/40",
         )}
       >
         <span className="min-w-0 flex-1 truncate">
           {pending?.label ?? selected?.label ?? (loading ? t("voice.loading") : value ? t("voice.current") : defaultLabel)}
         </span>
-        {pending && <span className="shrink-0 text-[12px] text-ink-secondary">{t("voice.adding")}</span>}
+        {pending && <span className="shrink-0 text-caption text-ink-secondary">{t("voice.adding")}</span>}
         {pending ? (
           <Loader2 size={14} aria-hidden className="shrink-0 animate-spin text-ink-secondary" />
         ) : (

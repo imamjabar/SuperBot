@@ -168,20 +168,20 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
             onChange={(e) => setQuery(e.target.value)}
             aria-label={t("commandPalette.searchLabel")}
             placeholder={t("commandPalette.searchPlaceholder")}
-            className="w-full bg-transparent text-[14px] text-ink placeholder:text-ink-secondary focus:outline-none"
+            className="w-full bg-transparent text-body-sm text-ink placeholder:text-ink-secondary focus:outline-none"
           />
-          <kbd className="shrink-0 rounded-md border border-hairline/40 px-1.5 py-0.5 text-[11px] text-ink-secondary">
+          <kbd className="shrink-0 rounded-md border border-hairline/40 px-1.5 py-0.5 text-micro text-ink-secondary">
             esc
           </kbd>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {entries.length === 0 && (
-            <div className="px-3 py-6 text-center text-[13px] text-ink-secondary">
+            <div className="px-3 py-6 text-center text-small text-ink-secondary">
               {q ? `Nothing matches “${query}”` : "Nothing to switch to yet"}
             </div>
           )}
           {bots.length > 0 && (
-            <div className="px-3 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
+            <div className="px-3 pb-1 pt-1.5 text-micro font-medium uppercase tracking-[0.08em] text-ink-secondary">
               Bots
             </div>
           )}
@@ -192,15 +192,15 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
               () => void activate({ kind: "bot", bot }),
               <>
                 <BotIcon size={16} className="shrink-0 text-ink-secondary" />
-                <span className="truncate text-[14px] text-ink">{bot.name}</span>
+                <span className="truncate text-body-sm text-ink">{bot.name}</span>
                 {bot.title && (
-                  <span className="min-w-0 truncate text-[13px] text-ink-secondary">{bot.title}</span>
+                  <span className="min-w-0 truncate text-small text-ink-secondary">{bot.title}</span>
                 )}
               </>,
             ),
           )}
           {rooms.length > 0 && (
-            <div className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
+            <div className="px-3 pb-1 pt-2 text-micro font-medium uppercase tracking-[0.08em] text-ink-secondary">
               Groups
             </div>
           )}
@@ -211,12 +211,12 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
               () => void activate({ kind: "room", group }),
               <>
                 <Users size={16} className="shrink-0 text-ink-secondary" />
-                <span className="truncate text-[14px] text-ink">{group.name}</span>
+                <span className="truncate text-body-sm text-ink">{group.name}</span>
               </>,
             ),
           )}
           {q && messageHits.length > 0 && (
-            <div className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
+            <div className="px-3 pb-1 pt-2 text-micro font-medium uppercase tracking-[0.08em] text-ink-secondary">
               Messages
             </div>
           )}
@@ -230,12 +230,12 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
                 messageOffset + i,
                 () => void activate({ kind: "message", hit }),
                 <>
-                  <span className="flex items-center gap-2 truncate text-[13px] font-medium text-ink">
+                  <span className="flex items-center gap-2 truncate text-small font-medium text-ink">
                     <MessageSquare size={13} className="shrink-0 text-ink-secondary" />
                     {hit.name}
                     {hit.task ? <span className="font-normal text-ink-secondary"> · {hit.task}</span> : null}
                   </span>
-                  <span className="line-clamp-2 text-[13px] text-ink-secondary">
+                  <span className="line-clamp-2 text-small text-ink-secondary">
                     {before}<mark className="rounded-sm bg-accent/25 px-0.5 text-ink">{match}</mark>{after}
                   </span>
                 </>,

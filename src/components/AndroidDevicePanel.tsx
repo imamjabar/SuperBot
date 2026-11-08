@@ -220,14 +220,14 @@ export function AndroidDevicePanel({ status }: { status: AndroidDeviceStatus }) 
       <div className="rounded-xl bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[15px] font-medium text-ink">
+            <div className="flex items-center gap-2 text-body font-medium text-ink">
               <Smartphone size={16} className="text-success" /> {deviceLabel(selected)}
             </div>
-            <div className="mt-1 text-[12px] leading-relaxed text-ink-secondary">
+            <div className="mt-1 text-caption leading-relaxed text-ink-secondary">
               {t("computer.android.usbSubtitle")}
             </div>
           </div>
-          <span className="flex shrink-0 items-center gap-1 text-[11px] text-success">
+          <span className="flex shrink-0 items-center gap-1 text-micro text-success">
             <ShieldCheck size={12} /> {t("computer.android.usb")}
           </span>
         </div>
@@ -247,7 +247,7 @@ export function AndroidDevicePanel({ status }: { status: AndroidDeviceStatus }) 
       </div>
 
       {!ready ? (
-        <div className="rounded-xl border border-warning/25 bg-warning/10 p-4 text-[12px] leading-relaxed text-warning">
+        <div className="rounded-xl border border-warning/25 bg-warning/10 p-4 text-caption leading-relaxed text-warning">
           {selected.state === "unauthorized"
             ? t("computer.android.unauthorized")
             : t("computer.android.badState", { state: selected.state })}
@@ -313,40 +313,40 @@ export function AndroidDevicePanel({ status }: { status: AndroidDeviceStatus }) 
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => send({ type: "key", key: "back" })}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-raised py-2 text-[12px] text-ink hover:bg-raised-hover"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-raised py-2 text-caption text-ink hover:bg-raised-hover"
             >
               <ArrowLeft size={13} /> {t("computer.android.back")}
             </button>
             <button
               onClick={() => send({ type: "key", key: "home" })}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-raised py-2 text-[12px] text-ink hover:bg-raised-hover"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-raised py-2 text-caption text-ink hover:bg-raised-hover"
             >
               <Circle size={12} /> {t("computer.android.home")}
             </button>
             <button
               onClick={() => send({ type: "key", key: "recent" })}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-raised py-2 text-[12px] text-ink hover:bg-raised-hover"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-raised py-2 text-caption text-ink hover:bg-raised-hover"
             >
               <RotateCcw size={13} /> {t("computer.android.recent")}
             </button>
           </div>
-          <div className="text-center text-[11px] leading-relaxed text-ink-secondary">
+          <div className="text-center text-micro leading-relaxed text-ink-secondary">
             {t("computer.android.hint")}
           </div>
         </>
       )}
 
       {error && (
-        <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">
+        <div className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-caption text-danger">
           {error}
         </div>
       )}
 
       <div className="rounded-xl bg-card p-4">
-        <div className="flex items-center gap-2 text-[13px] font-medium text-ink">
+        <div className="flex items-center gap-2 text-small font-medium text-ink">
           <Usb size={15} className="text-accent" /> {t("computer.android.setupTitle")}
         </div>
-        <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[12px] leading-relaxed text-ink-secondary">
+        <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-caption leading-relaxed text-ink-secondary">
           <li>{t("computer.android.step1")}</li>
           <li>
             {t("computer.android.step2").split(/(\{buildNumber\}|\{usbDebugging\})/).map((part, index) =>
@@ -361,10 +361,10 @@ export function AndroidDevicePanel({ status }: { status: AndroidDeviceStatus }) 
             {t("computer.android.step3b")}
           </li>
         </ol>
-        <div className="mt-2 text-[11px] leading-relaxed text-ink-secondary">
+        <div className="mt-2 text-micro leading-relaxed text-ink-secondary">
           {t("computer.android.agentNote")}
         </div>
-        <div className="mt-2 rounded-lg bg-inset px-3 py-2 text-[11px] leading-relaxed text-ink-secondary">
+        <div className="mt-2 rounded-lg bg-inset px-3 py-2 text-micro leading-relaxed text-ink-secondary">
           {t("computer.android.harnessNote")}
         </div>
       </div>

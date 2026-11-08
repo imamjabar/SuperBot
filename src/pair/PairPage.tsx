@@ -16,9 +16,9 @@ import {
 } from "../lib/session";
 import { pairedDestination } from "../lib/phone-pairing";
 
-const input = "mt-1 w-full rounded-md border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink outline-none focus:border-accent-border";
-const button = "mt-5 w-full rounded-md bg-accent px-4 py-2 text-[14px] font-medium text-accent-ink disabled:opacity-50";
-const fieldLabel = "mt-4 block text-[12px] font-medium text-ink-secondary";
+const input = "mt-1 w-full rounded-md border border-hairline/40 bg-inset px-3 py-2 text-body-sm text-ink outline-none focus:border-accent-border";
+const button = "mt-5 w-full rounded-md bg-accent px-4 py-2 text-body-sm font-medium text-accent-ink disabled:opacity-50";
+const fieldLabel = "mt-4 block text-caption font-medium text-ink-secondary";
 
 /** Only the desktop app pairs from a link at once; a browser asks, so a sent link cannot sign it in unseen. */
 export function pairsAutomatically(initialCode: string | null, desktop = typeof window !== "undefined" && Boolean(window.ogb?.workspaces)): boolean {
@@ -121,14 +121,14 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
           <p role="status" className="text-[20px] font-semibold">{`Connecting to ${environment?.label ?? `this ${productName()}`}…`}</p>
         ) : <>
         <h1 className="text-[20px] font-semibold">{pairTitle(environment, mode)}</h1>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-ink-secondary">
+        <p className="mt-1.5 text-body-sm leading-relaxed text-ink-secondary">
           {environment ? `Version ${environment.version} on ${environment.platform}. ` : ""}
           {pairIntro({ mode, sent, email })}
         </p>
-        {reasonWorthShowing(reason) && !connected ? <p className="mt-3 text-[13px] text-ink-secondary">{reasonWorthShowing(reason)}</p> : null}
+        {reasonWorthShowing(reason) && !connected ? <p className="mt-3 text-small text-ink-secondary">{reasonWorthShowing(reason)}</p> : null}
         </>}
         {opening ? null : connected ? (
-          <p className="mt-4 text-[14px]">
+          <p className="mt-4 text-body-sm">
             This browser is already connected.{" "}
             <a href="/" className="text-accent underline">
               Open the app
@@ -166,7 +166,7 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
                   autoComplete="one-time-code"
                   inputMode="numeric"
                   spellCheck={false}
-                  className={`${input} font-mono text-[15px] tracking-[0.12em]`}
+                  className={`${input} font-mono text-body tracking-[0.12em]`}
                 />
                 <label className={fieldLabel} htmlFor="signin-label">
                   This device
@@ -174,16 +174,16 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
                 <input id="signin-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} className={input} />
               </>
             ) : null}
-            {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
+            {error ? <p className="mt-3 text-small text-danger">{error}</p> : null}
             <button type="submit" disabled={busy || !email.includes("@") || (sent && otp.replace(/\D/g, "").length < 8)} className={button}>
               {busy ? (sent ? "Signing in…" : "Sending…") : sent ? "Sign in" : "Send code"}
             </button>
             {sent ? (
-              <button type="button" onClick={() => setSent(false)} className="mt-3 w-full text-[13px] text-ink-secondary underline">
+              <button type="button" onClick={() => setSent(false)} className="mt-3 w-full text-small text-ink-secondary underline">
                 Send a new code
               </button>
             ) : null}
-            <button type="button" onClick={() => switchMode("code")} className="mt-3 w-full text-[13px] text-ink-secondary underline">
+            <button type="button" onClick={() => switchMode("code")} className="mt-3 w-full text-small text-ink-secondary underline">
               Have a pairing code instead?
             </button>
           </form>
@@ -203,18 +203,18 @@ export function PairPage({ initialCode, initialEmail = null, reason }: { initial
               autoComplete="one-time-code"
               autoCapitalize="characters"
               spellCheck={false}
-              className={`${input} font-mono text-[15px] tracking-[0.12em]`}
+              className={`${input} font-mono text-body tracking-[0.12em]`}
             />
             <label className={fieldLabel} htmlFor="pair-label">
               This device
             </label>
             <input id="pair-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={80} className={input} />
-            {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
+            {error ? <p className="mt-3 text-small text-danger">{error}</p> : null}
             <button type="submit" disabled={busy || code.replace(/[^a-z0-9]/gi, "").length < 12} className={button}>
               {busy ? "Connecting…" : "Connect"}
             </button>
             {emailOffered ? (
-              <button type="button" onClick={() => switchMode("email")} className="mt-3 w-full text-[13px] text-ink-secondary underline">
+              <button type="button" onClick={() => switchMode("email")} className="mt-3 w-full text-small text-ink-secondary underline">
                 Sign in with your email instead
               </button>
             ) : null}

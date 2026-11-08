@@ -55,7 +55,7 @@ function ShimmerPhrase({ text, className }: { text: string; className?: string }
 
 const NOTHING: readonly string[] = [];
 // The spaces keep copied text readable; the flex gap does the spacing on screen.
-const Dot = () => <span aria-hidden="true" className="text-[12px] text-ink-tertiary"> · </span>;
+const Dot = () => <span aria-hidden="true" className="text-caption text-ink-tertiary"> · </span>;
 
 /** "last output 2 min ago" counts on by itself; the other states change only with a new frame. */
 function QuietPart({ quiet }: { quiet: StepQuiet }) {
@@ -66,7 +66,7 @@ function QuietPart({ quiet }: { quiet: StepQuiet }) {
     const timer = setInterval(() => setNow(Date.now()), 15_000);
     return () => clearInterval(timer);
   }, [quiet]);
-  return <><Dot /><span data-turn-quiet="" className="text-[12px] text-ink-tertiary">{quietText(quiet, now)}</span></>;
+  return <><Dot /><span data-turn-quiet="" className="text-caption text-ink-tertiary">{quietText(quiet, now)}</span></>;
 }
 
 /** The turn's live status line: "Working · 1m 12s · Running scrape.py · busy, no output yet". The lead word and the
@@ -162,7 +162,7 @@ export function TurnPresence({
   const { current, previous } = useRotatingPhrase(now ?? NOTHING, phase ?? now?.[0] ?? "", seed, mounted && showWorking && now !== null);
   if (!mounted) return null;
   const status = showWorking && simple ? (
-    <span id={statusId} className="flex min-w-0 items-baseline gap-x-1.5 text-[14px] leading-[22px] text-ink-tertiary" data-turn-status>
+    <span id={statusId} className="flex min-w-0 items-baseline gap-x-1.5 text-body-sm leading-[22px] text-ink-tertiary" data-turn-status>
       <span className="turn-phrase turn-phrase-quiet relative grid min-w-0" title={hover} data-turn-now={now ? "" : undefined}>
         {now ? (
           <ShimmerPhrase key={`in:${current}`} text={current} className={cn("truncate", previous !== null && "turn-phrase-in")} />
@@ -174,18 +174,18 @@ export function TurnPresence({
     </span>
   ) : showWorking ? (
     <span id={statusId} className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1 leading-none" data-turn-status>
-      {now ? <span className="text-[13px] text-ink-secondary">{lead}</span> : <ShimmerPhrase text={lead} className="text-[13px]" />}
+      {now ? <span className="text-small text-ink-secondary">{lead}</span> : <ShimmerPhrase text={lead} className="text-small" />}
       {since !== null && (
         <>
           <Dot />
-          <WorkingTimer since={since} className="text-[12px] text-ink-tertiary" />
+          <WorkingTimer since={since} className="text-caption text-ink-tertiary" />
         </>
       )}
       {now && (
         <>
           <Dot />
           {/* One phrase at a time: a fading old phrase sat out of flow and a longer one drew over the size beside it. */}
-          <span className="turn-phrase relative grid min-w-0 max-w-full text-[13px]" title={hover} data-turn-now>
+          <span className="turn-phrase relative grid min-w-0 max-w-full text-small" title={hover} data-turn-now>
             <ShimmerPhrase
               key={`in:${current}`}
               text={current}
@@ -195,7 +195,7 @@ export function TurnPresence({
           {size && (
             <>
               <Dot />
-              <span className="text-[12px] tabular-nums text-ink-tertiary" data-turn-size>{size}</span>
+              <span className="text-caption tabular-nums text-ink-tertiary" data-turn-size>{size}</span>
             </>
           )}
           {quiet && <QuietPart quiet={quiet} />}

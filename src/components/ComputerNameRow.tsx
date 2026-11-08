@@ -28,13 +28,13 @@ export function ComputerNameRow({ saved, onSaved, className }: { saved: string; 
 
   return (
     <div data-computer-name className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor="computer-name" className="text-[13px] font-medium text-ink">{t("remote.computerName.title")}</label>
+      <label htmlFor="computer-name" className="text-small font-medium text-ink">{t("remote.computerName.title")}</label>
       <input id="computer-name" value={draft} disabled={saving} placeholder={t("remote.computerName.placeholder")}
         aria-describedby="computer-name-help" onChange={(event) => setDraft(event.target.value)} onBlur={() => void save()}
         onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
-        className="w-full max-w-xs rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none" />
-      <p id="computer-name-help" className="text-[12px] leading-4 text-ink-secondary">{t("remote.computerName.help")}</p>
-      {error ? <p role="alert" className="text-[12px] leading-4 text-danger">{error}</p> : null}
+        className="w-full max-w-xs rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small text-ink placeholder:text-ink-secondary focus:outline-none" />
+      <p id="computer-name-help" className="text-caption leading-4 text-ink-secondary">{t("remote.computerName.help")}</p>
+      {error ? <p role="alert" className="text-caption leading-4 text-danger">{error}</p> : null}
     </div>
   );
 }

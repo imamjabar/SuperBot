@@ -68,7 +68,7 @@ export function BudgetCard({ budget }: { budget: BudgetState | null }) {
     <Card title={t("usage.budget.title")} subtitle={t("usage.budget.subtitle")}>
       {budget ? (
         <div className="mb-4">
-          <div className="mb-1 flex items-baseline justify-between text-[13px]">
+          <div className="mb-1 flex items-baseline justify-between text-small">
             <span className={cn(tone === "danger" ? "text-danger" : tone === "warning" ? "text-warning" : "text-ink")}>
               {budget.exceeded ? t("usage.budget.reached") : budget.warn ? t("usage.budget.nearing") : t("usage.budget.within")}
             </span>
@@ -79,23 +79,23 @@ export function BudgetCard({ budget }: { budget: BudgetState | null }) {
           </div>
         </div>
       ) : (
-        <p className="mb-4 text-[13px] text-ink-secondary">{t("usage.budget.none")}</p>
+        <p className="mb-4 text-small text-ink-secondary">{t("usage.budget.none")}</p>
       )}
       <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+        <label className="flex flex-col gap-1 text-caption text-ink-secondary">
           {t("usage.budget.monthly")}
-          <input value={monthly} onChange={(e) => setMonthly(e.target.value)} inputMode="decimal" placeholder="0" aria-label={t("usage.budget.monthly")} disabled={saving} className="w-32 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] tabular-nums text-ink focus:outline-none disabled:opacity-50" />
+          <input value={monthly} onChange={(e) => setMonthly(e.target.value)} inputMode="decimal" placeholder="0" aria-label={t("usage.budget.monthly")} disabled={saving} className="w-32 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small tabular-nums text-ink focus:outline-none disabled:opacity-50" />
         </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+        <label className="flex flex-col gap-1 text-caption text-ink-secondary">
           {t("usage.budget.warnAt")}
-          <input value={warnAt} onChange={(e) => setWarnAt(e.target.value)} inputMode="numeric" aria-label={t("usage.budget.warnAt")} disabled={saving} className="w-20 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] tabular-nums text-ink focus:outline-none disabled:opacity-50" />
+          <input value={warnAt} onChange={(e) => setWarnAt(e.target.value)} inputMode="numeric" aria-label={t("usage.budget.warnAt")} disabled={saving} className="w-20 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small tabular-nums text-ink focus:outline-none disabled:opacity-50" />
         </label>
-        <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-raised px-3 py-2 text-[13px] text-ink hover:bg-raised-hover disabled:opacity-50">
+        <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-raised px-3 py-2 text-small text-ink hover:bg-raised-hover disabled:opacity-50">
           {saving && <Loader2 size={13} className="animate-spin" />}{t("common.save")}
         </button>
       </form>
-      <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("usage.budget.hint")}</p>
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      <p className="mt-2 text-caption leading-relaxed text-ink-secondary">{t("usage.budget.hint")}</p>
+      {error && <p role="alert" className="mt-2 text-caption text-danger">{error}</p>}
     </Card>
   );
 }
@@ -155,16 +155,16 @@ export function PricesCard() {
     }
   };
 
-  const cell = "w-full rounded-lg border border-hairline/40 bg-inset px-2 py-1.5 text-[13px] tabular-nums text-ink focus:outline-none disabled:opacity-50";
+  const cell = "w-full rounded-lg border border-hairline/40 bg-inset px-2 py-1.5 text-small tabular-nums text-ink focus:outline-none disabled:opacity-50";
   return (
     <Card title={t("usage.prices.title")} subtitle={t("usage.prices.subtitle")}>
-      <div className="mb-3 flex items-center gap-2 text-[12px] text-ink-secondary">
+      <div className="mb-3 flex items-center gap-2 text-caption text-ink-secondary">
         <label className="flex items-center gap-2">
           {t("usage.prices.currency")}
-          <input value={currency} onChange={(e) => setCurrency(e.target.value)} maxLength={3} aria-label={t("usage.prices.currency")} disabled={saving} className="w-16 rounded-lg border border-hairline/40 bg-inset px-2 py-1.5 text-[13px] uppercase text-ink focus:outline-none disabled:opacity-50" />
+          <input value={currency} onChange={(e) => setCurrency(e.target.value)} maxLength={3} aria-label={t("usage.prices.currency")} disabled={saving} className="w-16 rounded-lg border border-hairline/40 bg-inset px-2 py-1.5 text-small uppercase text-ink focus:outline-none disabled:opacity-50" />
         </label>
       </div>
-      <div className="grid grid-cols-[1fr_5rem_5rem_5rem_auto] items-center gap-x-2 gap-y-1.5 text-[12px] font-medium uppercase tracking-wide text-ink-secondary">
+      <div className="grid grid-cols-[1fr_5rem_5rem_5rem_auto] items-center gap-x-2 gap-y-1.5 text-caption font-medium uppercase tracking-wide text-ink-secondary">
         <span>{t("usage.prices.colModel")}</span>
         <span>{t("usage.prices.colInput")}</span>
         <span>{t("usage.prices.colOutput")}</span>
@@ -181,13 +181,13 @@ export function PricesCard() {
         ))}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => setRows((current) => [...current, { key: "", input: "", output: "", cached: "" }])} disabled={saving} className="flex items-center gap-1.5 rounded-lg border border-hairline/40 px-3 py-1.5 text-[12px] text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50"><Plus size={13} />{t("usage.prices.add")}</button>
-        <button type="button" onClick={() => void save()} disabled={saving} className="ml-auto flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 text-[13px] text-ink hover:bg-raised-hover disabled:opacity-50">
+        <button type="button" onClick={() => setRows((current) => [...current, { key: "", input: "", output: "", cached: "" }])} disabled={saving} className="flex items-center gap-1.5 rounded-lg border border-hairline/40 px-3 py-1.5 text-caption text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50"><Plus size={13} />{t("usage.prices.add")}</button>
+        <button type="button" onClick={() => void save()} disabled={saving} className="ml-auto flex items-center gap-1.5 rounded-lg bg-raised px-3 py-1.5 text-small text-ink hover:bg-raised-hover disabled:opacity-50">
           {saving && <Loader2 size={13} className="animate-spin" />}{t("common.save")}
         </button>
       </div>
-      <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("usage.prices.hint")}</p>
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      <p className="mt-2 text-caption leading-relaxed text-ink-secondary">{t("usage.prices.hint")}</p>
+      {error && <p role="alert" className="mt-2 text-caption text-danger">{error}</p>}
     </Card>
   );
 }

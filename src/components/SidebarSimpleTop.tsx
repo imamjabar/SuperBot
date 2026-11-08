@@ -56,7 +56,7 @@ export function SidebarSearchPill({ query, onQuery, onClose }: { query: string; 
           }}
           placeholder={t("sidebar.searchAria")}
           aria-label={t("sidebar.searchAria")}
-          className="min-w-0 flex-1 bg-transparent text-[13px] text-ink placeholder:text-ink-tertiary focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-small text-ink placeholder:text-ink-tertiary focus:outline-none"
         />
         <button
           type="button"

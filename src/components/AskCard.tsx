@@ -13,7 +13,7 @@ export type Asker = Pick<Bot, "name" | "color"> & Partial<Pick<Bot, "avatarUrl" 
 
 export function AskHeader({ asker, line, origin }: { asker: Asker; line: string; origin?: { label: string; hint: string; open(): void } }) {
   return (
-    <div data-ask-header="" className="flex min-w-0 items-center gap-1.5 text-[13px] leading-[18px] text-ink-secondary">
+    <div data-ask-header="" className="flex min-w-0 items-center gap-1.5 text-small leading-[18px] text-ink-secondary">
       <span aria-hidden="true" className="flex shrink-0"><BotAvatar bot={asker} state="happy" size={16} animated={false} motion="none" motionKey={0} label="" /></span>
       <span dir="auto" className="min-w-0 truncate">{line}</span>
       {origin && (
@@ -69,10 +69,10 @@ export function AskCard({
       {header && <div className="mb-1.5 pe-6">{header}</div>}
       <div className="flex min-w-0 items-start gap-2">
         {icon && <span aria-hidden="true" className="mt-[3px] flex shrink-0 text-ink-secondary">{icon}</span>}
-        <div className="min-w-0 flex-1 break-words text-[15px] font-medium leading-[22px] text-ink">
+        <div className="min-w-0 flex-1 break-words text-body font-medium leading-[22px] text-ink">
           <bdi dir="auto">{title}</bdi>
         </div>
-        {meta && <span className="mt-0.5 shrink-0 text-[12px] tabular-nums text-ink-tertiary">{meta}</span>}
+        {meta && <span className="mt-0.5 shrink-0 text-caption tabular-nums text-ink-tertiary">{meta}</span>}
         {onDismiss && dismissLabel && (
           <button
             type="button"
@@ -88,7 +88,7 @@ export function AskCard({
           </button>
         )}
       </div>
-      {explanation && <div className="mt-1 text-[14px] leading-5 text-ink-secondary">{explanation}</div>}
+      {explanation && <div className="mt-1 text-body-sm leading-5 text-ink-secondary">{explanation}</div>}
       {children && <div className="mt-3">{children}</div>}
       {footer && <div className="mt-3 flex flex-wrap items-center justify-end gap-2">{footer}</div>}
     </div>
@@ -105,7 +105,7 @@ export function AskDetail({ text, mono = false, label }: { text: string; mono?: 
         dir="auto"
         aria-label={label}
         className={cn("rounded-xl bg-ink/[0.045] px-3 py-2 text-ink-secondary [overflow-wrap:anywhere]",
-          mono ? "font-mono text-[12px] leading-[18px] whitespace-pre-wrap" : "whitespace-pre-wrap text-[13px] leading-5",
+          mono ? "font-mono text-caption leading-[18px] whitespace-pre-wrap" : "whitespace-pre-wrap text-small leading-5",
           long && !open && "line-clamp-3")}
       >
         {text}
@@ -156,7 +156,7 @@ export function AskChoices({ choices, label, onPick, sending = null, picked = []
           >
             <span className="min-w-0 flex-1">
               <span dir="auto" className="block break-words [unicode-bidi:plaintext]">{choice.label}</span>
-              {choice.description && <span dir="auto" className="mt-0.5 block break-words text-[13px] leading-[18px] text-ink-secondary [unicode-bidi:plaintext]">{choice.description}</span>}
+              {choice.description && <span dir="auto" className="mt-0.5 block break-words text-small leading-[18px] text-ink-secondary [unicode-bidi:plaintext]">{choice.description}</span>}
             </span>
             {sending === choice.label
               ? <LoaderCircle size={16} aria-hidden="true" className="shrink-0 text-ink-secondary motion-safe:animate-spin" />
@@ -202,7 +202,7 @@ export function AskReply({ label, placeholder, color, onSend, sending = false, v
           event.preventDefault();
           send();
         }}
-        className={cn("block min-h-8 flex-1 resize-none bg-transparent py-1.5 text-[14px] leading-5 text-ink outline-none placeholder:text-ink-tertiary [field-sizing:content] pointer-coarse:min-h-9",
+        className={cn("block min-h-8 flex-1 resize-none bg-transparent py-1.5 text-body-sm leading-5 text-ink outline-none placeholder:text-ink-tertiary [field-sizing:content] pointer-coarse:min-h-9",
           multiline ? "max-h-40" : "max-h-28")}
       />
       <button type="submit" disabled={!ready} aria-label={t("chat.send")} title={t("chat.send")} aria-busy={sending || undefined} {...button}>
@@ -214,7 +214,7 @@ export function AskReply({ label, placeholder, color, onSend, sending = false, v
 
 /** Why an answer did not go, under the card, until the next try. */
 export function AskError({ children }: { children: ReactNode }) {
-  return <p role="alert" className="mt-2 text-[13px] leading-[18px] text-danger">{children}</p>;
+  return <p role="alert" className="mt-2 text-small leading-[18px] text-danger">{children}</p>;
 }
 
 export type AskSettledTone = "done" | "closed" | "stopped" | "expired";
@@ -247,7 +247,7 @@ export function AskSettledLine({
       aria-label={ariaLabel}
       data-ask-card="settled"
       data-tone={tone}
-      className="w-full max-w-[560px] text-start text-[13px] leading-[18px] text-ink-tertiary"
+      className="w-full max-w-[560px] text-start text-small leading-[18px] text-ink-tertiary"
     >
       <div className="flex min-w-0 items-center gap-1.5">
         <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
@@ -272,10 +272,10 @@ export function settledAnswer(answer: string, choices: readonly string[]): React
  * each script's font metrics push text off center.
  */
 const ASK_SHAPE =
-  "inline-flex h-7 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-medium leading-5 transition-colors [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:h-9";
+  "inline-flex h-7 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-small font-medium leading-5 transition-colors [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:h-9";
 /** A card's answers: at least 36px tall, 44 on a touch screen, and a label that wraps rather than being cut. */
 export const ASK_BUTTON_SHAPE =
-  "inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-center text-[14px] font-medium leading-5 transition-colors [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:min-h-11";
+  "inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-center text-body-sm font-medium leading-5 transition-colors [&>svg]:shrink-0 disabled:cursor-not-allowed pointer-coarse:min-h-11";
 export const ASK_ICON_SHAPE = "inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed pointer-coarse:size-9";
 const ASK_LOOK = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-40";
 const ASK_CONTROL = `${ASK_SHAPE} ${ASK_LOOK}`;
@@ -293,7 +293,7 @@ export const ASK_SECONDARY_BUTTON = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} bg-ink/[0.0
 /** An extra option that should not compete with the answer: Always allow, Details. */
 export const ASK_QUIET_ANSWER = `${ASK_BUTTON_SHAPE} ${ASK_LOOK} text-ink-secondary enabled:hover:bg-ink/[0.06] enabled:hover:text-ink enabled:active:bg-ink/[0.1]`;
 
-const ASK_CHOICE = `flex min-h-10 w-full items-center gap-2.5 rounded-[14px] px-3.5 py-2 text-start text-[14px] leading-5 text-ink ring-[0.5px] ring-ink/[0.14] transition-colors ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
+const ASK_CHOICE = `flex min-h-10 w-full items-center gap-2.5 rounded-[14px] px-3.5 py-2 text-start text-body-sm leading-5 text-ink ring-[0.5px] ring-ink/[0.14] transition-colors ${ASK_LOOK} disabled:cursor-default pointer-coarse:min-h-11`;
 
 export const ASK_CHIP = `${ASK_CONTROL} max-w-full border`;
 export const ASK_CHIP_IDLE = "border-transparent bg-ink/[0.07] text-ink hover:bg-ink/[0.12]";
@@ -303,7 +303,7 @@ export const ASK_SMALL_PILL = ASK_CONTROL;
 export const ASK_QUIET_BUTTON = `${ASK_SMALL_PILL} -my-1 text-ink-tertiary hover:bg-ink/[0.07] hover:text-ink-secondary`;
 
 export const ASK_FIELD =
-  "h-7 rounded-full border border-hairline/60 bg-inset px-3 text-[13px] leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60 pointer-coarse:h-9";
+  "h-7 rounded-full border border-hairline/60 bg-inset px-3 text-small leading-5 text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60 pointer-coarse:h-9";
 
 export function returnFocusToComposer(): void {
   if (typeof requestAnimationFrame !== "function") return;

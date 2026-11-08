@@ -36,7 +36,7 @@ export function WidgetImage({ node, where }: { node: WidgetNode; where: WidgetWh
           event.stopPropagation();
           form.allowImages();
         }}
-        className={cn("flex max-w-full flex-col items-center justify-center gap-1 bg-inset px-3 text-center text-[12px] leading-4 text-ink-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", !thumb && "min-h-[88px] py-3", frame)}
+        className={cn("flex max-w-full flex-col items-center justify-center gap-1 bg-inset px-3 text-center text-caption leading-4 text-ink-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus", !thumb && "min-h-[88px] py-3", frame)}
         style={style}
       >
         <ImageOff aria-hidden="true" size={thumb ? 16 : 18} className="shrink-0" />
@@ -65,7 +65,7 @@ export function WidgetBadge({ node }: { node: WidgetNode }) {
   const variant = widgetString(node, "variant") ?? "soft";
   if (variant === "dot") {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[13px] leading-[18px] text-ink-secondary">
+      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-small leading-[18px] text-ink-secondary">
         <span aria-hidden="true" className={cn("size-[7px] shrink-0 rounded-full", BADGE_DOT[color] ?? BADGE_DOT.secondary)} />
         <span dir="auto">{label}</span>
       </span>
@@ -103,7 +103,7 @@ export function WidgetProgress({ node }: { node: WidgetNode }) {
       >
         <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${percent}%` }} />
       </div>
-      <div className="mt-2 flex items-baseline justify-between gap-3 text-[13px] leading-[18px]">
+      <div className="mt-2 flex items-baseline justify-between gap-3 text-small leading-[18px]">
         <span className="tabular-nums text-ink-secondary">{percent}%</span>
         {label && <span dir="auto" className="min-w-0 truncate text-ink-tertiary">{label}</span>}
       </div>

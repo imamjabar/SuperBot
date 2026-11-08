@@ -52,7 +52,7 @@ export function GrokMovePopup({ onDone }: { onDone: (action: GrokMovePopupAction
           <MausAvatar color="chrome" size={52} state="idle" animated={false} />
         </div>
         <h2 id={TITLE} className="mt-5 text-[19px] font-semibold leading-6 tracking-[-0.012em]">{t("settings.import.grokTitle")}</h2>
-        <p id={BODY} className="mt-1.5 text-[14px] leading-5 text-ink-secondary [text-wrap:pretty]">{t("grokMove.popup.body")}</p>
+        <p id={BODY} className="mt-1.5 text-body-sm leading-5 text-ink-secondary [text-wrap:pretty]">{t("grokMove.popup.body")}</p>
         <button type="button" data-primary="" onClick={() => onDone("start")} className={cn(PRIMARY_BUTTON, "mt-5 w-full")}>{t("grokMove.popup.start")}</button>
         <div className="mt-1"><NotNowButton onClick={() => onDone("not_now")} /></div>
         <button type="button" onClick={() => onDone("close")} aria-label={t("common.close")} className="ui-icon-button absolute end-3 top-3"><X size={16} /></button>

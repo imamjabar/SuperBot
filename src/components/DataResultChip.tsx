@@ -34,7 +34,7 @@ export function DataResultChip({ message }: { message: Message }) {
         </button>
       </div>
       {result.sql && expanded && <div id={queryId} className="border-t border-hairline/40 px-3 py-2">
-        <div className="mb-1 text-[11px] font-medium text-ink-secondary">{t("data.card.sql")}</div>
+        <div className="mb-1 text-micro font-medium text-ink-secondary">{t("data.card.sql")}</div>
         <pre dir="ltr" className="max-h-64 overflow-auto rounded-lg bg-inset p-2.5 font-mono text-xs whitespace-pre-wrap break-words text-ink"><code>{result.sql}</code></pre>
       </div>}
       {chart && <InlineDataChart botId={result.botId} cardId={result.cardId} title={result.title} />}

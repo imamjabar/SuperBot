@@ -103,7 +103,7 @@ export function SignInRequestCard({
         ariaLabel={t("signIn.title")}
         icon={outcome === "cancelled" ? <X size={13} className="text-ink-tertiary" /> : card.resumed || stopped ? undefined : error ? <LogIn size={13} /> : <Loader2 size={13} className="animate-spin" />}
         action={retry}
-        detail={error && <p role="alert" className="ms-[19px] mt-1 text-[12px] text-danger">{error}</p>}
+        detail={error && <p role="alert" className="ms-[19px] mt-1 text-caption text-danger">{error}</p>}
       >
         <span className="text-ink-secondary">{card.savedLogin
           ? t("signIn.settled.saved", { site: card.savedLogin })
@@ -151,13 +151,13 @@ export function SignInRequestCard({
     >
       <div dir="ltr" className="break-all text-[20px] font-semibold leading-7 text-ink" data-testid="sign-in-site">{card.site}</div>
       {card.reason && (
-        <blockquote className="mt-1.5 border-s-2 border-hairline ps-2.5 text-[13px] leading-snug text-ink-secondary">
+        <blockquote className="mt-1.5 border-s-2 border-hairline ps-2.5 text-small leading-snug text-ink-secondary">
           <bdi dir="auto">“{card.reason}”</bdi> <span className="text-ink-tertiary">— {botName}</span>
         </blockquote>
       )}
       {saving ? (
         <div className="mt-2.5" data-testid="sign-in-save">
-          <p className="mb-2 text-[13px] leading-snug text-ink-secondary">{t("signIn.save.note", { name: botName, site: target?.site ?? pageHost })}</p>
+          <p className="mb-2 text-small leading-snug text-ink-secondary">{t("signIn.save.note", { name: botName, site: target?.site ?? pageHost })}</p>
           <LoginForm submitLabel={t("signIn.save.submit")} autoFocus onCancel={() => setSaving(false)}
             onSubmit={async (fields) => {
               await saveLoginFromCard({ botId, threadId, messageId: message.id }, fields, alsoThere ? target?.signInHost : undefined);
@@ -165,23 +165,23 @@ export function SignInRequestCard({
               returnFocusToComposer();
             }}>
             {target?.signInHost && (
-              <label className="flex items-start gap-2 text-[13px] leading-snug text-ink" data-testid="sign-in-save-elsewhere">
+              <label className="flex items-start gap-2 text-small leading-snug text-ink" data-testid="sign-in-save-elsewhere">
                 <input type="checkbox" name="signInHost" className="mt-[2px]" checked={alsoThere} onChange={(event) => setAlsoThere(event.target.checked)} />
                 <span dir="auto">{t("signIn.save.elsewhere", { host: target.signInHost })}</span>
               </label>
             )}
           </LoginForm>
         </div>
-      ) : <p className="mt-2 text-[13px] leading-snug text-ink-secondary">{t(where, { name: botName })}</p>}
+      ) : <p className="mt-2 text-small leading-snug text-ink-secondary">{t(where, { name: botName })}</p>}
       {explained && (
-        <p role="note" className="mt-1.5 text-[13px] leading-snug text-ink">{t(here ? "signIn.local.explain" : "signIn.local.explainHost", { name: botName })}</p>
+        <p role="note" className="mt-1.5 text-small leading-snug text-ink">{t(here ? "signIn.local.explain" : "signIn.local.explainHost", { name: botName })}</p>
       )}
       {!saving && (
-        <p className="mt-2 flex items-center gap-1 text-[12px] text-ink-tertiary">
+        <p className="mt-2 flex items-center gap-1 text-caption text-ink-tertiary">
           <LockKeyhole size={11} aria-hidden="true" /> {t("signIn.private")}
         </p>
       )}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-caption text-danger">{error}</p>}
     </AskCard>
   );
 }
@@ -208,11 +208,11 @@ export function SignInBanner({
   };
   return (
     <div className="mt-3 rounded-xl border border-warning/25 bg-warning/10 p-4 text-start" data-testid="sign-in-banner">
-      <div className="text-[13px] leading-relaxed text-warning">
+      <div className="text-small leading-relaxed text-warning">
         <b>{askerName}</b> {t("signIn.banner", { site: help.site })}
       </div>
       {help.place === "local" && (
-        <div className="mt-1 text-[12px] leading-relaxed text-ink-secondary">
+        <div className="mt-1 text-caption leading-relaxed text-ink-secondary">
           {t(signInHostIsHere() ? "signIn.where.local" : "signIn.where.host", { name: askerName })}
         </div>
       )}
@@ -222,7 +222,7 @@ export function SignInBanner({
             type="button"
             onClick={takeControl.onClick}
             disabled={takeControl.disabled}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent py-2 text-[13px] font-medium text-accent-ink hover:brightness-110 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent py-2 text-small font-medium text-accent-ink hover:brightness-110 disabled:opacity-50"
           >
             {takeControl.pending ? <Loader2 size={14} className="animate-spin" /> : <Hand size={14} />}
             {t("computer.takeControl")}
@@ -232,7 +232,7 @@ export function SignInBanner({
           type="button"
           onClick={() => void answer("done")}
           disabled={pending !== null}
-          className={cn("flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium disabled:opacity-50",
+          className={cn("flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-small font-medium disabled:opacity-50",
             takeControl ? "bg-control text-ink hover:bg-raised-hover" : "flex-1 bg-accent text-accent-ink hover:brightness-110")}
         >
           {pending === "done" ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
@@ -242,7 +242,7 @@ export function SignInBanner({
           type="button"
           onClick={() => void answer("cancel")}
           disabled={pending !== null}
-          className="rounded-lg bg-control px-3 py-2 text-[13px] text-ink hover:bg-raised-hover disabled:opacity-50"
+          className="rounded-lg bg-control px-3 py-2 text-small text-ink hover:bg-raised-hover disabled:opacity-50"
         >
           {t("signIn.cancel")}
         </button>

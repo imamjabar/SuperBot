@@ -13,7 +13,7 @@ export function HandoffReply({ message, children }: { message: Message; children
     return (
       <div className="flex flex-col items-start gap-1">
         {children}
-        <p data-handoff-done-when className="max-w-[min(38rem,100%)] truncate px-3 text-[12px] text-ink-secondary" title={doneWhen}>
+        <p data-handoff-done-when className="max-w-[min(38rem,100%)] truncate px-3 text-caption text-ink-secondary" title={doneWhen}>
           {t("chat.handoffDoneWhen", { criteria: doneWhen })}
         </p>
       </div>
@@ -24,9 +24,9 @@ export function HandoffReply({ message, children }: { message: Message; children
     <div className="flex flex-col items-start gap-1" data-handoff-reply={message.roomRequest?.id}>
       {children}
       {result.more === null
-        ? <p className={"max-w-[min(38rem,100%)] rounded-xl border border-hairline/40 bg-panel px-3 py-1.5 text-[13px] break-words text-ink-secondary"}>{result.preview}</p>
+        ? <p className={"max-w-[min(38rem,100%)] rounded-xl border border-hairline/40 bg-panel px-3 py-1.5 text-small break-words text-ink-secondary"}>{result.preview}</p>
         : (
-          <details className="group/reply w-fit max-w-full rounded-xl border border-hairline/40 bg-panel text-[13px] open:w-[min(38rem,100%)]">
+          <details className="group/reply w-fit max-w-full rounded-xl border border-hairline/40 bg-panel text-small open:w-[min(38rem,100%)]">
             <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-1.5 text-ink-secondary hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
               <span className="min-w-0 max-w-[34rem] truncate">{result.preview}</span>
               <ChevronRight size={13} className="ml-auto shrink-0 group-open/reply:rotate-90" aria-hidden="true" />

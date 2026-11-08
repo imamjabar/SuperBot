@@ -31,8 +31,8 @@ export function ThemeRow({ simple = false }: { simple?: boolean }) {
             aria-checked={choice === theme.choice}
             onClick={() => applySkinChoice(theme.choice)}
             className={simple
-              ? cn("h-6 rounded-full px-2.5 text-[13px] transition-colors", choice === theme.choice ? "bg-ink/[0.12] text-ink" : "text-ink-secondary hover:text-ink")
-              : cn("rounded-full px-3 py-1 text-[13px] font-medium transition-colors", choice === theme.choice ? "bg-raised text-ink shadow-sm" : "text-ink-secondary hover:text-ink")}
+              ? cn("h-6 rounded-full px-2.5 text-small transition-colors", choice === theme.choice ? "bg-ink/[0.12] text-ink" : "text-ink-secondary hover:text-ink")
+              : cn("rounded-full px-3 py-1 text-small font-medium transition-colors", choice === theme.choice ? "bg-raised text-ink shadow-sm" : "text-ink-secondary hover:text-ink")}
           >
             {t(simple && theme.choice === "system" ? "settings.simple.theme.system" : theme.label)}
           </button>

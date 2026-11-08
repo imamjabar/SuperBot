@@ -10,15 +10,15 @@ export const QUIET = "ui-button ui-button-pill";
 export const PRIMARY_WIDE = `${PRIMARY} ui-button-lg w-full`;
 export const QUIET_WIDE = `${QUIET} ui-button-lg w-full`;
 export const ACTIONS = "flex flex-wrap items-center justify-end gap-2";
-export const LINK = "rounded-sm text-[13px] font-medium text-ink underline decoration-ink/30 underline-offset-[3px] hover:decoration-ink disabled:opacity-50";
-export const FIELD = "h-9 w-full rounded-[10px] border border-ink/15 bg-transparent px-3 text-[14px] text-ink outline-none transition-[border-color] duration-150 placeholder:text-ink-tertiary disabled:opacity-60 motion-reduce:transition-none";
-const TAG = "inline-flex min-h-5 items-center gap-1 rounded-full bg-ink/[0.06] px-2 text-[12px] font-medium leading-4 text-ink-secondary";
+export const LINK = "rounded-sm text-small font-medium text-ink underline decoration-ink/30 underline-offset-[3px] hover:decoration-ink disabled:opacity-50";
+export const FIELD = "h-9 w-full rounded-[10px] border border-ink/15 bg-transparent px-3 text-body-sm text-ink outline-none transition-[border-color] duration-150 placeholder:text-ink-tertiary disabled:opacity-60 motion-reduce:transition-none";
+const TAG = "inline-flex min-h-5 items-center gap-1 rounded-full bg-ink/[0.06] px-2 text-caption font-medium leading-4 text-ink-secondary";
 
 export function Heading({ title, sub }: { title: string; sub?: ReactNode }) {
   return (
     <div className="flex flex-col gap-1 pe-10">
       <h2 id="cloud-add-title" tabIndex={-1} className="text-[17px] font-medium leading-6 tracking-[-0.008em] text-ink outline-none! [text-wrap:balance]">{title}</h2>
-      {sub && <p className="text-[14px] leading-5 text-ink-secondary [text-wrap:pretty]">{sub}</p>}
+      {sub && <p className="text-body-sm leading-5 text-ink-secondary [text-wrap:pretty]">{sub}</p>}
     </div>
   );
 }
@@ -28,7 +28,7 @@ export function BackLink({ label, onClick }: { label: string; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="-ms-1.5 inline-flex items-center gap-0.5 self-start rounded-full py-1 pe-2.5 ps-1 text-[13px] leading-[18px] text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink motion-reduce:transition-none"
+      className="-ms-1.5 inline-flex items-center gap-0.5 self-start rounded-full py-1 pe-2.5 ps-1 text-small leading-[18px] text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink motion-reduce:transition-none"
     >
       <ChevronLeft size={16} strokeWidth={1.5} aria-hidden="true" className="rtl:-scale-x-100" />{label}
     </button>
@@ -67,8 +67,8 @@ export function Checklist({ items, label }: { label?: string; items: Array<{ key
         >
           <StepMark state={item.state} />
           <span className="min-w-0">
-            <span className={cn("block text-[14px] leading-5", item.state === "next" ? "text-ink-secondary" : "text-ink")}>{item.title}</span>
-            {item.detail && <span className="block break-words text-[13px] leading-[18px] text-ink-secondary">{item.detail}</span>}
+            <span className={cn("block text-body-sm leading-5", item.state === "next" ? "text-ink-secondary" : "text-ink")}>{item.title}</span>
+            {item.detail && <span className="block break-words text-small leading-[18px] text-ink-secondary">{item.detail}</span>}
           </span>
         </li>
       ))}

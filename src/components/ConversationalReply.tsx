@@ -58,5 +58,5 @@ export function ConversationalReply({ segments, firstNew, citation, renderSegmen
 }
 
 export function QuickModelNote({ model }: { model: string }) {
-  return <div data-quick-model className="mt-1 text-[11px] text-ink-tertiary">{t("chat.quickModel", { model })}</div>;
+  return <div data-quick-model className="mt-1 text-micro text-ink-tertiary">{t("chat.quickModel", { model })}</div>;
 }

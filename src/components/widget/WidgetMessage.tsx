@@ -235,20 +235,20 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
             <div className={cn("flex items-start gap-3 px-4 pt-3.5", kids(root).length ? "pb-3" : "pb-3.5")}>
               <div className="min-w-0 flex-1">
                 {statusText && (
-                  <p className={cn("flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] text-accent-text", (title || caption) && "mb-1")}>
+                  <p className={cn("flex items-center gap-1.5 text-small font-semibold leading-[18px] text-accent-text", (title || caption) && "mb-1")}>
                     {typeof status.icon === "string" && <WidgetGlyph name={status.icon} size={14} />}
                     <bdi dir="auto" className="min-w-0 truncate">{statusText}</bdi>
                   </p>
                 )}
-                {title && <div title={title} className="truncate text-[15px] font-semibold leading-6 text-ink"><bdi dir="auto">{title}</bdi></div>}
-                {caption && <div dir="auto" className="mt-0.5 text-[13px] leading-snug text-ink-secondary">{caption}</div>}
+                {title && <div title={title} className="truncate text-body font-semibold leading-6 text-ink"><bdi dir="auto">{title}</bdi></div>}
+                {caption && <div dir="auto" className="mt-0.5 text-small leading-snug text-ink-secondary">{caption}</div>}
               </div>
-              {meta && <span dir="auto" className="mt-1 shrink-0 whitespace-nowrap text-[12px] leading-4 tabular-nums text-ink-tertiary">{meta}</span>}
+              {meta && <span dir="auto" className="mt-1 shrink-0 whitespace-nowrap text-caption leading-4 tabular-nums text-ink-tertiary">{meta}</span>}
             </div>
           )}
           <WidgetBody root={root} headed={headed} />
           {problem && (
-            <div id={errorId} role="alert" className="mx-4 flex items-start gap-2 border-t border-ink/[0.12] pb-3.5 pt-3 text-[13px] leading-[18px] text-danger">
+            <div id={errorId} role="alert" className="mx-4 flex items-start gap-2 border-t border-ink/[0.12] pb-3.5 pt-3 text-small leading-[18px] text-danger">
               <CircleAlert aria-hidden="true" size={14} className="mt-0.5 shrink-0" />
               <span dir="auto" className="min-w-0 break-words">{problem.text}</span>
             </div>

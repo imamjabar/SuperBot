@@ -28,7 +28,7 @@ export function withoutEntry(lists: SignInLists, entry: string): SignInLists {
   return { admins: lists.admins.filter((item) => item !== entry), members: lists.members.filter((item) => item !== entry) };
 }
 
-const input = "w-full rounded-md border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink outline-none focus:border-accent-border";
+const input = "w-full rounded-md border border-hairline/40 bg-inset px-3 py-2 text-body-sm text-ink outline-none focus:border-accent-border";
 const button = "ui-button ui-button-primary";
 const quiet = "ui-button ui-button-sm";
 
@@ -90,7 +90,7 @@ export function SignInAccessCard() {
   return (
     <Card title={t("remote.signInAccess.title")} subtitle={t("remote.signInAccess.subtitle")}>
       {publicUrl ? (
-        <p className="mt-2 text-[13px] text-ink-secondary">
+        <p className="mt-2 text-small text-ink-secondary">
           {t("remote.signInAccess.link")} <code className="select-all text-ink">{publicUrl}/pair</code>
         </p>
       ) : null}
@@ -110,11 +110,11 @@ export function SignInAccessCard() {
           className={`${input} max-w-[320px] flex-1`}
           aria-label={t("remote.signInAccess.placeholder")}
         />
-        <label className="flex items-center gap-1.5 text-[13px] text-ink">
+        <label className="flex items-center gap-1.5 text-small text-ink">
           <input type="radio" name="signin-role" checked={role === "admin"} onChange={() => setRole("admin")} />
           {t("remote.serverPairing.scope.admin")}
         </label>
-        <label className="flex items-center gap-1.5 text-[13px] text-ink">
+        <label className="flex items-center gap-1.5 text-small text-ink">
           <input type="radio" name="signin-role" checked={role === "member"} onChange={() => setRole("member")} />
           {t("remote.serverPairing.scope.client")}
         </label>
@@ -123,11 +123,11 @@ export function SignInAccessCard() {
         </button>
       </form>
       {rows.length === 0 ? (
-        <p className="mt-3 text-[13px] text-ink-secondary">{t("remote.signInAccess.empty")}</p>
+        <p className="mt-3 text-small text-ink-secondary">{t("remote.signInAccess.empty")}</p>
       ) : (
         <ul className="mt-3 divide-y divide-hairline/40">
           {rows.map(({ entry, role: entryRole }) => (
-            <li key={entry} className="flex flex-wrap items-center justify-between gap-2 py-2 text-[13px]">
+            <li key={entry} className="flex flex-wrap items-center justify-between gap-2 py-2 text-small">
               <span className="text-ink">
                 {entry}
                 <span className="text-ink-secondary"> · {entryRole === "admin" ? t("remote.serverPairing.scope.admin") : t("remote.serverPairing.scope.client")}</span>
@@ -139,8 +139,8 @@ export function SignInAccessCard() {
           ))}
         </ul>
       )}
-      <p className="mt-3 text-[12px] leading-relaxed text-ink-secondary">{t("remote.signInAccess.note")}</p>
-      {error ? <p className="mt-2 text-[13px] text-danger">{error}</p> : null}
+      <p className="mt-3 text-caption leading-relaxed text-ink-secondary">{t("remote.signInAccess.note")}</p>
+      {error ? <p className="mt-2 text-small text-danger">{error}</p> : null}
     </Card>
   );
 }

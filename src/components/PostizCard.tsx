@@ -12,9 +12,9 @@ import { isPostizStatus, POSTIZ_CLOUD, POSTIZ_KEY_PAGE, POSTIZ_SERVER, type Post
 import { cleanKey, looksLikeKey, saveCredential } from "./keys/key-save";
 import { SidebarPopoverMenu } from "./SidebarPopoverMenu";
 
-const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
-const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
-const link = "text-[12px] text-accent-text underline underline-offset-2";
+const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-small font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
+const field = "h-8 w-full min-w-0 rounded-lg bg-inset px-2.5 text-small text-ink placeholder:text-ink-secondary focus:outline-none focus:ring-1 focus:ring-accent/50";
+const link = "text-caption text-accent-text underline underline-offset-2";
 const SERVER = encodeURIComponent(POSTIZ_SERVER);
 const OWN_SIGN_IN_POLL_MS = 1_500;
 const OWN_SIGN_IN_WAIT_MS = 5 * 60_000;
@@ -272,10 +272,10 @@ export function PostizCard({ refreshKey = 0, onConnection }: {
         <PostizIcon />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[14px] font-semibold leading-5 text-ink">Postiz</span>
+            <span className="truncate text-body-sm font-semibold leading-5 text-ink">Postiz</span>
             {connected && <Check size={13} strokeWidth={2.5} className="shrink-0 text-success" aria-label={t("apps.connected")} />}
           </div>
-          <p className="truncate text-[13px] leading-[18px] text-ink-secondary" title={description}>{description}</p>
+          <p className="truncate text-small leading-[18px] text-ink-secondary" title={description}>{description}</p>
         </div>
         {waiting ? (
           <button type="button" onClick={cancel} className={pill}>{t("mcp.auth.cancel")}</button>
@@ -295,7 +295,7 @@ export function PostizCard({ refreshKey = 0, onConnection }: {
       </div>
       <div className="ps-[52px]">
         {waiting && (
-          <div role="status" className="mt-1.5 flex flex-col gap-1.5 text-[12px] text-ink-secondary">
+          <div role="status" className="mt-1.5 flex flex-col gap-1.5 text-caption text-ink-secondary">
             <p className="flex items-center gap-2">
               <Loader2 size={12} className="shrink-0 animate-spin" aria-hidden="true" />
               <span>{t(loadingTools ? "postiz.loadingTools" : "postiz.finishInBrowser")}</span>
@@ -315,13 +315,13 @@ export function PostizCard({ refreshKey = 0, onConnection }: {
             )}
           </div>
         )}
-        {error && <p role="alert" className="mt-1.5 text-[12px] text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-1.5 text-caption text-danger">{error}</p>}
         {offerConnect && !waiting && status.team && !person && (
-          <label data-postiz-only-me className="mt-1.5 flex items-center gap-2 text-[12px] text-ink-secondary">
+          <label data-postiz-only-me className="mt-1.5 flex items-center gap-2 text-caption text-ink-secondary">
             <input type="checkbox" checked={onlyMe} onChange={(event) => setOnlyMe(event.target.checked)} /> {t("mcp.team.onlyMe")}
           </label>
         )}
-        {person && !connected && !waiting && <p className="mt-1.5 text-[12px] leading-relaxed text-ink-secondary">{t("postiz.personScope")}</p>}
+        {person && !connected && !waiting && <p className="mt-1.5 text-caption leading-relaxed text-ink-secondary">{t("postiz.personScope")}</p>}
         {offerConnect && !waiting && (keyMode ? (
           <form data-postiz-key-form className="mt-2 flex flex-col gap-2" onSubmit={(event) => { event.preventDefault(); void connectWithKey(); }}>
             <input type="password" autoComplete="off" spellCheck={false} aria-label={t("postiz.keyField")} placeholder={t("keys.postiz.placeholder")}
@@ -330,16 +330,16 @@ export function PostizCard({ refreshKey = 0, onConnection }: {
               <input type="url" autoComplete="off" spellCheck={false} aria-label={t("postiz.addressField")} placeholder={POSTIZ_CLOUD}
                 value={address} disabled={busy === "key"} onChange={(event) => { setError(null); setAddress(event.target.value); }} className={field} />
             )}
-            <p className="text-[12px] leading-relaxed text-ink-secondary">{t(person || onlyMe ? "postiz.keyHelp" : "postiz.keyAndAddressHelp")}</p>
+            <p className="text-caption leading-relaxed text-ink-secondary">{t(person || onlyMe ? "postiz.keyHelp" : "postiz.keyAndAddressHelp")}</p>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <button type="submit" disabled={busy !== null || !key.trim()} className={pill}>
                 {busy === "key" ? <Loader2 size={14} className="animate-spin" /> : t("connectors.action.connect")}
               </button>
-              <a href={POSTIZ_KEY_PAGE} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-medium text-accent-text hover:underline">
+              <a href={POSTIZ_KEY_PAGE} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-caption font-medium text-accent-text hover:underline">
                 {t("postiz.keyLink")}
                 <ExternalLink size={11} aria-hidden="true" />
               </a>
-              <button type="button" onClick={() => { setKeyMode(false); setError(null); }} className="text-[12px] text-ink-secondary underline underline-offset-2 hover:text-ink">
+              <button type="button" onClick={() => { setKeyMode(false); setError(null); }} className="text-caption text-ink-secondary underline underline-offset-2 hover:text-ink">
                 {t("postiz.useSignIn")}
               </button>
             </div>

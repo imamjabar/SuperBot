@@ -694,7 +694,7 @@ export function StreamSurface(props: {
         ) : null}
         {fileChooser && you ? (
           <div className="absolute inset-x-3 top-3 z-20 mx-auto flex max-w-sm flex-col gap-2 rounded-xl border border-hairline/60 bg-card p-3 text-ink shadow-xl" role="dialog" aria-label="Choose files for the page">
-            <p className="flex items-center gap-2 text-[13px]"><FileUp size={14} aria-hidden="true" />The page asks for {fileChooser.multiple ? "files" : "a file"}.</p>
+            <p className="flex items-center gap-2 text-small"><FileUp size={14} aria-hidden="true" />The page asks for {fileChooser.multiple ? "files" : "a file"}.</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -708,23 +708,23 @@ export function StreamSurface(props: {
               }}
             />
             <div className="flex justify-end gap-2">
-              <button type="button" className="rounded-lg px-3 py-1.5 text-[12px] text-ink-secondary hover:bg-inset" onClick={() => answerFileChooser([])}>Cancel</button>
-              <button type="button" className="rounded-lg bg-accent px-3 py-1.5 text-[12px] text-accent-ink" onClick={() => fileInputRef.current?.click()}>Choose {fileChooser.multiple ? "files" : "file"}</button>
+              <button type="button" className="rounded-lg px-3 py-1.5 text-caption text-ink-secondary hover:bg-inset" onClick={() => answerFileChooser([])}>Cancel</button>
+              <button type="button" className="rounded-lg bg-accent px-3 py-1.5 text-caption text-accent-ink" onClick={() => fileInputRef.current?.click()}>Choose {fileChooser.multiple ? "files" : "file"}</button>
             </div>
           </div>
         ) : null}
         {control?.dialog && control.controller !== "another-viewer" ? (
           <div className="absolute inset-x-3 top-3 z-20 mx-auto flex max-w-sm flex-col gap-2 rounded-xl border border-hairline/60 bg-card p-3 text-ink shadow-xl" role="dialog" aria-label="Browser dialog">
-            <p className="break-words text-[13px]">{control.dialog.message}</p>
+            <p className="break-words text-small">{control.dialog.message}</p>
             {you ? (
               <>
-                {control.dialog.type === "prompt" ? <input aria-label="Dialog response" value={promptText} onChange={(event) => setPromptText(event.target.value)} className="rounded-lg bg-inset px-3 py-2 text-[13px] outline-none focus:ring-1 focus:ring-accent" /> : null}
+                {control.dialog.type === "prompt" ? <input aria-label="Dialog response" value={promptText} onChange={(event) => setPromptText(event.target.value)} className="rounded-lg bg-inset px-3 py-2 text-small outline-none focus:ring-1 focus:ring-accent" /> : null}
                 <div className="flex justify-end gap-2">
-                  <button type="button" className="rounded-lg px-3 py-1.5 text-[12px] text-ink-secondary hover:bg-inset" onClick={() => direct({ type: "dialog", accept: false })}>Dismiss</button>
-                  <button type="button" className="rounded-lg bg-accent px-3 py-1.5 text-[12px] text-accent-ink" onClick={() => direct({ type: "dialog", accept: true, ...(control.dialog?.type === "prompt" ? { promptText } : {}) })}>Accept</button>
+                  <button type="button" className="rounded-lg px-3 py-1.5 text-caption text-ink-secondary hover:bg-inset" onClick={() => direct({ type: "dialog", accept: false })}>Dismiss</button>
+                  <button type="button" className="rounded-lg bg-accent px-3 py-1.5 text-caption text-accent-ink" onClick={() => direct({ type: "dialog", accept: true, ...(control.dialog?.type === "prompt" ? { promptText } : {}) })}>Accept</button>
                 </div>
               </>
-            ) : <p className="text-[12px] text-ink-secondary">Take control to respond.</p>}
+            ) : <p className="text-caption text-ink-secondary">Take control to respond.</p>}
           </div>
         ) : null}
         {authPrompt && you ? (
@@ -741,7 +741,7 @@ export function StreamSurface(props: {
         {notices.length ? (
           <div className="absolute inset-x-3 bottom-3 z-20 flex flex-col items-center gap-2" role="status">
             {notices.map((notice) => (
-              <div key={notice.id} className="flex max-w-full items-center gap-2 rounded-xl border border-hairline/60 bg-card px-3 py-2 text-[12px] text-ink shadow-lg">
+              <div key={notice.id} className="flex max-w-full items-center gap-2 rounded-xl border border-hairline/60 bg-card px-3 py-2 text-caption text-ink shadow-lg">
                 {notice.kind === "download" ? (
                   <>
                     <Download size={13} aria-hidden="true" className="shrink-0" />
@@ -762,9 +762,9 @@ export function StreamSurface(props: {
       </div>
       {hostSetup ? (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-card p-4 text-center">
-          <p role="alert" className="max-w-sm text-[13px] text-ink-secondary">{previewStreamHostSetupMessage(hostSetup)}</p>
-          <code className="max-w-md select-all break-all rounded-lg bg-inset px-3 py-2 text-left text-[12px] text-ink">{hostSetup.command}</code>
-          <button type="button" className="rounded-lg border border-hairline px-3 py-1.5 text-[12px] text-ink hover:bg-inset" onClick={() => setHostSetup(null)}>Try again</button>
+          <p role="alert" className="max-w-sm text-small text-ink-secondary">{previewStreamHostSetupMessage(hostSetup)}</p>
+          <code className="max-w-md select-all break-all rounded-lg bg-inset px-3 py-2 text-left text-caption text-ink">{hostSetup.command}</code>
+          <button type="button" className="rounded-lg border border-hairline px-3 py-1.5 text-caption text-ink hover:bg-inset" onClick={() => setHostSetup(null)}>Try again</button>
         </div>
       ) : null}
     </div>

@@ -26,5 +26,5 @@ export function GroupUsageChip({ usage }: { usage?: GroupThreadUsage | null }) {
   const summary = groupUsageSummary(usage);
   if (!summary) return null;
   return <span tabIndex={0} title={summary.title} aria-label={summary.title} data-testid="group-usage-chip"
-    className="shrink-0 rounded-full bg-raised px-2.5 py-1 text-[12px] tabular-nums text-ink-secondary">{summary.short}</span>;
+    className="shrink-0 rounded-full bg-raised px-2.5 py-1 text-caption tabular-nums text-ink-secondary">{summary.short}</span>;
 }

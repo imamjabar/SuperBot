@@ -60,14 +60,14 @@ export function LinkPreviewCard({ href, github }: { href: string; github?: Githu
     <div className="w-[min(20rem,calc(100vw-1rem))] rounded-2xl bg-composer p-4 text-ink shadow-lg ring-1 ring-hairline/40">
       <div className="flex items-baseline gap-2">
         {Icon && <Icon size={15} aria-hidden="true" className="shrink-0 self-center text-ink-secondary" />}
-        <div dir="auto" className="min-w-0 line-clamp-2 break-words text-[15px] font-semibold leading-snug">{title}</div>
+        <div dir="auto" className="min-w-0 line-clamp-2 break-words text-body font-semibold leading-snug">{title}</div>
       </div>
       {description && (
-        <div dir="ltr" className="mt-1 line-clamp-3 break-all text-[13px] leading-5 text-ink-secondary [unicode-bidi:isolate]">
+        <div dir="ltr" className="mt-1 line-clamp-3 break-all text-small leading-5 text-ink-secondary [unicode-bidi:isolate]">
           {description}
         </div>
       )}
-      <div className="mt-3 flex items-center gap-2 text-[13px] leading-5 text-ink-tertiary">
+      <div className="mt-3 flex items-center gap-2 text-small leading-5 text-ink-tertiary">
         {github ? <Github size={14} aria-hidden="true" className="shrink-0" /> : <Globe size={14} aria-hidden="true" className="shrink-0" />}
         <span dir="ltr" className="min-w-0 flex-1 truncate [unicode-bidi:isolate]">{host}</span>
         <ArrowUpRight size={14} aria-hidden="true" className="shrink-0 rtl:-scale-x-100" />

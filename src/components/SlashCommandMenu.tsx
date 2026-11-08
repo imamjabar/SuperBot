@@ -51,9 +51,9 @@ export function SlashCommandMenu({ listRef, motion, commands, highlight, onPick,
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate text-[14px] font-medium text-accent">{command.label}</span>
+              <span className="truncate text-body-sm font-medium text-accent">{command.label}</span>
               {command.kind === "skill" && (
-                <span className="shrink-0 rounded-full bg-accent/10 px-1.5 text-[11px] font-medium leading-4 text-accent">{t("composer.command.skillTag")}</span>
+                <span className="shrink-0 rounded-full bg-accent/10 px-1.5 text-micro font-medium leading-4 text-accent">{t("composer.command.skillTag")}</span>
               )}
             </span>
             <span className="block truncate text-xs text-ink-secondary">

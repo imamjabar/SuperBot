@@ -156,7 +156,7 @@ function ReplayAppTourButton() {
       >
         {t("settings.welcome.appTour")}
       </button>
-      {failed && <p role="alert" className="mt-2 text-[13px] text-danger">{t("onboarding.tour.error")}</p>}
+      {failed && <p role="alert" className="mt-2 text-small text-danger">{t("onboarding.tour.error")}</p>}
     </div>
   );
 }
@@ -367,8 +367,8 @@ export function ExperimentalFeaturesRow() {
     <Card title={t("settings.experimental.title")} subtitle={t("settings.experimental.subtitle")}>
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[14px] font-medium text-ink">{t("settings.experimental.skillAuthoring")}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">
+          <div className="text-body-sm font-medium text-ink">{t("settings.experimental.skillAuthoring")}</div>
+          <div className="mt-0.5 text-caption leading-relaxed text-ink-secondary">
             {t("settings.experimental.skillAuthoringDetail")}
           </div>
         </div>
@@ -380,7 +380,7 @@ export function ExperimentalFeaturesRow() {
           className="disabled:cursor-wait disabled:opacity-50"
         />
       </div>
-      {error ? <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-caption text-danger">{error}</p> : null}
       <LearnedSkillsSettings />
       <NewBrowserSettings />
     </Card>

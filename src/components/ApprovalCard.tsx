@@ -258,7 +258,7 @@ function AppliedChangeLine({
       .finally(() => setUndoing(false));
   };
   return (
-    <div className="w-full max-w-[840px] text-[13px] text-ink-tertiary" data-applied-change={name}>
+    <div className="w-full max-w-[840px] text-small text-ink-tertiary" data-applied-change={name}>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-5">
         {undone ? <Undo2 size={13} className="shrink-0 self-center" /> : <Check size={13} className="shrink-0 self-center text-success/80" />}
         <span className="min-w-0 break-words">
@@ -298,17 +298,17 @@ function AppliedChangeLine({
         </button>
       </div>
       {shared && !undone && skippedNames.length > 0 && (
-        <div className="mt-1 text-[13px] text-ink-tertiary">{t("approval.applied.shareSkipped", { names: skippedNames.join(", ") })}</div>
+        <div className="mt-1 text-small text-ink-tertiary">{t("approval.applied.shareSkipped", { names: skippedNames.join(", ") })}</div>
       )}
       {!error && !shared && !undone && skill?.shareError && (
-        <div className="mt-1 text-[13px] text-warning">{t("approval.applied.shareFailed", { error: skill.shareError })}</div>
+        <div className="mt-1 text-small text-warning">{t("approval.applied.shareFailed", { error: skill.shareError })}</div>
       )}
-      {error && <div role="alert" className="mt-1 text-[13px] text-warning">{error}</div>}
+      {error && <div role="alert" className="mt-1 text-small text-warning">{error}</div>}
       {open && (
         <pre
           tabIndex={0}
           aria-label={t("approval.aria.appliedDetails")}
-          className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-inset px-4 py-3 font-mono text-[13px] leading-relaxed text-ink"
+          className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-inset px-4 py-3 font-mono text-small leading-relaxed text-ink"
         >
           {card.subtitle}
         </pre>
@@ -318,7 +318,7 @@ function AppliedChangeLine({
 }
 
 export const APPROVAL_CODE_CHIP =
-  "inline-flex min-w-0 max-w-full items-baseline rounded-full bg-inset px-2 pb-px pt-[3px] font-mono text-[13px] leading-5 text-ink";
+  "inline-flex min-w-0 max-w-full items-baseline rounded-full bg-inset px-2 pb-px pt-[3px] font-mono text-small leading-5 text-ink";
 
 const TEXT_ACTION =
   "inline-flex h-6 items-center rounded-full px-2 hover:bg-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
@@ -364,7 +364,7 @@ function CompactApprovalRow({
     <div
       data-tour={waiting ? "approval" : undefined}
       data-approval-row={waiting ? "pending" : "settled"}
-      className={cn("w-full max-w-[840px] text-[13px]", waiting ? "text-ink-secondary" : "text-ink-tertiary")}
+      className={cn("w-full max-w-[840px] text-small", waiting ? "text-ink-secondary" : "text-ink-tertiary")}
     >
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 leading-5">
         {waiting
@@ -406,7 +406,7 @@ function CompactApprovalRow({
         <pre
           tabIndex={0}
           aria-label={t("approval.aria.details")}
-          className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-inset px-4 py-3 font-mono text-[12px] leading-relaxed text-ink"
+          className="mt-1.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-inset px-4 py-3 font-mono text-caption leading-relaxed text-ink"
         >
           {detail}
         </pre>
@@ -505,7 +505,7 @@ export function ApprovalCard({
       )}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <div className="text-[15px] font-semibold text-ink">
+        <div className="text-body font-semibold text-ink">
           {titled ? card.title : outbound ? outbound.headline : profileHeader ?? (
             <>
               {bot
@@ -514,9 +514,9 @@ export function ApprovalCard({
             </>
           )}
         </div>
-        {displayTool && !titled && !outbound && <span className="shrink-0 font-mono text-[11px] text-ink-secondary">{displayTool}</span>}
+        {displayTool && !titled && !outbound && <span className="shrink-0 font-mono text-micro text-ink-secondary">{displayTool}</span>}
       </div>
-      {outbound?.summary && <div className="mt-0.5 text-[13px] text-ink-secondary">{outbound.summary}</div>}
+      {outbound?.summary && <div className="mt-0.5 text-small text-ink-secondary">{outbound.summary}</div>}
 
       <pre
         tabIndex={0}
@@ -529,7 +529,7 @@ export function ApprovalCard({
                 ? t("approval.aria.profileChange")
                 : t("approval.aria.details")
         }
-        className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-inset px-3 py-2 font-mono text-[13px] leading-relaxed text-ink"
+        className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-inset px-3 py-2 font-mono text-small leading-relaxed text-ink"
       >
         {card.subtitle}
       </pre>
@@ -537,12 +537,12 @@ export function ApprovalCard({
       {card.skillRequest && <SkillRequestPreview request={card.skillRequest} />}
 
       {heldNote && (
-        <div className="mt-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-[13px] text-warning">
+        <div className="mt-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-small text-warning">
           {heldNote}
         </div>
       )}
 
-      <div className="mt-3 flex items-center gap-1.5 text-[13px] text-ink-secondary">
+      <div className="mt-3 flex items-center gap-1.5 text-small text-ink-secondary">
         {outcome ? (
           <>
             {settled === "allow" && !expired ? <Check size={14} className="text-success" /> : <X size={14} />} {outcome}

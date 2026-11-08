@@ -60,7 +60,7 @@ export function InboxPanel() {
   const body = (
     <>
       <div className="flex items-center gap-1 px-2 pb-1 pt-2">
-        <div data-inbox-tab-chip className="flex h-8 min-w-0 max-w-[15rem] flex-1 items-center gap-2 rounded-lg bg-raised ps-2.5 pe-1 text-[13px]">
+        <div data-inbox-tab-chip className="flex h-8 min-w-0 max-w-[15rem] flex-1 items-center gap-2 rounded-lg bg-raised ps-2.5 pe-1 text-small">
           <Inbox size={15} aria-hidden="true" className="shrink-0 text-ink-secondary" />
           <span className="min-w-0 truncate font-medium text-ink">{t("inbox.panel.title")}</span>
           {count > 0 && <span data-inbox-tab-count className="shrink-0 tabular-nums text-ink-tertiary">{count}</span>}
@@ -82,16 +82,16 @@ export function InboxPanel() {
           <InboxReading view={view} row={reading} now={now} position={at >= 0 ? { index: at, count: rows.length } : null} onStep={step} />
         ) : (
           <>
-            <h2 className="border-b border-hairline/40 px-3.5 py-2.5 text-[13px] font-medium text-ink">{t("inbox.panel.title")}</h2>
+            <h2 className="border-b border-hairline/40 px-3.5 py-2.5 text-small font-medium text-ink">{t("inbox.panel.title")}</h2>
             <div className="min-h-0 flex-1 overflow-y-auto">
               <label className="m-2.5 flex h-8 items-center gap-2 rounded-lg bg-ink/[0.045] px-2.5 ring-[0.5px] ring-ink/[0.12] focus-within:ring-ink/30">
                 <Search size={14} aria-hidden="true" className="shrink-0 text-ink-tertiary" />
                 <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("inbox.search")} aria-label={t("inbox.search")}
-                  className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-tertiary [&::-webkit-search-cancel-button]:hidden" />
+                  className="min-w-0 flex-1 bg-transparent text-small text-ink outline-none placeholder:text-ink-tertiary [&::-webkit-search-cancel-button]:hidden" />
               </label>
               <div role="list" data-inbox-list aria-label={t("inbox.panel.title")} className="space-y-0.5 px-1.5 pb-1.5">
                 {rows.length === 0
-                  ? <p className="px-4 py-8 text-center text-[13px] text-ink-secondary">{t(query.trim() && listedRows(view).length ? "inbox.noMatch" : "inbox.empty")}</p>
+                  ? <p className="px-4 py-8 text-center text-small text-ink-secondary">{t(query.trim() && listedRows(view).length ? "inbox.noMatch" : "inbox.empty")}</p>
                   : rows.map((row) => <InboxRowItem key={row.id} row={row} now={now} onOpen={open} onAction={run} />)}
               </div>
               {!query.trim() && <InboxActive view={view} />}

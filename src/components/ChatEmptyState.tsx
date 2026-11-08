@@ -25,7 +25,7 @@ export function EmptyChat({ bot }: { bot: Bot }) {
         className="text-[17px] font-semibold text-ink"
         inputClassName="rounded bg-inset px-1.5 py-0.5 text-center text-[17px] font-semibold"
       />}
-      <div className="max-w-[360px] text-[14px] text-ink-secondary">
+      <div className="max-w-[360px] text-body-sm text-ink-secondary">
         {bot.description || t("chat.emptyPrompt")}
       </div>
     </div>

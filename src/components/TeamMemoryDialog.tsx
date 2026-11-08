@@ -155,7 +155,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                 {t("teamMemory.title", { name: label })}
               </h2>
             </div>
-            <p className="mt-1.5 max-w-[560px] text-[13px] leading-relaxed text-ink-secondary">
+            <p className="mt-1.5 max-w-[560px] text-small leading-relaxed text-ink-secondary">
               {t("teamMemory.description")}
             </p>
           </div>
@@ -174,34 +174,34 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
               <Loader2 size={20} className="animate-spin" aria-label={t("teamMemory.loading")} />
             </div>
           )}
-          {entries && <p className="mb-3 text-[12px] text-ink-secondary">{t("teamMemory.loadedSummary", { loaded: loadedIds.length, total: entries.filter(entry => entry.status === "accepted").length })}</p>}
-          {error && <div role="alert" className="mb-3 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">{error} <button onClick={() => void load()} className="underline">{t("teamMemory.reload")}</button></div>}
-          {Object.entries(unsaved).map(([id, draft]) => <p key={id} className="mb-3 text-[12px] text-ink-secondary"><strong>{draft.name}</strong> · {t("teamMemory.unsaved", { text: draft.text })}</p>)}
+          {entries && <p className="mb-3 text-caption text-ink-secondary">{t("teamMemory.loadedSummary", { loaded: loadedIds.length, total: entries.filter(entry => entry.status === "accepted").length })}</p>}
+          {error && <div role="alert" className="mb-3 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-caption text-danger">{error} <button onClick={() => void load()} className="underline">{t("teamMemory.reload")}</button></div>}
+          {Object.entries(unsaved).map(([id, draft]) => <p key={id} className="mb-3 text-caption text-ink-secondary"><strong>{draft.name}</strong> · {t("teamMemory.unsaved", { text: draft.text })}</p>)}
 
           {proposed.length > 0 && (
             <section className="mb-5 rounded-xl border border-accent/30 bg-accent/5 p-3">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-accent">{t("teamMemory.waiting")}</h3>
+              <h3 className="text-micro font-semibold uppercase tracking-[0.08em] text-accent">{t("teamMemory.waiting")}</h3>
               <ul className="mt-2 space-y-2">
                 {proposed.map((entry) => (
-                  <li key={entry.id} className="flex items-start gap-3 text-[13px]">
+                  <li key={entry.id} className="flex items-start gap-3 text-small">
                     <span className="min-w-0 flex-1">
                       <span className="text-ink-secondary">{t(`teamMemory.kind.${entry.kind}`)}: </span>
                       <span className="font-medium text-ink">{entry.name}</span>
                       {entry.aliases.length > 0 && <span className="text-ink-secondary"> ({t("teamMemory.also")} {entry.aliases.join(", ")})</span>}
                       <span className="text-ink"> — {entry.detail}</span>
-                      <span className="block text-[11px] text-ink-secondary">{t("teamMemory.source", { name: entry.source.botName })}{entry.source.quote && ` · ${t("teamMemory.sourceQuote", { quote: entry.source.quote })}`}</span>
+                      <span className="block text-micro text-ink-secondary">{t("teamMemory.source", { name: entry.source.botName })}{entry.source.quote && ` · ${t("teamMemory.sourceQuote", { quote: entry.source.quote })}`}</span>
                     </span>
                     <button
                       onClick={() => void accept(entry)}
                       disabled={busyId !== null}
-                      className="flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-[12px] font-medium text-white disabled:opacity-50"
+                      className="flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1 text-caption font-medium text-white disabled:opacity-50"
                     >
                       <Check size={12} /> {t("teamMemory.remember")}
                     </button>
                     <button
                       onClick={() => void remove(entry)}
                       disabled={busyId !== null}
-                      className="shrink-0 rounded-md px-2 py-1 text-[12px] text-ink-secondary hover:text-ink disabled:opacity-50"
+                      className="shrink-0 rounded-md px-2 py-1 text-caption text-ink-secondary hover:text-ink disabled:opacity-50"
                     >
                       {t("teamMemory.skip")}
                     </button>
@@ -212,7 +212,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
           )}
 
           {entries !== null && entries.filter((entry) => entry.status === "accepted").length === 0 && proposed.length === 0 && (
-            <div className="rounded-xl bg-inset px-4 py-6 text-center text-[13px] text-ink-secondary">
+            <div className="rounded-xl bg-inset px-4 py-6 text-center text-small text-ink-secondary">
               {t("teamMemory.empty")}
             </div>
           )}
@@ -222,12 +222,12 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
             if (rows.length === 0) return null;
             return (
               <section key={kind} className="mb-5">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-secondary" title={t(hintKey)}>
+                <h3 className="text-micro font-semibold uppercase tracking-[0.08em] text-ink-secondary" title={t(hintKey)}>
                   {t(titleKey)}
                 </h3>
                 <ul className="mt-2 divide-y divide-hairline/20 rounded-xl bg-inset">
                   {rows.map((entry) => (
-                    <li key={entry.id} className="flex items-start gap-3 px-3 py-2 text-[13px]">
+                    <li key={entry.id} className="flex items-start gap-3 px-3 py-2 text-small">
                       <span className="min-w-0 flex-1">
                         <span className="font-medium text-ink">{entry.name}</span>
                         {entry.aliases.length > 0 && <span className="text-ink-secondary"> ({t("teamMemory.also")} {entry.aliases.join(", ")})</span>}
@@ -240,12 +240,12 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                             if (event.key === "Enter") (event.target as HTMLInputElement).blur();
                           }}
                           aria-label={`${entry.name} detail`}
-                          className="mt-0.5 block w-full rounded bg-transparent px-1 py-0.5 text-[13px] text-ink outline-none hover:bg-card focus:bg-card"
+                          className="mt-0.5 block w-full rounded bg-transparent px-1 py-0.5 text-small text-ink outline-none hover:bg-card focus:bg-card"
                         />
-                        <span className="block px-1 text-[11px] text-ink-secondary">
+                        <span className="block px-1 text-micro text-ink-secondary">
                           {entry.source.botName || t("teamMemory.you")} · {new Date(entry.updatedAt).toLocaleDateString()} · {loadedIds.includes(entry.id) ? t("teamMemory.loaded") : t("teamMemory.searchable")}
                         </span>
-                        {!!entry.history?.length && <details className="mt-1 text-[11px] text-ink-secondary"><summary>{t("teamMemory.history")}</summary>{entry.history.map((version, index) => <div key={index} className="mt-1">{new Date(version.at).toLocaleDateString()}: {version.name} — {version.detail} <button disabled={busyId !== null} onClick={() => editDetail(entry, version.detail, version.name)} className="underline">{t("teamMemory.restore")}</button></div>)}</details>}
+                        {!!entry.history?.length && <details className="mt-1 text-micro text-ink-secondary"><summary>{t("teamMemory.history")}</summary>{entry.history.map((version, index) => <div key={index} className="mt-1">{new Date(version.at).toLocaleDateString()}: {version.name} — {version.detail} <button disabled={busyId !== null} onClick={() => editDetail(entry, version.detail, version.name)} className="underline">{t("teamMemory.restore")}</button></div>)}</details>}
                       </span>
                       <button aria-label={t(entry.pinned ? "teamMemory.unpin" : "teamMemory.pin", { name: entry.name })} aria-pressed={entry.pinned ?? false} disabled={busyId !== null} className="p-1 text-ink-secondary hover:text-accent" onClick={() => void run(entry.id, () => api(`/api/team-memory/${entry.id}?${query}`, { method: "PATCH", body: JSON.stringify({ pinned: !entry.pinned, expectedRevision: entry.revision }) }))}><Pin size={13} /></button>
                       <button
@@ -282,7 +282,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                   onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                   placeholder={t("teamMemory.namePlaceholder")}
                   aria-label={t("teamMemory.nameLabel")}
-                  className="min-w-[140px] flex-1 rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-[13px] text-ink outline-none focus:border-accent"
+                  className="min-w-[140px] flex-1 rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-small text-ink outline-none focus:border-accent"
                 />
               </div>
               <input
@@ -293,17 +293,17 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                 }}
                 placeholder={t("teamMemory.detailPlaceholder")}
                 aria-label={t("teamMemory.detailLabel")}
-                className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-[13px] text-ink outline-none focus:border-accent"
+                className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-2 py-1 text-small text-ink outline-none focus:border-accent"
               />
               <div className="mt-2 flex items-center gap-2">
                 <button
                   onClick={add}
                   disabled={busyId !== null || !draft.name.trim() || !draft.detail.trim()}
-                  className="rounded-lg bg-accent px-3 py-1 text-[13px] font-medium text-white disabled:opacity-50"
+                  className="rounded-lg bg-accent px-3 py-1 text-small font-medium text-white disabled:opacity-50"
                 >
                   {busyId === "new" ? t("teamMemory.adding") : t("teamMemory.add")}
                 </button>
-                <button onClick={() => setAdding(false)} className="text-[13px] text-ink-secondary hover:text-ink">
+                <button onClick={() => setAdding(false)} className="text-small text-ink-secondary hover:text-ink">
                   {t("common.cancel")}
                 </button>
               </div>
@@ -311,7 +311,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
           ) : (
             <button
               onClick={() => setAdding(true)}
-              className={cn("flex items-center gap-1.5 text-[13px] text-ink-secondary hover:text-ink", entries === null && "hidden")}
+              className={cn("flex items-center gap-1.5 text-small text-ink-secondary hover:text-ink", entries === null && "hidden")}
             >
               <Plus size={13} /> {t("teamMemory.addEntry")}
             </button>

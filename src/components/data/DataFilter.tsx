@@ -42,7 +42,7 @@ export function DataFilter({ columns, value, onChange }: { columns: DataColumn[]
       onClick={() => { setChoosing(!active); setSearch(""); setOpen(!open); }}
       className={`flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${active ? "border-accent/40 bg-accent/10 text-accent" : "border-hairline/50 text-ink-secondary hover:bg-inset hover:text-ink"}`}>
       <ListFilter size={14} aria-hidden="true" /><span>{t("data.filter.button")}</span>
-      {active && <span className="max-w-40 truncate text-[11px]">· {selected}</span>}
+      {active && <span className="max-w-40 truncate text-micro">· {selected}</span>}
     </button>
     {open && <div id={id} role="dialog" aria-label={t("data.grid.filter")} data-testid="data-filter-popover" onKeyDown={onKeyDown}
       className="absolute left-0 top-full z-40 mt-1 flex max-h-[min(20rem,calc(100cqh-5.5rem))] w-64 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-hairline/60 bg-menu text-ink shadow-xl">
@@ -71,7 +71,7 @@ export function DataFilter({ columns, value, onChange }: { columns: DataColumn[]
           <span className="truncate text-xs" title={selected}>{selected}</span>
         </div>
         <div className="min-h-0 overflow-y-auto p-3">
-          <label className="flex flex-col gap-1.5 text-[11px] text-ink-secondary">{t("data.filter.contains")}
+          <label className="flex flex-col gap-1.5 text-micro text-ink-secondary">{t("data.filter.contains")}
             <input ref={input} value={value.text} onChange={(event) => onChange({ ...value, text: event.target.value })} aria-label={t("data.filter.value")} placeholder={t("data.filter.value")}
               className="w-full rounded-md border border-hairline/50 bg-inset px-2 py-1.5 text-xs text-ink outline-none focus-visible:ring-1 focus-visible:ring-accent" />
           </label>

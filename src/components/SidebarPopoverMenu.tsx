@@ -123,7 +123,7 @@ function MenuRows({
             onPointerEnter={(event) => onRowEnter?.(item, event.currentTarget, { x: event.clientX, y: event.clientY })}
             onPointerLeave={() => onRowLeave?.(item)}
             className={cn(
-              "flex min-h-[30px] w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[14px] leading-[18px] disabled:opacity-60 focus-visible:bg-menu-hover focus-visible:outline-none",
+              "flex min-h-[30px] w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-body-sm leading-[18px] disabled:opacity-60 focus-visible:bg-menu-hover focus-visible:outline-none",
               item.active || (item.submenu && openSubmenu === item.key && engaged) ? "bg-menu-active text-ink" : "text-ink hover:bg-menu-hover",
             )}
           >
@@ -137,13 +137,13 @@ function MenuRows({
             {item.subtitle || item.note ? (
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className={item.wrap ? "break-words" : "truncate"}>{item.label}</span>
-                {item.subtitle && <span className="truncate text-[12px] font-normal leading-4 text-ink-secondary">{item.subtitle}</span>}
-                {item.note && <span className="text-[12px] font-normal leading-snug text-ink-tertiary">{item.note}</span>}
+                {item.subtitle && <span className="truncate text-caption font-normal leading-4 text-ink-secondary">{item.subtitle}</span>}
+                {item.note && <span className="text-caption font-normal leading-snug text-ink-tertiary">{item.note}</span>}
               </span>
             ) : (
               <span className={cn("flex-1", item.wrap ? "min-w-0 break-words" : "truncate")}>{item.label}</span>
             )}
-            {item.value && <span className="shrink-0 text-[13px] font-normal leading-[18px] tabular-nums text-ink-secondary">{item.value}</span>}
+            {item.value && <span className="shrink-0 text-small font-normal leading-[18px] tabular-nums text-ink-secondary">{item.value}</span>}
             {item.trailing}
             {item.attention && (
               <span

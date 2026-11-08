@@ -35,5 +35,5 @@ export function CardHint({ id }: { id: keyof typeof COPY }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
   if (!show) return null;
-  return <p data-card-hint={id} className="text-[12px] leading-4 text-ink-secondary">{t(COPY[id])}</p>;
+  return <p data-card-hint={id} className="text-caption leading-4 text-ink-secondary">{t(COPY[id])}</p>;
 }

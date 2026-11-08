@@ -63,9 +63,9 @@ export function WriteCommandCard({ bot, taken, onSaved }: { bot: Bot; taken: rea
     <div className="rounded-xl bg-card p-4">
       <div className="flex items-center gap-2">
         <SquareSlash size={16} className="text-ink-secondary" />
-        <div className="text-[15px] font-medium text-ink">{t("skills.write.title")}</div>
+        <div className="text-body font-medium text-ink">{t("skills.write.title")}</div>
       </div>
-      <div className="mt-1 text-[12px] leading-relaxed text-ink-secondary">{t("skills.write.hint")}</div>
+      <div className="mt-1 text-caption leading-relaxed text-ink-secondary">{t("skills.write.hint")}</div>
       <form
         className="mt-3 flex flex-col gap-2"
         onSubmit={(e) => {
@@ -75,7 +75,7 @@ export function WriteCommandCard({ bot, taken, onSaved }: { bot: Bot; taken: rea
       >
         <div className="flex items-center gap-2">
           <div className="relative w-44 shrink-0">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[15px] text-ink-secondary">/</span>
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-body text-ink-secondary">/</span>
             <input
               className={inputCls + " pl-6 font-mono"}
               placeholder={t("skills.write.namePlaceholder")}
@@ -102,18 +102,18 @@ export function WriteCommandCard({ bot, taken, onSaved }: { bot: Bot; taken: rea
           onChange={(e) => setInstructions(e.target.value)}
         />
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 text-[12px] text-ink-secondary">
+          <div className="min-w-0 text-caption text-ink-secondary">
             {touched && problem ? t(PROBLEM_KEY[problem]) : message}
           </div>
           <button
             type="submit"
             disabled={saving || Boolean(problem)}
-            className="shrink-0 rounded-lg bg-control px-3 py-2 text-[13px] text-ink hover:bg-raised-hover disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-control px-3 py-2 text-small text-ink hover:bg-raised-hover disabled:opacity-50"
           >
             {saving ? t("skills.write.saving") : t("skills.write.save")}
           </button>
         </div>
-        {error && <div role="alert" className="text-[12px] text-danger">{error}</div>}
+        {error && <div role="alert" className="text-caption text-danger">{error}</div>}
       </form>
     </div>
   );

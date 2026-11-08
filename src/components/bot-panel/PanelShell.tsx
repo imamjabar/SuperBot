@@ -146,7 +146,7 @@ export function BotPanel({ bot, derived, linkedSection, onClose }: {
                   data-panel-tab={id}
                   onClick={() => openTab(id)}
                   className={cn(
-                    "h-[26px] min-w-0 shrink truncate rounded-full px-2 text-[13px] leading-[18px] transition-colors",
+                    "h-[26px] min-w-0 shrink truncate rounded-full px-2 text-small leading-[18px] transition-colors",
                     tab === id ? "bg-ink/[0.07] text-ink" : "text-ink-secondary hover:text-ink",
                   )}
                 >

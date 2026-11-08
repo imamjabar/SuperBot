@@ -114,14 +114,14 @@ function RemoveRow({ place, onRemoved }: { place: RailPlace; onRemoved: () => vo
   return <div data-rail-remove className="flex flex-col gap-1.5 border-t border-hairline/50 px-0.5 pt-1.5">
     {asking
       ? <div role="alertdialog" aria-label={t("rail.remove")} className="flex flex-col gap-2 px-1.5 pb-1">
-        <p className="text-[12px] leading-snug text-ink">{t(place.forget ? "rail.removeServerAsk" : "rail.removeAsk", { name: place.name })}</p>
+        <p className="text-caption leading-snug text-ink">{t(place.forget ? "rail.removeServerAsk" : "rail.removeAsk", { name: place.name })}</p>
         <div className="flex gap-2">
           <button type="button" data-rail-remove-confirm className="ui-button ui-button-primary" disabled={busy} onClick={confirm}>{t("rail.removeYes")}</button>
           <button type="button" className="ui-button" disabled={busy} onClick={() => setAsking(false)}>{t("rail.removeNo")}</button>
         </div>
       </div>
       : <button type="button" data-rail-remove-ask className={MENU_ROW} onClick={() => { setSaid(null); setAsking(true); }}>{t("rail.remove")}</button>}
-    {said && <p role="alert" className="px-1.5 pb-1 text-[12px] text-danger">{t(said === "refused" ? "rail.removeRefused" : "rail.removeFailed")}</p>}
+    {said && <p role="alert" className="px-1.5 pb-1 text-caption text-danger">{t(said === "refused" ? "rail.removeRefused" : "rail.removeFailed")}</p>}
   </div>;
 }
 
@@ -147,15 +147,15 @@ function PlaceMenu({ place, top, onClose }: { place: RailPlace; top: number; onC
     onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }}>
     <div className="flex items-center gap-2 px-2 pt-1">
       <PlaceMark place={place} size={22} />
-      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{name}</span>
+      <span className="min-w-0 flex-1 truncate text-small font-semibold text-ink">{name}</span>
     </div>
     {paint && <>
-      <p className="px-2 pt-1 text-[12px] text-ink-secondary">{t("placeLook.title")}</p>
+      <p className="px-2 pt-1 text-caption text-ink-secondary">{t("placeLook.title")}</p>
       <div className="px-2 pb-1.5 pt-0.5">
         <SwatchRadios value={pending ?? paint.swatch} onChange={choose} label={t("placeLook.aria", { name })} disabled={Boolean(paint.locked)} offset="menu" none />
       </div>
-      {note && <p data-rail-menu-note className="px-2 pb-1 text-[12px] text-ink-secondary">{note}</p>}
-      {outcome === "failed" && <p role="alert" className="px-2 pb-1 text-[12px] text-danger">{t("placeLook.failed")}</p>}
+      {note && <p data-rail-menu-note className="px-2 pb-1 text-caption text-ink-secondary">{note}</p>}
+      {outcome === "failed" && <p role="alert" className="px-2 pb-1 text-caption text-danger">{t("placeLook.failed")}</p>}
     </>}
     {place.removable && <RemoveRow place={place} onRemoved={onClose} />}
   </div>;
@@ -171,7 +171,7 @@ function MorePlaces({ places, onOpen, onMenu, onClose }: { places: RailPlace[]; 
       <Search size={14} aria-hidden="true" className="shrink-0 text-ink-secondary" />
       <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("rail.search")} aria-label={t("rail.search")}
         onKeyDown={(event) => { if (event.key === "Enter" && found[0]?.opens) { onOpen(found[0]); onClose(); } }}
-        className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-tertiary" />
+        className="w-full bg-transparent text-small text-ink outline-none placeholder:text-ink-tertiary" />
     </label>
     <ul className="max-h-72 overflow-y-auto">
       {found.map((place) => <li key={place.id}>
@@ -182,7 +182,7 @@ function MorePlaces({ places, onOpen, onMenu, onClose }: { places: RailPlace[]; 
         </button>
       </li>)}
     </ul>
-    {found.length === 0 && <p className="px-2 py-1.5 text-[12px] text-ink-tertiary">{t("rail.noMatch")}</p>}
+    {found.length === 0 && <p className="px-2 py-1.5 text-caption text-ink-tertiary">{t("rail.noMatch")}</p>}
   </div>;
 }
 

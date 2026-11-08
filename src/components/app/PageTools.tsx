@@ -130,7 +130,7 @@ export function PageToolbar({ version, point, share, ready, fullScreen, classNam
   const busy = share.share.kind === "busy";
   return (
     <div data-page-tools className={cn("flex flex-wrap items-center gap-x-1.5 gap-y-2", className)}>
-      <div className="flex items-center gap-0.5 text-[13px] text-ink-secondary">
+      <div className="flex items-center gap-0.5 text-small text-ink-secondary">
         <button type="button" className={TOOL} aria-label={t("chat.preview.older")} title={t("chat.preview.older")} disabled={version.rev <= version.first}
           onClick={() => version.show(version.rev - 1)}><ChevronLeft size={15} /></button>
         <span data-page-version className="min-w-6 text-center tabular-nums">{label}</span>
@@ -169,7 +169,7 @@ export function PageNotes({ version, point, share, className }: Pick<PageToolsPr
   const rows: ReactNode[] = [];
   if (share.url) {
     rows.push(
-      <div key="link" data-page-link className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl bg-inset px-3 py-2 text-[13px]">
+      <div key="link" data-page-link className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl bg-inset px-3 py-2 text-small">
         <Globe size={14} className="shrink-0 text-ink-tertiary" aria-hidden="true" />
         <span className="shrink-0 font-medium text-ink">{share.again ? t("chat.preview.updatedLink") : t("chat.preview.published")}</span>
         <a href={share.url} dir="ltr" onClick={(event) => { event.preventDefault(); void openExternalLink(share.url!); }}
@@ -186,16 +186,16 @@ export function PageNotes({ version, point, share, className }: Pick<PageToolsPr
       </div>,
     );
   }
-  if (share.unpublished && !share.url) rows.push(<p key="gone" className="px-1 text-[13px] text-ink-secondary">{t("chat.page.unpublished")}</p>);
-  if (state.kind === "unpublish-failed") rows.push(<p key="stuck" role="alert" className="px-1 text-[13px] text-danger">{t("chat.page.unpublishFailed")}</p>);
+  if (share.unpublished && !share.url) rows.push(<p key="gone" className="px-1 text-small text-ink-secondary">{t("chat.page.unpublished")}</p>);
+  if (state.kind === "unpublish-failed") rows.push(<p key="stuck" role="alert" className="px-1 text-small text-danger">{t("chat.page.unpublishFailed")}</p>);
   if (state.kind === "refused") {
     rows.push(
-      <div key="refused" role="alert" className="flex items-center gap-2 rounded-2xl bg-inset px-3 py-2 text-[13px] text-ink-secondary">
+      <div key="refused" role="alert" className="flex items-center gap-2 rounded-2xl bg-inset px-3 py-2 text-small text-ink-secondary">
         <span dir="auto" className="min-w-0 flex-1">{state.text}</span>
       </div>,
     );
   }
-  if (point.pointing) rows.push(<div key="hint" role="status" className="rounded-2xl bg-accent/10 px-3 py-2 text-[13px] text-ink">{t("chat.preview.pointHint")}</div>);
+  if (point.pointing) rows.push(<div key="hint" role="status" className="rounded-2xl bg-accent/10 px-3 py-2 text-small text-ink">{t("chat.preview.pointHint")}</div>);
   return rows.length ? <div className={cn("flex flex-col gap-2", className)}>{rows}</div> : null;
 }
 
@@ -225,7 +225,7 @@ export function PageFullScreen(props: PageToolsProps & {
     <div role="dialog" aria-modal="true" aria-label={props.title} data-page-fullscreen={props.doc.messageId}
       className="fixed inset-0 z-50 flex flex-col bg-panel">
       <div ref={closer} className="flex flex-col gap-2 border-b border-hairline/40 px-4 pb-3 pt-3">
-        <div className="truncate text-[15px] font-semibold text-ink" title={props.title}><bdi dir="auto">{props.title}</bdi></div>
+        <div className="truncate text-body font-semibold text-ink" title={props.title}><bdi dir="auto">{props.title}</bdi></div>
         <PageToolbar {...props} />
         <PageNotes version={props.version} point={point} share={props.share} />
       </div>

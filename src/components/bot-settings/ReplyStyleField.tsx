@@ -13,12 +13,12 @@ export function ReplyStyleField({ bot, patch }: { bot: Bot; patch: (patch: BotPa
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-card p-4" data-reply-style>
       <div>
-        <div className="text-[15px] font-medium text-ink">{t("botSettings.replyStyle.title")}</div>
-        <div className="mt-0.5 text-[13px] text-ink-secondary">{t("botSettings.replyStyle.subtitle")}</div>
+        <div className="text-body font-medium text-ink">{t("botSettings.replyStyle.title")}</div>
+        <div className="mt-0.5 text-small text-ink-secondary">{t("botSettings.replyStyle.subtitle")}</div>
       </div>
       <div role="radiogroup" aria-label={t("botSettings.replyStyle.title")} className="flex flex-col gap-2">
         {REPLY_STYLES.map((style) => (
-          <label key={style} className="flex cursor-pointer items-start gap-2 text-[13px] text-ink">
+          <label key={style} className="flex cursor-pointer items-start gap-2 text-small text-ink">
             <input
               type="radio"
               className="mt-1"
@@ -29,7 +29,7 @@ export function ReplyStyleField({ bot, patch }: { bot: Bot; patch: (patch: BotPa
             />
             <span>
               {t(LABELS[style][0])}
-              <span className="block text-[12px] text-ink-secondary">{t(LABELS[style][1])}</span>
+              <span className="block text-caption text-ink-secondary">{t(LABELS[style][1])}</span>
             </span>
           </label>
         ))}

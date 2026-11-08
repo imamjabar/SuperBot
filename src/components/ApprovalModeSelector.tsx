@@ -91,7 +91,7 @@ export function ApprovalModeSelector({
         triggerRef.current?.focus();
         onManageCommandAllowlist();
       }}
-      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] text-ink hover:bg-menu-hover"
+      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-body-sm text-ink hover:bg-menu-hover"
     >
       <ListChecks size={16} className="shrink-0 text-ink-secondary" />
       {t("commandAllowlist.title")}
@@ -109,7 +109,7 @@ export function ApprovalModeSelector({
         onClick={() => setOpen((value) => !value)}
         className={cn(
           wide
-            ? "flex h-10 w-full items-center justify-between rounded-lg border border-hairline/40 bg-inset px-3.5 text-[13px] text-ink hover:bg-raised"
+            ? "flex h-10 w-full items-center justify-between rounded-lg border border-hairline/40 bg-inset px-3.5 text-small text-ink hover:bg-raised"
             : "flex size-8 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-control hover:text-ink",
         )}
       >
@@ -138,14 +138,14 @@ export function ApprovalModeSelector({
           )}
         >
           <div className="px-2 pb-1 pt-1.5">
-            <div className="text-[14px] font-medium text-ink">
+            <div className="text-body-sm font-medium text-ink">
               {t("approvalMode.question", { provider: providerName })}
             </div>
-            {busy && <p role="status" className="mt-1 text-[12px] leading-snug text-ink-secondary">{t("approvalMode.whileWorking")}</p>}
+            {busy && <p role="status" className="mt-1 text-caption leading-snug text-ink-secondary">{t("approvalMode.whileWorking")}</p>}
             <button
               type="button"
               onClick={() => void openExternalLink(APPROVAL_LEVELS_URL)}
-              className="mt-1 text-[12px] text-ink-secondary underline underline-offset-2 hover:text-ink"
+              className="mt-1 text-caption text-ink-secondary underline underline-offset-2 hover:text-ink"
             >
               {t("approvalMode.learnMore")}
             </button>
@@ -175,11 +175,11 @@ export function ApprovalModeSelector({
                   >
                     <Icon size={16} className="mt-px shrink-0 text-ink-secondary" />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="flex items-center justify-between gap-3 text-[14px] text-ink">
+                      <span className="flex items-center justify-between gap-3 text-body-sm text-ink">
                         {option.label}
                         {selected && <Check size={14} className="shrink-0" />}
                       </span>
-                      <span className="text-[13px] leading-snug text-ink-secondary">
+                      <span className="text-small leading-snug text-ink-secondary">
                         {option.description}
                       </span>
                     </span>
@@ -190,7 +190,7 @@ export function ApprovalModeSelector({
             })}
             {!visibleOptions.some((option) => option.mode === "full") && allowlistAction}
             {!trustedModesAvailable && (trustedModesNotice || driverKind === "codex" || requiresLocalDesktop) && (
-              <div className="px-2 py-1.5 text-[12px] leading-snug text-ink-tertiary">
+              <div className="px-2 py-1.5 text-caption leading-snug text-ink-tertiary">
                 {trustedModesNotice ?? t("approvalMode.customLocalOnlyDot")}
               </div>
             )}

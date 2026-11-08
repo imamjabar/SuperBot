@@ -43,8 +43,8 @@ export function SidebarInboxRow({ icons, large, running, onOpened }: {
           <Inbox size={large ? 18 : 16} strokeWidth={1.75} aria-hidden="true" />
           {dot}
         </span>
-        <span className={cn("min-w-0 flex-1 truncate text-ink", large ? "text-[14px] font-medium leading-5" : "text-[15px] font-semibold leading-5")}>{t("inbox.panel.title")}</span>
-        {count > 0 && <span aria-hidden="true" data-inbox-count className="shrink-0 rounded-full bg-warning px-1.5 text-[11px] font-semibold tabular-nums text-panel">{shown}</span>}
+        <span className={cn("min-w-0 flex-1 truncate text-ink", large ? "text-body-sm font-medium leading-5" : "text-body font-semibold leading-5")}>{t("inbox.panel.title")}</span>
+        {count > 0 && <span aria-hidden="true" data-inbox-count className="shrink-0 rounded-full bg-warning px-1.5 text-micro font-semibold tabular-nums text-panel">{shown}</span>}
       </button>
     </div>
   );

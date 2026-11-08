@@ -50,7 +50,7 @@ export function McpCallTimeoutSettings() {
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor="mcp-call-timeout" className="text-[13px] font-medium text-ink">
+      <label htmlFor="mcp-call-timeout" className="text-small font-medium text-ink">
         {t("settings.mcpCalls.label")}
       </label>
       <div
@@ -78,15 +78,15 @@ export function McpCallTimeoutSettings() {
           onKeyDown={(event) => {
             if (event.key === "Enter") event.currentTarget.blur();
           }}
-          className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[14px] tabular-nums text-ink focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent px-3 py-2 text-body-sm tabular-nums text-ink focus:outline-none"
         />
-        <span className="pr-3 text-[13px] text-ink-secondary">{t("settings.mcpCalls.minutes")}</span>
+        <span className="pr-3 text-small text-ink-secondary">{t("settings.mcpCalls.minutes")}</span>
       </div>
-      <p id="mcp-call-timeout-help" className="text-[12px] leading-relaxed text-ink-secondary">
+      <p id="mcp-call-timeout-help" className="text-caption leading-relaxed text-ink-secondary">
         {t("settings.mcpCalls.help")}
       </p>
       {error ? (
-        <p id="mcp-call-timeout-error" role="alert" className="text-[12px] text-danger">
+        <p id="mcp-call-timeout-error" role="alert" className="text-caption text-danger">
           {error}
         </p>
       ) : null}

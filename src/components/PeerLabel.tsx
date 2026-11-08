@@ -25,8 +25,8 @@ export function PeerLabel({ peer, bots = [] }: { peer: PeerLine; bots?: readonly
         motionKey={0}
         animated={false}
       />
-      <span className="text-[11px] font-medium text-ink-secondary">{peer.name}</span>
-      <span className="text-[11px] text-ink-tertiary">· {how}</span>
+      <span className="text-micro font-medium text-ink-secondary">{peer.name}</span>
+      <span className="text-micro text-ink-tertiary">· {how}</span>
     </div>
   );
 }

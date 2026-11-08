@@ -32,7 +32,7 @@ export function FixButton({ automation, status, actions, onEdit, className }: {
     else void actions.runNow(automation);
   };
   return (
-    <button type="button" onClick={onClick} disabled={Boolean(actions.busy)} className={cn("shrink-0 rounded-lg bg-warning/15 px-2.5 py-1 text-[12px] font-medium text-warning hover:bg-warning/25 disabled:opacity-50", className)}>
+    <button type="button" onClick={onClick} disabled={Boolean(actions.busy)} className={cn("shrink-0 rounded-lg bg-warning/15 px-2.5 py-1 text-caption font-medium text-warning hover:bg-warning/25 disabled:opacity-50", className)}>
       {t(AUTOMATION_FIX_LABEL[fix])}
     </button>
   );

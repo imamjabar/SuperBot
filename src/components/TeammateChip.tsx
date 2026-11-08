@@ -30,7 +30,7 @@ export function TeammateChip({ message }: { message: Message }) {
         <PersonFace person={{ email: relay.email, name: relay.name }} size={16} />
         <span className="max-w-[480px] truncate">{t("relay.told", { name: relay.name })}</span>
       </span>
-      {passed && <p className="max-w-[min(38rem,100%)] rounded-xl border border-hairline/40 bg-panel px-3 py-1.5 text-[13px] whitespace-pre-wrap break-words text-ink-secondary">{passed}</p>}
+      {passed && <p className="max-w-[min(38rem,100%)] rounded-xl border border-hairline/40 bg-panel px-3 py-1.5 text-small whitespace-pre-wrap break-words text-ink-secondary">{passed}</p>}
     </div>
   );
 }

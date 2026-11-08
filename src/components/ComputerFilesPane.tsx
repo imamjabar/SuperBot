@@ -88,10 +88,10 @@ export function ComputerFilesPane({ bot }: { bot: Bot }) {
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-5" data-testid="computer-files">
       <div className="mt-2 rounded-xl bg-card p-4">
-        <div className="text-[13px] font-medium text-ink">{t("computer.files.folder")}</div>
+        <div className="text-small font-medium text-ink">{t("computer.files.folder")}</div>
         <div className="mt-2 flex items-center gap-2">
           <FolderOpen size={15} className="shrink-0 text-ink-secondary" aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-ink" title={cwd ?? undefined}>
+          <span className="min-w-0 flex-1 truncate font-mono text-caption text-ink" title={cwd ?? undefined}>
             {cwd ? shortPath(cwd, home) : cwd === null ? t("computer.files.homeFolder") : t("computer.files.privateFolder", { name: bot.name })}
           </span>
           <button
@@ -100,17 +100,17 @@ export function ComputerFilesPane({ bot }: { bot: Bot }) {
               dispatch({ type: "toggleComputer", open: false });
               openBotSettings(dispatch, "access", { page: "folder" });
             }}
-            className="shrink-0 rounded-lg bg-control px-2.5 py-1 text-[12px] text-ink hover:bg-raised-hover"
+            className="shrink-0 rounded-lg bg-control px-2.5 py-1 text-caption text-ink hover:bg-raised-hover"
           >
             {t(pinned === undefined ? "computer.files.changeFolder" : "computer.files.changeDefaultFolder")}
           </button>
         </div>
-        {pinned !== undefined && <p className="mt-2 text-[12px] leading-5 text-ink-secondary">{t("computer.files.pinnedFolderHint")}</p>}
+        {pinned !== undefined && <p className="mt-2 text-caption leading-5 text-ink-secondary">{t("computer.files.pinnedFolderHint")}</p>}
       </div>
       <div className="mt-3 rounded-xl bg-card p-4">
-        <div className="text-[13px] font-medium text-ink">{t("computer.files.recent")}</div>
+        <div className="text-small font-medium text-ink">{t("computer.files.recent")}</div>
         {files.length === 0 ? (
-          <p className="mt-2 text-[12px] leading-5 text-ink-secondary">{t("computer.files.empty", { name: bot.name })}</p>
+          <p className="mt-2 text-caption leading-5 text-ink-secondary">{t("computer.files.empty", { name: bot.name })}</p>
         ) : (
           <ul className="mt-2 flex flex-col gap-1">
             {files.map((path) => {
@@ -129,11 +129,11 @@ export function ComputerFilesPane({ bot }: { bot: Bot }) {
                   ) : (
                     <div className="flex min-w-0 items-center gap-2 px-2.5 py-2" title={t("computer.files.notSharedHint")}>
                       <FileText size={14} className="shrink-0 text-ink-secondary" aria-hidden="true" />
-                      <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{name}</span>
-                      <span className="shrink-0 text-[11px] text-ink-tertiary">{t("computer.files.notShared")}</span>
+                      <span className="min-w-0 flex-1 truncate text-small text-ink">{name}</span>
+                      <span className="shrink-0 text-micro text-ink-tertiary">{t("computer.files.notShared")}</span>
                     </div>
                   )}
-                  {folder && <div className="mt-1 truncate px-2.5 text-[11px] text-ink-tertiary">{shortPath(folder, home)}</div>}
+                  {folder && <div className="mt-1 truncate px-2.5 text-micro text-ink-tertiary">{shortPath(folder, home)}</div>}
                 </li>
               );
             })}

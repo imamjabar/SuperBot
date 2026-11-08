@@ -34,7 +34,7 @@ function Reply() {
     );
   }
   return (
-    <div data-chat-bubble="" className={cn("w-fit min-w-0 max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-2xl text-[15px] leading-relaxed", formattedReplyWidth(text), "px-1 text-ink")}>
+    <div data-chat-bubble="" className={cn("w-fit min-w-0 max-w-[min(var(--chat-bubble-max),var(--chat-bubble-pct))] rounded-2xl text-body leading-relaxed", formattedReplyWidth(text), "px-1 text-ink")}>
       <div>{render(text)}</div>
     </div>
   );

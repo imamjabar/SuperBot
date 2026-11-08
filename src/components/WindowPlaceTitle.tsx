@@ -34,7 +34,7 @@ export function WindowPlaceTitle() {
   if (!place) return <span aria-hidden="true" />;
   const name = windowPlaceName(place);
   return (
-    <div data-window-place className="flex min-w-0 items-center justify-center gap-1.5 px-2 text-[12px] font-medium text-ink-secondary">
+    <div data-window-place className="flex min-w-0 items-center justify-center gap-1.5 px-2 text-caption font-medium text-ink-secondary">
       <PlaceMark place={{ kind: place.local ? "computer" : "server", name, color: look?.color ?? place.color ?? null }} size={16} />
       <span className="min-w-0 truncate">{name}</span>
     </div>

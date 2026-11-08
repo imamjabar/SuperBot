@@ -43,7 +43,7 @@ function ReviewAnswer({ view, row }: AnswerProps) {
   const { openInChat } = useInboxActions(view);
   return (
     <div className="space-y-2">
-      <p className="text-[13px] text-ink-secondary">{t("inbox.reviewInChat")}</p>
+      <p className="text-small text-ink-secondary">{t("inbox.reviewInChat")}</p>
       <button type="button" onClick={() => openInChat(row)} className={ASK_QUIET_ANSWER}><ExternalLink size={15} aria-hidden="true" />{t("inbox.action.openInChat")}</button>
     </div>
   );

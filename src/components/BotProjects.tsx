@@ -66,10 +66,10 @@ export function FolderActions({ project, canMoveUp, canMoveDown, canMarkRead, sa
       className={cn("fixed z-50 w-[220px]", MENU_SHEET, motion.className)} {...motion.exitProps}
       onMouseDown={(event) => event.stopPropagation()}
       onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); } else navigateThreadMenu(event); }}>
-      <button type="button" role="menuitem" onClick={() => { close(); onEdit(); }} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] leading-[18px] text-ink hover:bg-menu-hover"><Pencil size={16} />{t("folder.settings")}</button>
-      <button type="button" role="menuitem" disabled={!canMarkRead || saving} onClick={() => onMarkRead(close)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] leading-[18px] text-ink hover:bg-menu-hover disabled:opacity-40"><CheckCheck size={16} />{t("folder.markRead")}</button>
-      <button type="button" role="menuitem" disabled={!canMoveUp || saving} onClick={() => move(-1)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] leading-[18px] text-ink hover:bg-menu-hover disabled:opacity-40"><ArrowUp size={16} />{t("folder.moveUp")}</button>
-      <button type="button" role="menuitem" disabled={!canMoveDown || saving} onClick={() => move(1)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] leading-[18px] text-ink hover:bg-menu-hover disabled:opacity-40"><ArrowDown size={16} />{t("folder.moveDown")}</button>
+      <button type="button" role="menuitem" onClick={() => { close(); onEdit(); }} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body-sm leading-[18px] text-ink hover:bg-menu-hover"><Pencil size={16} />{t("folder.settings")}</button>
+      <button type="button" role="menuitem" disabled={!canMarkRead || saving} onClick={() => onMarkRead(close)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body-sm leading-[18px] text-ink hover:bg-menu-hover disabled:opacity-40"><CheckCheck size={16} />{t("folder.markRead")}</button>
+      <button type="button" role="menuitem" disabled={!canMoveUp || saving} onClick={() => move(-1)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body-sm leading-[18px] text-ink hover:bg-menu-hover disabled:opacity-40"><ArrowUp size={16} />{t("folder.moveUp")}</button>
+      <button type="button" role="menuitem" disabled={!canMoveDown || saving} onClick={() => move(1)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body-sm leading-[18px] text-ink hover:bg-menu-hover disabled:opacity-40"><ArrowDown size={16} />{t("folder.moveDown")}</button>
     </div>, document.body)}
   </>;
 }
@@ -120,7 +120,7 @@ export function BotProjectDialog({ bot, project, onClose, onCreated }: {
       <div ref={dialogRef} role="dialog" tabIndex={-1} aria-modal="true" aria-busy={saving || undefined} aria-label={t(project ? "folder.settings" : "folder.create")}
         className="max-h-[85dvh] w-full max-w-[420px] overflow-y-auto rounded-2xl border border-hairline/50 bg-panel p-5 shadow-2xl">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-[15px] font-semibold text-ink">{t(project ? "folder.settings" : "folder.create")}</h2>
+          <h2 className="text-body font-semibold text-ink">{t(project ? "folder.settings" : "folder.create")}</h2>
           <button type="button" onClick={onClose} aria-label={t("folder.close")} className="rounded p-1 text-ink-secondary hover:bg-raised"><X size={16} /></button>
         </div>
         <form onSubmit={(event) => {
@@ -136,41 +136,41 @@ export function BotProjectDialog({ bot, project, onClose, onCreated }: {
               onCreated: (created) => { onCreated?.(created); onClose(); } });
           }
         }}>
-          <label className="block text-[12px] text-ink-secondary">{t("folder.name")}
+          <label className="block text-caption text-ink-secondary">{t("folder.name")}
             <input ref={nameRef} value={name} maxLength={80} disabled={saving} onChange={(event) => setName(event.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-hairline/50 bg-inset px-3 py-2 text-[13px] text-ink focus:border-accent/60 focus:outline-none" />
+              className="mt-1.5 w-full rounded-lg border border-hairline/50 bg-inset px-3 py-2 text-small text-ink focus:border-accent/60 focus:outline-none" />
           </label>
           <button ref={iconRef} type="button" disabled={saving} aria-label={t("folder.icon")} aria-expanded={choosingIcon} onClick={() => setChoosingIcon((open) => !open)}
-            className="mt-3 flex items-center gap-2 rounded-lg border border-hairline/50 px-2.5 py-2 text-[12px] text-ink-secondary hover:bg-raised"><FolderIcon emoji={emoji} size={18} />{t("folder.icon")}</button>
+            className="mt-3 flex items-center gap-2 rounded-lg border border-hairline/50 px-2.5 py-2 text-caption text-ink-secondary hover:bg-raised"><FolderIcon emoji={emoji} size={18} />{t("folder.icon")}</button>
           {choosingIcon && <div className="mt-2 rounded-lg border border-hairline/40 bg-inset p-3"
             onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setChoosingIcon(false); iconRef.current?.focus(); } }}>
-            <p className="mb-2 text-[12px] text-ink-secondary">{t("folder.emojiHint")}</p>
+            <p className="mb-2 text-caption text-ink-secondary">{t("folder.emojiHint")}</p>
             <div className="flex flex-wrap gap-1">
               <button type="button" disabled={saving} aria-label={t("folder.defaultIcon")} aria-pressed={!emoji} onClick={() => setEmoji("")} className="flex size-8 items-center justify-center rounded hover:bg-raised aria-pressed:bg-raised"><FolderIcon size={18} /></button>
               {FOLDER_EMOJI.map((icon) => <button key={icon} type="button" disabled={saving} aria-label={icon} aria-pressed={emoji === icon} onClick={() => setEmoji(icon)} className="size-8 rounded text-lg hover:bg-raised aria-pressed:bg-raised">{icon}</button>)}
             </div>
-            <label className="mt-2 block text-[12px] text-ink-secondary">{t("folder.emoji")}
-              <input value={emoji} disabled={saving} maxLength={64} onChange={(event) => setEmoji(event.target.value)} className="mt-1 w-full rounded border border-hairline/50 bg-panel px-2 py-1.5 text-[14px] text-ink focus:outline-none" />
+            <label className="mt-2 block text-caption text-ink-secondary">{t("folder.emoji")}
+              <input value={emoji} disabled={saving} maxLength={64} onChange={(event) => setEmoji(event.target.value)} className="mt-1 w-full rounded border border-hairline/50 bg-panel px-2 py-1.5 text-body-sm text-ink focus:outline-none" />
             </label>
           </div>}
-          <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("folder.detail", { name: bot.name })}</p>
-          {error && <p role="alert" className="mt-3 text-[12px] text-danger">{error}</p>}
+          <p className="mt-2 text-caption leading-relaxed text-ink-secondary">{t("folder.detail", { name: bot.name })}</p>
+          {error && <p role="alert" className="mt-3 text-caption text-danger">{error}</p>}
           <div className="mt-5 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-[13px] text-ink-secondary hover:bg-raised">{t("common.cancel")}</button>
-            <button type="submit" disabled={!name.trim() || saving} className="rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-white disabled:opacity-40">{t(saving ? "folder.saving" : project ? "folder.save" : "folder.create")}</button>
+            <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-small text-ink-secondary hover:bg-raised">{t("common.cancel")}</button>
+            <button type="submit" disabled={!name.trim() || saving} className="rounded-lg bg-accent px-3 py-2 text-small font-medium text-white disabled:opacity-40">{t(saving ? "folder.saving" : project ? "folder.save" : "folder.create")}</button>
           </div>
         </form>
         {project && <div className="mt-4 border-t border-hairline/40 pt-3">
           {deleting ? <>
-            <p className="text-[12px] leading-relaxed text-ink-secondary">{t("folder.deleteBody")}</p>
+            <p className="text-caption leading-relaxed text-ink-secondary">{t("folder.deleteBody")}</p>
             <div className="mt-2 flex items-center gap-3">
               <button type="button" disabled={saving} onClick={() => {
                 setSaving(true); setError(null);
                 dispatch({ type: "deleteProject", botId: bot.id, projectId: project.id, onDeleted: onClose, onError: (message) => { setSaving(false); setError(message); } });
-              }} className="text-[12px] text-danger hover:underline disabled:opacity-40">{t("folder.deleteConfirm")}</button>
-              <button type="button" onClick={() => setDeleting(false)} className="text-[12px] text-ink-secondary hover:underline">{t("common.cancel")}</button>
+              }} className="text-caption text-danger hover:underline disabled:opacity-40">{t("folder.deleteConfirm")}</button>
+              <button type="button" onClick={() => setDeleting(false)} className="text-caption text-ink-secondary hover:underline">{t("common.cancel")}</button>
             </div>
-          </> : <button type="button" disabled={saving} onClick={() => setDeleting(true)} className="text-[12px] text-danger hover:underline disabled:opacity-40">{t("folder.delete")}</button>}
+          </> : <button type="button" disabled={saving} onClick={() => setDeleting(true)} className="text-caption text-danger hover:underline disabled:opacity-40">{t("folder.delete")}</button>}
         </div>}
       </div>
     </div>, document.body,
@@ -186,7 +186,7 @@ export function NewThreadButton({ bot, className, compact = false, onCreated }: 
       dispatch({ type: "newTask", botId: bot.id, ...(currentProject ? { projectId: currentProject.id } : {}) });
       onCreated?.();
     }}
-    className={cn("flex min-w-0 items-center gap-2 rounded-lg px-2.5 text-left text-[12px] text-ink-secondary hover:bg-raised/60 hover:text-ink", compact ? "py-1 @max-4xl/chathead:h-[30px] @max-4xl/chathead:px-2" : "py-2", className)}>
+    className={cn("flex min-w-0 items-center gap-2 rounded-lg px-2.5 text-left text-caption text-ink-secondary hover:bg-raised/60 hover:text-ink", compact ? "py-1 @max-4xl/chathead:h-[30px] @max-4xl/chathead:px-2" : "py-2", className)}>
     <Plus aria-hidden="true" size={12} /><span className={cn("truncate", compact && "@max-4xl/chathead:hidden")}>{t("task.newShort")}</span>
   </button>;
 }

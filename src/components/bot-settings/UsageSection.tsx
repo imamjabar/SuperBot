@@ -11,7 +11,7 @@ export function UsageSection({ bot, bare = false }: { bot: Bot; bare?: boolean }
 
   if (usage.turns === 0) {
     return (
-      <div className={cn(bare ? "" : "rounded-xl bg-card p-4", "text-[13px] text-ink-secondary")}>
+      <div className={cn(bare ? "" : "rounded-xl bg-card p-4", "text-small text-ink-secondary")}>
         {t("usage.bot.empty")}
       </div>
     );
@@ -20,21 +20,21 @@ export function UsageSection({ bot, bare = false }: { bot: Bot; bare?: boolean }
   return (
     <div className={bare ? undefined : "rounded-xl bg-card p-4"}>
       {!bare && <div className="flex items-baseline justify-between">
-        <div className="text-[15px] font-medium text-ink">{t("usage.title")}</div>
+        <div className="text-body font-medium text-ink">{t("usage.title")}</div>
         <button
           onClick={() => dispatch({ type: "toggleAppSettings", open: true, section: "usage" })}
-          className="text-[12px] text-ink-secondary hover:text-ink"
+          className="text-caption text-ink-secondary hover:text-ink"
         >
           {t("usage.allBots")} <ChevronRight size={14} aria-hidden="true" className="inline align-[-2px] rtl:-scale-x-100" />
         </button>
       </div>}
-      <div className={cn("grid grid-cols-3 gap-3 text-[13px]", !bare && "mt-3")}>
+      <div className={cn("grid grid-cols-3 gap-3 text-small", !bare && "mt-3")}>
         <div>
-          <div className="text-[12px] uppercase tracking-wide text-ink-secondary">{t("usage.colTurns")}</div>
+          <div className="text-caption uppercase tracking-wide text-ink-secondary">{t("usage.colTurns")}</div>
           <div className="mt-0.5 tabular-nums text-ink">{usage.turns}</div>
         </div>
         <div>
-          <div className="text-[12px] uppercase tracking-wide text-ink-secondary">{tokensColumnLabel(usage)}</div>
+          <div className="text-caption uppercase tracking-wide text-ink-secondary">{tokensColumnLabel(usage)}</div>
           <div
             className="mt-0.5 tabular-nums text-ink"
             title={usageDetail(usage)}
@@ -43,13 +43,13 @@ export function UsageSection({ bot, bare = false }: { bot: Bot; bare?: boolean }
           </div>
         </div>
         <div>
-          <div className="text-[12px] uppercase tracking-wide text-ink-secondary">{t("usage.colCost")}</div>
+          <div className="text-caption uppercase tracking-wide text-ink-secondary">{t("usage.colCost")}</div>
           <div className="mt-0.5 tabular-nums text-ink">
             {hasFiniteCost(usage.costUsd) ? formatUsd(usage.costUsd) : "—"}
           </div>
         </div>
       </div>
-      <div className="mt-2 text-[12px] text-ink-secondary">
+      <div className="mt-2 text-caption text-ink-secondary">
         {hasFiniteCost(usage.costUsd)
           ? t("usage.costLine", { caption: costCaption(instance?.snapshot.billing) })
           : t("usage.bot.unpriced")}

@@ -6,7 +6,7 @@ import { MAX_WEB_PANELS, MAX_WEB_PANEL_NAME, newWebPanelId, validateWebPanel } f
 
 import { Card } from "./SettingsPrimitives";
 
-const field = "min-w-0 rounded-lg border bg-inset px-3 py-2 text-[14px] text-ink focus:outline-none";
+const field = "min-w-0 rounded-lg border bg-inset px-3 py-2 text-body-sm text-ink focus:outline-none";
 
 /** Settings → General: pages pinned to the sidebar (Advanced mode). */
 export function PinnedPanelsSettings() {
@@ -36,8 +36,8 @@ export function PinnedPanelsSettings() {
             {panels.map((panel) => (
               <li key={panel.id} className="flex items-center gap-3 px-3 py-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-medium text-ink">{panel.name}</p>
-                  <p className="truncate text-[12px] text-ink-secondary" title={panel.url}>{panel.url}</p>
+                  <p className="truncate text-body-sm font-medium text-ink">{panel.name}</p>
+                  <p className="truncate text-caption text-ink-secondary" title={panel.url}>{panel.url}</p>
                 </div>
                 <button
                   type="button"
@@ -78,11 +78,11 @@ export function PinnedPanelsSettings() {
           </button>
         </div>
         {error && (
-          <p role="alert" className="text-[12px] text-danger">
+          <p role="alert" className="text-caption text-danger">
             {t(error === "name" ? "webPanels.settings.nameInvalid" : error === "self" ? "webPanels.settings.urlSelf" : "webPanels.settings.urlInvalid", { max: MAX_WEB_PANEL_NAME })}
           </p>
         )}
-        <p className="text-[12px] leading-relaxed text-ink-secondary">
+        <p className="text-caption leading-relaxed text-ink-secondary">
           {full ? t("webPanels.settings.full", { max: MAX_WEB_PANELS }) : t("webPanels.settings.help")}
         </p>
       </div>

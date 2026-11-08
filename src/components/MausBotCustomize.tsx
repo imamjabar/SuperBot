@@ -12,7 +12,7 @@ import { AvatarImageGenerator } from "./AvatarImageGenerator";
 import type { AvatarPatch, useAvatarImage } from "./avatar-editing";
 
 export const AVATAR_FILE_TYPES = "image/png,image/jpeg,image/gif,image/webp";
-const LABEL = "text-[12px] font-medium uppercase tracking-wide text-ink-secondary";
+const LABEL = "text-caption font-medium uppercase tracking-wide text-ink-secondary";
 
 /** The welcome's own profile edit: name, colour, look, then a picture of the person's own or one made with AI. */
 export function MausBotCustomize({ preview, name, nameRef, image, onName, onPatch }: {
@@ -37,7 +37,7 @@ export function MausBotCustomize({ preview, name, nameRef, image, onName, onPatc
           placeholder="MausBot"
           data-mausbot-welcome-name=""
           onChange={(event) => onName(event.target.value)}
-          className="mt-1 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink focus:outline-none"
+          className="mt-1 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-body-sm text-ink focus:outline-none"
         />
       </label>
       <div>
@@ -79,7 +79,7 @@ export function MausBotCustomize({ preview, name, nameRef, image, onName, onPatc
         </div>
       </div>
       <div>
-        <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
+        <div className="flex flex-wrap items-center gap-1.5 text-small">
           <input ref={image.fileRef} type="file" accept={AVATAR_FILE_TYPES} className="sr-only" tabIndex={-1} aria-hidden="true"
             onChange={(event) => void image.upload(event.target.files?.[0])} />
           <button type="button" data-mausbot-welcome-upload="" disabled={image.busy} onClick={() => image.fileRef.current?.click()}
@@ -94,12 +94,12 @@ export function MausBotCustomize({ preview, name, nameRef, image, onName, onPatc
           </button>
           {picture && (
             <div className="basis-full"><button type="button" data-mausbot-welcome-remove="" disabled={image.busy} onClick={image.removeImage}
-              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[13px] text-ink-secondary hover:bg-ink/[0.05] hover:text-ink disabled:opacity-50">
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-small text-ink-secondary hover:bg-ink/[0.05] hover:text-ink disabled:opacity-50">
               <Trash2 size={13} aria-hidden="true" />{t("mausbotWelcome.removePicture")}
             </button></div>
           )}
         </div>
-        {image.error && <p role="alert" data-mausbot-welcome-error="" className="mt-1 px-2 text-[13px] text-danger">{image.error}</p>}
+        {image.error && <p role="alert" data-mausbot-welcome-error="" className="mt-1 px-2 text-small text-danger">{image.error}</p>}
         {generating && (
           <div className="mt-2">
             <AvatarImageGenerator botLabel={name || "MausBot"} disabled={image.uploading} generating={image.generating} onGenerate={image.generate} onSavingChange={image.setSavingConnection} />

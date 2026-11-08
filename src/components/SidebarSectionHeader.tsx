@@ -77,7 +77,7 @@ export function SidebarSectionHeader({
   if (line) {
     const tail = (
       <span aria-hidden="true" className="relative flex size-4 shrink-0 items-center justify-center">
-        {count !== undefined && <span className={cn("text-[12px] tabular-nums leading-4 text-ink-secondary transition-opacity", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
+        {count !== undefined && <span className={cn("text-caption tabular-nums leading-4 text-ink-secondary transition-opacity", onToggle && "group-hover/section:opacity-0 group-focus-within/section:opacity-0 touch:opacity-0")}>{count}</span>}
         {onToggle && <Chevron size={14} className="absolute text-ink-secondary opacity-0 transition-opacity group-hover/section:opacity-100 group-focus-within/section:opacity-100 touch:opacity-100" />}
       </span>
     );
@@ -103,13 +103,13 @@ export function SidebarSectionHeader({
             title={toggleTitle}
             className="flex min-w-0 flex-1 items-center gap-1.5 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
           >
-            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-caption leading-4 text-ink-secondary">{name}</span>
             {collapsed && <SectionAttention attention={attention} label={attentionLabel} alert={alert} />}
             {tail}
           </button>
         ) : (
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="min-w-0 flex-1 truncate text-[12px] leading-4 text-ink-secondary">{name}</span>
+            <span className="min-w-0 flex-1 truncate text-caption leading-4 text-ink-secondary">{name}</span>
             {attentionLabel && <span className="sr-only">{attentionLabel}</span>}
             {tail}
           </div>
@@ -143,7 +143,7 @@ export function SidebarSectionHeader({
           title={toggleTitle}
           className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 py-0.5 text-left hover:bg-raised/50"
         >
-          <span className="truncate text-[12px] font-semibold text-ink-secondary">
+          <span className="truncate text-caption font-semibold text-ink-secondary">
             {name}
           </span>
           <Chevron size={13} className="shrink-0 text-ink-secondary" aria-hidden="true" />
@@ -151,7 +151,7 @@ export function SidebarSectionHeader({
         </button>
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1 py-0.5">
-          <span className="truncate text-[12px] font-semibold text-ink-secondary">
+          <span className="truncate text-caption font-semibold text-ink-secondary">
             {name}
           </span>
           {attentionLabel && <span className="sr-only">{attentionLabel}</span>}
@@ -221,7 +221,7 @@ function SectionNameField({ value, label, onCommit, onCancel }: SectionNaming) {
           settle(false);
         }
       }}
-      className="h-6 min-w-0 flex-1 rounded-md bg-ink/[0.05] px-1.5 text-[13px] leading-[18px] text-ink outline-none ring-1 ring-accent/60"
+      className="h-6 min-w-0 flex-1 rounded-md bg-ink/[0.05] px-1.5 text-small leading-[18px] text-ink outline-none ring-1 ring-accent/60"
     />
   );
 }

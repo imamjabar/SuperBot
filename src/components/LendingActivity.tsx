@@ -20,8 +20,8 @@ const ACTIONS: Record<string, LocaleKey> = {
 export function LendingActivityList({ entries }: { entries: DesktopLendingActivity[] | null }) {
   return <div className="flex flex-col gap-2">
     <p className="font-medium text-ink">{t("lending.activity.title")}</p>
-    {entries && entries.length === 0 && <p className="text-[12px] text-ink-secondary">{t("lending.activity.empty")}</p>}
-    {entries && entries.length > 0 && <ul aria-label={t("lending.activity.title")} className="flex max-h-56 flex-col gap-1 overflow-y-auto text-[12px]">
+    {entries && entries.length === 0 && <p className="text-caption text-ink-secondary">{t("lending.activity.empty")}</p>}
+    {entries && entries.length > 0 && <ul aria-label={t("lending.activity.title")} className="flex max-h-56 flex-col gap-1 overflow-y-auto text-caption">
       {entries.map((entry, index) => <li key={`${entry.at}-${index}`} className="flex flex-wrap gap-x-2 text-ink-secondary">
         <time dateTime={new Date(entry.at).toISOString()} className="shrink-0 tabular-nums">{new Date(entry.at).toLocaleString()}</time>
         <span className={entry.ok ? "text-ink" : "text-danger"}>{t(ACTIONS[entry.action] ?? "lending.action.other")}{entry.ok ? "" : ` · ${t("lending.activity.refused")}`}</span>

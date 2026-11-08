@@ -41,8 +41,8 @@ export function ShareLearnedSkillsSettings() {
     <div className="mt-4 border-t border-hairline/30 pt-4" data-testid="share-learned-skills-settings">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-medium text-ink">{t("settings.experimental.shareSkills")}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">
+          <div className="text-body-sm font-medium text-ink">{t("settings.experimental.shareSkills")}</div>
+          <div className="mt-0.5 text-caption leading-relaxed text-ink-secondary">
             {t(authoring ? "settings.experimental.shareSkillsDetail" : "settings.experimental.shareSkillsNeedsAuthoring")}
           </div>
         </div>
@@ -56,7 +56,7 @@ export function ShareLearnedSkillsSettings() {
               disabled={saving || !authoring}
               onClick={() => void choose(option.value)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                "rounded-lg px-3 py-1.5 text-small transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                 mode === option.value ? "bg-raised text-ink shadow" : "text-ink-secondary hover:text-ink",
               )}
             >
@@ -65,7 +65,7 @@ export function ShareLearnedSkillsSettings() {
           ))}
         </div>
       </div>
-      {error ? <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-caption text-danger">{error}</p> : null}
     </div>
   );
 }

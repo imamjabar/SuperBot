@@ -109,7 +109,7 @@ const defaultColDef: ColDef<DataGridRow> = { sortable: true, resizable: true, ce
 const rowsFromNodes = (nodes: IRowNode<DataGridRow>[]) => nodes.filter((node) => node.data).sort((left, right) => (left.rowIndex ?? 0) - (right.rowIndex ?? 0)).map((node) => node.data!.cells);
 
 export function DataResultFooter({ children, controls }: { children?: ReactNode; controls?: ReactNode }) {
-  return <footer className="relative flex h-11 shrink-0 items-center gap-2 border-t border-hairline/40 px-3 text-[11px] text-ink-secondary" data-testid="data-result-footer">
+  return <footer className="relative flex h-11 shrink-0 items-center gap-2 border-t border-hairline/40 px-3 text-micro text-ink-secondary" data-testid="data-result-footer">
     <div className="min-w-0 flex-1 truncate">{children}</div>
     <div className="flex shrink-0 items-center gap-1">{controls}</div>
   </footer>;

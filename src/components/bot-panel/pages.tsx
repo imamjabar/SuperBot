@@ -67,7 +67,7 @@ export function AppsPage({ bot, derived }: PageContext) {
         {canUseConnectedApps && apps.apps.map((app) => (
           <div key={app.slug} data-simple-app={app.slug} className={rowCls}>
             <ServiceIcon key={`${app.card.logo}:${app.card.domain}`} card={app.card} className="size-7 shrink-0" />
-            <div className="min-w-0 flex-1 truncate text-[14px] font-medium text-ink">{app.label}</div>
+            <div className="min-w-0 flex-1 truncate text-body-sm font-medium text-ink">{app.label}</div>
             <BotSwitch
               color={bot.color}
               checked={app.scope !== null}
@@ -112,7 +112,7 @@ export function RoutinesPage({ bot, derived }: PageContext) {
       <Card>
         <LinkRow data-panel-action="new-routine" icon={Plus} onClick={() => setEditing("new")}>{t("botPanel.routines.add")}</LinkRow>
       </Card>
-      <p className="mx-1 text-[13px] leading-normal text-ink-secondary">{t("botPanel.routines.ask", { name: bot.name })}</p>
+      <p className="mx-1 text-small leading-normal text-ink-secondary">{t("botPanel.routines.ask", { name: bot.name })}</p>
       {editing && (
         <RoutineEditor
           key={bot.id}
@@ -188,7 +188,7 @@ export function MemoryPage({ bot }: PageContext) {
           <NoteRow>{t("botPanel.memory.empty")}</NoteRow>
         ) : notes.map((note) => (
           <div key={`${note.path}:${note.line}:${note.text}`} data-memory-note={note.line ?? note.path} className={rowCls}>
-            <div className="min-w-0 flex-1 text-[13px] leading-[1.45] text-ink">{note.text}</div>
+            <div className="min-w-0 flex-1 text-small leading-[1.45] text-ink">{note.text}</div>
             <TrashButton label={t("botPanel.memory.forget")} disabled={saving} onClick={() => forget(note)} />
           </div>
         ))}
@@ -353,7 +353,7 @@ export function FolderPage({ bot }: PageContext) {
         <Card>
           {canPick ? (
             <div className={rowCls}>
-              <div className="min-w-0 flex-1 truncate rounded-lg border border-hairline/40 bg-inset px-3 py-2 font-mono text-[13px] text-ink" title={bot.cwd}>
+              <div className="min-w-0 flex-1 truncate rounded-lg border border-hairline/40 bg-inset px-3 py-2 font-mono text-small text-ink" title={bot.cwd}>
                 {bot.cwd ? shortPath(bot.cwd, home) : <span className="text-ink-secondary">{t("botAccess.folder.private")}</span>}
               </div>
               <button type="button" data-panel-action="pick-folder" disabled={saving} onClick={() => void pick()} className={buttonCls}>
@@ -376,7 +376,7 @@ export function FolderPage({ bot }: PageContext) {
                 placeholder={t("botAccess.folder.placeholder")}
                 aria-label={t("botAccess.folder.title")}
                 onChange={(event) => setDraft(event.target.value)}
-                className="h-8 min-w-0 flex-1 rounded-lg border border-hairline bg-inset px-2.5 font-mono text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border"
+                className="h-8 min-w-0 flex-1 rounded-lg border border-hairline bg-inset px-2.5 font-mono text-small text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border"
               />
               <button type="submit" disabled={saving || draft === null} className={buttonCls}>{t("botAccess.folder.save")}</button>
             </form>

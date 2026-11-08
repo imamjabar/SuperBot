@@ -10,7 +10,7 @@ export function gapHint(gap: PastedGap): string {
   return t(gap.kind === "variable" ? "mcp.paste.variable" : "mcp.paste.placeholder", { name: gap.names.join(", ") });
 }
 
-const INPUT = "w-full min-w-0 rounded-lg border border-hairline/60 bg-raised px-3 py-2.5 font-mono text-[12px] text-ink outline-none focus:border-accent";
+const INPUT = "w-full min-w-0 rounded-lg border border-hairline/60 bg-raised px-3 py-2.5 font-mono text-caption text-ink outline-none focus:border-accent";
 
 /** Name and value rows. Values are typed like passwords and never shown back. `valuesOf` shows only values, under their
  * names: the ones a paste couldn't give, or every named one. */
@@ -41,7 +41,7 @@ export function McpSecretRows({ kind, rows, onChange, valuesOf, placeholder }: {
         <div key={row.id}>
           {valuesOf ? (
             <label className="block">
-              <span className="mb-1.5 block font-mono text-[12px] font-medium text-ink-secondary">{row.name}</span>
+              <span className="mb-1.5 block font-mono text-caption font-medium text-ink-secondary">{row.name}</span>
               {valueInput(row)}
             </label>
           ) : (
@@ -58,11 +58,11 @@ export function McpSecretRows({ kind, rows, onChange, valuesOf, placeholder }: {
               </button>
             </div>
           )}
-          {row.gap && !row.value.trim() && <p className="mt-1 text-[11px] leading-relaxed text-warning">{gapHint(row.gap)}</p>}
+          {row.gap && !row.value.trim() && <p className="mt-1 text-micro leading-relaxed text-warning">{gapHint(row.gap)}</p>}
         </div>
       ))}
       {!valuesOf && (
-        <button type="button" onClick={() => onChange([...rows, secretRow()])} className="inline-flex items-center gap-1 rounded-lg px-1 py-1 text-[12px] font-medium text-accent hover:underline">
+        <button type="button" onClick={() => onChange([...rows, secretRow()])} className="inline-flex items-center gap-1 rounded-lg px-1 py-1 text-caption font-medium text-accent hover:underline">
           <Plus size={13} /> {t("mcp.row.add")}
         </button>
       )}

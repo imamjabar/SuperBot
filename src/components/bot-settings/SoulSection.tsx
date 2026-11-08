@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
 export function SoulSection({ bot, patch }: { bot: Bot; patch: (patch: BotPatch) => void }) {
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] leading-relaxed text-ink-secondary">
+      <p className="text-small leading-relaxed text-ink-secondary">
         {t("botSettings.soul.description")}
       </p>
       <ProposalStatus bot={bot} kind="chief" />

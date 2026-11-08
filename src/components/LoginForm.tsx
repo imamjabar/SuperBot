@@ -9,8 +9,8 @@ import type { LoginFieldsInput } from "@/lib/logins";
 // Security: the browser is asked not to fill or remember these fields, what was typed is dropped once saved, and a
 // saved password is never shown.
 
-const FIELD = "w-full min-w-0 rounded-lg border border-hairline/60 bg-inset px-3 py-1.5 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60";
-const LABEL = "flex flex-col gap-1 text-[12px] font-medium text-ink-secondary";
+const FIELD = "w-full min-w-0 rounded-lg border border-hairline/60 bg-inset px-3 py-1.5 text-small text-ink outline-none placeholder:text-ink-tertiary focus:border-accent disabled:opacity-60";
+const LABEL = "flex flex-col gap-1 text-caption font-medium text-ink-secondary";
 
 export function LoginForm({
   site,
@@ -63,7 +63,7 @@ export function LoginForm({
           <input name="site" type="text" inputMode="url" autoComplete="off" spellCheck={false} required maxLength={2048}
             placeholder={t("logins.sitePlaceholder")} value={site.value} onChange={(event) => site.onChange(event.target.value)}
             disabled={pending} className={FIELD} autoFocus={autoFocus} aria-describedby={`${id}-site`} />
-          <span id={`${id}-site`} className="text-[12px] font-normal leading-snug text-ink-tertiary">{t("logins.siteHint")}</span>
+          <span id={`${id}-site`} className="text-caption font-normal leading-snug text-ink-tertiary">{t("logins.siteHint")}</span>
         </label>
       )}
       {username && (
@@ -83,13 +83,13 @@ export function LoginForm({
         {t(replacing ? "logins.totpKeep" : "logins.totp")}
         <input name="totp" type="password" autoComplete="off" spellCheck={false} maxLength={2048} value={totp}
           onChange={(event) => setTotp(event.target.value)} disabled={pending} className={FIELD} aria-describedby={`${id}-totp`} />
-        <span id={`${id}-totp`} className="text-[12px] font-normal leading-snug text-ink-tertiary">{t("logins.totpHint")}</span>
+        <span id={`${id}-totp`} className="text-caption font-normal leading-snug text-ink-tertiary">{t("logins.totpHint")}</span>
       </label>
       {children}
-      <p className="flex items-start gap-1 text-[12px] leading-snug text-ink-tertiary">
+      <p className="flex items-start gap-1 text-caption leading-snug text-ink-tertiary">
         <LockKeyhole size={11} aria-hidden="true" className="mt-[3px] shrink-0" /> {t("logins.private")}
       </p>
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" className="text-caption text-danger">{error}</p>}
       <div className="flex flex-wrap justify-end gap-2">
         {onCancel && (
           <button type="button" onClick={onCancel} disabled={pending} className="ui-button ui-button-md">{t("logins.cancel")}</button>
@@ -112,19 +112,19 @@ export function LoginBotPicker({ value, onChange, bots, disabled = false }: {
   const chosen = value === "all" ? [] : value;
   return (
     <fieldset className="flex flex-col gap-1.5" disabled={disabled}>
-      <legend className="mb-1 text-[12px] font-medium text-ink-secondary">{t("settings.logins.whoCanUse")}</legend>
-      <label className="flex items-center gap-2 text-[13px] text-ink">
+      <legend className="mb-1 text-caption font-medium text-ink-secondary">{t("settings.logins.whoCanUse")}</legend>
+      <label className="flex items-center gap-2 text-small text-ink">
         <input type="radio" name={name} checked={value === "all"} onChange={() => onChange("all")} />
         {t("settings.logins.allBots")}
       </label>
-      <label className="flex items-center gap-2 text-[13px] text-ink">
+      <label className="flex items-center gap-2 text-small text-ink">
         <input type="radio" name={name} checked={value !== "all"} onChange={() => onChange(chosen)} />
         {t("settings.logins.onlyThese")}
       </label>
       {value !== "all" && (
         <div className={cn("ms-6 flex flex-col gap-1", bots.length > 6 && "max-h-40 overflow-y-auto")}>
           {bots.map((bot) => (
-            <label key={bot.id} className="flex items-center gap-2 text-[13px] text-ink">
+            <label key={bot.id} className="flex items-center gap-2 text-small text-ink">
               <input type="checkbox" checked={chosen.includes(bot.id)}
                 onChange={(event) => onChange(event.target.checked ? [...chosen, bot.id] : chosen.filter((id) => id !== bot.id))} />
               <span className="truncate">{bot.name}</span>

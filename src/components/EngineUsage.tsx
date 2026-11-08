@@ -72,10 +72,10 @@ export function UsageRows({ limit }: { limit: EngineLimit }) {
   const now = Date.now();
   return (
     <div data-usage-rows className="flex flex-col gap-2">
-      <div className="text-[13px] font-medium leading-[18px] text-ink">{limit.name}</div>
+      <div className="text-small font-medium leading-[18px] text-ink">{limit.name}</div>
       {usageRows(limit).map((row) => (
         <div key={row.window} data-usage-row={row.window} className="flex flex-col gap-1">
-          <div className="flex items-baseline gap-2 text-[12px] leading-4">
+          <div className="flex items-baseline gap-2 text-caption leading-4">
             <span className="text-ink-secondary">{windowLabel(row.window)}</span>
             <span className={cn("font-medium tabular-nums", row.tone === "fine" ? "text-ink" : "text-warning")}>
               {row.tone === "out" ? t("limits.windowAtLimit") : t("planUsage.left", { remaining: row.left })}
@@ -90,7 +90,7 @@ export function UsageRows({ limit }: { limit: EngineLimit }) {
         </div>
       ))}
       {limit.blocked && (
-        <p className="text-[12px] leading-4 text-ink-tertiary">
+        <p className="text-caption leading-4 text-ink-tertiary">
           {t("limits.clearsOnReply", { engine: limit.name })}{" "}
           <button type="button" data-usage-check disabled={checking} aria-busy={checking}
             onClick={() => { setChecking(true); void loadLimits(true).finally(() => setChecking(false)); }}

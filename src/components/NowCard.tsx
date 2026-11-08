@@ -18,8 +18,8 @@ export function NowCard({ steps, tail, onOpenActivity }: { steps: readonly NowSt
       {steps.length > 0 && (
         <ol className="flex flex-col gap-1">
           {steps.map((step) => (
-            <li key={step.id} className="flex min-w-0 items-baseline gap-2 text-[13px] leading-5" data-now-step={step.state}>
-              <span aria-hidden="true" className="w-3 shrink-0 text-center text-[11px] text-ink-tertiary">{MARK[step.state]}</span>
+            <li key={step.id} className="flex min-w-0 items-baseline gap-2 text-small leading-5" data-now-step={step.state}>
+              <span aria-hidden="true" className="w-3 shrink-0 text-center text-micro text-ink-tertiary">{MARK[step.state]}</span>
               <span dir="auto" title={step.hover} className={cn("min-w-0 truncate", step.state === "now" ? "text-ink" : "text-ink-secondary")}>{step.label}</span>
               <span className="sr-only">{t(STATE[step.state])}</span>
             </li>
@@ -29,11 +29,11 @@ export function NowCard({ steps, tail, onOpenActivity }: { steps: readonly NowSt
       {tail && tail.length > 0 && (
         <div>
           <span className="sr-only">{t("chat.now.output")}</span>
-          <pre dir="ltr" data-now-output="" className="whitespace-pre-wrap break-words rounded-lg bg-ink/[0.04] px-2 py-1.5 font-mono text-[12px] leading-[18px] text-ink-secondary">{tail.join("\n")}</pre>
+          <pre dir="ltr" data-now-output="" className="whitespace-pre-wrap break-words rounded-lg bg-ink/[0.04] px-2 py-1.5 font-mono text-caption leading-[18px] text-ink-secondary">{tail.join("\n")}</pre>
         </div>
       )}
       {onOpenActivity && (
-        <button type="button" onClick={onOpenActivity} className="self-start rounded text-[13px] text-ink-secondary underline-offset-2 hover:text-ink hover:underline">
+        <button type="button" onClick={onOpenActivity} className="self-start rounded text-small text-ink-secondary underline-offset-2 hover:text-ink hover:underline">
           {t("chat.now.openActivity")}
         </button>
       )}

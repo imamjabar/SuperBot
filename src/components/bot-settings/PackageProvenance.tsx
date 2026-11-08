@@ -24,7 +24,7 @@ export function PackageProvenance({ bot }: { bot: Bot }) {
   const provenance = packageProvenance(bot.installedPackage, installs);
   if (!provenance) return null;
   return (
-    <div className="rounded-lg bg-inset px-3 py-2 text-[12px] text-ink-secondary">
+    <div className="rounded-lg bg-inset px-3 py-2 text-caption text-ink-secondary">
       <div className="truncate">{provenance.line}</div>
       {provenance.withdrawn && <div className="mt-0.5 text-warning">{provenance.withdrawn}</div>}
     </div>

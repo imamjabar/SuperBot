@@ -333,9 +333,9 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
           <WindowDragStrip />
           <div className="w-full max-w-md"><ChatNotice notice={state.notice} /></div>
           {loading.busy && <Loader2 size={20} className="animate-spin" />}
-          <div className="text-[14px]">{t(loading.text)}</div>
+          <div className="text-body-sm">{t(loading.text)}</div>
           {loading.command && (
-            <div className="text-[12px]">
+            <div className="text-caption">
             {t("app.loading.startServer")} <code className="rounded bg-raised px-1.5 py-0.5">pnpm dev:server</code>
             </div>
           )}

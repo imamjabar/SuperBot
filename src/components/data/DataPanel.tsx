@@ -224,7 +224,7 @@ function BotDataPanel({ bot, requestedCard }: { bot: Bot; requestedCard?: { id: 
     setSelection(next);
   };
   const empty = sheet && cards.length === 0 && !selection;
-  const control = "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-ink-secondary hover:bg-inset hover:text-ink";
+  const control = "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-inset hover:text-ink";
   const controls = <>
         <details className="relative" data-testid="data-history">
           <summary role="button" className={`${control} cursor-pointer list-none [&::-webkit-details-marker]:hidden`} aria-label={t("data.history")} title={t("data.history")}>
@@ -252,16 +252,16 @@ function BotDataPanel({ bot, requestedCard }: { bot: Bot; requestedCard?: { id: 
     <div ref={panel} className="@container/data flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card text-ink fullscreen:h-full fullscreen:w-full" data-testid="data-panel">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden [container-type:size]" data-testid="data-result">
         {!sheet && !loadError && (
-          <p className="flex items-center justify-center gap-2 py-10 text-[13px] text-ink-secondary" role="status">
+          <p className="flex items-center justify-center gap-2 py-10 text-small text-ink-secondary" role="status">
             <Loader2 size={14} className="animate-spin" aria-hidden="true" />{t("data.loading")}
           </p>
         )}
-        {loadError && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">{t("data.loadFailed", { reason: loadError })}</p>}
-        {unavailable && <p role="status" className="px-3 py-8 text-center text-[13px] text-ink-secondary">{t("data.resultUnavailable")}</p>}
+        {loadError && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-caption text-danger">{t("data.loadFailed", { reason: loadError })}</p>}
+        {unavailable && <p role="status" className="px-3 py-8 text-center text-small text-ink-secondary">{t("data.resultUnavailable")}</p>}
         {empty && (
           <div className="flex flex-col items-center gap-3 py-12 text-center" data-testid="data-empty">
             <Database size={22} className="text-ink-secondary" aria-hidden="true" />
-            <p className="text-[13px] text-ink-secondary">{t("data.empty")}</p>
+            <p className="text-small text-ink-secondary">{t("data.empty")}</p>
           </div>
         )}
         {card && <DataCard key={card.id} bot={bot} card={card} theme={theme} controls={controls} running={running} onCancel={cancel} />}
@@ -277,7 +277,7 @@ function BotDataPanel({ bot, requestedCard }: { bot: Bot; requestedCard?: { id: 
       <div ref={query} id={queryId} style={{ height: queryHeight ?? undefined }} className="flex min-h-0 shrink-0 flex-col overflow-hidden px-3 py-2" data-testid="data-query">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <SqlEditor sql={shown.sql} externalRevision={String(shown.revision)} onChange={edit} />
-          <p role={queryError ? "alert" : undefined} title={queryError ?? undefined} className="mt-1 h-4 shrink-0 truncate text-[12px] text-danger" data-testid="data-query-error">{queryError}</p>
+          <p role={queryError ? "alert" : undefined} title={queryError ?? undefined} className="mt-1 h-4 shrink-0 truncate text-caption text-danger" data-testid="data-query-error">{queryError}</p>
         </div>
         <div className="shrink-0"><SourcesStrip sources={tables} /></div>
       </div>

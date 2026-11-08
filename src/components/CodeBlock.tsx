@@ -234,13 +234,13 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
   const lineCount = countLines(code);
   const body = (pad: string, plainInk: string) => markup ? (
     <div
-      className={cn(`text-[13px] [&_pre]:!bg-transparent [&_pre]:m-0 ${pad}`, wrapLines
+      className={cn(`text-small [&_pre]:!bg-transparent [&_pre]:m-0 ${pad}`, wrapLines
         ? "whitespace-pre-wrap break-words overflow-x-hidden [&_pre]:!whitespace-pre-wrap [&_pre]:!break-words [&_code]:!whitespace-pre-wrap [&_code]:!break-words"
         : "overflow-x-auto")}
       dangerouslySetInnerHTML={markup}
     />
   ) : (
-    <pre className={cn(`text-[13px] ${pad.replaceAll("[&_pre]:", "")}`, plainInk, wrapLines ? "whitespace-pre-wrap break-words overflow-x-hidden" : "overflow-x-auto")}>
+    <pre className={cn(`text-small ${pad.replaceAll("[&_pre]:", "")}`, plainInk, wrapLines ? "whitespace-pre-wrap break-words overflow-x-hidden" : "overflow-x-auto")}>
       {code}
     </pre>
   );
@@ -262,11 +262,11 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
     <div dir="ltr" className="chat-code-block my-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline/30 bg-raised/30 px-3 py-1.5 text-xs">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span title={displayLanguage} className="min-w-0 truncate rounded border border-hairline/40 bg-raised px-1.5 py-0.5 text-[11px] font-medium tracking-wide text-ink select-none">
+          <span title={displayLanguage} className="min-w-0 truncate rounded border border-hairline/40 bg-raised px-1.5 py-0.5 text-micro font-medium tracking-wide text-ink select-none">
             {displayLanguage}
           </span>
           {lineCount > 0 && (
-            <span className="shrink-0 whitespace-nowrap text-[11px] text-ink-secondary select-none">
+            <span className="shrink-0 whitespace-nowrap text-micro text-ink-secondary select-none">
               {formatLineCount(lineCount)}
             </span>
           )}
@@ -275,7 +275,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
           <button
             type="button"
             onClick={() => setWrapLines((w) => !w)}
-            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors ${
+            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-micro transition-colors ${
               wrapLines
                 ? "bg-accent/15 text-accent font-medium"
                 : "text-ink-secondary hover:bg-raised hover:text-ink"
@@ -290,7 +290,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
           <button
             type="button"
             onClick={download}
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-micro text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
             title={t("code.saveTitle")}
             aria-label={t("code.saveTitle")}
           >
@@ -300,7 +300,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
           <button
             type="button"
             onClick={copy}
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-micro text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
             title={copied === "copied" ? t("code.copiedTitle") : copied === "failed" ? t("common.copyFailed") : t("code.copyTitle")}
             aria-label={copied === "copied" ? t("code.copiedAria") : copied === "failed" ? t("common.copyFailed") : t("code.copyAria")}
           >

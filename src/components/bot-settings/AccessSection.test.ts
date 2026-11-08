@@ -323,10 +323,10 @@ describe("AccessSection per-app scopes", () => {
     fixture.apps = { phase: "ready", connectedSlugs: ["gmail", "highlevel"], apps: [app("gmail", "Gmail"), app("highlevel", "HighLevel")] };
     const html = render(makeBot({ connectorScopes: { apps: { gmail: "write" } } }));
     expect(html).toContain('aria-label="highlevel access"');
-    expect(html).toMatch(/<span class="min-w-0 text-\[13px\] text-ink">HighLevel</);
+    expect(html).toMatch(/<span class="min-w-0 text-small text-ink">HighLevel</);
     expect(html).not.toContain("not connected");
     // Tool-by-tool grants are Composio's list; HighLevel is scoped by read/write only.
-    expect([...html.matchAll(/truncate font-mono text-\[13px\] text-ink">([^<]*)</g)].map((match) => match[1])).toEqual(["gmail"]);
+    expect([...html.matchAll(/truncate font-mono text-small text-ink">([^<]*)</g)].map((match) => match[1])).toEqual(["gmail"]);
   });
 
   it("leaves HighLevel out while it is not connected", () => {

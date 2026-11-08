@@ -32,7 +32,7 @@ function OtherWay({ instance, open, onToggle }: { instance: InstanceInfo; open: 
         <span className="flex size-[18px] shrink-0 items-center justify-center">
           <InstanceProviderMark instance={instance} size={18} />
         </span>
-        <span className="min-w-0 flex-1 truncate text-[14px] text-ink">{instance.displayName}</span>
+        <span className="min-w-0 flex-1 truncate text-body-sm text-ink">{instance.displayName}</span>
         <ChevronDown size={14} className={cn("shrink-0 text-ink-secondary transition-transform duration-200", open && "rotate-180")} />
       </button>
       {open && <EngineSetup instance={instance} {...setupFor(instance)} className="mx-4 mb-3.5 border-0 bg-inset" />}
@@ -80,27 +80,27 @@ export function ConnectAi({ tested }: { tested: WelcomeAiNow | null }) {
   return (
     <div className="flex w-full flex-col">
       {connected ? (
-        <p role="status" data-ai-connected className="animate-rise flex items-center gap-2 text-[14px] text-success">
+        <p role="status" data-ai-connected className="animate-rise flex items-center gap-2 text-body-sm text-success">
           <Check size={15} strokeWidth={2.5} aria-hidden="true" />
           {/* An AI with no way to send a test message keeps the line it always had. */}
           {t(tested?.state === "passed" ? "onboarding.engines.answered" : "onboarding.engines.connected", { name: connected.displayName })}
         </p>
       ) : tested?.state === "testing" ? (
-        <p role="status" data-ai-checking className="animate-rise flex items-center gap-2 text-[14px] text-ink-secondary">
+        <p role="status" data-ai-checking className="animate-rise flex items-center gap-2 text-body-sm text-ink-secondary">
           <LoaderCircle size={15} aria-hidden="true" className="shrink-0 animate-spin" />
           {t("onboarding.engines.checkingAnswer", { name: tested.instance.displayName })}
         </p>
       ) : (
         <>
           {tested?.state === "failed" && (
-            <div role="alert" data-ai-silent className="animate-rise mb-3 w-full rounded-2xl bg-warning/10 px-4 py-3 text-left text-[13px] leading-relaxed text-ink">
+            <div role="alert" data-ai-silent className="animate-rise mb-3 w-full rounded-2xl bg-warning/10 px-4 py-3 text-left text-small leading-relaxed text-ink">
               {/* The check's own plain reason (signed out, a used-up limit…) when it gave one. */}
               <p data-ai-reason>{tested.error ?? t("onboarding.engines.noAnswer", { name: tested.instance.displayName })}</p>
               {tested.error && <p className="mt-1 text-ink-secondary">{t("onboarding.engines.orAnother")}</p>}
               <button
                 type="button"
                 onClick={tested.retry}
-                className="-mx-2 mt-1.5 flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-medium text-ink transition-colors hover:bg-ink/[0.06]"
+                className="-mx-2 mt-1.5 flex items-center gap-1.5 rounded-full px-2 py-1 text-small font-medium text-ink transition-colors hover:bg-ink/[0.06]"
               >
                 <RefreshCw size={12} aria-hidden="true" />
                 {t("common.checkAgain")}
@@ -108,7 +108,7 @@ export function ConnectAi({ tested }: { tested: WelcomeAiNow | null }) {
             </div>
           )}
           {!tested && backup && (
-            <p data-ai-backup className="animate-rise mb-3 text-[13px] text-ink-secondary">
+            <p data-ai-backup className="animate-rise mb-3 text-small text-ink-secondary">
               {t("onboarding.engines.freeBackup", { name: backup.displayName })}
             </p>
           )}
@@ -117,11 +117,11 @@ export function ConnectAi({ tested }: { tested: WelcomeAiNow | null }) {
               <EngineSetup instance={recommended} {...setupFor(recommended)} className="border-0 bg-transparent p-0" />
             </div>
           ) : !tested && !backup && !failed ? (
-            <p className="text-[13px] text-ink-secondary" aria-live="polite">{t("common.checking")}</p>
+            <p className="text-small text-ink-secondary" aria-live="polite">{t("common.checking")}</p>
           ) : null}
         </>
       )}
-      {failed && <p role="alert" className="mt-2 text-[13px] text-danger">{t("onboarding.engines.error")}</p>}
+      {failed && <p role="alert" className="mt-2 text-small text-danger">{t("onboarding.engines.error")}</p>}
 
       {(organisation || others.length > 0) && (
         <div className="mt-3 w-full divide-y divide-hairline/40 overflow-hidden rounded-2xl bg-card text-left">
@@ -140,7 +140,7 @@ export function ConnectAi({ tested }: { tested: WelcomeAiNow | null }) {
             type="button"
             onClick={() => void refresh()}
             disabled={checking}
-            className="flex w-full items-center gap-1.5 px-4 py-2.5 text-left text-[12px] text-ink-secondary transition-colors hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-offset-[-2px] disabled:opacity-50"
+            className="flex w-full items-center gap-1.5 px-4 py-2.5 text-left text-caption text-ink-secondary transition-colors hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-offset-[-2px] disabled:opacity-50"
           >
             <RefreshCw size={12} className={checking ? "animate-spin" : ""} />
             {checking ? t("common.checking") : t("common.checkAgain")}
@@ -172,7 +172,7 @@ export function ConnectAiDialog({ tested, onClose }: { tested: WelcomeAiNow | nu
         className="ui-modal animate-pop-in flex max-h-[min(640px,calc(100vh-32px))] w-[440px] max-w-full flex-col overflow-hidden text-left"
       >
         <div className="flex h-[52px] shrink-0 items-center justify-between pl-4 pr-3">
-          <h2 id="connect-ai-title" className="text-[14px] font-semibold leading-[22px] text-ink">{t("onboarding.meet.connectAi")}</h2>
+          <h2 id="connect-ai-title" className="text-body-sm font-semibold leading-[22px] text-ink">{t("onboarding.meet.connectAi")}</h2>
           <button type="button" autoFocus onClick={onClose} aria-label={t("common.close")} title={t("common.close")}
             className="flex size-7 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink">
             <X size={16} />

@@ -128,7 +128,7 @@ describe("a bot's conversations in its panel", () => {
   it("sets the rows in the panel's type: never bolder than medium, a 12px time and a larger unread dot", () => {
     render(research());
     const list = host.querySelector('[role="list"]')!.className.split(" ");
-    expect(list).toEqual(expect.arrayContaining(["[&_.font-semibold]:font-medium", "[&_time]:text-[12px]", "[&_time]:text-ink-tertiary", "[&_span.bg-accent]:size-2"]));
+    expect(list).toEqual(expect.arrayContaining(["[&_.font-semibold]:font-medium", "[&_time]:text-caption", "[&_time]:text-ink-tertiary", "[&_span.bg-accent]:size-2"]));
   });
 
   it("puts New conversation first, as a labelled button beside search", () => {

@@ -38,7 +38,7 @@ export function VpsComputersCard({
       subtitle={t("vm.vps.subtitle")}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[12px] text-ink-secondary">
+        <div className="text-caption text-ink-secondary">
           {configured === true
             ? t("vm.vps.sshHost", { alias: aliases.join(", ") || t("vm.vps.configuredFallback") })
             : configured === false
@@ -50,13 +50,13 @@ export function VpsComputersCard({
           onClick={onRefresh}
           disabled={loading || removingName !== null}
           aria-label={t("vm.vps.refreshAria")}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1.5 text-[12px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-40"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-40"
         >
           <RefreshCw size={12} className={cn(loading && "animate-spin")} /> {t("vm.refresh")}
         </button>
       </div>
 
-      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-caption text-danger">{error}</div>}
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {loading
@@ -75,24 +75,24 @@ export function VpsComputersCard({
         className="mt-3 overflow-hidden rounded-xl border border-hairline/40"
       >
         {unavailableReason && instances.length > 0 && (
-          <div className="flex items-center gap-2 border-b border-hairline/35 px-3 py-2.5 text-[12px] text-ink-secondary">
+          <div className="flex items-center gap-2 border-b border-hairline/35 px-3 py-2.5 text-caption text-ink-secondary">
             <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
           </div>
         )}
         {loading && instances.length === 0 ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
+          <div className="flex items-center gap-2 px-3 py-4 text-small text-ink-secondary">
             <Loader2 size={13} className="animate-spin" /> {t("vm.vps.checkingList")}
           </div>
         ) : unavailableReason && instances.length === 0 ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
+          <div className="flex items-center gap-2 px-3 py-4 text-small text-ink-secondary">
             <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
           </div>
         ) : configured === false ? (
-          <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
+          <div className="flex items-center gap-2 px-3 py-4 text-small text-ink-secondary">
             <Server size={14} className="shrink-0" /> {t("vm.vps.notConfigured")}
           </div>
         ) : instances.length === 0 ? (
-          <div className="px-3 py-4 text-[13px] text-ink-secondary">{t("vm.vps.noneFound")}</div>
+          <div className="px-3 py-4 text-small text-ink-secondary">{t("vm.vps.noneFound")}</div>
         ) : instances.map((instance, index) => {
           const kind = vpsComputerInventoryStateKind(instance);
           const state = computerStateLabel(kind);
@@ -108,12 +108,12 @@ export function VpsComputersCard({
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate text-[14px] font-medium text-ink">
+                  <span className="truncate text-body-sm font-medium text-ink">
                     {instance.orphaned ? t("vm.vps.orphan", { id: shortId }) : instance.ownerName}
                   </span>
                   <span
                     className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px]",
+                      "rounded-full px-2 py-0.5 text-micro",
                       instance.inUse || kind === "running"
                         ? "bg-success/15 text-success"
                         : kind === "stopped" || kind === "paused"
@@ -124,16 +124,16 @@ export function VpsComputersCard({
                     {state}
                   </span>
                   {aliases.length > 1 && (
-                    <span className="rounded-full bg-control px-2 py-0.5 font-mono text-[11px] text-ink-secondary">
+                    <span className="rounded-full bg-control px-2 py-0.5 font-mono text-micro text-ink-secondary">
                       {instance.vpsAlias}
                     </span>
                   )}
                 </div>
-                <div className="mt-1 text-[12px] text-ink-secondary">
+                <div className="mt-1 text-caption text-ink-secondary">
                   {instance.orphaned ? t("vm.owner.gone") : t("vm.owner.owned")}
                 </div>
                 {instance.inUse && (
-                  <div className="mt-1 text-[12px] text-ink-secondary">{t("vm.vps.stopFirst")}</div>
+                  <div className="mt-1 text-caption text-ink-secondary">{t("vm.vps.stopFirst")}</div>
                 )}
               </div>
               <button
@@ -142,7 +142,7 @@ export function VpsComputersCard({
                 disabled={loading || instance.inUse || removingName !== null}
                 aria-busy={removing || undefined}
                 title={t("vm.vps.removeTitle")}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-danger/10 px-2.5 py-1.5 text-[12px] font-medium text-danger hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-danger/10 px-2.5 py-1.5 text-caption font-medium text-danger hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {removing ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 {t("vm.vps.remove")}

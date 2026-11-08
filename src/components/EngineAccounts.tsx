@@ -110,7 +110,7 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
     <div ref={menuRef} className="relative flex items-center gap-1">
       {canRemove && <button type="button" disabled={busy || usedBy > 0} onClick={() => setConfirm("remove")}
         title={usedBy > 0 ? t("accounts.inUse", { count: String(usedBy) }) : undefined}
-        className="rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50">
+        className="rounded-lg px-2.5 py-1.5 text-caption font-medium text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50">
         {t("accounts.remove")}
       </button>}
       <button type="button" onClick={() => setOpen((value) => !value)} disabled={busy} aria-haspopup="menu" aria-expanded={open}
@@ -119,13 +119,13 @@ function AccountMenu({ group, instance, onRename }: { group: AccountGroup; insta
         {busy ? <Loader2 size={14} className="animate-spin" /> : <MoreHorizontal size={16} />}
       </button>
       {open && (
-        <div role="menu" className={cn("absolute right-0 top-full z-40 mt-1 w-[220px] overflow-hidden text-[13px]", MENU_SHEET)}>
+        <div role="menu" className={cn("absolute right-0 top-full z-40 mt-1 w-[220px] overflow-hidden text-small", MENU_SHEET)}>
           <button type="button" role="menuitem" className={cn(item, "text-ink")} onClick={() => { setOpen(false); onRename(); }}>{t("accounts.rename")}</button>
           {canSignOut && <button type="button" role="menuitem" className={cn(item, "text-ink")} onClick={() => { setOpen(false); setConfirm("signOut"); }}>{t("accounts.signOut")}</button>}
-          {canRemove && usedBy > 0 && <p className="px-3 pb-1 pt-0.5 text-[11px] leading-snug text-ink-secondary">{t("accounts.inUse", { count: String(usedBy) })}</p>}
+          {canRemove && usedBy > 0 && <p className="px-3 pb-1 pt-0.5 text-micro leading-snug text-ink-secondary">{t("accounts.inUse", { count: String(usedBy) })}</p>}
         </div>
       )}
-      {error && <p role="alert" className="absolute right-0 top-full z-30 mt-1 w-[260px] rounded-lg bg-card p-2 text-[12px] text-danger shadow-lg">{error}</p>}
+      {error && <p role="alert" className="absolute right-0 top-full z-30 mt-1 w-[260px] rounded-lg bg-card p-2 text-caption text-danger shadow-lg">{error}</p>}
       <ConfirmDialog
         open={confirm === "signOut"}
         title={t("accounts.signOutTitle", { name: instance.displayName })}
@@ -173,13 +173,13 @@ function RenameForm({ instance, onDone }: { instance: InstanceInfo; onDone: () =
         <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} autoFocus disabled={saving}
           aria-label={t("accounts.nameLabel")}
           onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); onDone(); } }}
-          className="min-w-0 flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-accent-border disabled:opacity-50" />
-        <button type="submit" disabled={saving || !name.trim()} className="rounded-lg bg-raised px-3 py-1.5 text-[12px] font-medium text-ink hover:bg-raised-hover disabled:opacity-50">
+          className="min-w-0 flex-1 rounded-lg border border-hairline/40 bg-inset px-2.5 py-1.5 text-small text-ink outline-none focus:border-accent-border disabled:opacity-50" />
+        <button type="submit" disabled={saving || !name.trim()} className="rounded-lg bg-raised px-3 py-1.5 text-caption font-medium text-ink hover:bg-raised-hover disabled:opacity-50">
           {saving ? <Loader2 size={13} className="animate-spin" /> : t("common.save")}
         </button>
-        <button type="button" onClick={onDone} disabled={saving} className="rounded-lg px-2.5 py-1.5 text-[12px] text-ink-secondary hover:bg-control">{t("common.cancel")}</button>
+        <button type="button" onClick={onDone} disabled={saving} className="rounded-lg px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-control">{t("common.cancel")}</button>
       </div>
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" className="text-caption text-danger">{error}</p>}
     </form>
   );
 }
@@ -212,11 +212,11 @@ function AccountRow({ group, instance, signingIn, onSignIn, onSignInDone }: {
         {renaming ? <RenameForm instance={instance} onDone={() => setRenaming(false)} /> : (
           <>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-medium text-ink" title={instance.displayName}>{instance.displayName}</div>
-              <div className="truncate text-[12px] text-ink-secondary" title={detail}>{detail}</div>
+              <div className="truncate text-small font-medium text-ink" title={instance.displayName}>{instance.displayName}</div>
+              <div className="truncate text-caption text-ink-secondary" title={detail}>{detail}</div>
             </div>
             {state !== "signedIn" && state !== "unavailable" && !blocked && !signingIn && (
-              <button type="button" onClick={onSignIn} className={cn("shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold",
+              <button type="button" onClick={onSignIn} className={cn("shrink-0 rounded-lg px-3 py-1.5 text-caption font-semibold",
                 state === "signedOut" ? "bg-accent text-white hover:brightness-110" : "bg-control text-ink hover:bg-raised-hover")}>
                 {t("accounts.signIn")}
               </button>
@@ -231,7 +231,7 @@ function AccountRow({ group, instance, signingIn, onSignIn, onSignInDone }: {
             ? <>
               <ClaudeSignIn instanceId={instance.instanceId} autoStart onDone={onSignInDone} />
               {instance.claudeAccount?.signInCommand && (
-                <details className="mt-2 text-[12px] text-ink-secondary">
+                <details className="mt-2 text-caption text-ink-secondary">
                   <summary className="cursor-pointer select-none hover:text-ink">{t("engineSetup.preferTerminal")}</summary>
                   <CommandRow command={instance.claudeAccount.signInCommand} actionLabel={t("engineSetup.openSignIn")} compact />
                 </details>
@@ -283,31 +283,31 @@ export function AddAccount({ label, endpoint, extra, folder: offerFolder = false
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="flex min-h-8 w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-ink-secondary outline-none hover:bg-control hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
+      <button type="button" onClick={() => setOpen(true)} className="flex min-h-8 w-fit items-center gap-1.5 rounded-lg px-2 py-1.5 text-small font-medium text-ink-secondary outline-none hover:bg-control hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
         <Plus size={14} />{label}
       </button>
     );
   }
   return (
     <form data-add-account={endpoint} className="space-y-2.5 rounded-xl border border-hairline/50 bg-app p-3" onSubmit={(event) => { event.preventDefault(); void add(); }}>
-      <label className="flex flex-col gap-1 text-[12px] font-medium text-ink">
+      <label className="flex flex-col gap-1 text-caption font-medium text-ink">
         {t("accounts.nameLabel")}
         <input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("accounts.namePlaceholder")} maxLength={80} autoFocus required disabled={saving}
-          className="rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] font-normal text-ink outline-none focus:border-accent-border disabled:opacity-50" />
+          className="rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small font-normal text-ink outline-none focus:border-accent-border disabled:opacity-50" />
       </label>
       {offerFolder && (
-        <details className="text-[12px] text-ink-secondary">
+        <details className="text-caption text-ink-secondary">
           <summary className="cursor-pointer select-none hover:text-ink">{t("accounts.folderToggle")}</summary>
           <input value={folder} onChange={(event) => setFolder(event.target.value)} placeholder="~/.claude-work" maxLength={4096} spellCheck={false} disabled={saving}
             aria-label={t("accounts.folderToggle")}
-            className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 font-mono text-[12px] text-ink outline-none focus:border-accent-border disabled:opacity-50" />
+            className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 font-mono text-caption text-ink outline-none focus:border-accent-border disabled:opacity-50" />
           <p className="mt-1 leading-relaxed">{t("accounts.folderHint")}</p>
         </details>
       )}
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" className="text-caption text-danger">{error}</p>}
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={() => { setOpen(false); setError(null); }} disabled={saving} className="rounded-lg px-3 py-1.5 text-[12px] text-ink-secondary hover:bg-control disabled:opacity-50">{t("common.cancel")}</button>
-        <button type="submit" disabled={saving || !name.trim()} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white hover:brightness-110 disabled:opacity-50">
+        <button type="button" onClick={() => { setOpen(false); setError(null); }} disabled={saving} className="rounded-lg px-3 py-1.5 text-caption text-ink-secondary hover:bg-control disabled:opacity-50">{t("common.cancel")}</button>
+        <button type="submit" disabled={saving || !name.trim()} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-caption font-semibold text-white hover:brightness-110 disabled:opacity-50">
           {saving && <Loader2 size={13} className="animate-spin" />}{t("accounts.addSubmit")}
         </button>
       </div>
@@ -323,7 +323,7 @@ export function AccountsCard({ group, accounts, advanced, bare = false }: { grou
   const policy = accounts.find((instance) => instance.policy)?.policy;
   return (
     <EngineCard instance={primary} summary={summaryFor(group, accounts)} bare={bare}>
-      {policy && <p className="mb-3 text-[12px] leading-relaxed text-ink-secondary">
+      {policy && <p className="mb-3 text-caption leading-relaxed text-ink-secondary">
         <span className="font-medium text-ink">{t("policy.managedBy", { organization: policy.organizationName })}</span> · {policy.reason}
       </p>}
       {!installed ? <EngineSetup instance={primary} unframed /> : (

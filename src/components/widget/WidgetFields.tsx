@@ -11,7 +11,7 @@ const BARE = new Set(["Select", "DatePicker", "TimePicker", "DayPicker", "Input"
 const FILLS = new Set(["Select", "DatePicker", "TimePicker", "Input", "Textarea"]);
 export const WIDGET_FIELD_SHARE = "1 1 160px";
 
-export const WIDGET_CAPTION = "ms-0.5 block text-[12px] leading-4 text-ink-secondary";
+export const WIDGET_CAPTION = "ms-0.5 block text-caption leading-4 text-ink-secondary";
 
 export function WidgetFieldView({ node, where }: { node: WidgetNode; where: WidgetWhere }) {
   const form = useWidgetForm();

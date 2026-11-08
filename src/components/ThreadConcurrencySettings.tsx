@@ -30,15 +30,15 @@ export function ThreadConcurrencySettings() {
   };
   return (
     <Card title={t("settings.threads.title")} subtitle={t("settings.threads.subtitle")}>
-      <label htmlFor="thread-concurrency" className="block text-[13px] font-medium text-ink">{t("settings.threads.label")}</label>
+      <label htmlFor="thread-concurrency" className="block text-small font-medium text-ink">{t("settings.threads.label")}</label>
       <Select className="mt-2" id="thread-concurrency" value={pending ?? confirmed} disabled={pending !== null}
         aria-describedby="thread-concurrency-help"
         onChange={(event) => void save(Number(event.target.value))}>
         {Array.from({ length: 16 }, (_, i) => i + 1).map((limit) => <option key={limit} value={limit}>{limit}</option>)}
       </Select>
-      <p id="thread-concurrency-help" className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("settings.threads.helpHanded")}</p>
-      {pending !== null && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("settings.threads.saving")}</p>}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      <p id="thread-concurrency-help" className="mt-2 text-caption leading-relaxed text-ink-secondary">{t("settings.threads.helpHanded")}</p>
+      {pending !== null && <p role="status" className="mt-2 text-caption text-ink-secondary">{t("settings.threads.saving")}</p>}
+      {error && <p role="alert" className="mt-2 text-caption text-danger">{error}</p>}
     </Card>
   );
 }

@@ -26,7 +26,7 @@ export function PhoneHero({ bot, selected, onOpen, onMenu }: { bot: Bot; selecte
           </span>
         </span>
         <span className="text-[17px] font-semibold leading-6 text-ink">{bot.name}</span>
-        <span className="text-[13px] leading-4 text-ink-secondary">{t("sidebar.bot.chiefOfStaff")}</span>
+        <span className="text-small leading-4 text-ink-secondary">{t("sidebar.bot.chiefOfStaff")}</span>
       </button>
       <button type="button" data-bot-actions={bot.id} aria-label={t("sidebar.bot.actions", { name: bot.name })} title={t("sidebar.bot.actions", { name: bot.name })} aria-haspopup="menu"
         onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); onMenu({ botId: bot.id, x: rect.left, y: rect.bottom }); }}
