@@ -2911,6 +2911,56 @@ describe("restoring the open conversation", () => {
       expect(Array.isArray(seen.webhooks)).toBe(true);
     });
 
+    it("reconnects after server restart and resyncs state with fresh snapshot and queued frames", async () => {
+      const { stream } = await boot();
+      stream.onopen?.();
+      stream.send(hello());
+      await settle();
+      expect(seen.selectedId).toBe("bot-1");
+      expect(seen.bots.map((b) => b.id)).toEqual(["bot-1", "bot-2"]);
+      expect(seen.connected).toBe(true);
+
+      stream.send({ kind: "bot", bot: first }, "run:1");
+
+      stream.onerror?.();
+      await settle();
+      expect(seen.connected).toBe(false);
+
+      window.dispatchEvent(new Event("online"));
+      expect(FixtureEventSource.opened).toHaveLength(2);
+      const reconnected = FixtureEventSource.opened[1]!;
+      expect(reconnected.url).toContain("since=run%3A1");
+
+      const third = bot("bot-3", { title: "Third Bot" });
+      const answers: Record<string, unknown> = {
+        "/api/instances": { instances: [] },
+        "/api/config": {},
+        "/api/routines": { routines: [], runs: [] },
+        "/api/webhooks": { webhooks: [], attempts: [], ingress: null },
+      };
+      vi.stubGlobal("fetch", (path: string) =>
+        Promise.resolve(new Response(JSON.stringify(
+          path.startsWith("/api/bots?")
+            ? { bots: [first, second, third], groups: [room] }
+            : answers[path.replace(/\?since=[^&]*$/, "")] ?? {},
+        ))),
+      );
+
+      reconnected.onopen?.();
+      reconnected.send({ kind: "hello", resumed: false, cursor: "restart:0" });
+      reconnected.send({ kind: "bot", bot: { ...third, title: "Third Bot Updated" } }, "restart:1");
+      await settle();
+
+      expect(seen.connected).toBe(true);
+      expect(seen.bots.map((b) => b.id)).toEqual(["bot-1", "bot-2", "bot-3"]);
+      expect(seen.bots.find((b) => b.id === "bot-3")?.title).toBe("Third Bot Updated");
+
+      reconnected.onerror?.();
+      window.dispatchEvent(new Event("online"));
+      expect(FixtureEventSource.opened).toHaveLength(3);
+      expect(FixtureEventSource.opened[2]!.url).toContain("since=restart%3A1");
+    });
+
     it("the provider remembers each non-empty selection and never an empty one", async () => {
       const { stored, stream } = await boot();
 

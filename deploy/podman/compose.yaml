@@ -6,7 +6,7 @@ services:
       dockerfile: deploy/podman/Containerfile
       args:
         ENGINES: ${ENGINES:-}
-    image: localhost/openmausbot-podman:${OMB_IMAGE_TAG:-local}
+    image: localhost/superbot-podman:${OMB_IMAGE_TAG:-local}
     # Collects exited browser processes; Chrome's shared memory as on the
     # desktop containers (docs/browser-packaging.md, "Process hygiene").
     init: true

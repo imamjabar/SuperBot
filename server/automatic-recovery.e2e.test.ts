@@ -286,6 +286,31 @@ it.each([true, false])("uses the ordered bot list only for proven pre-prompt fai
   });
 }, 90_000);
 
+it("answers once from the bot's own backup when its primary model fails to start", async () => {
+  await withRecoveryFixture({ enabled: false }, async ({ api, control, calls, backupPrompts, evidence }) => {
+    const { bot } = await control("new-bot", "--name", "Fallback answers once");
+    const threadId = bot.activeTaskId;
+    await api("PATCH", `/api/bots/${bot.id}/tasks/${threadId}`, { modelSelection: primary, updateBotDefault: true });
+    await api("PATCH", `/api/bots/${bot.id}`, { fallback: [backup] });
+    const text = "FALLBACK_ANSWERS_ONCE_1A";
+    await control("send", "--bot", bot.id, "--task", threadId, "--text", text);
+    expect((await control("wait", "--bot", bot.id, "--task", threadId, "--timeout", "30")).status).toBe("settled");
+    expect(calls().filter(call => call.method === "initialize.error")).toHaveLength(1);
+    expect(backupPrompts()).toHaveLength(1);
+    const { messages } = await control("messages", "--bot", bot.id, "--task", threadId, "--limit", "30");
+    const userIndex = messages.findIndex((message: { role?: string; text?: string }) => message.role === "user" && message.text === text);
+    expect(userIndex).toBeGreaterThanOrEqual(0);
+    expect(messages.filter((message: { role?: string; text?: string }) => message.role === "user" && message.text === text)).toHaveLength(1);
+    expect(messages.filter((message: { tool?: { name?: string } }) => message.tool?.name?.startsWith("recovery:"))).toHaveLength(1);
+    const answers = messages.slice(userIndex + 1).filter((message: { role?: string; kind?: string }) => message.role === "bot" && message.kind === "text");
+    expect(answers).toEqual([expect.objectContaining({ text: "hello from fake claude" })]);
+    const { bots } = (await api("GET", "/api/bots")) as { bots: Array<{ id: string; tasks: Array<{ threadId: string; modelSelection?: unknown; busy?: boolean }> }> };
+    const after = bots.find((entry) => entry.id === bot.id);
+    expect(after?.tasks.find((task) => task.threadId === threadId)).toMatchObject({ modelSelection: backup, busy: false });
+    evidence.push({ after, messages });
+  });
+}, 90_000);
+
 it.each([
   { name: "disabled and the bot has no backups of its own", enabled: false, ownBackups: false },
   { name: "prompt already accepted", method: "session/prompt" },
