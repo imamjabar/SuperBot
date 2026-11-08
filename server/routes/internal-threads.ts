@@ -31,6 +31,7 @@ export function createInternalThreadRoutes(deps: {
   queuedReason(node: HandoffView, showTitle?: (threadId: string) => boolean): string;
   readBody(): ReturnType<RouteContext["readBody"]>;
   postProgress(text: string): { status: number; body: Record<string, unknown> };
+  notes(body: unknown): Promise<{ status: number; body: Record<string, unknown> }> | { status: number; body: Record<string, unknown> };
 }): RouteHandler {
   const { store, coordinator, from, fromThreadId } = deps;
   return async ({ res, path, method, json }) => {
@@ -86,6 +87,12 @@ export function createInternalThreadRoutes(deps: {
       const body = await deps.readBody();
       const raw = body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>).message : undefined;
       const outcome = deps.postProgress(typeof raw === "string" ? raw : "");
+      return json(res, outcome.status, outcome.body);
+    }
+    if (method === "POST" && path === "/api/internal/threads/notes") {
+      if (!deps.ownsThread(from.id, fromThreadId)) return json(res, 403, { error: "source conversation does not belong to sender" });
+      const body = await deps.readBody();
+      const outcome = await deps.notes(body);
       return json(res, outcome.status, outcome.body);
     }
     // close_thread folds a thread, never deletes it (a person's confirmed action), and never while it runs.

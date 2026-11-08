@@ -315,6 +315,7 @@ const TOOL_DEFINITIONS = [
         folder: { type: "string", description: "Optional: one of your folders to file it under, only if the person named one." },
         job: { type: "string", description: "A running job's thread id: send message into that job instead of opening one." },
         report_back: { type: "boolean", description: "true: the result comes back here and resumes you. Leave out to keep it in its own thread." },
+        deep: { type: "boolean", description: "A long research job over dozens of pages or items (rankings; job, price or market surveys): 200 tool calls instead of 30 and a notes table; its table and a long report reach the chat as files. Only with report_back." },
         model_selection: {
           type: "object",
           additionalProperties: false,
@@ -335,6 +336,25 @@ const TOOL_DEFINITIONS = [
       additionalProperties: false,
       properties: { message: { type: "string", maxLength: 600, description: "The update, as the person will read it." } },
       required: ["message"],
+    },
+  },
+  {
+    name: "job_notes",
+    description:
+      "Your notes table for this job, kept outside your memory: add one row per item you checked (for a job search: company, title, location, link, date, salary, visa, fit, reason) and read it back any time. In a long job, page text you read earlier can be dropped from your memory; these rows are not. When the job ends the whole table reaches the person's chat as a CSV file by itself, so your final answer gives the summary and the top items, not the full table.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        add: {
+          type: "array",
+          maxItems: 50,
+          items: { type: "object", additionalProperties: { type: ["string", "number", "boolean"] } },
+          description: "Rows to add, same keys for every row.",
+        },
+        read: { type: "boolean", description: "Return the row count, the columns and the last 30 rows." },
+        find: { type: "string", minLength: 2, maxLength: 200, description: "Return up to 50 rows with a value containing these words." },
+      },
     },
   },
   {
@@ -928,7 +948,7 @@ function catalogTools(profile: CatalogProfile) {
     (profile.botId === WATCHER_OPTIONS_CARD_BOT_ID || !WATCHER_TOOL_NAMES.has(tool.name)) &&
     (profile.memoryEnabled !== false || (tool.name !== "memory_update" && tool.name !== "memory_log")) &&
     (profile.escalations === true || tool.name !== "raise_escalation") &&
-    (profile.reportsBack === true || tool.name !== "report_progress") &&
+    (profile.reportsBack === true || (tool.name !== "report_progress" && tool.name !== "job_notes")) &&
     (profile.computerSelection === true || tool.name !== "select_computer") &&
     (profile.room !== true || !ROOM_REFUSED_TOOL_NAMES.has(tool.name)) &&
     (profile.webSearch === true || tool.name !== WEB_SEARCH_TOOL));

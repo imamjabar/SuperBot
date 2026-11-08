@@ -19,7 +19,7 @@ export const WEB_TOOL_DEFINITIONS = [
   {
     name: "web_fetch",
     description:
-      "Read a public web page, RSS feed or JSON/text address and get its readable text (scripts and markup removed), up to 12,000 characters per call; pass offset to read further. For news, prices or any page: one call per page, then answer; prefer a site's RSS or section page for headlines. Use this before any browser or screen for a public page. Only http(s) on the public internet; no sign-in: a page behind a sign-in or one that shows its text only through scripts comes back with needsBrowser and next, which says how to open it in the built-in browser.",
+      "Read a public web page, RSS feed or JSON/text address: readable text plus the page's embedded data (structured data such as a job posting's date and salary, or app data), so script-built pages usually read fine. Up to 12,000 characters per call; pass offset to read on, or find to get only the passages around some words in a long page or JSON feed. One call per page; prefer a site's RSS or section page for headlines. Use this before any browser or screen. Public http(s) only, no sign-in: with neither text nor data it returns needsBrowser and next, which says how to open it in the built-in browser.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -29,6 +29,13 @@ export const WEB_TOOL_DEFINITIONS = [
           type: "integer",
           minimum: 0,
           description: "Character offset to continue from (the previous call's offset + text length).",
+        },
+        find: {
+          type: "string",
+          minLength: 2,
+          maxLength: 200,
+          description:
+            "Words to look for; returns only the passages around them (up to 20), not the whole page. Separate alternatives with ' | '.",
         },
       },
       required: ["url"],

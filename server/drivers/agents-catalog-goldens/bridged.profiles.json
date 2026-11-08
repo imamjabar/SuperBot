@@ -406,8 +406,8 @@
     ]
   },
   "skills+shared+voice+escalations+x+reports-back": {
-    "bytes": 18972,
-    "sha256": "fd22efaf505211a1fe6b3154ebbcde2b7bc873366182bebf6316679b81dae1f2",
+    "bytes": 19920,
+    "sha256": "9529a46b4e194f9ab42ebd61fbcd3b18d03782453e411c152ac311f76b7af444",
     "tools": [
       "tool_result_read",
       "list_room_targets",
@@ -416,6 +416,7 @@
       "list_rooms",
       "select_computer",
       "report_progress",
+      "job_notes",
       "attach_file",
       "publish_page",
       "post_to_room",

@@ -174,6 +174,39 @@
       }
     },
     {
+      "name": "job_notes",
+      "description": "Your notes table for this job, kept outside your memory: add one row per item you checked (for a job search: company, title, location, link, date, salary, visa, fit, reason) and read it back any time. In a long job, page text you read earlier can be dropped from your memory; these rows are not. When the job ends the whole table reaches the person's chat as a CSV file by itself, so your final answer gives the summary and the top items, not the full table.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "add": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            },
+            "description": "Rows to add, same keys for every row."
+          },
+          "read": {
+            "type": "boolean",
+            "description": "Return the row count, the columns and the last 30 rows."
+          },
+          "find": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Return up to 50 rows with a value containing these words."
+          }
+        }
+      }
+    },
+    {
       "name": "attach_file",
       "description": "Attach a finished file to the chat so the user can preview and download it: an image, video, audio clip, PDF, spreadsheet, slide deck or other document you made. Pass its path: a path inside your computer's /home/cua/workspace (for example /home/cua/workspace/report.pdf), or a file in your working folder. Do this instead of pasting a VM path as a link; a path inside a VM cannot be opened from chat. Supported: images (png, jpg, gif, webp), video (mp4, webm, mov), audio (mp3, m4a, aac, wav, ogg, opus, flac), pdf, Word/Excel/PowerPoint and OpenDocument files, and csv, tsv, txt, md, json, rtf. Up to 25 MB (images 10 MB). Finish writing the file first, then call this directly: it reports an error if the file is missing, so you do not need to list or open the folder to check.",
       "inputSchema": {

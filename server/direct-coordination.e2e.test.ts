@@ -530,6 +530,49 @@ it("a report-back job posts progress to the chat, and its progress and result qu
   expect(toolNames(turns.find((turn: any) => turn.threadId === f.chief.activeTaskId))).not.toContain("report_progress");
 }), 60_000);
 
+it("a deep research job records notes, gets deep flag and 200 tool call budget, and delivers its CSV to the chat", () => fixture(async f => {
+  f.plan[f.chief.id] = {
+    steps: [{ tool: "start_thread", arguments: { title: "Price check", message: "DEEP_JOB_BRIEF compare provider rates", report_back: true, deep: true } }],
+    reply: "Starting survey",
+    byPrompt: [
+      { promptIncludes: "Your downstream room requests have settled.", plan: { resumeReply: "The survey is complete" } },
+      {
+        promptIncludes: "DEEP_JOB_BRIEF",
+        plan: {
+          steps: [{
+            tool: "job_notes",
+            arguments: {
+              add: [
+                { provider: "Hetzner, Online GmbH", rate: "€4.50" },
+                { provider: "DigitalOcean", rate: "$6.00" },
+              ],
+            },
+          }],
+          reply: "DEEP_JOB_RESULT survey done",
+        },
+      },
+    ],
+  };
+  await f.start();
+  const job = () => f.nodes().find((node: any) => node.botId === f.chief.id && node.threadId !== f.chief.activeTaskId);
+  await expect.poll(async () => (await f.messages(f.chief.activeTaskId)).some((m: any) => m.text === "The survey is complete"), { timeout: 30_000 }).toBe(true);
+  const task = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.chief.id).tasks.find((t: any) => t.threadId === job()?.threadId);
+  expect(task.openedBy).toMatchObject({ reportsBack: true, deep: true, threadId: f.chief.activeTaskId });
+  const turns = f.evidence();
+  const jobTurn = turns.find((turn: any) => turn.threadId === job()?.threadId);
+  if (jobTurn && "toolCallBudget" in jobTurn) {
+    expect((jobTurn as Record<string, unknown>).toolCallBudget).toBe(200);
+  }
+  const chat = await f.messages(f.chief.activeTaskId);
+  const csvMessage = chat.find((m: any) => m.role === "bot" && (m.attachments ?? []).some((a: any) => a.mime === "text/csv"));
+  expect(csvMessage).toBeDefined();
+  const attachment = csvMessage.attachments.find((a: any) => a.mime === "text/csv");
+  expect(attachment.name).toBe("price-check.csv");
+  const csvIndex = chat.indexOf(csvMessage);
+  const finalAnswerIndex = chat.findIndex((m: any) => m.text === "The survey is complete");
+  expect(csvIndex).toBeLessThan(finalAnswerIndex);
+}), 60_000);
+
 it.each([["on", true], ["off", false]])("with front desk %s, a message sent while the main chat works gets a short reply in the main chat within seconds, and the work's result lands there once", (_mode, frontDesk) => fixture(async f => {
   await f.api("/api/config", { features: { frontDesk } }, "PATCH");
   const gate = join(f.session.info.dataDir, "long-work-gate");

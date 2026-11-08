@@ -409,6 +409,15 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (r.error) return { text: String(r.error), isError: true };
     return { text: "Posted to the person's chat. Carry on with the job; your final answer still goes back by itself." };
   }
+  if (name === "job_notes") {
+    const { add, read, find } = args;
+    if (add === undefined && read === undefined && find === undefined) {
+      return { text: "job_notes needs add (rows to add), read (true), or find (search text).", isError: true };
+    }
+    const r = await api("/api/internal/threads/notes", { method: "POST", body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, ...(add !== undefined ? { add } : {}), ...(read !== undefined ? { read } : {}), ...(find !== undefined ? { find } : {}) }) });
+    if (r.error) return { text: String(r.error), isError: true };
+    return { text: JSON.stringify(r) };
+  }
   if (name === "close_thread") {
     const threadId = String(args.thread_id ?? "").trim();
     if (!threadId) return { text: "close_thread needs the thread_id from list_threads or start_thread.", isError: true };
@@ -426,6 +435,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (toBotId) body.toBotId = toBotId;
     if (folder) body.folder = folder;
     if (args.report_back === true) body.reportBack = true;
+    if (args.deep === true) body.deep = true;
     if (typeof args.job === "string" && args.job.trim()) body.job = args.job.trim();
     if (args.model_selection !== undefined) {
       const fields = jsonRecord(args.model_selection) ? args.model_selection : null;

@@ -414,7 +414,7 @@ import { containerSeatStatus, containerStopSeat, openSeatViewerTunnel, startSeat
 import { SeatIdleRegistry } from "./local-vm-seat-idle.ts";
 import { LocalVmSeatPool, type LocalVmSeatHolder } from "./local-vm-seat-pool.ts";
 import { createLoopGuard, loopGuardSettings } from "./host/loop-guard.ts"; import { createPersonFirst } from "./host/person-first.ts";
-import { claudeUserSkillsEnabled, jobToolCallBudget, settingsTurnFields } from "./turn-settings.ts";
+import { claudeUserSkillsEnabled, DEEP_JOB_TOOL_CALLS, jobToolCallBudget, settingsTurnFields } from "./turn-settings.ts";
 import { addHeldSecretScrubber, redactSecretsInText, scrubHeldSecrets } from "./redact.ts";
 import * as vps from "./vps-computer.ts";
 import { vpsConfigForBot, vpsSshAliasForBot } from "./vps-hosts.ts";
@@ -615,7 +615,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { clearInternalTurn, isInternalTurn, markInternalTurn } from "./internal-turns.ts"; import { createFirstReplyRescue } from "./first-reply-rescue.ts";
 import { createReactionRoutes } from "./routes/reactions.ts";
 import { createReactions, withReactionNotes, type Reactor } from "./reactions.ts";
-import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_LANGUAGE_NOTE, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
+import { createPersonReplies } from "./person-replies.ts"; import { BUSY_REPLY_TIMEOUT_MS, createBusyReplies, type HandedTo } from "./host/busy-reply.ts"; import { FRONT_DESK_DROPPED_PARTS, FRONT_DESK_LANGUAGE_NOTE, FRONT_DESK_PROMPT, frontDeskScope, frontDeskTurn, steerOwnJob, type MainChat } from "./front-desk.ts"; import { createJobProgress } from "./job-progress.ts"; import { createJobNotes } from "./job-notes.ts"; import { logTiming } from "./timing-marks.ts"; import { resultDelivery } from "./result-delivery.ts";
 import { personKey, relayedPersonKey } from "./person-key.ts";
 import { createOutsideLineage, OUTSIDE_STAYS_HERE } from "./host/outside-lineage.ts"; import { createOutsideWrites } from "./host/outside-writes.ts";
 
@@ -3758,7 +3758,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
       if (parent.groupId ? !group || !store.groupTaskByThread(group.id, parent.threadId) : !store.taskByThread(parent.botId, parent.threadId)) return;
       const bot = store.bot(child.botId);
       if (store.messagesFor(parent.threadId).some(m => m.roomRequest?.id === child.id && m.roomRequest.phase === "result")) return;
-      const problem = roomHandoffProblem(child, parent); logTiming("job-done", Date.now() - (child.startedAt ?? child.createdAt), { bot: child.botId, job: child.id, status: child.status, queuedMs: child.startedAt !== undefined ? child.startedAt - child.createdAt : undefined });
+      const problem = roomHandoffProblem(child, parent); logTiming("job-done", Date.now() - (child.startedAt ?? child.createdAt), { bot: child.botId, job: child.id, status: child.status, queuedMs: child.startedAt !== undefined ? child.startedAt - child.createdAt : undefined }); const repTask = store.taskByThread(child.botId, child.threadId); if (repTask?.openedBy?.reportsBack) void jobNotes.deliver({ botId: child.botId, jobThreadId: child.threadId, parentThreadId: parent.threadId, title: repTask.title || child.text, requestMessageId: repTask.openedBy.requestMessageId });
       store.appendMessage(parent.threadId, {
         role: "bot", kind: "activity",
         roomRequest: { id: child.id, phase: "result", delivery: resultDelivery(child, problem) },
@@ -7175,7 +7175,7 @@ async function acceptDirectSend(
     },
   );
 }
-const jobProgress = createJobProgress(coordinator, store);
+const jobProgress = createJobProgress(coordinator, store), jobNotes = createJobNotes(store);
 const busyReplies = createBusyReplies({ store, write: (botId, prompt, signal) => sideJobs.text("busy-reply", botId)?.generateText(prompt, { signal, timeoutMs: BUSY_REPLY_TIMEOUT_MS }) });
 function answerWhileBusy(bot: { id: string; name: string }, threadId: string, text: string, handedTo: HandedTo, requestMessageId?: string): void {
   void busyReplies.reply({ botId: bot.id, botName: bot.name, threadId, text, handedTo, ...(requestMessageId ? { requestMessageId } : {}) })
@@ -8303,7 +8303,7 @@ async function beginTurn(
         mentionTurn: tagged.length > 0,
         integrations,
         ...(integrations.browser && browserIsThePlace(turnSurfacePlan(bot, undefined, threadId, true)) ? { preloadBrowserTools: true } : {}),
-        ...settingsTurnFields(cfg, DATA_DIR, managedPolicy.restrictsMcp()), ...(store.taskByThread(bot.id, threadId)?.openedBy ? { toolCallBudget: jobToolCallBudget() } : {}),
+        ...settingsTurnFields(cfg, DATA_DIR, managedPolicy.restrictsMcp()), ...(store.taskByThread(bot.id, threadId)?.openedBy ? { toolCallBudget: store.taskByThread(bot.id, threadId)!.openedBy!.deep ? DEEP_JOB_TOOL_CALLS : jobToolCallBudget() } : {}),
         cwd,
         ...(worksInWorkspace || guestConfined ? {} : { toolResultFolder: messageFileRootsForThread(bot.id, threadId).find((root) => root !== ATTACHMENTS_DIR) }),
         botSettingsFile: botSettingsFile(bot),
@@ -12828,7 +12828,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         store, coordinator, from: internalSender, fromThreadId: internalCapability.threadId,
         ownsThread: (botId, threadId) => Boolean(connectorThread(botId, threadId)),
         shown: (id) => !proactive.fence.confines(id) && !botApiThread(id),
-        threadBusy, queuedThreadPosition, queuedReason: queuedStatus, readBody: readInternalBody, postProgress: (text) => jobProgress.post(internalSender.id, internalCapability.threadId, text),
+        threadBusy, queuedThreadPosition, queuedReason: queuedStatus, readBody: readInternalBody, postProgress: (text) => jobProgress.post(internalSender.id, internalCapability.threadId, text), notes: (body) => jobNotes.handle(internalSender.id, internalCapability.threadId, body),
       }), createToolTimingRoute(usageTrace, internalCapability.threadId)], { req, res, url, path, method, auth, json, readBody })) return;
       if (method === "POST" && path === "/api/internal/attach-file") {
         const from = internalSender;
@@ -13373,7 +13373,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             if (lane?.created) createdThread = lane.threadId;
             if (lane) delegatedLevel.apply(internalSender, internalCapability.threadId, internalCapability.roomHandoffId ?? generation, recipient, lane.threadId);
             if (!room) {
-              const opened = { botId: internalSender.id, name: internalSender.name, threadId: address.threadId, at: Date.now(), ...(fresh && reply === "resume" && target.botId === internalSender.id ? { reportsBack: true as const, ...(directRequestOwners.get(address.threadId)?.generations.has(generation) && directRequestOwners.get(address.threadId)?.messageId ? { requestMessageId: directRequestOwners.get(address.threadId)!.messageId } : {}) } : {}) };
+              const opened = { botId: internalSender.id, name: internalSender.name, threadId: address.threadId, at: Date.now(), ...(fresh && reply === "resume" && target.botId === internalSender.id ? { reportsBack: true as const, ...(call.deep ? { deep: true as const } : {}), ...(directRequestOwners.get(address.threadId)?.generations.has(generation) && directRequestOwners.get(address.threadId)?.messageId ? { requestMessageId: directRequestOwners.get(address.threadId)!.messageId } : {}) } : {}) };
               const task = continued ?? (fresh
                 ? store.createTask(target.botId, call.title ?? (call.message.replace(/\s+/g, " ").trim().slice(0, 60) || `From ${internalSender.name}`), false, call.projectId, opened, undefined, undefined, folder.cwd)
                 : store.createTask(target.botId, `@${internalSender.name} · work`, false, undefined, { ...opened, kind: "work" }, undefined, undefined, folder.cwd));
@@ -13386,7 +13386,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             outsideLineage.carry(address.threadId, routed.threadId);
             const { node, duplicate } = coordinator.enqueue(address, generation, internalCapability.roomHandoffId, routed, call.message, {
               mode, reply, thread: lane || fresh ? "new" : "standing", approvalGranted, rework: call.rework, ...(lane ? {} : { requestBatchKey }),
-              ...(call.doneWhen ? { doneWhen: call.doneWhen } : {}),
+              ...(call.doneWhen ? { doneWhen: call.doneWhen } : {}), ...(call.deep ? { deep: call.deep } : {}),
             });
             usageTrace.link(node.id, node.parentId, { threadId: internalCapability.threadId, turnId: liveTurnByThread.get(internalCapability.threadId) ?? "" }); if (!duplicate) actingPeople.handOn(internalCapability, node);
             if (duplicate && createdThread) store.deleteTask(target.botId, createdThread);
@@ -13755,7 +13755,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
             ...outcome,
           });
         }
-        const result = await coordinateBots({ botIds: [target.id], message, rework: false, thread: "new", reply: "resume", consult: false, title, projectId });
+        const result = await coordinateBots({ botIds: [target.id], message, rework: false, thread: "new", reply: "resume", consult: false, title, projectId, deep: Boolean(body.deep) });
         return json(res, result.status, result.body);
       }
       if (method === "POST" && path === "/api/internal/create-bot") {

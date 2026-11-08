@@ -21,6 +21,7 @@ export type CoordinateBotsCall = {
   projectId?: string;
   /** The assignment whose question the message answers, instead of new work. */
   answers?: string;
+  deep?: boolean;
 };
 
 export type { LegacyThreadResolver };
@@ -105,6 +106,7 @@ export interface HandoffOptions {
   rework?: boolean;
   requestBatchKey?: string;
   doneWhen?: string;
+  deep?: boolean;
 }
 
 export type RoomAddress = Pick<HandoffView, "groupId" | "threadId" | "botId">;
