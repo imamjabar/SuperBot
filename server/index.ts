@@ -5172,7 +5172,7 @@ bus.subscribe((event: RuntimeEvent) => {
     const tools = messages
       .filter((message) => message.kind === "activity" && message.turnId === event.turnId && message.tool?.name)
       .map((message) => message.tool!.name);
-    const line = turnOutcomeLine({ ok: event.ok, reply: reply?.text, stopReason: turnStops.failureCause(event), tools });
+    const line = turnOutcomeLine({ ok: event.ok, reply: reply?.text, stopReason: turnStops.failureCause(event), tools, outward: event.ok ? [] : outwardActions(messages.filter((message) => message.turnId === event.turnId)) });
     if (!line) return;
     // A room fewer people can see than this bot leaves no line: session_search would hand it to anyone who sees the bot.
     const room = store.groupByThread(event.threadId);
