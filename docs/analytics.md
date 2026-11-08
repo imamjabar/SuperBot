@@ -28,7 +28,7 @@ your events. A switch turned off only in the page's storage, before the app kept
 the app serves its page on that port again, which moves it to the app; while the app has kept no choice yet, its page on
 a port other than its first ties no email to your events. Each server page (your MausBot Cloud, a self-hosted server,
 each browser you use) keeps its own switch in that page's storage. With the switch off in the desktop app, a server page
-that the app's window shows, My Cloud's included, starts with it off too once that server runs this version; turning it
+that the app's window shows starts with it off too once that server runs this version; turning it
 on there lasts until that page reloads. In a browser, switch it off on each server's page.
 
 ## Never sent
@@ -53,10 +53,9 @@ Properties are counts, `true` or `false`, or words from fixed lists in the app's
 | Engine | `claude`, `codex`, `gemini`, `cursor`, `opencode`, `qwen`, `hermes`, `cline`, `custom_acp`, `pi`, `openai_compat`, `grok`, `grok_api`, `kimi`, `droid`, `antigravity`, `minimax`, `mistral`, `cerebras`, `groq`, `greenference`, `meta`, `muse_code`, `deepseek`, `copilot` |
 | App | The 24 apps Connected apps lists by default: `slack`, `github`, `gmail`, `googlecalendar`, `googlesheets`, `googledocs`, `googledrive`, `notion`, `linear`, `sentry`, `posthog`, `discord`, `twitter`, `reddit`, `zapier`, `hubspot`, `salesforce`, `jira`, `asana`, `trello`, `dropbox`, `airtable`, `figma`, `stripe`. Every other app is `other`. |
 | Starting role | `assistant`, `inbox`, `research`, `coder`, `community`, `ops` |
-| Cloud plan | `starter`, `personal`, `pro`, `max` |
 
 An engine is named by the kind of engine it is, never by the account or endpoint it runs on: two Claude accounts both
-report `claude`. A page that may not list the engines (a member's, a Cloud guest's or a paired device's) names the
+report `claude`. A page that may not list the engines (a member's or a paired device's) names the
 engines the app ships with, and any engine account added later as `other`.
 
 ## The daily snapshot
@@ -64,21 +63,19 @@ engines the app ships with, and any engine account added later as `other`.
 `app_snapshot` is one count of what is set up, sent at most once a day. It answers questions such as how many people
 use their own Boat key, and how many bots run on cloud computers, without sending what anything is called.
 
-- Only the owner or an admin sends it. A member, a device paired without admin access and a Cloud guest never do.
+- Only the owner or an admin sends it. A member and a device paired without admin access never do.
 - The app checks once it has loaded, then every hour, and sends at most once per UTC day for each app page.
 - It counts what the app has already loaded. It also asks, once: this server for its signed-in devices (counted, never
-  listed) and its connected-app inventory; on the desktop app, the app itself for the number of paired phones and the
-  Cloud plan; and, when a Boat account is set, this server for the number of cloud computers. To answer that, the server
-  lists the computers once at boat.dev with your Boat key, or at MausBot Cloud's relay for computers included with a
-  plan. That listing only reads: it never changes a computer.
+  listed) and its connected-app inventory; on the desktop app, the app itself for the number of paired phones; and,
+  when a Boat account is set, this server for the number of cloud computers. That listing only reads: it never changes a computer.
 - When a source fails, its properties are left out and the rest is sent.
 
 | Property | Type | Meaning |
 | --- | --- | --- |
-| `key_providers` | list of key providers | Providers with your own key saved: the model providers and an OpenAI-compatible key when set; `boat` for your own Boat key (not one included with a plan); `composio` for a self-hosted Composio project; `opencode_go`; `elevenlabs` or `fish_audio` for your own voice key; `jev` or `openrouter_decider` for your own decision-model key; `openai_image` or `custom_image` for your own avatar-image key (an xAI key counts once, as `xai`); `openai_live` for a separate Live call key |
+| `key_providers` | list of key providers | Providers with your own key saved: the model providers and an OpenAI-compatible key when set; `boat` for your own Boat key; `composio` for a self-hosted Composio project; `opencode_go`; `elevenlabs` or `fish_audio` for your own voice key; `jev` or `openrouter_decider` for your own decision-model key; `openai_image` or `custom_image` for your own avatar-image key (an xAI key counts once, as `xai`); `openai_live` for a separate Live call key |
 | `key_count` | count | How many entries `key_providers` has |
 | `has_boat_key` | true/false | Your own Boat key is saved |
-| `cloud_computer_source` | `own_key`, `included`, `none` | Where cloud computers come from: your own Boat key (it wins when both exist), a Cloud plan, or nowhere |
+| `cloud_computer_source` | `own_key`, `none` | Where cloud computers come from: your own Boat key, or nowhere |
 | `cloud_computers` | count | Cloud computers this install manages for bots and team computers; `0` without a Boat account; left out while the Boat account is changing or when the provider could not be read |
 | `team_computers` | count | Team computers |
 | `bots` | count | Bots, not counting archived ones (no bot count below includes them) |
@@ -94,24 +91,18 @@ use their own Boat key, and how many bots run on cloud computers, without sendin
 | `engines` | list of engines | Engines that are ready to use, each named once |
 | `engine_count` | count | Ready engine accounts and endpoints |
 | `custom_endpoints` | count | OpenAI-compatible servers you added |
-| `trial_credit` | `active`, `used_up`, `ended`, `none` | The Cloud trial's Claude credit |
 | `apps` | list of apps | Connected apps with a working account; left out when the inventory could not be read |
 | `apps_connected` | count | Connected apps with a working account |
 | `connectors_mode` | `managed`, `self_hosted`, `unavailable` | How connected apps are provided |
 | `local_vm_mode` | `shared`, `per_bot`, `pool` | Local VM isolation |
 | `vps_configured` | true/false | A VPS is set up |
 | `voice` | `elevenlabs`, `fish`, `system`, `chatterbox`, `xai`, `none` | The voice provider in use |
-| `voice_included` | true/false | The voice comes with a Cloud plan |
 | `decider` | `jev`, `openrouter`, `off` | The decision model |
-| `decider_included` | true/false | The decision model comes with a Cloud plan |
 | `live_calls` | true/false | Live calls are set up |
 | `phones_paired` | count | Phones paired with the desktop app (desktop app only) |
 | `paired_devices` | count | Devices signed in to this server without an email, other than this one |
 | `phone_paired` | true/false | Either count above is more than zero |
 | `members` | count | People signed in to this server with an email, other than you |
-| `cloud_home` | true/false | This server is a MausBot Cloud |
-| `cloud_plan` | `starter`, `personal`, `pro`, `max`, `other`, `none`, `unknown` | The Cloud plan: `none` when free or signed out, `unknown` when the app cannot tell |
-| `cloud_trial` | true/false | A Cloud trial is running |
 | `edition` | `oss`, `enterprise` | The edition |
 | `org_managed` | true/false | An organisation manages this desktop |
 | `onboarded` | true/false | The first-run tour was finished |
@@ -129,7 +120,6 @@ use their own Boat key, and how many bots run on cloud computers, without sendin
 | `onboarding_step` | A first-run screen is shown | `step`: `meet`, `chief`; `replay`: true/false |
 | `onboarding_completed` | The first run ends in the chat | `reason`: `completed`; `at`: the screen it ended on; `replay`: true/false |
 | `setup_import_applied` | You bring in the skills and MCP servers found from other AI tools on this computer, in Settings → Import | `skills`, `tools`: how many were added. Never their names or where they came from |
-| `onboarding_cloud` | You tap Try Cloud under MausBot's first messages, which opens Add a Cloud | `action`: `start_trial` |
 | `message_sent` | You send a message | To a bot: `driver`: engine; `queued`: true/false. To a room: `room`: true; `mode`: `chat`, `goal`; `queued`: true/false |
 | `call_started` | You start a call with a bot | `driver`: engine; `mode`: `turns`, `live` |
 | `group_call_started` | You start a call with a room | `memberCount`: count |
@@ -143,22 +133,9 @@ use their own Boat key, and how many bots run on cloud computers, without sendin
 | `engine_signed_in` | You finish signing in to an engine inside the app | `engine`: `claude`, `codex`, `grok`, `kimi`; `method`: `code`, `device_code`, `browser` |
 | `connector_connect` | A Connect you started in Connected apps ends | `app`: app; `result`: `connected` (the account it added works), `failed` or `expired` (that account failed or expired), `timed_out` (neither within two minutes) |
 | `app_snapshot` | Once a day, as described above | The properties in the snapshot table |
-| `cloud_howto` | The "Show me how" tip ends | `result`: `no_button`, `skipped`, `closed` |
-| `cloud_dialog_shown` | The Add a Cloud dialog opens | `source`: `app_card`, `app_howto`, `app_menu`, `app_settings`, `app_routines`, `app_whats_new_pro` (Get Pro in the What's new popup), `app_whats_new_team` (Start a Team in it, for someone with a plan of their own), `app_onboarding` (Try Cloud under MausBot's first messages); `view`: the dialog's first screen |
-| `cloud_dialog_view` | The Add a Cloud dialog reaches a step | `view`: `received`, `starting`, `ready` |
-| `cloud_signin` | Signing in to MausBot Cloud inside the Add a Cloud dialog takes a step | `step`: `code_sent` (a sign-in code was emailed), `signed_in`, `browser` (Continue in browser); `source`: as for `cloud_dialog_shown` |
-| `cloud_checkout_opened` | A Cloud checkout opens in the browser | `plan`: Cloud plan; `trial`: true/false; `source`: as for `cloud_dialog_shown` |
-| `cloud_add_another` | Buying another Cloud, for someone who has one, takes a step | `step`: `plan` (a plan chosen), `checkout_opened`, `ready`; `plan`: Cloud plan, for `plan` and `checkout_opened` |
-| `rail_place_opened` | You open a place from the rail of Clouds at the window's left edge | `kind`: `computer`, `cloud`, `team`, `server` |
-| `rail_add` | You use the rail's ＋ | `step`: `opened` (its sheet opened), `cloud` (Buy a Cloud, on this computer's own sheet), `link` (Paste pairing link), `address` (Enter its address instead), `organization` (a new organization added on the Team plan) |
-| `cloud_setup_started` | A new Cloud starts its first job | none |
-| `cloud_intent_submitted` | You tell a new Cloud what to do first | `idea`: `digest`, `watch`, `research`, `plan`, or none for your own words; `edited`: true/false |
-| `cloud_intent_skipped` | You skip that question | none |
-| `cloud_welcome_step` | A step of a new Cloud's welcome is shown | `step`: `bring`, `engine`, `files`, `done` |
-| `cloud_welcome_ended` | A new Cloud's welcome ends | `reason`: `done`, `skipped`; `at`: the step it ended on |
 | `simple_mode_prompt` | The Simple mode popup, shown once in each browser after an update when nothing else is on screen, is shown, its Simple mode switch is flipped, or it is closed (Done, the X, Escape or a click outside) | `action`: `shown`, `toggled`, `closed`; `mode`: `simple`, `advanced`, the mode it was shown or closed in, or the one a flip turned on |
 | `grok_move_popup` | The one-time Move from Grok Bot popup is shown or you act on it | `action`: `shown`, `start`, `not_now`, `close` |
-| `two_places_card` | You act on the card that says your bots live in two places (this computer and a server of your own, or My Cloud) | `action`: `bring`, `not_now`; `kind`: `server`, `cloud`, the place it offered |
+| `two_places_card` | You act on the card that says your bots live in two places (this computer and a server of your own) | `action`: `bring`, `not_now`; `kind`: `server` |
 
 `api_key_saved` reports `ok` for a key the server checks with its provider before saving it (Boat, Composio,
 ElevenLabs, Fish Audio), and for a model provider key whose test passed right after saving. A key nothing checks before

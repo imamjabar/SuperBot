@@ -494,7 +494,7 @@ export async function runAccess(options: CliOptions, io: CliIo = defaultIo()): P
   const write = async (next: { admins: string[]; members: string[] }) => {
     mkdirSync(options.dataDir, { recursive: true, mode: 0o700 });
     writeFileAtomic(file, `${JSON.stringify({ ...raw, signIn: next }, null, 2)}\n`, { mode: 0o600 });
-    if (!sharedSignIn({ admins, members }) && !sharedSignIn(next) && !hostedWorkspaceConfigured()) return;
+    if (!sharedSignIn({ admins, members }) && !sharedSignIn(next)) return;
     const decisions = raw.decisions && typeof raw.decisions === "object" ? (raw.decisions as { retentionDays?: unknown }).retentionDays : undefined;
     bindDecisionRetention(() => decisionRetentionDays(typeof decisions === "number" ? decisions : undefined));
     const changed = (["admins", "members"] as const).filter((key) => next[key].join(",") !== (key === "admins" ? admins : members).join(","));

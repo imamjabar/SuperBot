@@ -5,7 +5,6 @@ import { introChips, introStaged, stageIntro, useWelcomingBot } from "@/lib/defa
 import { activeLocale, t } from "@/lib/i18n";
 import { detectSetupWithin, localSetupImport, setupImportApi } from "@/lib/setup-import";
 import { api, useStore, type Bot, type InstanceInfo, type Message } from "@/state/store";
-import { useTeamPeople, type TeamPeople } from "@/state/team-people";
 import { freeFallback } from "../../shared/ai-ranking";
 import { greetingName } from "../../shared/greeting-name";
 import { followupText, type HelperFollowupFacts } from "../../shared/helper-followup";
@@ -40,10 +39,6 @@ export function followupLine(facts: HelperFollowupFacts): string {
   return followupText(facts, (key, params) => t(key, params), (items) => new Intl.ListFormat(activeLocale(), { style: "long", type: "conjunction" }).format(items));
 }
 
-/** Who a User reads connects the AI, once the team's people are known; nothing for someone who can connect one themselves. */
-export function whoConnectsAi(team: Pick<TeamPeople, "people" | "admin"> | null): string | undefined {
-  return team && !team.admin ? team.people.find((person) => person.role === "owner")?.name ?? "" : undefined;
-}
 
 function thinksWith(bot: Bot | undefined, instances: readonly InstanceInfo[]): HelperFollowupFacts["ai"] {
   const works = (instance: InstanceInfo) => engineReady(instance) && !freeFallback(instance);
@@ -69,7 +64,7 @@ function useLookAround(deep: boolean): Look {
         .map(([slug]) => cards.get(slug)?.label ?? slug))
       .catch(() => null);
     const phones = api<{ phones?: unknown[] }>("/api/phones").then((response) => (response.phones?.length ?? 0) > 0).catch(() => undefined);
-    const look = deep && localSetupImport(false) ? detectSetupWithin(setupImportApi) : null;
+    const look = deep && localSetupImport() ? detectSetupWithin(setupImportApi) : null;
     const timer = setTimeout(() => { if (active) setFound((now) => ({ ...now, settled: true })); }, LOOK_MS);
     void Promise.all([apps, phones, look?.found ?? null]).then(([appNames, phonePaired, detection]) => {
       if (active) setFound({ apps: appNames, phonePaired, importFound: Boolean(detection), settled: true });
@@ -120,12 +115,12 @@ export function SimpleHelperIntro({ botId, threadId, message, answered, followup
   const welcoming = useWelcomingBot();
   const hidden = welcoming === botId;
   const bot = state.bots.find((candidate) => candidate.id === botId);
-  const team = bot?.defaultBot?.person ? state.config?.team?.name : undefined;
+  const team = undefined;
   const person = greetingName(state.config?.profile?.name) || undefined;
   const lines = introLines({ name: bot?.name ?? "MausBot", chief: Boolean(bot?.chiefOfStaff), person, team });
   const look = useLookAround(!answered);
   const ai = thinksWith(bot, state.instances);
-  const connects = whoConnectsAi(useTeamPeople());
+  const connects = undefined;
 
   // A first run's intro plays once: it asks for the follow-up, which then stays in the conversation.
   const [first, setFirst] = useState(false);
@@ -160,8 +155,6 @@ export function SimpleHelperIntro({ botId, threadId, message, answered, followup
   const chips = answered || shown < ALL || !facts ? [] : introChips({
     aiReady: ai === "own",
     ownBots: state.bots.filter((candidate) => !candidate.hidden && !candidate.defaultBot).length,
-    onCloud: state.config?.cloudHome === true,
-    team: Boolean(state.config?.team),
     remote: typeof window !== "undefined" && window.ogb?.remoteClient?.active === true,
     appsConnected: Boolean(look.apps?.length),
     phonePaired: look.phonePaired,

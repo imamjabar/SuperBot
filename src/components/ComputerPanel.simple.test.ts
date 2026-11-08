@@ -23,7 +23,7 @@ const fixture = vi.hoisted(() => {
     index: 0,
     own: 0,
     seed: {} as Record<string, unknown>,
-    config: {} as FeatureFlagConfig & { cloudHome?: boolean; box?: { configured: boolean; last4?: string } },
+    config: {} as FeatureFlagConfig & { box?: { configured: boolean; last4?: string } },
     instances: [] as InstanceInfo[],
     android: false,
     dispatch: (() => {}) as (...args: unknown[]) => void,
@@ -378,11 +378,6 @@ describe("Where the bot works", () => {
   it("leaves This Mac out on another server's page, where this computer can never be a bot's place", () => {
     fixture.localComputer = { available: false, support: "unsupported", enabled: false, status: "unavailable", reasonCode: "remote-server" };
     expect(grid(render(makeBot())).map((node) => text(node.props.children))).toEqual(["Auto", "Cloud desktop", "Private desktop", "Browser", "Off"]);
-  });
-
-  it("says what Auto does on My Cloud, where it starts a cloud computer by itself", () => {
-    fixture.config = { ...fixture.config, cloudHome: true };
-    expect(placeLine(render(makeBot()))).toBe("Uses the built-in browser. In a chat, it starts its cloud desktop by itself when a task needs desktop apps.");
   });
 
   it("J11: the Advanced cards and the Simple grid name the same problem in the same words", () => {

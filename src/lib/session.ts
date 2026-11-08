@@ -3,26 +3,23 @@ export interface EnvironmentDescriptor {
   label: string;
   platform: string;
   version: string;
-  capabilities: { remoteSessions: true; selfUpdate: "desktop-managed" | "operator"; emailSignIn?: boolean; sharedComputers?: true; cloudHome?: true; cloudTeam?: true };
+  capabilities: { remoteSessions: true; selfUpdate: "desktop-managed" | "operator"; emailSignIn?: boolean };
 }
-
-/** A Team Cloud's session: the team and this person's role in it (owner, admin or member). */
-export interface TeamSession { id: string; name: string; role: string }
 
 export type SessionState =
   | { kind: "loopback"; trust?: "service" }
-  | { kind: "session"; id: string; label: string; email?: string; scopes: string[]; expiresAt: number; cloudGuest?: true; openedThreads?: string[]; reactor?: string; team?: TeamSession }
+  | { kind: "session"; id: string; label: string; email?: string; scopes: string[]; expiresAt: number; reactor?: string }
   | { kind: "unauthenticated"; error: string }
   | { kind: "unreachable"; error: string };
 
 type SessionProfile = { name?: string; email?: string; avatarUrl?: string };
 
-/** The sidebar's "you". The configured profile is the owner's: an admin (the owner on a My Cloud) keeps it, and a Team
- * Cloud already sends each person their own. Anyone else sees their own email, never the owner's name or picture. */
+/** The sidebar's "you". The configured profile is the owner's: an admin keeps it. Anyone else sees their own email,
+ * never the owner's name or picture. */
 export function profileForSession(profile: SessionProfile | undefined, sessionState: SessionState | null): SessionProfile | undefined {
   if (!sessionState) return undefined;
   if (sessionState.kind !== "session") return sessionState.kind === "loopback" ? profile : undefined;
-  if (sessionState.team || sessionState.scopes.includes("admin")) return profile;
+  if (sessionState.scopes.includes("admin")) return profile;
   const email = sessionState.email;
   if (!email?.trim()) return undefined;
   return profile?.email?.trim().toLowerCase() === email.trim().toLowerCase() ? profile : { email };
@@ -50,19 +47,9 @@ export async function readSessionState(fetchImpl: typeof fetch = fetch): Promise
       scopes: Array.isArray(record.scopes) ? record.scopes.filter((s): s is string => typeof s === "string") : [],
       expiresAt: typeof record.expiresAt === "number" ? record.expiresAt : 0,
       ...(typeof record.reactor === "string" ? { reactor: record.reactor } : {}),
-      ...(teamSessionOf(record.team) ? { team: teamSessionOf(record.team)!, openedThreads: Array.isArray(record.openedThreads) ? record.openedThreads.filter((id): id is string => typeof id === "string") : [] } : {}),
-      ...(record.cloudGuest === true ? {
-        cloudGuest: true as const,
-        openedThreads: Array.isArray(record.openedThreads) ? record.openedThreads.filter((id): id is string => typeof id === "string") : [],
-      } : {}),
     };
   }
   return record.trust === "service" ? { kind: "loopback", trust: "service" } : { kind: "loopback" };
-}
-
-function teamSessionOf(value: unknown): TeamSession | null {
-  const team = Object(value) as { id?: unknown; name?: unknown; role?: unknown };
-  return typeof team.id === "string" && typeof team.name === "string" && typeof team.role === "string" ? { id: team.id, name: team.name, role: team.role } : null;
 }
 
 export const SERVICE_TRUST_REASON = "This server does not treat this computer as its owner. Sign in or pair this browser to continue.";
@@ -82,16 +69,6 @@ export function takePairingCodeFromLocation(): string | null {
   history.replaceState(null, "", location.pathname + location.search);
   return decodeURIComponent(m[1]);
 }
-
-/** A single-use sign-in credential: taken off the address bar and out of history before anything renders, never shown. */
-export function takeBrowserSignInFromLocation(): string | null {
-  if (!/[#&]signin=/.test(location.hash)) return null;
-  const m = /[#&]signin=(omb_pair_[A-Za-z0-9_-]{43})(?:&|$)/.exec(location.hash);
-  history.replaceState(null, "", location.pathname + location.search);
-  return m ? m[1] : null;
-}
-
-export const BROWSER_SIGN_IN_FAILED = "This sign-in link has expired or was already used. On My Cloud, choose “Use in your browser” again.";
 
 /** Never trusted on its own; the one-time code still goes to the address itself. */
 export function takeInvitedEmailFromLocation(): string | null {
@@ -116,7 +93,7 @@ export function newAttemptId(): string {
 }
 
 export async function pairWithCode(
-  input: { code: string; label: string; attemptId?: string; browser?: boolean },
+  input: { code: string; label: string; attemptId?: string },
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   let res: Response;
@@ -125,7 +102,7 @@ export async function pairWithCode(
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code: input.code, label: input.label, cookie: true, attemptId: input.attemptId ?? newAttemptId(), ...(input.browser ? { browser: true } : {}) }),
+      body: JSON.stringify({ code: input.code, label: input.label, cookie: true, attemptId: input.attemptId ?? newAttemptId() }),
     });
   } catch (error) {
     return { ok: false, error: `could not reach the server (${error instanceof Error ? error.message : String(error)})` };
@@ -134,30 +111,6 @@ export async function pairWithCode(
   if (res.ok) return { ok: true };
   const error = Reflect.get(Object(body), "error");
   return { ok: false, error: typeof error === "string" ? error : `${res.status} ${res.statusText}` };
-}
-
-export async function previewBrowserSignIn(credential: string, fetchImpl: typeof fetch = fetch): Promise<{ owner: string } | null> {
-  try {
-    const res = await fetchImpl("/api/auth/pair", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code: credential, browser: true, preview: true }),
-    });
-    const owner: unknown = Reflect.get(Object(await res.json().catch(() => ({}))), "owner");
-    return res.ok && typeof owner === "string" && owner ? { owner } : null;
-  } catch {
-    return null;
-  }
-}
-
-export function signInWithBrowserGrant(credential: string, attemptId: string, fetchImpl: typeof fetch = fetch): Promise<{ ok: true } | { ok: false; error: string }> {
-  return pairWithCode({ code: credential, label: defaultDeviceLabel(), attemptId, browser: true }, fetchImpl);
-}
-
-export function cloudOwnerOf(session: unknown): string | null {
-  const record = Object(session) as { cloudHome?: unknown; owner?: unknown };
-  return record.cloudHome === true && typeof record.owner === "string" && record.owner ? record.owner : null;
 }
 
 async function postAuth(path: string, body: Record<string, unknown>, fetchImpl: typeof fetch): Promise<{ ok: true } | { ok: false; error: string }> {

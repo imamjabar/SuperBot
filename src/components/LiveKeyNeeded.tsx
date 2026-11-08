@@ -25,7 +25,7 @@ export function LiveKeyNeeded() {
     {azure && <DismissWhenReady ready={live?.configured === true} />}
     {keyForm && <LiveKeySetup compact onSaved={() => {}} />}
     {!azure && <button type="button" className="ui-button ui-button-primary self-start" onClick={() => { dismissLiveNotice(); dispatch(openKeySettings("openai", "liveCalls")); }}>{t("call.live.openApiKeys")}</button>}
-    <p className="text-[12px] leading-[1.45] text-ink-tertiary">{!keyForm && `${liveDisclosure({ cloudHome: state.config?.cloudHome === true, azure })} `}{t(azure ? "call.live.azureCost" : "call.live.cost")}</p>
+    <p className="text-[12px] leading-[1.45] text-ink-tertiary">{!keyForm && `${liveDisclosure({ azure })} `}{t(azure ? "call.live.azureCost" : "call.live.cost")}</p>
   </section>;
 }
 

@@ -9,7 +9,6 @@ import { finalizeBrowserCleanupMutation, requireBrowserCleanupAcknowledged } fro
 import type { BrowserLive } from "../browser-live.ts";
 import type { BrowserRuntime } from "../browser-runtime.ts";
 import { boatAccountResourceChangeError, vpsAliasResourceChangeError } from "../cloud-backend.ts";
-import { CLOUD_PERSONAL_REFUSAL } from "../cloud-owner.ts";
 import * as composio from "../composio.ts";
 import {
   browserProfilePartitionTarget,
@@ -71,7 +70,6 @@ export interface ConfigRouteDeps {
   sharedComputers: Pick<SharedComputers, "close">;
   sharedComputerControl: Pick<SharedComputerControl, "close">;
   hostedModels: boolean;
-  cloudHome: boolean;
   lendingEnabled(): boolean;
   providerConfigs(): InstanceConfigMap;
   localVmIdleMs(): number;
@@ -106,7 +104,7 @@ export interface ConfigRouteDeps {
 export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
   const {
     store, cfg, registry, sessions, browserCleanup, browserLive, browserRuntime, usedBrowserSessions, decider,
-    closeBrowser, browserEngineSwitched, sharedComputers, sharedComputerControl, hostedModels, cloudHome: CLOUD_HOME, lendingEnabled, providerConfigs,
+    closeBrowser, browserEngineSwitched, sharedComputers, sharedComputerControl, hostedModels, lendingEnabled, providerConfigs,
     localVmIdleMs, localVmIdles, localVmActiveThreads, localVmLifecycleBusy, localVmImageBusy, localVmModeChangeBusy,
     providerConfigBusy, computerProviderConfigTransitions, managedBoatOwners, providerOperationConflict,
     perBotLocalVmCountForModeChange, checkedModelSelection, policyModelRefusal, browserSessionSpec, configStatus,
@@ -130,9 +128,6 @@ export function createConfigRoutes(deps: ConfigRouteDeps): RouteHandler {
           broadcast({ kind: "config", ...configStatus() });
           return json(res, 200, configForAccess(configStatus(), auth));
         }
-      }
-      if (CLOUD_HOME && (patch.signIn?.admins?.length || patch.signIn?.members?.length)) {
-        return json(res, 403, { error: CLOUD_PERSONAL_REFUSAL, code: "cloud_personal" });
       }
       if (patch.newBotDefaults) {
         if (patch.newBotDefaults.profile.modelSelection) {

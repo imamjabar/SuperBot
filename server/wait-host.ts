@@ -12,17 +12,16 @@ export interface WaitHostDeps {
   wrote(bot: BotRecord, threadId: string): void;
   notify(notification: Notification | null): void;
   enqueue(input: Parameters<RoutineManager["enqueueWebhook"]>[0]): { id: string };
-  cloudHome: boolean;
+
   now?: () => number;
 }
 
-/** The chat a wait's follow-up run works in: the one it was asked in, never on a Cloud home or in a room. */
+/** The chat a wait's follow-up run works in: the one it was asked in, never in a room. */
 export function waitRunChat(
   run: Pick<RoutineRun, "botId" | "resultsThreadId">,
   directChat: (botId: string, threadId: string) => boolean,
-  cloudHome: boolean,
 ): string | null {
-  if (cloudHome || !run.resultsThreadId) return null;
+  if (!run.resultsThreadId) return null;
   return directChat(run.botId, run.resultsThreadId) ? run.resultsThreadId : null;
 }
 
@@ -78,7 +77,7 @@ export function createWaitHost(deps: WaitHostDeps): Pick<WaitManagerOptions, "so
         deliveryId: wait.id,
         receivedAt: now(),
         eventSource: "wait",
-        ...(deps.cloudHome ? {} : { resultsThreadId: wait.threadId }),
+        resultsThreadId: wait.threadId,
       });
     },
     showCard(wait) {

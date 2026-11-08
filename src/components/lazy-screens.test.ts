@@ -155,7 +155,7 @@ describe("preloadScreens", () => {
   it("a page on this machine fetches nothing ahead: each screen loads when it opens", () => {
     vi.useFakeTimers();
     const preloads = stubPreloads();
-    expect(preloads.length).toBe(19);
+    expect(preloads.length).toBe(18);
     for (const host of ["127.0.0.1", "localhost", "[::1]"]) preloadScreens(host);
     vi.runAllTimers();
     for (const preload of preloads) expect(preload).not.toHaveBeenCalled();
@@ -269,10 +269,9 @@ describe("launch bundle", () => {
     expect(reached.has("lib/team-import.ts"), "the team library brings the YAML parser in").toBe(false);
   });
 
-  it("the sign-in and home pages leave the app out", () => {
+  it("the sign-in page leaves the app out", () => {
     const page = launchModules("main.tsx");
     expect(page.has("pair/PairPage.tsx")).toBe(true);
-    expect(page.has("components/HomeScreen.tsx")).toBe(true);
     expect(["App.tsx", "state/store.tsx", "components/Sidebar.tsx", "components/ChatView.tsx"].filter((file) => page.has(file))).toEqual([]);
   });
 

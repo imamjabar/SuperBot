@@ -6,7 +6,7 @@ import type { InstanceConfigMap, ProviderSnapshot } from "./contracts.ts";
 import { audienceHome } from "./engine-homes/layout.ts";
 import { accountReadableFrom, engineLimitsFor, type EngineLimitInstance } from "./engine-limits.ts";
 import type { PlanProviderRow, PlanUsageReport } from "./plan-usage.ts";
-import { createEngineLimitsRoutes, ENGINE_LIMITS_GUEST } from "./routes/engine-limits.ts";
+import { createEngineLimitsRoutes } from "./routes/engine-limits.ts";
 import { PASS } from "./routes/table.ts";
 
 const DATA = "/data";
@@ -119,7 +119,7 @@ describe("a Team Cloud's audience rule", () => {
 describe("the internal route", () => {
   const route = (over: Partial<Parameters<typeof createEngineLimitsRoutes>[0]> = {}) => {
     const load = vi.fn(async () => report(row("claude")));
-    const deps = { instances: () => [instance("claude")], configs: () => ({ claude: { driver: "claudeAgent" } }) as InstanceConfigMap, status: () => ready, load, audienceOf: () => TEAM_AUDIENCE, guestDriven: () => false, dataDir: DATA, ...over };
+    const deps = { instances: () => [instance("claude")], configs: () => ({ claude: { driver: "claudeAgent" } }) as InstanceConfigMap, status: () => ready, load, dataDir: DATA, ...over };
     return { load, run: createEngineLimitsRoutes(deps) };
   };
   const call = async (run: ReturnType<typeof route>["run"], method = "GET", path = "/api/internal/engine-limits") => {
@@ -134,14 +134,6 @@ describe("the internal route", () => {
     expect(status).toBe(200);
     expect(JSON.parse(body!.text!).accounts[0]).toMatchObject({ account: "Claude", status: "ok" });
     expect(load).toHaveBeenCalledWith([expect.objectContaining({ id: "claude", driver: "claude" })]);
-  });
-
-  it("refuses a turn someone else started, without reading anything", async () => {
-    const { run, load } = route({ guestDriven: () => true });
-    const { status, body } = await call(run);
-    expect(status).toBe(403);
-    expect(body?.error).toBe(ENGINE_LIMITS_GUEST);
-    expect(load).not.toHaveBeenCalled();
   });
 
   it("a failed read still answers, as unknown", async () => {

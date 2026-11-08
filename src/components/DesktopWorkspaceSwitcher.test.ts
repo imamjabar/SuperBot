@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { DesktopWorkspaceSwitcher, openServerMenu, planSleeps } from "./DesktopWorkspaceSwitcher";
+import { DesktopWorkspaceSwitcher, openServerMenu } from "./DesktopWorkspaceSwitcher";
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -19,46 +19,6 @@ it("renders nothing outside the desktop app", () => {
   expect(renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher))).toBe("");
 });
 
-const visibleText = (html: string) => html.replace(/<span class="sr-only">.*?<\/span>/g, "").replace(/<!-- -->/g, "").replace(/<[^>]+>/g, "");
-
-it("says My Cloud while a Cloud home is showing, in a browser too, never always on without the plan to say so, and nothing more elsewhere", () => {
-  vi.stubGlobal("window", {});
-  const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true }));
-  expect(visibleText(browser)).toBe("My Cloud");
-  expect(browser).toContain("data-cloud-home-indicator");
-  expect(browser).not.toContain("<button");
-  const compact = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, compact: true }));
-  expect(compact).toContain('title="My Cloud"');
-  expect(compact).toContain('<span class="sr-only">My Cloud</span>');
-
-  vi.stubGlobal("window", { ogb: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
-  const desktop = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true }));
-  expect(visibleText(desktop)).toBe("My Cloud");
-  expect(desktop).toContain('aria-label="Switch server: My Cloud"');
-  expect(desktop).toContain("data-cloud-home-indicator");
-  const elsewhere = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher));
-  expect(elsewhere).not.toContain("always on");
-  expect(elsewhere).not.toContain("data-cloud-home-indicator");
-});
-
-it("names whose Cloud a browser signed in to under My Cloud, quietly", () => {
-  vi.stubGlobal("window", {});
-  const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, owner: "ada@example.test" }));
-  expect(visibleText(browser)).toBe("My Cloudada@example.test’s Cloud");
-  expect(browser).toContain('title="My Cloud · ada@example.test’s Cloud"');
-  expect(browser).toContain('<span class="block truncate text-[12px] font-normal text-ink-secondary">ada@example.test’s Cloud</span>');
-  const compact = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { cloudHome: true, owner: "ada@example.test", compact: true }));
-  expect(compact).toContain('<span class="sr-only">My Cloud · ada@example.test’s Cloud</span>');
-  expect(renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { owner: "ada@example.test" }))).toBe("");
-});
-
-it("reads whether the plan sleeps from main's verified plan: an active plan without sleeps never sleeps; anything else is not known", () => {
-  expect(planSleeps({ status: "paid", tier: "pro" })).toBe(false);
-  expect(planSleeps({ status: "paid", tier: "starter", sleeps: true })).toBe(true);
-  expect(planSleeps({ status: "none", sleeps: true })).toBe(true);
-  for (const status of ["attention", "checking", "signin", "none"] as const) expect(planSleeps({ status }), status).toBeNull();
-  expect(planSleeps(null)).toBeNull();
-});
 
 it("is the Show me how tip's anchor, and opens the menu as reached from the tip only while the tip is up", async () => {
   vi.stubGlobal("window", { ogb: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
@@ -86,8 +46,5 @@ it("draws Simple mode's switcher as a rounded pill that names the server in full
   expect(inline).toMatch(/class="[^"]*\bh-7\b[^"]*\brounded-md\b[^"]*\btext-\[13px\]/);
   expect(inline).not.toContain("rounded-full");
 
-  vi.stubGlobal("window", {});
-  const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { inline: true, pill: true, cloudHome: true }));
-  expect(visibleText(browser)).toBe("My Cloud");
-  expect(browser).toMatch(/class="[^"]*\bh-8\b[^"]*\brounded-full\b/);
+
 });

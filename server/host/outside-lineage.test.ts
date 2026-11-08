@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { CLOUD_OUTSIDE_KEY } from "../cloud-sharing.ts";
+import { CLOUD_OUTSIDE_KEY, createOutsideLineage, type OutsideLineageDeps } from "./outside-lineage.ts";
 import type { HandoffView } from "../coordinator.ts";
 import type { RoutineRun } from "../routines.ts";
-import { createOutsideLineage, type OutsideLineageDeps } from "./outside-lineage.ts";
 
 function world(over: Partial<OutsideLineageDeps> = {}) {
   const tasks = new Map<string, { threadId: string; outside?: true }>();
@@ -97,19 +96,18 @@ describe("work from outside stays with that work", () => {
     const w = world();
     w.nodes.set("root", { id: "root", rootId: "root", threadId: "hook-run", botId: "bot", status: "waiting" } as HandoffView);
     w.nodes.set("kid", { id: "kid", rootId: "root", parentId: "root", threadId: "teammate", botId: "bot", status: "queued" } as HandoffView);
-    w.lineage.settle([webhookRun("hook-run")], () => "results");
+    w.lineage.settle([webhookRun("hook-run")]);
     expect(w.tasks.get("hook-run")?.outside).toBe(true);
-    expect(w.tasks.get("results")?.outside).toBe(true);
     expect(w.tasks.get("teammate")?.outside).toBe(true);
     expect(w.tasks.get("person-work")?.outside).toBeUndefined();
   });
 
   it("settling off a Cloud leaves the chat a wait's follow-up ran in as it was", () => {
     const desktop = world({ home: false, team: false });
-    desktop.lineage.settle([webhookRun("chat", { eventSource: "wait" })], () => undefined);
+    desktop.lineage.settle([webhookRun("chat", { eventSource: "wait" })]);
     expect(desktop.tasks.get("chat")?.outside).toBeUndefined();
     const cloud = world();
-    cloud.lineage.settle([webhookRun("hook-run", { eventSource: "wait" })], () => undefined);
+    cloud.lineage.settle([webhookRun("hook-run", { eventSource: "wait" })]);
     expect(cloud.tasks.get("hook-run")?.outside).toBe(true);
   });
 

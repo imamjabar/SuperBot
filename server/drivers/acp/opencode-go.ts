@@ -5,7 +5,6 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 
 import { ATTACHMENTS_DIR } from "../../attachments.ts";
-import { cloudHomeConfigured } from "../../cloud-home.ts";
 import { DATA_DIR, OPENCODE_PROVIDER_ENV } from "../../config.ts";
 import { hostedWorkspaceConfigured } from "../../enterprise.ts";
 import { decodeInjectId, hostApiKey, localHost, mergeLocalInject } from "../local-inject.ts";
@@ -478,19 +477,16 @@ export function resetOpenCodeModelCache() {
 
 export const resetOpenCodeGoModelCache = resetOpenCodeModelCache;
 
-/** Provider keys come from the server's env only when it is the person's own shell: never on a Cloud
- * home, hosted team, managed desktop or open sign-in list, where every bot would bill the operator's key. */
+/** Provider keys come from the server's env only when it is the person's own shell: never on a managed desktop or open sign-in list, where every bot would bill the operator's key. */
 export function openCodeProviderKeysAllowed(state: {
-  cloudHome: boolean;
-  hostedWorkspace: boolean;
+  hostedWorkspace?: boolean;
   organisationManaged: boolean;
   sharedSignIn: boolean;
 }): boolean {
-  return !state.cloudHome && !state.hostedWorkspace && !state.organisationManaged && !state.sharedSignIn;
+  return !state.hostedWorkspace && !state.organisationManaged && !state.sharedSignIn;
 }
 
 let providerKeysAllowed = (): boolean => openCodeProviderKeysAllowed({
-  cloudHome: cloudHomeConfigured(),
   hostedWorkspace: hostedWorkspaceConfigured(),
   organisationManaged: false,
   sharedSignIn: false,
@@ -776,7 +772,6 @@ function allowOwnedDirectories(env: Record<string, string | undefined>, botId: s
 export function describeOpenCodeAccountError(
   code: AccountErrorCode,
   model?: string,
-  where: { cloudHome: boolean } = { cloudHome: cloudHomeConfigured() },
 ): string {
   const provider = model && model.includes("/") ? model.slice(0, model.indexOf("/")) : "";
   const zen = provider === "opencode";
@@ -787,9 +782,7 @@ export function describeOpenCodeAccountError(
     case "invalid_credentials":
       return zen || go || !provider
         ? "OpenCode rejected its key, or has none for this model. Add or replace the OpenCode key in Settings → API keys."
-        : where.cloudHome
-          ? `OpenCode's ${name} key for this model is missing or was rejected. Save it under Keys for other OpenCode providers in Settings → API keys.`
-          : `OpenCode's ${name} key for this model is missing or was rejected. Fix it with \`opencode auth login\`, or choose another model.`;
+        : `OpenCode's ${name} key for this model is missing or was rejected. Fix it with \`opencode auth login\`, or choose another model.`;
     case "insufficient_funds":
       return zen || !provider
         ? "Your OpenCode Zen balance has run out. Add credit at opencode.ai, or choose one of Zen's free models for this bot."

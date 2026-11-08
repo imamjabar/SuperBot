@@ -3,7 +3,13 @@
 // nothing arrived. The person who wrote the routine reads it in their inbox, whoever else the bot's failures reach.
 import { namesTeammate, reachesInAudience, unreachableTeammate, type RosterMember } from "../peer-roster.ts";
 import { serverLine } from "../server-lines.ts";
-import type { Delivery } from "./person-inbox.ts";
+export interface Delivery {
+  kind?: string;
+  from: { name: string; email?: string; botId?: string };
+  text: string;
+  notice?: { kind: string; title: string };
+  origin?: { botId: string; threadId: string; groupId?: string; messageId?: string };
+}
 
 type Refused = { target: RosterMember; from: RosterMember };
 
@@ -11,21 +17,12 @@ export interface RefusedHandoffDeps {
   bots(): readonly RosterMember[];
   /** The run this conversation is, when it is one. */
   runOf(threadId: string): { routineId: string; botId: string } | undefined;
-  /** The person key of who wrote this routine; absent off a Cloud and for a routine nobody wrote. */
-  writerOf(routineId: string): string | undefined;
-  /** Who this bot's failures in this conversation are for. */
-  askedPerson(botId: string, threadId: string): string | null;
-  /** This conversation is that person's own, where their failures stay rather than reaching their inbox. */
-  theirOwn(threadId: string, person: string): boolean;
-  /** Every person's inbox, made after this. */
-  inbox(): { deliver(person: string, delivery: Delivery): unknown };
   /** The language of a line in this conversation. */
   language(threadId: string): string | undefined;
 }
 
 export function createRefusedHandoffs(deps: RefusedHandoffDeps) {
   const refused = new Map<string, Map<string, Refused>>();
-  const toldWriter = new Map<string, string>();
 
   function words(threadId: string, seen: readonly Refused[]): string {
     const language = deps.language(threadId), bot = seen[0]!.from.name;
@@ -56,16 +53,6 @@ export function createRefusedHandoffs(deps: RefusedHandoffDeps) {
       if (!seen.length) return null;
       refused.delete(threadId);
       const said = words(threadId, seen);
-      const run = deps.runOf(threadId), writer = run && deps.writerOf(run.routineId);
-      const asked = run ? deps.askedPerson(run.botId, threadId) : null, inboxedAnyway = writer === asked && !deps.theirOwn(threadId, asked!);
-      if (run && writer && !inboxedAnyway && toldWriter.get(run.routineId) !== said) {
-        toldWriter.set(run.routineId, said);
-        const from = seen[0]!.from;
-        deps.inbox().deliver(writer, {
-          kind: "notice", from: { name: from.name, botId: from.id }, origin: { botId: run.botId, threadId }, notify: "routine-failed",
-          title: serverLine(deps.language(threadId), "server.runs.handoffRefusedTitle", { bot: from.name }), text: said, quiet: writer === asked,
-        });
-      }
       return said;
     },
   };

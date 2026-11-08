@@ -5,7 +5,6 @@
 /server/enterprise.test.ts      @milind-soni
 /server/brand.ts                @milind-soni
 /server/tunnel.ts               @milind-soni
-/cloudflare/control-plane/      @milind-soni
 /LICENSE                        @milind-soni
 /LICENSING.md                   @milind-soni
 /CLA.md                         @milind-soni

@@ -58,14 +58,63 @@ describe("/setup connects an app through a Connect card, against the real server
     dump = join(home, "fake-claude-dump.json");
     mkdirSync(data);
     // The managed connection service is present but knows no accounts, so Gmail is not connected.
-    broker = createServer((req, res) => {
-      req.resume();
-      res.writeHead(404, { "content-type": "application/json" });
+    broker = createServer(async (req, res) => {
+      let raw = "";
+      for await (const chunk of req) raw += chunk;
+      res.setHeader("content-type", "application/json");
+      const reqPath = (req.url ?? "").split("?")[0]!;
+      if (req.method === "POST" && reqPath === "/api/v3.1/tool_router/session") {
+        const body = (raw ? JSON.parse(raw) : {}) as Record<string, unknown>;
+        return res.end(JSON.stringify({
+          session_id: "trs_fake_session",
+          mcp: { type: "http", url: `${brokerUrl}/mcp` },
+          config: { user_id: body.user_id ?? "openmausbot_test", auth_configs: body.auth_configs ?? {} },
+        }));
+      }
+      if (req.method === "GET" && reqPath.startsWith("/api/v3.1/tool_router/session/") && reqPath.endsWith("/toolkits")) {
+        return res.end(JSON.stringify({ items: [] }));
+      }
+      if (req.method === "GET" && reqPath.startsWith("/api/v3.1/tool_router/session/")) {
+        return res.end(JSON.stringify({
+          session_id: "trs_fake_session",
+          mcp: { type: "http", url: `${brokerUrl}/mcp` },
+          config: { user_id: "openmausbot_test", auth_configs: {} },
+        }));
+      }
+      if (req.method === "GET" && reqPath.startsWith("/api/v3.1/connected_accounts")) {
+        return res.end(JSON.stringify({ items: [] }));
+      }
+      if (req.method === "GET" && reqPath === "/api/v3.1/auth_configs") {
+        return res.end(JSON.stringify({ items: [] }));
+      }
+      if (req.method === "GET" && reqPath.startsWith("/api/v3/toolkits")) {
+        return res.end(JSON.stringify({ items: [] }));
+      }
+      if (req.method === "POST" && reqPath === "/mcp") {
+        const body = (raw ? JSON.parse(raw) : {}) as { id?: unknown; method?: string; params?: { name?: string; arguments?: unknown } };
+        if (body.method === "initialize") {
+          res.setHeader("mcp-session-id", "fake-session");
+          return res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { protocolVersion: "2025-03-26", capabilities: {}, serverInfo: { name: "fake", version: "1" } } }));
+        }
+        if (body.method === "notifications/initialized") {
+          res.statusCode = 202;
+          return res.end();
+        }
+        if (body.method === "tools/list") {
+          return res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { tools: [{ name: "COMPOSIO_MANAGE_CONNECTIONS", description: "connect app", inputSchema: { type: "object" } }] } }));
+        }
+        if (body.method === "tools/call") {
+          return res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { content: [{ type: "text", text: "showed the user a secure connection card for gmail" }] } }));
+        }
+        return res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: {} }));
+      }
+      res.statusCode = 404;
       res.end(JSON.stringify({ error: "fixture knows no accounts" }));
     });
     await new Promise<void>(resolve => broker.listen(0, "127.0.0.1", resolve));
-    brokerUrl = `http://127.0.0.1:${(broker.address() as { port: number }).port}/broker`;
+    brokerUrl = `http://127.0.0.1:${(broker.address() as { port: number }).port}`;
     writeFileSync(join(data, "config.json"), JSON.stringify({
+      composio: { apiKey: "ak_fake_key" },
       instances: { claude: {
         driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
         // Every turn with the connected-apps tools starts a Gmail connection through them, as a model told to would.
@@ -81,7 +130,7 @@ describe("/setup connects an app through a Connect card, against the real server
         APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
         TEMP: home, TMP: home, TMPDIR: home, OMB_TEST_SEALED_PATH: "1",
         OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_USER_DATA: join(home, "user-data"),
-        OMB_COMPOSIO_BROKER_URL: brokerUrl, OMB_COMPOSIO_BROKER_TOKEN: "c".repeat(64),
+        OMB_COMPOSIO_API: `${brokerUrl}/api/v3.1`, OMB_COMPOSIO_TOOLKITS_API: `${brokerUrl}/api/v3`,
       }, stdio: ["ignore", "pipe", "pipe"],
     });
     child = proc;

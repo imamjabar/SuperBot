@@ -151,7 +151,7 @@ export function MemoryPage({ bot }: PageContext) {
     }
   };
   const write = (doc: MemoryDoc, text: string) => change(async () => {
-    const result = await saveMemoryDoc(bot.id, doc.path, text, doc.exists ? doc.hash : undefined, memory.mine);
+    const result = await saveMemoryDoc(bot.id, doc.path, text, doc.exists ? doc.hash : undefined);
     if (result.ok) {
       memory.setDoc(result.doc);
       return true;
@@ -165,7 +165,7 @@ export function MemoryPage({ bot }: PageContext) {
     if (!doc) return;
     if (note.line !== null) void write(doc, withoutMemoryNote(doc.text, note.line));
     else void change(async () => {
-      await deleteMemoryDoc(bot.id, doc.path, memory.mine);
+      await deleteMemoryDoc(bot.id, doc.path);
       await memory.reload();
       return true;
     });

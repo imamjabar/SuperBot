@@ -20,7 +20,7 @@ afterEach(async () => {
 });
 
 async function serve(store: Store): Promise<string> {
-  const deps = { store, viewerFor: () => ({}), visibleTo: () => ({ bot: () => true, group: () => true }), workspaceAccess: () => null,
+  const deps = { store, viewerFor: () => ({}), visibleTo: () => ({ bot: () => true, group: () => true }),
     desktopMutationToken: () => undefined, companionMutationToken: () => undefined, cliOwnerToken: () => undefined } as unknown as ThreadRouteDeps;
   const routes = [createThreadRoutes(deps)];
   const server = createServer(async (req, res) => {

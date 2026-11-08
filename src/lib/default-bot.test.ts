@@ -44,29 +44,27 @@ describe("MausBot's identity is its mark, never its name", () => {
 });
 
 describe("what MausBot offers to set up", () => {
-  const fresh = { aiReady: false, ownBots: 0, onCloud: false, team: false, remote: false };
+  const fresh = { aiReady: false, ownBots: 0, remote: false };
 
-  it("in Advanced mode, as on a new install before: an AI, bots, apps, the phone and the Cloud", () => {
-    expect(setupSteps(fresh)).toEqual(["ai", "bots", "apps", "phone", "cloud"]);
-    expect(setupSteps({ ...fresh, aiReady: true, onCloud: true })).toEqual(["bots", "apps", "phone"]);
+  it("in Advanced mode, as on a new install before: an AI, bots, apps, the phone", () => {
+    expect(setupSteps(fresh)).toEqual(["ai", "bots", "apps", "phone"]);
+    expect(setupSteps({ ...fresh, aiReady: true })).toEqual(["bots", "apps", "phone"]);
     expect(setupSteps({ ...fresh, ownBots: 3 })).toEqual(["ai"]);
-    expect(setupSteps({ ...fresh, team: true })).toEqual([]);
   });
 
-  it("in Simple mode, chips for only what its look around found missing, in order: AI, apps, skills, phone, Cloud", () => {
-    expect(introChips(fresh)).toEqual(["ai", "apps", "phone", "cloud"]);
-    expect(introChips({ ...fresh, aiReady: true, importFound: true })).toEqual(["apps", "import", "phone", "cloud"]);
-    expect(introChips({ ...fresh, aiReady: true, appsConnected: true, phonePaired: true })).toEqual(["cloud"]);
+  it("in Simple mode, chips for only what its look around found missing, in order: AI, apps, skills, phone", () => {
+    expect(introChips(fresh)).toEqual(["ai", "apps", "phone"]);
+    expect(introChips({ ...fresh, aiReady: true, importFound: true })).toEqual(["apps", "import", "phone"]);
+    expect(introChips({ ...fresh, aiReady: true, appsConnected: true, phonePaired: true })).toEqual([]);
     expect(introChips({ ...fresh, aiReady: true, remote: true })).toEqual(["apps", "phone"]);
-    expect(introChips({ ...fresh, aiReady: true, onCloud: true, importFound: false })).toEqual(["apps", "phone"]);
+    expect(introChips({ ...fresh, aiReady: true, importFound: false })).toEqual(["apps", "phone"]);
     expect(INTRO_CHIPS).toBe(3);
   });
 
-  it("never offers a bot (the sidebar's + adds one), nor nags a person who is set up or a Team Cloud member", () => {
+  it("never offers a bot (the sidebar's + adds one), nor nags a person who is set up", () => {
     expect(introChips(fresh)).not.toContain("bots");
     expect(introChips({ ...fresh, aiReady: true, ownBots: 3, importFound: true })).toEqual([]);
     expect(introChips({ ...fresh, ownBots: 3 })).toEqual(["ai"]);
-    expect(introChips({ ...fresh, team: true })).toEqual([]);
   });
 });
 

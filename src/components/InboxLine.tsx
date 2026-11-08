@@ -4,16 +4,14 @@ import { useStore, openThread, type Message } from "@/state/store";
 import { isQuestionCard } from "@/lib/question-card";
 import { t } from "@/lib/i18n";
 import { useShowThreads } from "@/lib/thread-preferences";
-import type { TeamPerson } from "@/state/team-people";
 import { BotAvatar } from "./Avatar";
-import { PersonFace } from "./TeamOwner";
+import { PersonFace } from "./TeammateChip";
 
-const face = (person: { name: string; email: string }): TeamPerson => ({ email: person.email, name: person.name, role: "member" });
 
 /** The face of who a line is from: a teammate's picture, or the bot's avatar. */
 export function InboxSender({ from, size = 16 }: { from: NonNullable<Message["inbox"]>["from"]; size?: number }) {
   const { state } = useStore();
-  if (from.email) return <PersonFace person={face({ name: from.name, email: from.email })} size={size} />;
+  if (from.email) return <PersonFace person={{ name: from.name, email: from.email }} size={size} />;
   const bot = state.bots.find((one) => one.id === from.botId);
   return <BotAvatar bot={bot ?? { name: from.name, color: "blue" }} state="happy" size={size} motion="none" motionKey={0} animated={false} />;
 }
@@ -81,7 +79,7 @@ export function RelayLabel({ message }: { message: Message }) {
   if (!relay || relay.kind === "told") return null;
   return (
     <div className="mb-1 flex items-center gap-1.5 pl-0.5" data-relay={relay.kind}>
-      <PersonFace person={face(relay)} size={16} />
+      <PersonFace person={relay} size={16} />
       <span className="text-[11px] font-medium text-ink-secondary">{t(relay.kind === "assistant" ? "relay.assistant" : "relay.reply", { name: relay.name })}</span>
     </div>
   );

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { draftBody, draftFor, draftFromPaste, parseMcpArguments, parseMcpOAuthClient, rowsBody, secretRow, soleKey } from "./mcp-draft";
+import { draftBody, draftFor, draftFromPaste, parseMcpArguments, parseMcpOAuthClient, rowsBody, secretRow } from "./mcp-draft";
 import { parseMcpResultBudget, withResultBudget } from "./McpResultBudgetField";
 import { setLocale, t } from "@/lib/i18n";
 
@@ -69,7 +69,6 @@ describe("MCP server form", () => {
     expect(body("sk-1")).toMatchObject({ ok: true, body: { headers: { Authorization: "Bearer sk-1" } } });
     expect(body("Bearer sk-1")).toMatchObject({ ok: true, body: { headers: { Authorization: "Bearer sk-1" } } });
     expect(body("")).toEqual({ ok: false, error: { key: "mcp.err.missingValue", params: { name: "Authorization" } } });
-    expect(soleKey({ ...draft, headers: [{ ...draft.headers[0]!, value: "sk-1" }] })).toBe("Bearer sk-1");
     expect(draftBody({ ...draft, url: "https://<tenant>.example.com/mcp" }, undefined)).toEqual({ ok: false, error: { key: "mcp.paste.urlMissing" } });
   });
 

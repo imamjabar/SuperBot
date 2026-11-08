@@ -12,8 +12,7 @@ import { PublishedPagesStore } from "./store.ts";
  * the chat's page cards, which show a published page and its link. */
 export function createPublishedPages(options: {
   dataDir: string;
-  /** This server's Cloud home configuration, or null on a desktop or any other server. */
-  cloudHome: { adminOrigin: string; machineId: string; bootstrapSecret: string } | null;
+
   /** True for `openmausbot serve`: no desktop app hands over a MausBot sign-in and there is no Cloud home. */
   selfHosted?: boolean;
   patch: (threadId: string, messageId: string, text: string, card: PublishedPageCard) => void;
@@ -24,7 +23,7 @@ export function createPublishedPages(options: {
   };
 }) {
   const store = new PublishedPagesStore(join(options.dataDir, "published-pages.json"));
-  const client = createPagesClient({ access: () => pagesAccess(options.cloudHome), notOffered: () => pagesNotOffered(options.cloudHome),
+  const client = createPagesClient({ access: pagesAccess, notOffered: pagesNotOffered,
     selfHosted: options.selfHosted === true,
     ...(options.fetch ? { fetch: options.fetch } : {}) });
   const apps = options.apps;

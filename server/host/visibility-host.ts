@@ -2,7 +2,7 @@
 // room or conversation change), the one check every request naming a bot, conversation, room, routine or file passes, and
 // the per-conversation filter a list uses. On a Team Cloud an admin is a viewer with a person too: every bot and room, but
 // only their own private chats (audience.ts).
-import { audienceEquals, narrowestAudience, roomFeeds, routineRunVisible, routineVisible, SEES_EVERYTHING, VisibleSet, type PathSubject, type ThreadAudiences, type ThreadOwner, type Viewer } from "../bot-visibility.ts";
+import { audienceEquals, narrowestAudience, roomFeeds, routineRunVisible, routineVisible, SEES_EVERYTHING, VisibleSet, type PathSubject, type ThreadOwner, type Viewer } from "../bot-visibility.ts";
 import type { RequestAuth } from "../request-auth.ts";
 import type { RoutineManager } from "../routines.ts";
 import type { BotRecord, GroupRecord, Store } from "../store.ts";
@@ -11,9 +11,7 @@ export interface VisibilityHostDeps {
   /** index.ts's store, made after this host. */
   store(): Pick<Store, "bots" | "groups" | "bot" | "group" | "botByThread" | "groupByThread" | "patchGroup">;
   routines(): Pick<RoutineManager, "listRoutines" | "listRuns"> | null;
-  /** A Team Cloud: an admin session is a person too. */
-  team: boolean;
-  audiencesFor(viewer: Viewer): ThreadAudiences | undefined;
+
   threadsReferencing(name: string): readonly string[];
 }
 
@@ -21,7 +19,7 @@ export function createVisibilityHost(deps: VisibilityHostDeps) {
   const store = { get bots() { return deps.store().bots; }, get groups() { return deps.store().groups; }, bot: (id: string) => deps.store().bot(id),
     group: (id: string) => deps.store().group(id), botByThread: (id: string) => deps.store().botByThread(id), groupByThread: (id: string) => deps.store().groupByThread(id) };
   function viewerFor(auth: RequestAuth): Viewer {
-    if (auth.kind === "loopback" || (auth.scopes.includes("admin") && !deps.team)) return SEES_EVERYTHING;
+    if (auth.kind === "loopback" || auth.scopes.includes("admin")) return SEES_EVERYTHING;
     if (auth.scopes.includes("admin")) return { kind: "all", email: auth.session.email ?? "" };
     return { kind: "member", ...(auth.session.email ? { email: auth.session.email } : {}) };
   }
@@ -43,7 +41,7 @@ export function createVisibilityHost(deps: VisibilityHostDeps) {
     const key = viewer.kind === "all" ? (viewer.email === undefined ? "*" : `admin:${viewer.email.trim().toLowerCase()}`) : `member:${viewer.email?.trim().toLowerCase() ?? ""}`;
     let set = visibleSets.get(key);
     if (!set) {
-      set = new VisibleSet(store.bots, store.groups, viewer, threadOwner, deps.audiencesFor(viewer));
+      set = new VisibleSet(store.bots, store.groups, viewer, threadOwner);
       if (visibleSets.size >= 1_000) visibleSets.clear();
       visibleSets.set(key, set);
     }

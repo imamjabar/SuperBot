@@ -51,13 +51,6 @@
       "since": "2026-10-08"
     },
     {
-      "file": "server/lending-memory.test.ts",
-      "test": "a bot's memory and a lent Mac (server/lending-memory.ts) > fingerprints the instruction files an engine reads in each working folder and the folders above it",
-      "owner": "milind-soni",
-      "reason": "Failed 8 runs (7 branches, 2 main runs) since Sep 24, Windows; same commit later green.",
-      "since": "2026-10-08"
-    },
-    {
       "file": "server/browser/viewers/viewers.e2e.test.ts",
       "test": "a phone's v1 live view on real Chrome > sends the events and fields the agent-browser engine sent, step for step",
       "owner": "milind-soni",

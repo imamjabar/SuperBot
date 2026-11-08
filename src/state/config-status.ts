@@ -19,9 +19,6 @@ export interface ConfigStatus {
   greenference?: SavedKey;
   deepseek?: SavedKey;
   meta?: SavedKey;
-  /** X research comes with MausBot Cloud plans: `included` while this server holds the plan's relay credential;
-   * `unavailable` when the Admin said no to this desktop's paid sign-in. */
-  xResearch?: { included: boolean; unavailable?: boolean };
   /** The person's own treg key for research: configured or not, never the key. */
   treg?: SavedKey;
   /** The Postiz organisation API key, and the Postiz server it belongs to when it is not Postiz Cloud. */
@@ -44,8 +41,7 @@ export interface ConfigStatus {
   budgets?: { monthlyUsd?: number; warnAtPercent?: number };
   billing?: { currency?: string; prices?: Record<string, { inputPerMillion: number; outputPerMillion: number; cachedInputPerMillion?: number }> };
   composio: SavedKey & { mode?: "managed" | "self-hosted" | "unavailable" };
-  /** `included`: cloud computers come with Cloud Pro, no key is saved. */
-  box: SavedKey & { included?: boolean };
+  box: SavedKey;
   vps: { configured: boolean; sshAlias: string };
   rooms: { turnTimeoutMinutes: number };
   /** Per-call ceiling (minutes) for a bot's MCP tools. Absent from servers
@@ -53,12 +49,6 @@ export interface ConfigStatus {
   mcp?: { callTimeoutMinutes: number };
   /** Workspace defaults for new bots; absent effort = no level is sent. */
   newBots?: { effort?: EffortLevel };
-  /** This Cloud is on the Starter plan, as the Admin last said; absent or false otherwise. */
-  cloudStarter?: boolean;
-  /** The most bots this Cloud's plan makes, its MausBot aside; absent when its plan has no such limit. */
-  botLimit?: number;
-  /** A task on this Cloud is waiting for memory right now. */
-  waitingForRoom?: boolean;
   threads?: { maxConcurrentPerBot: number; eventLogMaxBytes?: number; eventLogRetentionDays?: number };
   automaticRecovery?: { enabled: boolean; backup?: ModelSelection };
   /** Prompt-cache keep-warm for idle Claude threads. Absent from older servers. */
@@ -80,13 +70,11 @@ export interface ConfigStatus {
     model?: string;
     /** Fish Audio speech model; present only while Fish is the provider. */
     fishModel?: "s2.1-pro" | "s2.1-pro-free";
-    /** ElevenLabs voice comes with Cloud Pro; no key is saved. */
-    included?: boolean;
   };
   /** The decision model: switches and whether a key is on file. The key
    * itself never comes back. `enabled` is the switch as it takes effect
-   * (off while no key is saved). `included`: Cloud Pro's decisions, no key
-   * saved. OpenRouter only: `keySource` says which key is in use (its own, or
+   * (off while no key is saved).
+   * OpenRouter only: `keySource` says which key is in use (its own, or
    * the one under Settings → API keys); `sharedKey`: that one is on file. */
   decider?: {
     provider: "jev" | "workersai" | "openrouter";
@@ -95,7 +83,6 @@ export interface ConfigStatus {
     configured: boolean;
     keySource?: "own" | "shared";
     sharedKey?: boolean;
-    included?: boolean;
     enabled: boolean;
     jobs: { roomRouting: boolean };
   };
@@ -104,7 +91,7 @@ export interface ConfigStatus {
     own: { jev: boolean; workersAi: boolean; openrouter: boolean };
     sharedKey?: boolean;
     workersAiAccountId?: string;
-    extraction: { provider?: "jev" | "workersai" | "openrouter"; included?: boolean; ready: boolean };
+    extraction: { provider?: "jev" | "workersai" | "openrouter"; ready: boolean };
   };
   /** Live calls (OpenAI GPT-Live): configured-or-not, never the key. */
   live?: LiveSettings;
@@ -140,12 +127,6 @@ export interface ConfigStatus {
   /** The enrolled organisation's read-only desktop policy; null when this
    * desktop is not enrolled or its Admin sends no policy. */
   managedPolicy?: ManagedPolicySummary | null;
-  /** This server is an OMB Cloud home: it offers no "this computer" and no
-   * Local VM (server/cloud-home.ts). Absent everywhere else. */
-  cloudHome?: boolean;
-  /** A Team Cloud: the team this server is the home of, and the Plan page (MausBot Cloud) where its people and plan
-   * are managed. Absent everywhere else. */
-  team?: { id: string; name: string; cloudPage?: string };
   /** This server belongs to one person, who keeps one chat per bot. Absent where each person has their own chats. */
   oneMainChat?: boolean;
 }
@@ -158,10 +139,8 @@ export interface ManagedPolicySummary {
   mcp: { allowCustom: boolean; allowlist: string[] };
   computers: { thisComputer: boolean; localVm: boolean; box: boolean; vps: boolean };
   remoteAccess: boolean;
-  /** Connected apps by service slug; absent from an older Team Cloud and from an organisation's policy. */
+  /** Connected apps by service slug; absent from an organisation's policy. */
   apps?: { allowAll: boolean; allowlist: string[] };
-  /** A Team Cloud's rules rather than an organisation's. */
-  team?: true;
 }
 
 export interface BrowserEngineSummary {
@@ -177,14 +156,10 @@ export interface BrowserEngineSummary {
   /** Whether a browser profile can use "My Chrome", the person's own running
    * Chrome: only where the bots run on their computer (the desktop app). */
   myChrome?: boolean;
-  /** On My Cloud, the computer that lends its Chrome. */
-  myChromeOn?: { name: string; device: "PC" | "Mac" | "computer"; online: boolean };
-  /** On My Cloud with no computer lending Chrome: it can be lent from the desktop app. */
-  myChromeLendable?: true;
   /** browserEngine.engine: "chrome" when the bots' browsers run on OpenMausBot's own Chrome driver. */
   engine?: "agent-browser" | "chrome";
   /** Self-hosted servers only: whether bots' browsers may open this server's own sites and its local network
-   * (browserEngine.egress.localNetwork, off by default). Absent on the desktop and on MausBot Cloud. */
+   * (browserEngine.egress.localNetwork, off by default). Absent on the desktop. */
   serverSites?: boolean;
 }
 
@@ -202,7 +177,7 @@ export interface BrowserProfile {
 // A section left out here is wiped from state.config whenever a config frame lands.
 export type ConfigStatusFrame = Pick<
   ConfigStatus,
-  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "xResearch" | "treg" | "postiz" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "fleet" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "edition" | "budgets" | "billing" | "managedPolicy" | "cloudHome" | "team" | "workspaceBanner" | "oneMainChat"
+  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "treg" | "postiz" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "fleet" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "edition" | "budgets" | "billing" | "managedPolicy" | "workspaceBanner" | "oneMainChat"
 >;
 
 export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
@@ -211,7 +186,7 @@ export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
     mistral: frame.mistral,
     cerebras: frame.cerebras,
     groq: frame.groq, greenference: frame.greenference, deepseek: frame.deepseek,
-    meta: frame.meta, xResearch: frame.xResearch, treg: frame.treg, postiz: frame.postiz,
+    meta: frame.meta, treg: frame.treg, postiz: frame.postiz,
     anthropic: frame.anthropic,
     openai: frame.openai,
     openrouter: frame.openrouter,
@@ -241,6 +216,6 @@ export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
     budgets: frame.budgets,
     billing: frame.billing,
     managedPolicy: frame.managedPolicy,
-    ...(frame.cloudHome ? { cloudHome: true } : {}), ...(frame.team ? { team: frame.team } : {}), ...(frame.workspaceBanner ? { workspaceBanner: frame.workspaceBanner } : {}), ...(frame.oneMainChat ? { oneMainChat: true } : {}),
+    ...(frame.workspaceBanner ? { workspaceBanner: frame.workspaceBanner } : {}), ...(frame.oneMainChat ? { oneMainChat: true } : {}),
   };
 }

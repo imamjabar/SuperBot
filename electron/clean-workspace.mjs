@@ -80,7 +80,7 @@ export function createCleanWorkspace({ dataDir, running, swap, allowed = () => t
     if (text === null) return { frozen: false };
     let saved = null;
     try { saved = JSON.parse(text); } catch {}
-    return { frozen: true, ...(typeof saved?.cloud === "string" ? { cloud: saved.cloud } : {}), ...(typeof saved?.place === "string" ? { place: saved.place } : {}) };
+    return { frozen: true, ...(typeof saved?.place === "string" ? { place: saved.place } : {}) };
   }
 
   return {

@@ -19,8 +19,6 @@ import { ProposalStatus } from "./ProposalStatus";
 import { ToolSelectionCard } from "./ToolSelectionCard";
 import { BotApiCard } from "./BotApiCard";
 import { ToolBudgetLine } from "./ToolBudgetLine";
-import { useCloudPlan } from "@/lib/cloud-plan-hook";
-import { xResearchAction } from "@/lib/cloud-plan";
 import { HIGHLEVEL_SLUG } from "@/lib/highlevel-sign-in";
 import { useBotApps } from "./useBotApps";
 import {
@@ -479,18 +477,16 @@ function ConnectorToolsGrants({
  * treg key or a Cloud plan's research credential, and switchable off per bot. */
 function ResearchCard({ bot, patch }: { bot: Bot; patch: (patch: { xResearch: boolean }) => void }) {
   const { state, dispatch } = useStore();
-  const connecting = xResearchAction(useCloudPlan()?.view ?? null) === "connecting" && state.config?.xResearch?.unavailable !== true;
-  const ownKey = state.config?.treg?.configured === true, included = state.config?.xResearch?.included === true;
-  const available = ownKey || included;
+  const ownKey = state.config?.treg?.configured === true;
+  const available = ownKey;
   const on = bot.xResearch !== false;
-  const line = !available ? t(connecting ? "research.connecting" : "research.addKey")
-    : !on ? t("research.off") : t(ownKey ? "research.ownOn" : "research.planOn");
+  const line = !available ? t("research.addKey") : !on ? t("research.off") : t("research.ownOn");
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl bg-card p-4" data-testid="access-x-research">
       <div>
         <div className="text-[15px] font-medium text-ink">{t("research.title")}</div>
         <div className="mt-0.5 text-[13px] text-ink-secondary">{line}</div>
-        {!available && !connecting && (
+        {!available && (
           <button type="button" className="ui-button mt-2" onClick={() => dispatch(openKeySettings("treg"))}>
             {t("research.openKeys")}
           </button>
@@ -526,10 +522,6 @@ function RecordStepsRow({ on, browserOn, myChrome, onChange }: { on: boolean; br
       />
     </div>
   );
-}
-
-export function cloudPreferenceShown(bot: Pick<Bot, "computer">, config: { cloudHome?: boolean } | null | undefined): boolean {
-  return (!bot.computer || bot.computer === "cloud") && !config?.cloudHome;
 }
 
 /**
@@ -597,9 +589,8 @@ export function VpsAliasField({ bot }: { bot: Bot }) {
 }
 
 export function CloudPreference({ bot, patch }: { bot: Bot; patch: ReturnType<typeof useBotSettingsDerived>["patch"] }) {
-  const { state } = useStore();
   const { draft } = useBotEditor();
-  if (!cloudPreferenceShown(bot, state.config)) return null;
+  if (bot.computer && bot.computer !== "cloud") return null;
   return (
     <>
       {!bot.computer && (
@@ -661,7 +652,7 @@ export function AccessSection({
   } = derived;
   const browserInstallable = state.config?.browserEngine?.installable === true;
   const { capabilities } = useDesktopCapabilities();
-  const placeSeat = usePlaceSeat(state.config, capabilities.host?.platform ?? "other");
+  const placeSeat = usePlaceSeat(capabilities.host?.platform ?? "other");
   const worksOn = placeViewFor(placeFacts({
     bot, place: bot.computer ?? "auto", seat: placeSeat, config: state.config, instances: state.instances,
   }));

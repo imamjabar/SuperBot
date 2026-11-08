@@ -11,7 +11,6 @@ import { setAdvancedMode } from "@/lib/interface-mode";
 import { applySkinChoice, SKIN_IDS, type SkinId } from "@/lib/skins";
 import { openInbox, setInboxView } from "@/state/inbox";
 import { initialState, StoreContext, type AppState, type Bot, type Message } from "@/state/store";
-import { setTeamPeople } from "@/state/team-people";
 import "./styles.css";
 
 const params = new URLSearchParams(location.search);
@@ -104,7 +103,7 @@ const BASE = {
 function bots(state: string): Bot[] {
   const ledger: Bot = { ...BASE, id: "ledger", name: "Ledger", title: "Developer", color: "teal", createdBy: CLEO.email, threadId: WORK, mainThreadId: "ledger-main",
     busy: state === "question" || state === "approval", activity: state === "question" || state === "approval" ? "waiting-on-you" : "idle",
-    tasks: [{ threadId: "ledger-main", title: "Ledger", createdAt: AT - 86_400_000 }, { threadId: WORK, title: "Pricing page: fix", createdAt: AT, private: true,
+    tasks: [{ threadId: "ledger-main", title: "Ledger", createdAt: AT - 86_400_000 }, { threadId: WORK, title: "Pricing page: fix", createdAt: AT,
       openedBy: { botId: "scout", name: "Scout", at: AT } }], messages: ledgerMessages(state) };
   const scout: Bot = { ...BASE, id: "scout", name: "Scout", title: "Cleo's Chief", color: "orange", chiefOfStaff: true, reportsTo: CLEO.email, threadId: INBOX,
     tasks: [{ threadId: INBOX, title: "Inbox", createdAt: AT - 86_400_000, inbox: true, ...(cardFor(state) && state !== "answered" ? { openAsks: 1 } : {}) }],
@@ -140,6 +139,5 @@ window.fetch = async (input, init) => {
   if (!new URL(url, location.href).pathname.startsWith("/api/")) return realFetch(input, init);
   return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
 };
-setTeamPeople({ people: [{ ...CLEO, you: true }, { email: "ben@acme.test", name: "Ben", role: "member" }], me: { ...CLEO, you: true }, admin: true, needsYou: [] });
 
 createRoot(document.getElementById("root")!).render(<StrictMode><Gallery /></StrictMode>);

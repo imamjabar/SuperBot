@@ -66,10 +66,6 @@ built-in browser panel, and updater UI—is still not proven by the harness. Use
 the relevant Electron/package smoke test and state that limitation. Add a map
 entry only after the shared control surface can really drive it.
 
-The [move to My Cloud fixture](cloud-send.md) runs this computer's server and a
-Cloud home with the desktop's own wiring between them, and runs and checks the
-one-time move as main does.
-
 The [external runtimes recipe](external-runtime.md) proves a bot's standing
 comms capability from `external-runtimes.json` against a disposable server and
 the fake engine: scope, on-demand token reads, `coordinate_bots` roots polled

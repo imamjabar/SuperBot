@@ -268,14 +268,11 @@ describe("More, for another app's automation", () => {
   });
 });
 
-describe("on a Cloud", () => {
-  it("never asks the person to keep the app open for another app's automation", () => {
+describe("receiving for another app's automation", () => {
+  it("asks the person to keep the app open", () => {
     const [automation] = automationsFrom({ routines: [], webhooks: [webhook] as never, runs: [] });
     const props = { automation: automation!, sentence: "s", onClose: vi.fn(), onEdit: vi.fn(), onDeleted: vi.fn() };
-    expect(mount(createElement(AutomationPanel, props)).textContent).toContain("Keep MausBot open so it can receive.");
-    root!.unmount();
-    fixture.state.config = { cloudHome: true };
-    expect(mount(createElement(AutomationPanel, props)).textContent).not.toContain("Keep MausBot open");
+    expect(mount(createElement(AutomationPanel, props)).textContent).toContain("Keep SuperBot open so it can receive.");
   });
 });
 

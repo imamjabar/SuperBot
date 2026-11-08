@@ -10,8 +10,6 @@ export interface SetupRequestRouteDeps {
   store: SetupRequestStore;
   /** The language the server writes the bot's lines in. */
   language(): string | undefined;
-  /** Why this caller may not write in this conversation (a Cloud guest in the owner's chat), or null. */
-  sendRefusal(auth: RequestAuth, threadId: string): string | null;
   /** Who this caller is where several people share the place (their reactor key); undefined where one person does. */
   presser(auth: RequestAuth): string | undefined;
   /** The conversation's AI has the tools a bot sets itself up with. */
@@ -37,8 +35,6 @@ export function createSetupRequestRoutes(deps: SetupRequestRouteDeps): RouteHand
     const threadId = typeof body?.threadId === "string" ? body.threadId : "";
     if (!ID.test(threadId)) return json(res, 400, { error: "threadId is required" });
     if (!deps.store.bot(botId)) return json(res, 404, { error: "no such bot" });
-    const refused = deps.sendRefusal(auth, threadId);
-    if (refused) return json(res, 403, { error: refused });
     if (method === "DELETE") {
       // An owner or admin may clear someone else's, so one never strands the chat.
       const outcome = cancelSetupRequest(deps.store, botId, threadId, deps.presser(auth), { admin: ownerOrAdmin(auth) });

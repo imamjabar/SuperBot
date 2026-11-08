@@ -17,7 +17,6 @@ export interface XIncludedUsage {
 export interface XConnectorStatus {
   using: "own" | "included" | null;
   ownKey: boolean;
-  included: boolean;
   unavailable?: true;
   usage?: XIncludedUsage;
 }
@@ -37,6 +36,6 @@ export function isXConnectorStatus(value: unknown): value is XConnectorStatus {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const status = value as Record<string, unknown>;
   return (status.using === "own" || status.using === "included" || status.using === null)
-    && typeof status.ownKey === "boolean" && typeof status.included === "boolean"
+    && typeof status.ownKey === "boolean"
     && (status.usage === undefined || parseXIncludedUsage(status.usage) !== null);
 }

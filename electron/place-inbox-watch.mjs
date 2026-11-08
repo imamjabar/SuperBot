@@ -1,7 +1,7 @@
 // How many inbox lines wait in each place the window isn't showing, for the rail's "{name}: needs you". Each place keeps its
 // own inbox and nothing syncs: main only asks each place for its count, as the signed-in person, and keeps the number.
 // A Cloud the Admin says is asleep is never asked, since any request would wake it; it keeps the last number it gave.
-import { BACKGROUND_HEADERS } from "./cloud-power.mjs";
+export const BACKGROUND_HEADERS = Object.freeze({ "x-omb-background": "1" });
 
 export const INBOX_WATCH_MS = 120_000;
 const TIMEOUT_MS = 10_000;
@@ -18,7 +18,7 @@ const TIMEOUT_MS = 10_000;
  *   setTimer?: typeof setInterval,
  * }} deps `places`: every saved place with its address, this computer `local`; `shown`: the window can be seen, so a rail is.
  */
-export function createPlaceInboxWatch({ places, activeId, local, cloudFetch, asleep, shown, changed, setTimer = setInterval }) {
+export function createPlaceInboxWatch({ places, activeId, local, cloudFetch, asleep = () => false, shown, changed, setTimer = setInterval }) {
   const counts = new Map();
   let started = false, reading = null;
 

@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { setTeamChats } from "./team-chats";
+import { describe, expect, it, vi } from "vitest";
 import { markedThread, openBotRow, openRoomThread } from "./thread-navigation";
 
 type Task = { threadId: string; activity?: string; unread?: boolean; busy?: boolean; routineRunId?: string; archivedAt?: number; createdAt?: number; updatedAt?: number };
@@ -10,7 +9,6 @@ const opened = (bot: ReturnType<typeof chief>, threadsShown: boolean, onScreen =
   return dispatch.mock.calls.map(([action]) => action);
 };
 
-afterEach(() => setTeamChats(null));
 
 describe("what a bot's row or tile is marked for", () => {
   it("is what waits on the person first, then an unread reply, then work under way", () => {
@@ -55,11 +53,6 @@ describe("a click on a bot's row or tile", () => {
     expect(opened({ ...chief([work]), tasks: [{ threadId: "main", unread: true, createdAt: 1 }, { threadId: "work" }] }, false)).toEqual([{ type: "select", id: "cos" }]);
   });
 
-  it("leaves a team's Cloud alone: there a bot's row is the person's own conversation", () => {
-    setTeamChats({ teamId: "acme", member: true });
-    const bot = { ...chief([work]), tasks: [{ threadId: "mine", private: true, createdAt: 3 }, work] };
-    expect(opened(bot as ReturnType<typeof chief>, false)).toEqual([{ type: "switchTask", botId: "cos", threadId: "mine" }]);
-  });
 });
 
 describe("a hand-off's chip for work in a room", () => {

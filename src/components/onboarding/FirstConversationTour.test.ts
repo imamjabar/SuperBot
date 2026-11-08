@@ -115,7 +115,7 @@ describe("first-conversation spotlights", () => {
     expect(render(false)).not.toBeNull();
   });
 
-  it("stay away from a hosted member, who could never dismiss them for good", () => {
+  it("stay away while the viewer is not known yet", () => {
     render(true);
     for (const effect of fixture.effects) effect();
     expect(render(true)).toBeNull();

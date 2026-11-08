@@ -1,5 +1,4 @@
 import type { Action, AppState } from "./store";
-import { openOwnTeamChat, teamChats } from "./team-chats";
 
 interface NotificationThreadOwner {
   id: string;
@@ -35,13 +34,12 @@ export function awayFromMainThread(bot: Pick<NotificationThreadOwner, "threadId"
   return !threadsShown && botOpensTo(bot, false) !== bot.threadId;
 }
 
-/** On a team's Cloud, the person's own conversation with the bot, never the team's main chat (team-chats.ts). */
+/** Opens the bot to the thread it opens to (`botOpensTo`): its main conversation while threads are hidden. */
 export function openBot(
   dispatch: (action: Action) => void,
-  bot: Pick<NotificationThreadOwner, "id" | "threadId" | "mainThreadId" | "tasks"> & { yourAccess?: string },
+  bot: Pick<NotificationThreadOwner, "id" | "threadId" | "mainThreadId" | "tasks">,
   threadsShown: boolean,
 ) {
-  if (openOwnTeamChat(dispatch, bot, (threadId) => openBotThread(dispatch, bot, threadId, threadsShown))) return;
   const opened = botOpensTo(bot, threadsShown);
   if (opened === bot.threadId) dispatch({ type: "select", id: bot.id });
   else openBotThread(dispatch, bot, opened, threadsShown);
@@ -66,10 +64,10 @@ export function markedThread(bot: Pick<NotificationThreadOwner, "threadId" | "ma
 }
 
 /** A click on a bot's row or tile opens the thread its mark is about; with no mark, or with that thread already on screen,
- * the bot as ever. Every other way into a bot is `openBot`. On a team a bot's row is the person's own chat. */
+ * the bot as ever. Every other way into a bot is `openBot`. */
 export function openBotRow(
   dispatch: (action: Action) => void,
-  bot: Pick<NotificationThreadOwner, "id" | "threadId" | "mainThreadId" | "tasks"> & { yourAccess?: string },
+  bot: Pick<NotificationThreadOwner, "id" | "threadId" | "mainThreadId" | "tasks">,
   threadsShown: boolean,
   onScreen: boolean,
 ) {
@@ -77,7 +75,7 @@ export function openBotRow(
     openBot(dispatch, bot, false);
     return;
   }
-  const marked = teamChats() ? null : markedThread(bot, threadsShown);
+  const marked = markedThread(bot, threadsShown);
   if (!marked || marked === botOpensTo(bot, threadsShown) || (onScreen && marked === bot.threadId)) openBot(dispatch, bot, threadsShown);
   else openBotThread(dispatch, bot, marked, threadsShown);
 }

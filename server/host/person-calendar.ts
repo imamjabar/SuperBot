@@ -2,7 +2,7 @@
 // Calendar connection, made when Google Calendar is an app each person connects for themselves; never the team's.
 // Security: only start and end times leave this module, never a title, a place, a description or who is invited.
 import { createConnectedReads, type CalendarEvent, type ConnectedReadDeps } from "../connected-reads.ts";
-import type { BrokerAccess } from "../team-connections.ts";
+export type BrokerAccess = { url: string; token: string };
 import type { Busy } from "./representative.ts";
 
 export interface PersonCalendarDeps {

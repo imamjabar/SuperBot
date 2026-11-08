@@ -11,7 +11,7 @@ export const BOT_STRIPPED_KEYS: readonly string[] = ["bot", "runsOn", "apps", "e
 const WHOLE_REF = /^secret-ref:[0-9a-f]{32}$/;
 const SECRET_FLAG_ARG = /^--(?:token|password|passwd|api-key|apikey|secret|access-key|auth-token)$/i;
 
-export function mcpOwner(name: string, server: StoredMcpServer, botId: string, personal: readonly string[]): McpOwner {
+export function mcpOwner(name: string, server: StoredMcpServer, botId: string, personal: readonly string[] = []): McpOwner {
   if (personal.includes(name)) return "person";
   if (!isRemoteMcpServer(server) && server.bot && server.bot !== botId) return "theirs";
   if (server.runsOn) return "elsewhere";

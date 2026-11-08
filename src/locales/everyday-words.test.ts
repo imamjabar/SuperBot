@@ -21,9 +21,9 @@ const EVERYDAY_PREFIXES: Record<string, readonly string[]> = {
     "computer.screen.", "vm.cloud.", "browser.",
   ],
   "MausBot Cloud: buying it, setting it up, moving to it and sharing with it": [
-    "cloudBuy.", "cloudIntro.", "cloudTrial.", "cloudCancel.", "cloudSetup.", "cloudIntent.", "cloudHowTo.", "whatsNew.",
-    "cloudCredit.", "cloudPower.", "cloudSignIn.", "cloudAdd.", "cloudHome.", "cloudPhone.", "cloudAccount.", "lending.",
-    "files.", "usageMeter.", "roomCard.", "botLimit.",
+    "cloudIntro.", "cloudIntent.", "whatsNew.",
+    "cloudSignIn.", "lending.",
+    "files.",
   ],
   "routines and automations": ["routines.", "automations."],
   "the team map": ["canvas.", "mapComputer.", "canvasComputers."],
@@ -38,7 +38,7 @@ const EVERYDAY_KEYS: Record<string, readonly string[]> = {
     "computer.chooseCloudOpen", "computer.chooseCloudManage", "computer.autoChooseCloudOpen", "computer.createVm", "computer.replaceVm",
     "computer.openVmSetup", "computer.confirm.replaceVm", "computer.err.emptyFrame", "computer.err.frameTimeout", "computer.err.noDesktopLink",
     "computer.err.vmNotReady", "computer.err.vmEngine", "computer.err.localEngine", "computer.err.vmOpenSettings", "computer.worksOnHint",
-    "computer.worksOnHintCloudHome", "computer.linux.waylandAfter", "vm.dest.vm", "vm.setup.start", "vm.setup.starting", "vm.stopped.detail",
+    "computer.linux.waylandAfter", "vm.dest.vm", "vm.setup.start", "vm.setup.starting", "vm.stopped.detail",
     "vm.stopped.idle",
   ],
   "the bot panel": [
@@ -56,7 +56,7 @@ const EVERYDAY_KEYS: Record<string, readonly string[]> = {
   ],
   "the Settings pages Simple mode shows": [
     "settings.diagnostics.subtitle", "settings.diagnostics.elsewhere", "settings.import.appsSubtitle", "settings.profiles.temporaryHint",
-    "settings.profiles.myChromeUnavailable", "remote.serverPairing.cloudPersonal", "remote.serverPairing.error",
+    "settings.profiles.myChromeUnavailable", "remote.serverPairing.error",
   ],
 };
 
@@ -87,7 +87,6 @@ const ALLOWED: Record<string, string> = {
   "sidebar.switchServerError": "points at the app menu's Server menu",
   "sidebar.update.howOther": "a server added from the app menu's Server menu: its update is for whoever runs it, not this app",
   "sidebar.update.howOtherRestart": "a server added from the app menu's Server menu: its update is for whoever runs it, not this app",
-  "cloudPhone.step1": "points at the app menu's Server menu, entry by entry",
   "botAccess.tools.syntax": "the tool names people type, such as mcp:SERVER:NAME",
 };
 

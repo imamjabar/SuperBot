@@ -2,12 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ExternalLink, Loader2 } from "lucide-react";
 
 import { api, useStore, type ConfigStatus } from "@/state/store";
-import { activeLocale, t } from "@/lib/i18n";
-import { xResearchAction } from "@/lib/cloud-plan";
+import { t } from "@/lib/i18n";
 import { keyRemoved, keySaved, keySaveFailure, keyTestResult } from "@/lib/product-events";
-import { isXConnectorStatus, type XConnectorStatus, type XIncludedUsage } from "../../shared/x-connector";
+import { isXConnectorStatus, type XConnectorStatus } from "../../shared/x-connector";
 import { looksLikeKey, saveCredential, tregVerdict } from "./keys/key-save";
-import { useCloudPlan } from "@/lib/cloud-plan-hook";
 
 const TREG_URL = "https://treg.to";
 const pill = "inline-flex h-7 min-w-[64px] shrink-0 items-center justify-center gap-2 rounded-full bg-control/80 px-3 text-[13px] font-medium leading-5 text-ink transition-colors hover:bg-raised-hover disabled:opacity-40";
@@ -25,23 +23,7 @@ export function XIcon() {
   );
 }
 
-const day = (iso: string) => new Intl.DateTimeFormat(activeLocale(), { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(iso));
-const number = (value: number) => value.toLocaleString(activeLocale());
-
-/** The plan's included calls this month in words: "312 of 5,000 X calls this month", or that they are used up and when they come back. */
-export function xUsageLines(usage: XIncludedUsage): { line: string; usedUp: boolean } {
-  const counts = { used: number(usage.calls), max: number(usage.max) };
-  if (usage.trialEndsAt) {
-    return usage.usedUp
-      ? { line: t("apps.x.usedUpTrial", { date: day(usage.trialEndsAt) }), usedUp: true }
-      : { line: t("apps.x.usageTrial", counts), usedUp: false };
-  }
-  return usage.usedUp
-    ? { line: t("apps.x.usedUp", { date: day(usage.resetsAt) }), usedUp: true }
-    : { line: `${t("apps.x.usage", counts)} ${t("apps.x.resets", { date: day(usage.resetsAt) })}`, usedUp: false };
-}
-
-/** The X (Twitter) card in Apps: included with a Cloud plan, or the person's own treg key, which is used first. */
+/** The X (Twitter) card in Apps: the person's own treg key. */
 export function XCard({ refreshKey = 0, onConnection }: {
   refreshKey?: number;
   /** true while bots have the X tools, false otherwise, null until the server has answered */
@@ -54,11 +36,9 @@ export function XCard({ refreshKey = 0, onConnection }: {
   const [key, setKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [verdict, setVerdict] = useState<string | null>(null);
-  const [addingOwn, setAddingOwn] = useState(false);
   const mounted = useRef(true);
   const saveAfterPaste = useRef(false);
-  const connecting = xResearchAction(useCloudPlan()?.view ?? null) === "connecting";
-  const ownConfigured = state.config?.treg?.configured === true, includedHeld = state.config?.xResearch?.included === true;
+  const ownConfigured = state.config?.treg?.configured === true;
 
   const load = useCallback(async (refresh = false): Promise<void> => {
     try {
@@ -76,7 +56,7 @@ export function XCard({ refreshKey = 0, onConnection }: {
     mounted.current = true;
     void load(refreshKey > 0);
     return () => { mounted.current = false; };
-  }, [load, refreshKey, ownConfigured, includedHeld]);
+  }, [load, refreshKey, ownConfigured]);
 
   useEffect(() => {
     onConnection?.(status ? status.using !== null : null);
@@ -113,7 +93,6 @@ export function XCard({ refreshKey = 0, onConnection }: {
       await applied(await saveCredential("treg", value, !ownConfigured));
       if (!mounted.current) return;
       setKey("");
-      setAddingOwn(false);
       keySaved("treg", "apps", await test());
     } catch (cause) {
       if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause));
@@ -145,12 +124,9 @@ export function XCard({ refreshKey = 0, onConnection }: {
   });
 
   const using = status?.using ?? null;
-  const usage = status?.usage ? xUsageLines(status.usage) : null;
-  const showForm = status !== null && using !== "own" && (using === null || addingOwn || usage?.usedUp === true);
+  const showForm = status !== null && using === null;
   const description = status === null ? t("apps.x.description")
-    : using === "own" ? t("apps.x.own")
-      : using === "included" ? t("apps.x.included")
-        : connecting && !status.unavailable ? t("apps.x.connecting") : t("apps.x.addKey");
+    : using === "own" ? t("apps.x.own") : t("apps.x.addKey");
 
   return (
     <div data-app-tile="x" data-x-state={status === null ? "loading" : using ?? "none"} className="flex min-w-0 flex-col rounded-xl px-2 py-2 transition-colors hover:bg-raised/40">
@@ -175,12 +151,7 @@ export function XCard({ refreshKey = 0, onConnection }: {
       </div>
       <div className="ps-[52px]">
         {using === "own" && (
-          <p className="mt-1 text-[12px] leading-relaxed text-ink-secondary">
-            {status?.included ? t("apps.x.ownFirst") : t("apps.x.ownBilled")}
-          </p>
-        )}
-        {using === "included" && usage && (
-          <p data-x-usage className={usage.usedUp ? "mt-1 text-[12px] leading-relaxed text-warning" : "mt-1 text-[12px] leading-relaxed text-ink-secondary"}>{usage.line}</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-ink-secondary">{t("apps.x.ownBilled")}</p>
         )}
         {using === "own" && (
           <button type="button" disabled={busy !== null} onClick={() => void remove()} className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-danger underline underline-offset-2 disabled:opacity-50">
@@ -188,14 +159,9 @@ export function XCard({ refreshKey = 0, onConnection }: {
             {t("apps.x.remove")}
           </button>
         )}
-        {using === "included" && !showForm && (
-          <button type="button" onClick={() => { setAddingOwn(true); setError(null); }} className="mt-1.5 inline-block text-[12px] text-accent-text underline underline-offset-2">
-            {t("apps.x.useOwnKey")}
-          </button>
-        )}
         {showForm && (
           <form data-x-key-form className="mt-2 flex flex-col gap-2" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-            {using === null && <p className="text-[12px] leading-relaxed text-ink-secondary">{t("apps.x.addKeyHelp")}</p>}
+            <p className="text-[12px] leading-relaxed text-ink-secondary">{t("apps.x.addKeyHelp")}</p>
             <div className="flex items-center gap-2">
               <input
                 type="password"

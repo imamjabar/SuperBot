@@ -2,7 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { RailState } from "../../electron/cloud-rail.mjs";
+import type { RailState } from "../../electron/rail-places.mjs";
 
 const fixture = vi.hoisted(() => ({ windowChrome: "mac-inset" as "mac-inset" | "win-caption", windowFrame: undefined as boolean | undefined }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
@@ -18,7 +18,7 @@ import { PlacesRail } from "./PlacesRail";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: Root | null = null;
 let tell: (framed: boolean) => void = () => {};
-const rail: RailState = { places: [{ id: "home", name: "My Cloud", color: null, kind: "cloud", opens: true, active: true }], add: { cloud: true, link: false, address: false } };
+const rail: RailState = { places: [{ id: "home", name: "My Server", color: null, kind: "server", opens: true, active: true }], add: { cloud: false, link: false, address: false } };
 
 beforeEach(() => {
   setLocale("en");

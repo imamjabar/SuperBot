@@ -83,7 +83,7 @@ beforeEach(() => {
     if (path.endsWith("/check")) { f.checks.push(path); return { ok: true }; }
     return path === "/api/instances" ? { instances: f.state.instances } : JSON.parse(init?.body ?? "{}");
   });
-  f.state = { instances: [claude(true)], config: { onboarding: EMPTY_ONBOARDING, profile: { name: "" } }, bots: [maus], cloudAdd: null };
+  f.state = { instances: [claude(true)], config: { onboarding: EMPTY_ONBOARDING, profile: { name: "" } }, bots: [maus] };
   stageIntro(null);
   host = document.createElement("div");
   document.body.append(host);
@@ -163,21 +163,6 @@ describe("the Chief step", () => {
   });
 });
 
-describe("What's new", () => {
-  it("is left for a later launch by a first run on a desktop that sells the Cloud: everyone who installs sees it once", async () => {
-    const seen = vi.fn(async () => {});
-    vi.stubGlobal("ogb", { remoteClient: { active: false }, cloudAccount: { offer: vi.fn() }, desktopNotices: { seen } });
-    await show();
-    await toChief();
-    await press("Create Chief of Staff");
-    await tick(CHIEF_FADE_MS);
-    await act(async () => {});
-    expect(seen).not.toHaveBeenCalled();
-    expect(saved()[0].onboarding.hintsSeen).toEqual([MET_CHIEF_HINT]);
-    expect(localStorage.getItem("whats-new-2026-11")).toBeNull();
-  });
-});
-
 describe("with no AI working yet", () => {
   it("keeps the screen's shape: the pill signs in, and the line under it offers other ways or later", async () => {
     f.state = { ...f.state, instances: [signIn()] };
@@ -253,14 +238,6 @@ describe("with no AI working yet", () => {
 });
 
 describe("other first runs", () => {
-  it("gives a hosted place's admin the first screen only, then the chat", async () => {
-    await show({ hosted: true });
-    expect(text()).toContain("This is your team's shared MausBot");
-    await press("Next");
-    expect(text()).not.toContain("Introducing your Chief of Staff");
-    expect(f.onDone).toHaveBeenCalledExactlyOnceWith(null);
-  });
-
   it("a replay from Settings records nothing about a first chat", async () => {
     f.state = { ...f.state, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01T00:00:00.000Z", version: WELCOME_VERSION } } };
     await show({ replay: true });

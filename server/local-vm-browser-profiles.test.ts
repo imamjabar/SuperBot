@@ -97,6 +97,7 @@ describe.skipIf(process.platform === "win32")("the image's start-up script keeps
     const dir = scratch();
     const home = join(dir, "home");
     const workspace = join(dir, "workspace");
+    mkdirSync(workspace);
     const script = prepareScript(dir, workspace);
     runPrepare(script, home);
     const profiles = join(workspace, ".browser-profiles");

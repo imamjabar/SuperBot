@@ -31,7 +31,6 @@ jobs:
       - name: Publish dist-server to server-dist branch
         run: |
           test -f dist-server/index.js
-          test -f dist-server/cloud-home-start.js
           find dist-server \( -name '.env*' -o -name '*.env' -o -name '*.pem' -o -name '*.key' \) -delete
           printf '{"sha":"%s","ref":"%s","run":"%s"}\n' "$GITHUB_SHA" "$GITHUB_REF" "$GITHUB_RUN_ID" > dist-server/server-dist-manifest.json
           cd dist-server

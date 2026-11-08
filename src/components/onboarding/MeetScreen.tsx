@@ -55,18 +55,18 @@ function DemoComposer({ reduced, onTyping }: { reduced: boolean; onTyping: (typi
 
 /** The first run's first screen: the app's name, its mascot and a composer typing one sentence, then one pill. With
  * no AI working yet the pill is the sign-in, and Next comes once the AI has answered its test message. */
-export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => void }) {
+export function MeetScreen({ onNext }: { onNext: () => void }) {
   const { state } = useStore();
   const reduced = usePrefersReducedMotion();
   const maus = myDefaultBot(state.bots, useViewerEmail());
   // An AI counts once it answered a test message (or cannot be sent one); OpenCode's free model never does.
-  const tested = useWelcomeAi(state.instances, !hosted);
+  const tested = useWelcomeAi(state.instances);
   const ready = aiWorks(tested);
   const known = state.instances.length > 0;
   const [asking, setAsking] = useState(false);
   useEffect(() => {
-    if (!hosted && known && !ready && tested?.state !== "testing") setAsking(true);
-  }, [hosted, known, ready, tested?.state]);
+    if (known && !ready && tested?.state !== "testing") setAsking(true);
+  }, [known, ready, tested?.state]);
   const { recommended } = aiChoices(state.instances.filter((instance) => instance.install && !engineReady(instance)));
   const pill = useSignInPill(recommended);
   const [dialog, setDialog] = useState(false);
@@ -91,11 +91,6 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
         )}
       </span>
       <DemoComposer reduced={reduced} onTyping={setTyping} />
-      {hosted && (
-        <p className="absolute left-1/2 top-[calc(50%+86px)] w-[420px] max-w-[calc(100%-32px)] -translate-x-1/2 text-[13px] leading-[18px] text-ink-secondary">
-          {t("onboarding.hosted.intro")}
-        </p>
-      )}
       <div className="absolute left-1/2 top-[calc(50%+200px)] flex w-[320px] max-w-[calc(100%-32px)] -translate-x-1/2 flex-col items-center">
         {asking && ready && tested && (
           <p role="status" data-ai-connected="" className="absolute -top-8 flex items-center gap-1.5 whitespace-nowrap text-[13px] leading-[18px] text-success">
@@ -118,7 +113,7 @@ export function MeetScreen({ hosted, onNext }: { hosted: boolean; onNext: () => 
         )}
         {signingIn && failure && <p role="alert" className="mt-2 text-[13px] leading-[18px] text-danger">{failure}</p>}
       </div>
-      {dialog && <ConnectAiDialog hosted={hosted} tested={tested} onClose={() => setDialog(false)} />}
+      {dialog && <ConnectAiDialog tested={tested} onClose={() => setDialog(false)} />}
     </div>
   );
 }

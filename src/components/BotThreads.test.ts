@@ -13,6 +13,7 @@ vi.mock("@/lib/interface-mode", async (original) => ({
   ...await original<typeof import("@/lib/interface-mode")>(),
   useAdvancedMode: () => true,
 }));
+vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => true }));
 
 const bot: Bot = {
   id: "maus", threadId: "idle", name: "Maus", title: "", description: "", notifications: true,

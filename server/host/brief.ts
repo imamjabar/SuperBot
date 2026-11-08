@@ -254,7 +254,6 @@ export function createBrief(deps: BriefDeps) {
       switch (item.kind) {
         case "signed-out": { const engine = deps.engineName(item.instanceId); return row(engine, w.signedOut(engine), w.signInAgain); }
         case "usage-limit": return row("", w.usageLimit, clip(item.text, 140));
-        case "out-of-credit": return row("", w.outOfCredit, w.ownAccount);
         case "connection": return row(item.app, w.reconnecting(item.app), clip(item.text, 140));
         case "place": return row("", w.unreachable, w.chooseAnother);
         case "question": { const bot = deps.store.bot(item.botId)?.name; return row(bot ?? "", w.asked(bot ?? w.aBot), clip(item.text, 140)); }

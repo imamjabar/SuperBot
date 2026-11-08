@@ -8,7 +8,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AppConfig } from "../config.ts";
 import { createMcpConfig } from "../host/mcp-config.ts";
-import type { TeamConnectionsHost } from "../host/team-connections-host.ts";
 import { addBotMcpServer, keepForBot } from "../mcp-bot-servers.ts";
 import { botListing, mcpOwner } from "../mcp-bot-rules.ts";
 import { McpOAuthManager } from "../mcp-oauth.ts";
@@ -23,8 +22,6 @@ import { PASS, type RouteContext } from "./table.ts";
 const BOT = "kiwi";
 const THREAD = "thread-1";
 const MAC = { environmentId: "env-mac", label: "Ada's Mac" };
-const OWNER_ONLY = "MCP servers are managed by the owner.";
-const ASK_ADMIN = "Ask a workspace admin to add it.";
 
 const linear = { type: "http", url: "https://mcp.linear.app/mcp", headers: {}, enabled: true };
 const notes = { command: "npx", args: ["-y", "notes-mcp"], env: { NOTES_TOKEN: "saved-token" }, enabled: true };
@@ -53,9 +50,7 @@ function fixture(options: Options = {}) {
   const mcpOAuth = new McpOAuthManager({ file: join(dataDir, "mcp-oauth.json") });
   let busy = false;
   const config = createMcpConfig({
-    cfg, sessions: { isLive: () => true }, mcpOAuth,
-    teamConnections: { personMcp: () => options.personal ?? [], people: {} as TeamConnectionsHost["people"] },
-    cloudHome: null, fallbackPublicUrl: null,
+    cfg, sessions: { isLive: () => true }, mcpOAuth, fallbackPublicUrl: null,
     mcpConfigBusy: { get: () => busy, set: (value) => { busy = value; } },
     mcpServerResponse: () => ({ servers: listMcpServers(cfg.mcpServers) }),
     mcpPolicyRefusal: (name) => options.refuse?.(name),
@@ -80,7 +75,7 @@ function fixture(options: Options = {}) {
       appendMessage: (_threadId, message) => { const row = { ...message, id: `card-${chat.length + 1}` }; chat.push(row); return row; },
       patchMessage: (_threadId, id, patch) => { const row = chat.find((item) => item.id === id); if (row) row.card = patch.card; },
     },
-    teamCloud: false,
+
     apply: (request, fields) => applyMcpChange(deps, request, fields),
     answer: (_threadId, _messageId, text) => { answers.push(text); return true; },
     decide: (row) => { decisions.push(row.decision); },
@@ -91,16 +86,13 @@ function fixture(options: Options = {}) {
     readBody: async () => body as Record<string, unknown>,
     sender, threadId: THREAD,
     fullAccess: () => options.full ?? true,
-    guestDriven: () => options.guest ?? false,
-    teamAdmin: () => options.admin ?? true,
+
     canUse: (name) => !options.leftOut?.includes(name),
     config, cfg: () => cfg as AppConfig,
-    personal: () => options.personal ?? [],
     authState: (name, url) => mcpOAuth.authState(name, url),
     managedBy: (name) => options.refuse?.(name) ? "Acme IT" : undefined,
     policyRefusal: (name) => options.refuse?.(name),
     signOut: (name, url) => mcpOAuth.signOut(name, url),
-    testAs: () => null,
     redeem: (raw) => vault.redeem(raw, owner, (path) => path.length === 2 && (path[0] === "env" || path[0] === "headers" || (path[0] === "oauth" && path[1] === "clientSecret")), "mcp_server's env, headers and oauth.clientSecret"),
     addToBotList: (name) => { listedOn.push({ bot: sender.id, name }); },
     botAdd: (current, raw) => addBotMcpServer(current, raw, BOT, dataDir, options.boxed ?? false),
@@ -206,11 +198,6 @@ describe("internal mcp_server restart", () => {
     expect((await post({ action: "restart", name: "missing" })).status).toBe(404);
   });
 
-  it("is an admin's on a team's shared server, and a guest's turn gets nothing", async () => {
-    probeWith({ ok: true, tools: [] });
-    expect(await fixture({ admin: false, servers: { notes } }).post({ action: "restart", name: "notes" })).toMatchObject({ status: 403, body: { error: ASK_ADMIN } });
-    expect(await fixture({ guest: true, servers: { notes } }).post({ action: "restart", name: "notes" })).toMatchObject({ status: 403, body: { error: OWNER_ONLY } });
-  });
 
   it("says plainly that a test only proves the server started", async () => {
     probeWith({ ok: true, tools: [] });
@@ -349,14 +336,6 @@ describe("internal mcp_server route, Full access", () => {
     expect(probe).not.toHaveBeenCalled();
   });
 
-  it("refuses a Team Cloud personal server for changes", async () => {
-    const { post, stored } = fixture({ servers: { linear }, personal: ["linear"] });
-    for (const action of ["update", "enable", "disable", "remove"]) {
-      const out = await post({ action, name: "linear", url: "https://elsewhere.example/mcp" });
-      expect(out, action).toEqual({ status: 403, body: { error: "This connection is each person's own. Change it in Settings." } });
-    }
-    expect(stored("linear")).toMatchObject({ url: linear.url, enabled: true });
-  });
 
   it("refuses a server that runs on another computer, test included", async () => {
     const probe = probeWith({ ok: true, tools: [] });
@@ -384,32 +363,6 @@ describe("internal mcp_server route, Full access", () => {
     expect(stored("linear")?.enabled).toBe(false);
   });
 
-  it("a non-admin on a Team Cloud is refused with \"Ask a workspace admin to add it.\" for add, update, enable, disable, sign_out and remove", async () => {
-    const probe = probeWith({ ok: true, tools: [] });
-    const { post, cfg } = fixture({ admin: false, servers: { linear } });
-    const before = structuredClone(cfg.mcpServers);
-    for (const payload of [
-      { action: "add", name: "github", url: "https://api.github.example/mcp" },
-      { action: "update", name: "linear", url: "https://mcp.linear.app/v2" },
-      { action: "enable", name: "linear" },
-      { action: "disable", name: "linear" },
-      { action: "sign_out", name: "linear" },
-      { action: "remove", name: "linear" },
-    ]) {
-      expect(await post(payload), payload.action).toEqual({ status: 403, body: { error: ASK_ADMIN } });
-    }
-    expect(cfg.mcpServers).toEqual(before);
-    expect(probe).not.toHaveBeenCalled();
-  });
-
-  it("every action, list included, is refused in a guest-driven thread with \"MCP servers are managed by the owner.\"", async () => {
-    const { call, post, cfg } = fixture({ guest: true, servers: { linear } });
-    expect(await call("GET")).toEqual({ status: 403, body: { error: OWNER_ONLY } });
-    for (const action of ["list", "add", "update", "enable", "disable", "restart", "test", "sign_in", "sign_out", "remove"]) {
-      expect(await post({ action, name: "linear" }), action).toEqual({ status: 403, body: { error: OWNER_ONLY } });
-    }
-    expect(cfg.mcpServers).toEqual({ linear });
-  });
 
   it("add for a bot whose tool selection leaves the server out says so and does not widen toolScope", async () => {
     probeWith({ ok: true, tools: [] });
@@ -570,12 +523,12 @@ describe("internal mcp_server route, Full access", () => {
 
   it("list returns botListing rows for servers this bot can see and hides another bot's own", async () => {
     const servers = { linear, notes: { ...notes, bot: BOT }, scout: { ...notes, bot: "scout" }, docs: { type: "http", url: "https://docs.example/mcp?key=1", headers: { "X-Key": "k" }, enabled: false } };
-    const { call } = fixture({ servers, personal: ["docs"] });
+    const { call } = fixture({ servers });
     const { status, body } = await call("GET");
     expect(status).toBe(200);
     const parse = (name: string) => { const parsed = parseStoredMcpServer(name, servers[name as keyof typeof servers]); if (!parsed.ok) throw new Error(parsed.error); return parsed.server; };
     const row = (name: string, owner: ReturnType<typeof mcpOwner>) => botListing(name, parse(name), { owner, authState: "none", forThisBot: true });
-    expect(JSON.parse(body.text!.slice(body.text!.indexOf("\n") + 1))).toEqual([row("linear", "shared"), row("notes", "own"), row("docs", "person")]);
+    expect(JSON.parse(body.text!.slice(body.text!.indexOf("\n") + 1))).toEqual([row("linear", "shared"), row("notes", "own"), row("docs", "shared")]);
     expect(body.text).not.toContain("scout");
     expect(body.text).not.toContain("key=1");
   });
@@ -852,8 +805,6 @@ describe("internal mcp_server route, below Full access", () => {
     expect(signIns).toEqual([]);
     expect(lines).toEqual([]);
 
-    const member = fixture({ admin: false, servers: { linear } });
-    expect(await member.post({ action: "sign_in", name: "linear" })).toEqual({ status: 403, body: { error: "Ask a workspace admin to sign in to linear." } });
     const refused = fixture({ servers: { linear }, signInRefusal: { status: 409, error: "Nobody can sign in to linear from here." } });
     expect(await refused.post({ action: "sign_in", name: "linear" })).toEqual({ status: 409, body: { error: "Nobody can sign in to linear from here." } });
     expect(refused.lines).toEqual([]);
@@ -910,7 +861,7 @@ describe("a card answered after OpenMausBot restarts", () => {
     await respond("allow");
     expect(stored("notes")).toMatchObject({ args: ["-y", "notes-mcp"], env: { NOTES_TOKEN: "saved-token" } });
     expect(probe).not.toHaveBeenCalled();
-    expect(card()).toMatchObject({ expired: true, held: "OpenMausBot restarted, so this request expired.", mcpRequest: { result: { state: "expired" } } });
+    expect(card()).toMatchObject({ expired: true, held: "SuperBot restarted, so this request expired.", mcpRequest: { result: { state: "expired" } } });
     expect(answers[0]).toContain("OpenMausBot restarted, so this request expired. Ask again if you still need it.");
     for (const sent of [fresh, "sk-live-9", "fresh-token", "saved-token"]) expect(JSON.stringify(chat), sent).not.toContain(sent);
   });

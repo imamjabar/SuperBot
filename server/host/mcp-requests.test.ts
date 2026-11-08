@@ -35,7 +35,7 @@ function service(options: Partial<McpRequestOptions> & { store?: ReturnType<type
   let parked = true;
   const decisions: Array<{ decision: string }> = [];
   const cards = new McpRequestService({
-    store, apply, teamCloud: options.teamCloud ?? false,
+    store, apply,
     answer: (_threadId, _messageId, text) => { answers.push(text); return parked; },
     decide: (row) => { decisions.push(row); },
   });
@@ -54,13 +54,6 @@ describe("MCP approval cards", () => {
     expect(await local.respond(requestId, "allow", false)).toMatchObject({ status: 403 });
     expect(local.apply).not.toHaveBeenCalled();
     expect(local.store.rows[0]!.card).not.toHaveProperty("answered");
-
-    const team = service({ teamCloud: true });
-    const proposed = team.propose();
-    expect(await team.respond(proposed.requestId, "allow", false)).toEqual({ status: 403, body: { error: "Ask a workspace admin to approve this." } });
-    expect(team.apply).not.toHaveBeenCalled();
-    expect(await team.respond(proposed.requestId, "deny", false)).toMatchObject({ status: 200, body: { alreadySettled: false } });
-    expect(team.store.rows[0]!.card).toMatchObject({ answered: "deny" });
   });
 
   it("a newer card about the same server supersedes the open one, which can no longer be allowed", async () => {
@@ -116,8 +109,8 @@ describe("MCP approval cards", () => {
     expect(await after.respond(requestId, "allow")).toMatchObject({ status: 200, body: { alreadySettled: false, result: { state: "expired" } } });
     expect(after.apply).not.toHaveBeenCalled();
     expect(after.answers).toHaveLength(1);
-    expect(after.answers[0]).toContain("OpenMausBot restarted, so this request expired. Ask again if you still need it.");
-    expect(after.store.rows[0]!.card).toMatchObject({ expired: true, options: [], held: "OpenMausBot restarted, so this request expired.", mcpRequest: { resumed: true } });
+    expect(after.answers[0]).toContain("restarted, so this request expired. Ask again if you still need it.");
+    expect(after.store.rows[0]!.card).toMatchObject({ expired: true, options: [], held: expect.stringContaining("restarted, so this request expired."), mcpRequest: { resumed: true } });
   });
 
   it("a restart expires an open Change card for the turn parked on it, which hears why, and leaves a Turn on card open", () => {

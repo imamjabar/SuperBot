@@ -1,7 +1,33 @@
 import { useEffect, useState } from "react";
-import type { CloudSwatch } from "../../electron/cloud-list.mjs";
-import type { PlaceColorOutcome, PlaceLook } from "../../electron/place-look.mjs";
-import { cloudColor } from "@/lib/cloud-look";
+import type { PlaceColorOutcome, PlaceLook, PlaceSwatch } from "../../electron/place-look.mjs";
+import type { LocaleKey } from "@/locales";
+
+export type { PlaceSwatch };
+export const PLACE_SWATCH_ORDER: readonly PlaceSwatch[] = ["blue", "green", "amber", "rose", "violet", "slate"];
+export const PLACE_SWATCH_LABEL: Record<PlaceSwatch, LocaleKey> = {
+  blue: "placeLook.color.blue",
+  green: "placeLook.color.teal",
+  amber: "placeLook.color.yellow",
+  rose: "placeLook.color.red",
+  violet: "placeLook.color.purple",
+  slate: "placeLook.color.slate",
+};
+export function swatchFill(swatch: PlaceSwatch): string {
+  const color = swatch === "blue" ? "blue" : swatch === "green" ? "teal" : swatch === "amber" ? "yellow" : swatch === "rose" ? "red" : swatch === "violet" ? "purple" : null;
+  return color ? placeColorFill(color) : "var(--color-raised)";
+}
+
+export type PlaceColor = "blue" | "teal" | "purple" | "orange" | "red" | "yellow";
+export const PLACE_COLORS: readonly PlaceColor[] = ["blue", "teal", "purple", "orange", "red", "yellow"];
+
+export function placeColor(value: unknown): PlaceColor | null {
+  return PLACE_COLORS.includes(value as PlaceColor) ? (value as PlaceColor) : null;
+}
+
+export function placeColorFill(value: unknown): string {
+  const color = placeColor(value);
+  return color ? `var(--identity-${color})` : "var(--color-control)";
+}
 
 let current: PlaceLook | null = null;
 let started = false;
@@ -17,7 +43,6 @@ function publish(next: PlaceLook | null) {
   for (const listener of listeners) listener(current);
 }
 
-/** Main's word on this page's place again (its colour changed, or the window came back). */
 export function refreshPlaceLook(): Promise<void> {
   const workspaces = bridge();
   if (!workspaces?.look) return Promise.resolve();
@@ -32,8 +57,6 @@ function start() {
   void refreshPlaceLook();
 }
 
-/** The colour of the place this page is, and whether it can be changed here: none in a browser and on an older app.
- * The sidebar's tint and Settings read the same one. */
 export function usePlaceLook(): PlaceLook | null {
   const [look, setLook] = useState<PlaceLook | null>(current);
   useEffect(() => {
@@ -46,9 +69,7 @@ export function usePlaceLook(): PlaceLook | null {
   return look;
 }
 
-/** The person chose a swatch: main saves it (on the Admin for a Cloud) and answers the place's look, which the tint and
- * the rail's circle follow at once. */
-export async function choosePlaceColor(swatch: CloudSwatch | null): Promise<PlaceColorOutcome> {
+export async function choosePlaceColor(swatch: PlaceSwatch | null): Promise<PlaceColorOutcome> {
   const workspaces = bridge();
   if (!workspaces?.color) return "failed";
   const answer = await workspaces.color(swatch).catch(() => null);
@@ -57,9 +78,7 @@ export async function choosePlaceColor(swatch: CloudSwatch | null): Promise<Plac
   return answer.outcome;
 }
 
-/** The sidebar's tint for a place's colour: that colour in the skin's own tone (styles.css .place-tint fades it out);
- * none without a colour, so the sidebar looks as it always did. */
 export function placeTint(color: unknown): { "--place-tint": string } | null {
-  const known = cloudColor(color);
+  const known = placeColor(color);
   return known ? { "--place-tint": `var(--identity-${known})` } : null;
 }

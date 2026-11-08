@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ConfigStatus, InstanceInfo } from "@/state/store";
 import {
-  APP, CLOUD_COMPUTER_SOURCE, CLOUD_PLAN, CONNECTORS_MODE, DECIDER, EDITION, ENGINE, KEY_PROVIDER, LOCAL_VM_MODE, PLATFORM,
-  TRIAL_CREDIT, VOICE,
+  APP, CLOUD_COMPUTER_SOURCE, CONNECTORS_MODE, DECIDER, EDITION, ENGINE, KEY_PROVIDER, LOCAL_VM_MODE, PLATFORM,
+  VOICE,
 } from "./analytics-allowlist";
 import {
-  buildUsageSnapshot, cloudPlanFromAccount, cloudPlanFromSnapshot, type SnapshotState, type UsageInput, type UsageSources,
+  buildUsageSnapshot, type SnapshotState, type UsageInput, type UsageSources,
 } from "./usage-snapshot";
 
 const HOSTILE = "sk-ant-api03-HOSTILE-0123456789";
@@ -48,16 +48,16 @@ const DOCUMENTED = [
   "key_providers", "key_count", "has_boat_key", "cloud_computer_source", "cloud_computers", "team_computers", "bots_cloud_boat",
   "bots_cloud_vps", "bots", "bots_local_vm", "bots_this_computer", "bots_browser", "bots_off", "bots_auto", "rooms", "bot_channels",
   "teams", "routines", "routines_enabled", "routines_cloud", "routines_room_goal", "routines_once", "routines_daily",
-  "routines_interval", "routines_cron", "webhooks", "engines", "engine_count", "custom_endpoints", "trial_credit", "apps",
-  "apps_connected", "connectors_mode", "local_vm_mode", "vps_configured", "voice", "voice_included", "decider", "decider_included",
-  "live_calls", "phones_paired", "paired_devices", "phone_paired", "members", "cloud_home", "cloud_plan", "cloud_trial", "edition",
+  "routines_interval", "routines_cron", "webhooks", "engines", "engine_count", "custom_endpoints", "apps",
+  "apps_connected", "connectors_mode", "local_vm_mode", "vps_configured", "voice", "decider",
+  "live_calls", "phones_paired", "paired_devices", "phone_paired", "members", "edition",
   "org_managed", "onboarded", "first_turn", "platform", "remote_client",
 ];
 
 const WORDS: Record<string, readonly string[]> = {
-  key_providers: KEY_PROVIDER, cloud_computer_source: CLOUD_COMPUTER_SOURCE, engines: [...ENGINE, "other"], trial_credit: TRIAL_CREDIT,
+  key_providers: KEY_PROVIDER, cloud_computer_source: CLOUD_COMPUTER_SOURCE, engines: [...ENGINE, "other"],
   apps: [...APP, "other"], connectors_mode: [...CONNECTORS_MODE, "other"], local_vm_mode: [...LOCAL_VM_MODE, "other"],
-  voice: [...VOICE, "other"], decider: [...DECIDER, "other"], cloud_plan: CLOUD_PLAN, edition: [...EDITION, "other"], platform: PLATFORM,
+  voice: [...VOICE, "other"], decider: [...DECIDER, "other"], edition: [...EDITION, "other"], platform: PLATFORM,
 };
 
 function expectOnlyCountsFlagsAndWords(props: Record<string, unknown>) {
@@ -102,7 +102,7 @@ function hostileState(): SnapshotState {
       instance("claude-3f0c2b1e-9d1a-4c55-8a51-0a3a6f1e2b7c", "claudeAgent"),
       instance("claude", "claudeAgent"),
       instance("openai-compat-0a3a6f1e-2b7c-4c55-8a51-3f0c2b1e9d1a", "openai-compat", { url: `https://${HOSTILE}.example.com/v1` }),
-      instance(HOSTILE, HOSTILE, { trialCredit: "used_up" }),
+      instance(HOSTILE, HOSTILE),
       instance("codex", "codex", { snapshot: { state: "unavailable", reason: HOSTILE } }),
     ],
     bots: [
@@ -160,18 +160,6 @@ function hostileSources(overrides: Partial<UsageSources> = {}): UsageSources & {
       };
     },
     companion: { state: async () => { calls.push("companion"); return { devices: [{ id: HOSTILE, name: HOSTILE }, { id: "p2", name: "Ada's iPhone" }] }; } },
-    cloudAccount: {
-      state: async () => {
-        calls.push("cloudAccount");
-        return {
-          status: "connected", account: { id: HOSTILE, email: `${HOSTILE}@example.com` }, deviceId: HOSTILE,
-          entitlement: { plan: "pro", tier: "max", status: "active", expiresAt: null, version: 1 },
-          trial: { state: "active", tier: "max", endsAt: 1, amount: 9900, chargeAt: 1, holdUntil: null },
-          machine: { status: "ready", origin: `https://${HOSTILE}.mausbot.cloud` },
-        } as never;
-      },
-    },
-    cloudPlan: { state: async () => { calls.push("cloudPlan"); return { status: "none" }; } },
     platform: "desktop",
     remoteClient: false,
     ...overrides,
@@ -200,11 +188,11 @@ describe("the daily usage snapshot", () => {
       bots_cloud_boat: 2, bots_cloud_vps: 1, bots: 9, bots_local_vm: 1, bots_this_computer: 1, bots_browser: 1, bots_off: 1, bots_auto: 2,
       rooms: 2, bot_channels: 1, teams: 2,
       routines: 4, routines_enabled: 3, routines_cloud: 1, routines_room_goal: 1, routines_once: 1, routines_daily: 1, routines_interval: 1, routines_cron: 1,
-      webhooks: 1, engines: ["claude", "openai_compat", "other"], engine_count: 4, custom_endpoints: 1, trial_credit: "used_up",
+      webhooks: 1, engines: ["claude", "openai_compat", "other"], engine_count: 4, custom_endpoints: 1,
       apps: ["gmail", "other"], apps_connected: 4, connectors_mode: "self_hosted", local_vm_mode: "per_bot", vps_configured: true,
-      voice: "fish", voice_included: false, decider: "jev", decider_included: false, live_calls: true,
+      voice: "fish", decider: "jev", live_calls: true,
       phones_paired: 2, paired_devices: 2, phone_paired: true, members: 1,
-      cloud_home: false, cloud_plan: "max", cloud_trial: true, edition: "enterprise", org_managed: true, onboarded: true, first_turn: true,
+      edition: "enterprise", org_managed: true, onboarded: true, first_turn: true,
       platform: "desktop", remote_client: false,
     });
     expect(Object.keys(sent!).sort()).toEqual([...DOCUMENTED].sort());
@@ -267,27 +255,15 @@ describe("the daily usage snapshot", () => {
     const { snapshot } = await freshModules();
     const fail = async () => { throw new Error("unreachable"); };
     await snapshot.sendDailySnapshot(hostileState(), hostileSources({
-      request: fail, connectedApps: fail, companion: { state: fail }, cloudAccount: { state: fail },
+      request: fail, connectedApps: fail, companion: { state: fail },
     }), DAY);
     const [sent] = snapshots();
-    for (const key of ["cloud_computers", "team_computers", "apps", "apps_connected", "phones_paired", "paired_devices", "phone_paired", "members", "cloud_trial"]) {
+    for (const key of ["cloud_computers", "team_computers", "apps", "apps_connected", "phones_paired", "paired_devices", "phone_paired", "members"]) {
       expect(sent, key).not.toHaveProperty(key);
     }
-    expect(sent).toMatchObject({ cloud_plan: "unknown", bots: 9, key_count: 9 });
+    expect(sent).toMatchObject({ bots: 9, key_count: 9 });
   });
 
-  it("reads the plan from a Cloud page's own bridge, and leaves out what only this computer knows", async () => {
-    const { snapshot } = await freshModules();
-    const sources = hostileSources({
-      companion: null, cloudAccount: null, platform: "browser",
-      cloudPlan: { state: async () => ({ status: "paid", tier: "pro", trial: { state: "ending", endsAt: 1, amount: null, chargeAt: null, holdUntil: null } } as never) },
-    });
-    await snapshot.sendDailySnapshot({ ...hostileState(), config: { ...hostileState().config!, cloudHome: true, box: { configured: true, included: true } } }, sources, DAY);
-    const [sent] = snapshots();
-    expect(sent).toMatchObject({ cloud_plan: "pro", cloud_trial: true, cloud_home: true, cloud_computer_source: "included", platform: "browser", paired_devices: 2, phone_paired: true });
-    expect(sent).not.toHaveProperty("phones_paired");
-    expect((sent!.key_providers as string[])).not.toContain("boat");
-  });
 });
 
 describe("an opted-out install", () => {
@@ -295,7 +271,7 @@ describe("an opted-out install", () => {
     storage.set("omb-analytics-opt-out", "1");
     const { snapshot } = await freshModules();
     const sources = hostileSources();
-    const spies = [vi.spyOn(sources, "request"), vi.spyOn(sources, "connectedApps"), vi.spyOn(sources.companion!, "state"), vi.spyOn(sources.cloudAccount!, "state"), vi.spyOn(sources.cloudPlan!, "state")];
+    const spies = [vi.spyOn(sources, "request"), vi.spyOn(sources, "connectedApps"), vi.spyOn(sources.companion!, "state")];
     expect(await snapshot.sendDailySnapshot(hostileState(), sources, DAY)).toBe(false);
     for (const spy of spies) expect(spy).not.toHaveBeenCalled();
     expect(ph.captured).toEqual([]);
@@ -318,27 +294,16 @@ describe("an opted-out install", () => {
 describe("what counts as a key, a computer source and an app", () => {
   const minimal = (config: Partial<ConfigStatus> = {}, input: Partial<UsageInput> = {}): UsageInput => ({
     config: { composio: { configured: false }, box: { configured: false }, vps: { configured: false, sshAlias: "" }, rooms: { turnTimeoutMinutes: 30 }, localVm: { mode: "shared", maxInstances: 1 }, ...config } as ConfigStatus,
-    instances: [], bots: [], groups: [], routines: [], webhooks: 0, apps: null, sessions: null, companionDevices: null, cloud: null,
+    instances: [], bots: [], groups: [], routines: [], webhooks: 0, apps: null, sessions: null, companionDevices: null,
     computers: null, platform: "browser", remoteClient: false, ...input,
   });
 
-  it("tells an own Boat key from computers included with a Cloud plan", () => {
-    expect(buildUsageSnapshot(minimal({ box: { configured: true } }))).toMatchObject({ has_boat_key: true, cloud_computer_source: "own_key", key_providers: ["boat"] });
-    expect(buildUsageSnapshot(minimal({ box: { configured: true, included: true } }))).toMatchObject({ has_boat_key: false, cloud_computer_source: "included", key_providers: [], key_count: 0 });
-  });
 
   it("counts a Composio key only for a self-hosted project, and names the mode either way", () => {
     expect(buildUsageSnapshot(minimal({ composio: { configured: true, mode: "managed" } }))).toMatchObject({ key_providers: [], connectors_mode: "managed" });
     expect(buildUsageSnapshot(minimal({ composio: { configured: true, mode: "self-hosted" } }))).toMatchObject({ key_providers: ["composio"], connectors_mode: "self_hosted" });
   });
 
-  it("leaves a Cloud plan's included voice and decisions out of the keys, and says they are included", () => {
-    const sent = buildUsageSnapshot(minimal({
-      tts: { configured: true, ready: true, voice: "v", provider: "elevenlabs", included: true },
-      decider: { provider: "jev", configured: true, included: true, enabled: true, jobs: { roomRouting: true } },
-    }));
-    expect(sent).toMatchObject({ key_providers: [], voice: "elevenlabs", voice_included: true, decider: "jev", decider_included: true });
-  });
 
   it("leaves out the cloud computer count it was not told, the apps of an inventory it cannot trust, and lists not loaded", () => {
     const services = { gmail: { connected: true } };
@@ -380,30 +345,3 @@ describe("what counts as a key, a computer source and an app", () => {
   });
 });
 
-describe("the Cloud plan", () => {
-  const trial = { state: "active", tier: "pro", endsAt: 1, amount: 4900, chargeAt: 1, holdUntil: null };
-  const entitlement = (patch: Record<string, unknown>) => ({ plan: "pro", status: "active", expiresAt: null, version: 1, ...patch });
-
-  it("reads a desktop's Cloud account: unknown while it cannot tell, none when signed out or not paying", () => {
-    expect(cloudPlanFromAccount({ status: "signed-out", message: "restoring" })).toEqual({ plan: "unknown" });
-    expect(cloudPlanFromAccount({ status: "signed-out" })).toEqual({ plan: "none" });
-    for (const status of ["connecting", "reauth-required", "unavailable"] as const) expect(cloudPlanFromAccount({ status }), status).toEqual({ plan: "unknown" });
-    expect(cloudPlanFromAccount(null)).toEqual({ plan: "unknown" });
-    const connected = (patch: Record<string, unknown>, extra: Record<string, unknown> = {}) => cloudPlanFromAccount({ status: "connected", entitlement: entitlement(patch), ...extra } as never);
-    expect(connected({})).toEqual({ plan: "pro", trial: false });
-    expect(connected({ tier: "personal" }, { trial })).toEqual({ plan: "personal", trial: true });
-    expect(connected({ tier: "a-tier-from-a-newer-admin" })).toEqual({ plan: "other", trial: false });
-    expect(connected({ tier: "max", status: "inactive" })).toEqual({ plan: "none", trial: false });
-    expect(connected({ plan: "free" }, { trial })).toEqual({ plan: "none", trial: true });
-  });
-
-  it("reads a Cloud page's own plan, where a paid plan whose payment needs attention counts as none", () => {
-    expect(cloudPlanFromSnapshot({ status: "paid" })).toEqual({ plan: "pro", trial: false });
-    expect(cloudPlanFromSnapshot({ status: "paid", tier: "max" })).toEqual({ plan: "max", trial: false });
-    expect(cloudPlanFromSnapshot({ status: "paid", tier: "a-tier-from-a-newer-admin" })).toEqual({ plan: "other", trial: false });
-    expect(cloudPlanFromSnapshot({ status: "attention", tier: "pro", trial } as never)).toEqual({ plan: "none", trial: true });
-    expect(cloudPlanFromSnapshot({ status: "none" })).toEqual({ plan: "none", trial: false });
-    for (const status of ["checking", "signin"] as const) expect(cloudPlanFromSnapshot({ status }), status).toEqual({ plan: "unknown" });
-    expect(cloudPlanFromSnapshot(undefined)).toEqual({ plan: "unknown" });
-  });
-});

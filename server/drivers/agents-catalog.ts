@@ -908,22 +908,12 @@ const CHIEF_ONLY_TOOL_NAMES = new Set([
 const CHIEF_TARGET_TOOL_NAMES = new Set(["propose_profile", "propose_model"]);
 const WATCHER_TOOL_NAMES = new Set(["create_options_card"]);
 
-const LOCAL_VM_TOOL_NAMES = new Set(["vm_exec"]);
 /** Refused in a room's thread (chat-widgets.ts, chat-apps.ts, routes/waits.ts), and list_waits, since a room holds no wait. */
 const ROOM_REFUSED_TOOL_NAMES = new Set(["show_widget", "show_html", ...WAIT_TOOL_NAMES]);
-const CLOUD_HOME_SURFACE = {
-  type: "string", enum: ["auto", "cloud", "browser"],
-  description: "auto = suitable configured computer, cloud = the bot's cloud computer, browser = built-in browser. Omit to list. This server runs in the cloud: the user's own computer and a Local VM are not places here.",
-};
 
 export function availableTools(profile: CatalogProfile) {
   const tools = catalogTools(profile);
-  const placed = profile.cloudHome
-    ? tools.filter(tool => !LOCAL_VM_TOOL_NAMES.has(tool.name)).map(tool => tool.name === "select_computer"
-      ? { ...tool, inputSchema: { ...tool.inputSchema, properties: { surface: CLOUD_HOME_SURFACE } } }
-      : tool)
-    : tools;
-  return placed.map((tool) => ({ ...tool, inputSchema: advertisedSchema(tool.inputSchema, tool.description) }));
+  return tools.map((tool) => ({ ...tool, inputSchema: advertisedSchema(tool.inputSchema, tool.description) }));
 }
 
 const FULL_INPUT_SCHEMAS = new Map<string, unknown>([...TOOL_DEFINITIONS, ...MAUSBOT_TOOL_DEFINITIONS].map((tool) => [tool.name, tool.inputSchema]));
@@ -948,7 +938,7 @@ function catalogTools(profile: CatalogProfile) {
   const SHAREABLE_TOOLS = (profile.sharedComputers
     ? AUTHORING_TOOLS
     : AUTHORING_TOOLS.filter((tool) => !SHARED_COMPUTER_TOOL_NAMES.has(tool.name)))
-    .filter((tool) => (profile.sharedComputers && profile.cloudHome && profile.team !== true) || !COMPUTER_ASK_TOOL_NAMES.has(tool.name));
+    .filter((tool) => !COMPUTER_ASK_TOOL_NAMES.has(tool.name));
   const VOICE_READY_TOOLS = profile.voiceNotes
     ? SHAREABLE_TOOLS
     : SHAREABLE_TOOLS.filter((tool) => !VOICE_TOOL_NAMES.has(tool.name));

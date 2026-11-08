@@ -6,8 +6,8 @@ const SECRET = "whsec_fixture-only-secret-0123456789abcdef";
 const webhook = { id: "hook-1", endpointId: "wh_abc", botId: "owner" };
 const kept = { currentSecret: (id: string) => id === "hook-1" ? { webhook, secret: SECRET } as never : null };
 const owner = { id: "owner", name: "Courier", section: "Ops" };
-const ask = (from: Record<string, unknown>, extra: Partial<{ guestDriven: boolean; outsideDriven: boolean }> = {}) =>
-  ({ from: { name: "Asker", ...from } as never, owner, guestDriven: false, outsideDriven: false, ...extra });
+const ask = (from: Record<string, unknown>, extra: Partial<{ outsideDriven: boolean }> = {}) =>
+  ({ from: { name: "Asker", ...from } as never, owner, outsideDriven: false, ...extra });
 
 describe("who gets a webhook automation's address", () => {
   it("the bot that owns it, and a Chief of Staff that reaches that bot", () => {
@@ -24,8 +24,7 @@ describe("who gets a webhook automation's address", () => {
     expect(addressRefusal(ask({ id: "chief", chiefOfStaff: true, section: "Ops", visibility: { people: ["ada@example.com"] } }))).toBe(only);
   });
 
-  it("never in a turn a guest or an outside event drives, even for the owner", () => {
-    expect(addressRefusal(ask({ id: "owner", section: "Ops" }, { guestDriven: true }))).toContain("Only the Cloud's owner");
+  it("never in a turn an outside event drives, even for the owner", () => {
     expect(addressRefusal(ask({ id: "owner", section: "Ops" }, { outsideDriven: true }))).toContain("A run that an outside event started never gets");
     expect(addressFor(ask({ id: "owner", section: "Ops" }, { outsideDriven: true }), kept, "hook-1", "http://127.0.0.1:8800")).not.toHaveProperty("address");
   });

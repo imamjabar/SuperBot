@@ -27,7 +27,6 @@ async function serve(store: Store): Promise<string> {
     userName: () => "Milind",
     viewerFor: () => ({}),
     visibleTo: () => ({ bot: () => true, group: () => true }),
-    workspaceAccess: () => null,
     desktopMutationToken: () => undefined,
     companionMutationToken: () => undefined,
     cliOwnerToken: () => undefined,

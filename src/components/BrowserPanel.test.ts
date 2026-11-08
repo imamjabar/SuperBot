@@ -464,21 +464,6 @@ describe("a sign-in that stops at a passkey", () => {
     await go(socket, `${PASSKEY}&again=1`);
     expect(notice()).not.toBeNull();
   });
-
-  it("on My Cloud, offers the lent PC by name, or how to lend one", async () => {
-    fixture.state.config.cloudHome = true;
-    fixture.api.mockImplementation(async (path: string) => path === "/api/shared-computers"
-      ? { computers: [{ name: "Office PC", online: true, scopes: { screen: true } }] } : { ok: true });
-    const socket = await streaming("you");
-    await go(socket, PASSKEY);
-    expect(notice()?.textContent).toContain(t("browser.passkey.lentPc", { computer: "Office PC", name: "Pepper" }));
-    act(() => root.unmount());
-    root = createRoot(host);
-    fixture.api.mockImplementation(async (path: string) => path === "/api/shared-computers" ? { computers: [{ name: "Office PC", online: false, scopes: { screen: true } }] } : { ok: true });
-    const again = await streaming("you");
-    await go(again, PASSKEY);
-    expect(notice()?.textContent).toContain(t("browser.passkey.lendPc", { name: "Pepper" }));
-  });
 });
 
 describe("the browser panel before the browser is installed", () => {

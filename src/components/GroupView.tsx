@@ -2,7 +2,6 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import { formattedReplyWidth, isFormattedReply, splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
 import { useShowThreads } from "@/lib/thread-preferences";
-import { useReactor } from "@/lib/cloud-guest";
 import { otherSpeaker } from "@/lib/own-profile";
 import { Check, ChevronDown, FolderOpen, Loader2, Pin, Square, X } from "lucide-react";
 import {
@@ -36,7 +35,7 @@ import { SIMPLE_BOT_BUBBLE, SIMPLE_BUBBLE_MAX, SIMPLE_BUBBLE_TEXT, SIMPLE_USER_B
 import { ReplyBlocks } from "./ReplyBlocks";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import { CopyButton, MESSAGE_ROW, MessageActions, messageActionClass, ReplyAction } from "./MessageActions";
-import { ReactAction, ReactionChips, useCanReact } from "./Reactions";
+import { ReactAction, ReactionChips } from "./Reactions";
 import { ClusterLabel } from "./RoomClusterLabel";
 import { roomPin, useBotMessageMenu, userMessageMenu } from "./message-menu";
 import { RawMarkdownView, RawToggleAction } from "./RawMarkdownToggle";
@@ -48,7 +47,7 @@ import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { roomRetryRequest } from "@/lib/room-retry";
 import { botEngine, failedTurnCause } from "@/lib/failed-turn";
 import { CitationSelectionToolbar, SentCitations } from "./CitationUI";
-import { RoomComposer } from "./bot-access/RoomComposer";
+import { Composer } from "./Composer";
 import { ChatErrorBanner, ChatNotice } from "./ChatErrorBanner";
 import { RoomContextWarnings } from "./ContextWarning";
 import { ChatFindBar } from "./ChatFindBar";
@@ -94,7 +93,7 @@ import { dayLabel, localDay } from "@/lib/transcript-derivations";
 import { roomThreadSpeakerId, roomThreadWorking } from "@/lib/room-threads";
 import { RoomQueueList, RoutedByLine } from "./RoomQueueList";
 import { JumpToLatestButton } from "./JumpToLatestButton";
-import { HandoffChip } from "./HandoffReply"; import { TeammateChip } from "./TeammateChip"; import { useTeammates } from "@/state/team-people";
+import { HandoffChip } from "./HandoffReply";
 import { RoomWorkingFolder } from "./RoomWorkingFolder";
 import { RoomBulletin } from "./RoomBulletin";
 import { RoomHeader } from "./RoomHeader";
@@ -105,7 +104,7 @@ export function RoomToolChip({ message, roomId, threadId, live = false }: { mess
   const { state, dispatch } = useStore();
   const tool = message.tool;
   if (!tool) return null;
-  if (message.threadRef) return <ThreadChip message={message} />; if (message.relay) return <TeammateChip message={message} />;
+  if (message.threadRef) return <ThreadChip message={message} />;
   if (failedTurnCause(tool.name) !== null) {
     return <FailedTurnRow tool={tool} engine={botEngine(state.bots.find((b) => b.id === message.from?.botId), state.instances)} botId={message.from?.botId} />;
   }
@@ -140,7 +139,6 @@ function RoomTextMessage({
   emerging,
   eager,
   onReply,
-  canReact,
 }: {
   group: Group;
   message: Message;
@@ -149,12 +147,10 @@ function RoomTextMessage({
   emerging: boolean;
   eager: boolean;
   onReply: (message: Message) => void;
-  canReact: boolean;
 }) {
   const { state, dispatch } = useStore();
   const user = m.role === "user";
-  const reactor = useReactor();
-  const speaker = otherSpeaker(m, state.config?.team && reactor !== "user" ? reactor : null);
+  const speaker = otherSpeaker(m, null);
   const rawText = user ? (m.text ?? "") : stripLeakedSystemHarnessMessages(m.text ?? "");
   const cited = user && m.text ? splitTranscriptCitations(m.text) : null;
   const attachments = user && m.text ? splitTranscriptAttachments(cited?.display ?? m.text) : null;
@@ -169,7 +165,7 @@ function RoomTextMessage({
   useEffect(() => { if (focusedSearch && collapsible) setExpanded(true); }, [focusedSearch, collapsible, focus?.nonce]);
   const simple = !useAdvancedMode();
   const speakerBot = members.find((member) => member.id === m.from?.botId);
-  const botText = rawText; const teammates = useTeammates(); const peers = useMemo(() => [...members, ...teammates.peers], [members, teammates]);
+  const botText = rawText; const peers = members;
   const pin = roomPin(group, m, dispatch);
   const botMenu = useBotMessageMenu({
     text: botText,
@@ -189,7 +185,7 @@ function RoomTextMessage({
   const botActions = !user && (
     <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={botMenu}>
       <ReplyAction onReply={() => onReply(m)} />
-      {canReact && m.from && <ReactAction threadId={group.threadId} message={m} />}
+      {m.from && <ReactAction threadId={group.threadId} message={m} />}
       {botText && <CopyButton text={botText} className={messageActionClass} />}
       {botText && viewRaw && <RawToggleAction active onToggle={() => setViewRaw(false)} className={messageActionClass} />}
       {botText && speaking && <SpeakButton text={botText} botId={speakerBot?.id} messageId={m.id} voiceId={speakerBot?.voice} tts={state.config?.tts} localVoice={localSystemVoiceActive()} className={cn(messageActionClass, "text-accent")} />}
@@ -298,7 +294,7 @@ function RoomTextMessage({
           {formatTime(m.at)}
         </span>
       </div>
-      <ReactionChips threadId={group.threadId} message={m} bots={members} align={user ? "end" : "start"} canReact={canReact} />
+      <ReactionChips threadId={group.threadId} message={m} bots={members} align={user ? "end" : "start"} />
       {!user && m.routedBy && <RoutedByLine routedBy={m.routedBy} />}
     </div>
   );
@@ -328,7 +324,6 @@ export const Transcript = memo(function Transcript({
   const { state, dispatch } = useStore();
   const showThreads = useShowThreads();
   const showToolCalls = showToolCallsEnabled(state.config);
-  const canReact = useCanReact(group.threadId);
   const memberOf = (id?: string) => members.find((b) => b.id === id);
   const folds = useMemo(() => roomTurnFolds(messages), [messages, locale]);
   const items = useMemo(() => groupActivityRuns(messages.filter(message =>
@@ -473,7 +468,6 @@ export const Transcript = memo(function Transcript({
                 emerging={m.id === emergingId}
                 eager={m.id === newestMessageId || m.id === newestUserMessageId}
                 onReply={onReply}
-                canReact={canReact}
               />
             )
           ) : null;
@@ -508,7 +502,6 @@ export const Transcript = memo(function Transcript({
                       emerging={false}
                       eager={false}
                       onReply={onReply}
-                      canReact={canReact}
                     />
                   </div>
                 ))}
@@ -1199,7 +1192,7 @@ export function GroupView({ group }: { group: Group }) {
       )}
 
       <div ref={composerDockRef} className="absolute inset-x-0 bottom-0 z-[2] chat-column-dock">
-      <RoomComposer
+      <Composer
         key={group.threadId}
         group={group}
         members={members}

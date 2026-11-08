@@ -1,6 +1,5 @@
 import { formatQuestionAnswers, questionChoices } from "../../../shared/ask-question";
 import type { InboxRow, InboxTab, InboxView } from "../../../shared/inbox";
-import type { NeedsYouItem } from "../../../shared/today";
 import { liveCardKind } from "../../../shared/live-approval";
 import { t } from "@/lib/i18n";
 import { dismissResponse, type CardResponse } from "@/lib/card-answer";
@@ -24,9 +23,6 @@ export function tabCounts(view: InboxView | null): Record<InboxTab, number> {
 /** What the Inbox row counts: every line waiting on the person, and news they have not read. */
 export const waitingCount = (view: InboxView | null): number => (view?.rows ?? []).filter((row) => row.tab === "needs-you" || (row.tab === "info" && row.unread)).length;
 
-/** What a team's person is told needs them beyond the inbox's lines: something to fix, or a question in their own chat. */
-export const inboxFixes = (items: readonly NeedsYouItem[] | undefined, view: InboxView | null): NeedsYouItem[] =>
-  (items ?? []).filter((item) => item.kind !== "message" && !(item.kind === "question" && view?.rows.some((row) => row.tab === "needs-you" && row.origin?.threadId === item.threadId)));
 
 /** The conversation an answer to this line goes to: a team's copy, in the inbox's own, or where it was asked anywhere else. */
 export const answerThread = (view: Pick<InboxView, "threadId"> | null, row: Pick<InboxRow, "origin">): string | null => view?.threadId ?? row.origin?.threadId ?? null;

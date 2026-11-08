@@ -15,10 +15,10 @@ export const setupImportApi: SetupImportClient = {
   apply: (request) => api<SetupImportResult>("/api/setup-import", { method: "POST", body: JSON.stringify(request), timeoutMs: 120_000 }),
 };
 
-/** The desktop app's own window on its own server: never a hosted server, another server it connects to, or a browser. */
-export function localSetupImport(hosted: boolean): boolean {
+/** The desktop app's own window on its own server: never another server it connects to, or a browser. */
+export function localSetupImport(): boolean {
   const remote = globalThis.window?.ogb?.remoteClient;
-  return !hosted && remote !== undefined && remote.active !== true;
+  return remote !== undefined && remote.active !== true;
 }
 
 export const DETECT_TIME_BOX_MS = 2_000;

@@ -10,7 +10,7 @@ its database, its settings, other bots' folders and other turns' processes are n
 | Inside the box | What it is |
 |---|---|
 | `/usr`, `/etc`, `/opt`, the server's own code folder, read-only | The image: engine CLIs, node, python, git, the bots' browser |
-| `HOME`, read-write | The engines' own logins and settings (`~/.claude`, `~/.codex`, `~/.grok`). On a Team Cloud this is the turn's audience's engine home instead, with the team's engine sign-in files bound into it, and the server's HOME is not there at all ([team-cloud.md](team-cloud.md#engine-homes)) |
+| `HOME`, read-write | The engines' own logins and settings (`~/.claude`, `~/.codex`, `~/.grok`). |
 | the data folder (`~/.openmausbot`), **an empty private folder** | `messages.db`, `config.json`, logins, the server's sockets, every other bot's folders are not there |
 | put back inside it: the turn's working folder and the bot's own folder (`workspaces/<bot>`), read-write | What the turn works on, and the bot's memory and skills |
 | put back: this turn's permission socket (the engine's question and approval helper reaches the server through it), and, read-only, the conversation's own hook token folder (the hook helper's bearer, renewed each turn) and the files its command line names (MCP config, system prompt) | What the driver made for this one process |
@@ -38,13 +38,8 @@ neither bridge.
 
 ## When it is on
 
-`server/bot-box/detect.ts`: on by default on a Cloud home (`OMB_CLOUD_ROLE=home` or `team`), off everywhere else
-unless `OMB_BOT_BOX=1`; `OMB_BOT_BOX=0` turns it off. It is never on without a working unprivileged bubblewrap: if the
-kernel refuses user namespaces or the image has no `bwrap`, the box reports `off` with the reason, and the Admin shows
-it. The cloud-home image installs `bubblewrap` and `socat` (the in-box bridges; without socat a bundled Node bridge does
-the same).
-
-Cost on Fly (measured, T0 build notes): about 5 ms and 3 MB per box, plus one socat per bridge.
+`server/bot-box/detect.ts`: `OMB_BOT_BOX=1` enables it; `OMB_BOT_BOX=0` turns it off. It is never on without a working unprivileged bubblewrap: if the
+kernel refuses user namespaces or the image has no `bwrap`, the box reports `off` with the reason.
 
 ## The self-check and the report
 
@@ -61,9 +56,6 @@ checks it guards.
   stay in the environment until the credential broker (T0b) replaces them with per-turn tokens.
 - The box runs as the server's own user inside a user namespace; a separate Linux user per bot needs a privileged
   spawn service (T0c notes).
-- On a Team Cloud each Chrome of the bots' browsers runs in a box of its own (`BotBox.browserBox`, written into the
-  launcher agent-browser runs, see [team-cloud.md](team-cloud.md)); the agent-browser daemon is not boxed, and on a My
-  Cloud no browser is.
 
 ## The credential broker
 

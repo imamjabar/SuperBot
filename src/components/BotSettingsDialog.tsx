@@ -29,7 +29,6 @@ import type { SimplePageId } from "./bot-panel/page-registry";
 import { BOT_PANEL_ID, sidePanelCls } from "./bot-panel/side-panel";
 import { HistoryRollbackDialog, useBotHistory, useBotOverview } from "./bot-settings/useBotOverview";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
-import { ShareBotButton, useTeamName } from "./bot-access/ShareBotButton";
 
 /** Where the Library's memory, skills and folder rows lead in Advanced settings. */
 const LIBRARY_LINKS: Partial<Record<SimplePageId, BotSettingsSection>> = { memory: "memory", skills: "skills", folder: "access" };
@@ -58,10 +57,9 @@ export function BotSettingsDialog({ bot, overlay = false }: {
   const linkedSection = !collapsed && !state.botSettingsExpandRemembered ? section : null;
   const slackUrl = useSlackManagementUrl(bot.id);
   const ownerOrAdmin = useOwnerOrAdmin();
-  const teamName = useTeamName();
   const sections = BOT_SECTIONS
     .filter((entry) => entry.id !== "slack" || slackUrl !== null)
-    .filter((entry) => entry.id !== "visibility" || (!window.ogb && ownerOrAdmin === true && !teamName));
+    .filter((entry) => entry.id !== "visibility" || (!window.ogb && ownerOrAdmin === true));
   const visibleSections = sections.filter((entry) => sectionMatches(entry, q));
 
   const { overview, overviewError, prompt, promptError } = useBotOverview(bot, {
@@ -192,7 +190,6 @@ export function BotSettingsDialog({ bot, overlay = false }: {
             {bot.name}
           </span>
           <span className="flex shrink-0 items-center gap-1">
-            <ShareBotButton bot={bot} className="rounded-md p-1 text-ink-secondary hover:bg-control hover:text-ink" />
             <button
               type="button"
               onClick={() => dispatch({ type: "toggleSettings", open: false })}

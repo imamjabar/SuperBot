@@ -1,4 +1,4 @@
-import { createElement, isValidElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
+import { createElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_ONBOARDING, LOCAL_VIEWER, WELCOME_VERSION, type WelcomeViewer } from "@/lib/onboarding";
@@ -24,8 +24,6 @@ vi.mock("@/state/store", () => ({ api: store.api, useStore: () => ({ state: stor
 vi.mock("@/lib/analytics", () => ({ emailGateDone: () => false }));
 // The gate's job is choosing; the flow itself has its own recipe.
 vi.mock("./WelcomeFlow", () => ({ WelcomeFlow: () => null }));
-vi.mock("@/components/Avatar", () => ({ MausAvatar: () => null }));
-import { SharedWorkspaceHint } from "./SharedWorkspaceHint";
 import { useWelcomeViewer, WelcomeGate } from "./WelcomeGate";
 import { WelcomeFlow } from "./WelcomeFlow";
 
@@ -57,7 +55,7 @@ function storage() {
 
 const fresh = { onboarding: EMPTY_ONBOARDING };
 const LOCAL_PAGE = { ogb: { platform: "darwin", remoteClient: { active: false }, workspaces: {} } };
-// A hosted workspace the desktop app opened: preload exposes only its remote-safe subset, still truthy.
+// A server page the desktop app opened: preload exposes only its remote-safe subset, still truthy.
 const REMOTE_PAGE = { ogb: { platform: "darwin", workspaces: {}, getCapabilities: () => ({}) } };
 beforeEach(() => {
   fixture.values = [];
@@ -80,7 +78,7 @@ describe("who gets the welcome flow", () => {
     vi.stubGlobal("window", LOCAL_PAGE);
     const { tree } = gate(LOCAL_VIEWER);
     expect(tree?.type).toBe(WelcomeFlow);
-    expect(tree?.props).toMatchObject({ hosted: false, replay: false });
+    expect(tree?.props).toMatchObject({ replay: false });
   });
 
   it("lands in the chat with the bot the person chose on the Chief screen", () => {
@@ -126,97 +124,26 @@ describe("who gets the welcome flow", () => {
     expect(store.dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "select" }));
   });
 
-  it("opens the hosted beat set for a hosted workspace's admin", () => {
-    const { tree } = gate({ hosted: true, canSave: true });
-    expect(tree?.type).toBe(WelcomeFlow);
-    expect(tree?.props.hosted).toBe(true);
-  });
-
-  it("leaves an OMB Cloud home's first run to its engine sign-in", () => {
-    vi.stubGlobal("window", REMOTE_PAGE);
-    expect(gate({ hosted: false, canSave: true, cloudHome: true }).tree).toBeNull();
-    store.state = { ...store.state, welcomeOpen: true };
-    expect(gate({ hosted: false, canSave: true, cloudHome: true }).tree?.type).toBe(WelcomeFlow);
-  });
-
-  it("gives a hosted member a note instead, and nothing that writes the workspace config", async () => {
-    const { tree, html } = gate({ hosted: true, canSave: false });
-    expect(tree?.type).toBe(SharedWorkspaceHint);
-    expect(html).toContain("Your team&#x27;s shared MausBot");
-    expect(html).not.toContain("role=\"dialog\"");
-    fixture.values = [];
-    const hint = render(() => SharedWorkspaceHint({ replay: false, onClose: vi.fn() }));
-    const gotIt = (hint.tree!.props.children as Node[]).flatMap(function all(node): Node[] {
-      if (!isValidElement(node)) return [];
-      const children = (node as Node).props.children;
-      return [node as Node, ...(Array.isArray(children) ? children : [children]).flatMap(all)];
-    }).find((node) => node.type === "button")!;
-    gotIt.props.onClick!();
-    await flush();
-    expect(store.api).not.toHaveBeenCalled();
-    expect(fetch).not.toHaveBeenCalled();
-    expect(localStorage.getItem("omb.onboarding.sharedWorkspaceHint")).toBe("1");
-    fixture.values = [];
-    expect(render(() => SharedWorkspaceHint({ replay: false, onClose: vi.fn() })).html).toBe("");
-    fixture.values = [];
-    expect(render(() => SharedWorkspaceHint({ replay: true, onClose: vi.fn() })).html).toContain("shared MausBot");
-    vi.stubGlobal("localStorage", { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("blocked"); } });
-    fixture.values = [];
-    expect(render(() => SharedWorkspaceHint({ replay: false, onClose: vi.fn() })).html).toContain("shared MausBot");
-  });
-
-  it("never opens the flow for a hosted member, even when the admin has not finished it", () => {
-    store.state = { ...store.state, config: {} };
-    expect(gate({ hosted: true, canSave: false }).tree?.type).toBe(SharedWorkspaceHint);
-    store.state = { ...store.state, welcomeOpen: true };
-    const replay = gate({ hosted: true, canSave: false }).tree!;
-    expect(replay.type).toBe(SharedWorkspaceHint);
-    expect(replay.props.replay).toBe(true);
-    replay.props.onClose!();
-    expect(store.dispatch).toHaveBeenCalledWith({ type: "toggleWelcome", open: false });
-  });
-
-  it("adds nothing for a member of a server that is not hosted, such as the owner's own paired browser", () => {
-    const { tree, html } = gate({ hosted: false, canSave: false });
+  it("adds nothing for a member of a server, such as the owner's own paired browser", () => {
+    const { tree, html } = gate({ canSave: false });
     expect(tree).toBeNull();
     expect(html).toBe("");
     store.state = { ...store.state, welcomeOpen: true };
-    const replay = gate({ hosted: false, canSave: false }).tree!;
+    const replay = gate({ canSave: false }).tree!;
     expect(replay.type).toBe(WelcomeFlow);
-    expect(replay.props).toMatchObject({ hosted: false, replay: true });
-  });
-
-  it("treats a hosted workspace opened inside the desktop app like a browser", () => {
-    vi.stubGlobal("window", REMOTE_PAGE);
-    expect(gate({ hosted: true, canSave: false }).tree?.type).toBe(SharedWorkspaceHint);
-    const admin = gate({ hosted: true, canSave: true }).tree!;
-    expect(admin.type).toBe(WelcomeFlow);
-    expect(admin.props.hosted).toBe(true);
+    expect(replay.props).toMatchObject({ replay: true });
   });
 
   it("shows nothing to a remote client member or while a browser's session is unknown", () => {
     expect(gate(null).tree).toBeNull();
     vi.stubGlobal("window", { ogb: { remoteClient: { active: true } } });
-    expect(gate({ hosted: true, canSave: false }).tree).toBeNull();
+    expect(gate({ canSave: false }).tree).toBeNull();
     expect(gate(LOCAL_VIEWER).tree).toBeNull();
   });
 
-  it("stays closed after the admin finished it", () => {
+  it("stays closed after the welcome was finished", () => {
     store.state = { ...store.state, config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-23T00:00:00.000Z", version: WELCOME_VERSION } } };
-    expect(gate({ hosted: true, canSave: true }).tree).toBeNull();
     expect(gate(LOCAL_VIEWER).tree).toBeNull();
-  });
-
-  it("steps aside for OMB Cloud opened by the Cloud link, not for a normal visit there", () => {
-    vi.stubGlobal("window", LOCAL_PAGE);
-    store.state = { ...store.state, appSettingsOpen: true, appSettingsSection: "cloudAccount", appSettingsCloudLink: 0 };
-    expect(gate(LOCAL_VIEWER).tree).not.toBeNull();
-    store.state = { ...store.state, appSettingsCloudLink: 1 };
-    expect(gate(LOCAL_VIEWER).tree).toBeNull();
-    store.state = { ...store.state, appSettingsSection: "general" };
-    expect(gate(LOCAL_VIEWER).tree).not.toBeNull();
-    store.state = { ...store.state, appSettingsOpen: false, appSettingsSection: "cloudAccount" };
-    expect(gate(LOCAL_VIEWER).tree).not.toBeNull();
   });
 
   it("forgets a welcome draft once the welcome is done, however it was finished", () => {
@@ -257,23 +184,23 @@ describe("useWelcomeViewer", () => {
     expect(store.api).not.toHaveBeenCalled();
   });
 
-  it("asks the server from a hosted page the desktop app opened, whose bridge is reduced", async () => {
+  it("asks the server from a remote page the desktop app opened, whose bridge is reduced", async () => {
     vi.stubGlobal("window", REMOTE_PAGE);
-    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"], hosted: true });
+    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"] });
     expect(viewer()).toBeNull();
     for (const effect of fixture.effects) effect();
     await flush();
     expect(store.api).toHaveBeenCalledExactlyOnceWith("/api/auth/session", { timeoutMs: 10_000 });
-    expect(viewer()).toEqual({ hosted: true, canSave: false });
+    expect(viewer()).toEqual({ canSave: false });
   });
 
-  it("asks a browser's server once and reads hosted and scope from the answer", async () => {
-    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"], hosted: true });
+  it("asks a browser's server once and reads the scope from the answer", async () => {
+    store.api.mockResolvedValueOnce({ kind: "session", scopes: ["client"] });
     expect(viewer()).toBeNull();
     for (const effect of fixture.effects) effect();
     await flush();
     expect(store.api).toHaveBeenCalledExactlyOnceWith("/api/auth/session", { timeoutMs: 10_000 });
-    expect(viewer()).toEqual({ hosted: true, canSave: false });
+    expect(viewer()).toEqual({ canSave: false });
   });
 
   it("keeps today's behaviour when the answer does not come", async () => {

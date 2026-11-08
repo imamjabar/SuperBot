@@ -9,7 +9,7 @@ let host: HTMLDivElement, root: Root | null = null;
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); });
 afterEach(async () => { await act(async () => root?.unmount()); root = null; host.remove(); vi.resetModules(); });
 
-const look = (over: Partial<PlaceLook> = {}): PlaceLook => ({ name: "Client A", color: "teal", swatch: "green", change: "admin", ...over });
+const look = (over: Partial<PlaceLook> = {}): PlaceLook => ({ name: "Client A", color: "teal", swatch: "green", change: "local", ...over });
 const COMPUTER: PlaceLook = { name: "This computer", color: null, swatch: null, change: "local" };
 const COLOR: Record<string, PlaceLook["color"]> = { blue: "blue", green: "teal", amber: "yellow", rose: "red", violet: "purple", slate: null };
 const saved = (from: PlaceLook) => (swatch: string | null) => ({ outcome: "saved", look: { ...from, color: COLOR[swatch ?? "slate"] ?? null, swatch: COLOR[swatch ?? "slate"] ? swatch as PlaceLook["swatch"] : null } });

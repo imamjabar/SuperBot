@@ -5,7 +5,7 @@ import type { ServerResponse } from "node:http";
 import { botMayWatchApp, type AppEventCatalog } from "../shared/app-triggers.ts";
 import type { ConnectorToolGrant } from "../shared/wire.ts";
 import { appEventCatalog, appLabel } from "./app-event-catalog.ts";
-import { brokerClient, type AppTriggerBroker, type BrokerAccess } from "./app-trigger-broker.ts";
+import { brokerClient, type AppTriggerBroker } from "./app-trigger-broker.ts";
 import { AppTriggerRequestService, type AppTriggerRequestStore } from "./app-trigger-requests.ts";
 import { AppTriggerError, AppTriggerManager, type AppTriggerPatch } from "./app-triggers.ts";
 import type { RosterMember } from "./peer-roster.ts";
@@ -27,7 +27,6 @@ export interface AppTriggerHostDeps {
   store: AppTriggerRequestStore & { bot(id: string): Bot | null | undefined };
   /** "self-hosted" when the owner saved their own Composio key, which app events do not support. */
   connectionMode: () => "managed" | "self-hosted" | "unavailable";
-  access: () => BrokerAccess | null;
   connectedApps: () => Promise<Connected>;
   routines: () => RoutineManager;
   webhooks: WebhookManager;
@@ -45,25 +44,21 @@ export interface InternalTriggerContext {
   from: Bot;
   threadId: string;
   ownsThread: (botId: string, threadId: string) => boolean;
-  /** A turn on a Cloud its owner did not drive. */
-  guestDriven: boolean;
   /** A run a webhook or app event started, or work one handed on. */
   outsideDriven: () => boolean;
   canCommit: () => boolean;
 }
-
-const GUEST_REFUSAL = "Only the Cloud's owner can make a bot watch their connected apps. Tell the person to ask from their own conversation.";
 
 function status(error: unknown): number {
   return error instanceof AppTriggerError ? error.status : typeof (error as { status?: unknown }).status === "number" ? (error as { status: number }).status : 400;
 }
 
 export function createAppTriggerHost(deps: AppTriggerHostDeps) {
-  const broker = deps.broker ?? brokerClient(deps.access);
+  const broker = deps.broker ?? brokerClient(() => null);
   const service = () => {
     const mode = deps.connectionMode();
     if (mode === "self-hosted") return { available: false as const, reason: "self-hosted" as const };
-    return mode === "managed" && deps.access() ? { available: true as const } : { available: false as const, reason: "unavailable" as const };
+    return { available: false as const, reason: "unavailable" as const };
   };
   const manager = new AppTriggerManager({
     file: deps.file,
@@ -166,7 +161,6 @@ export function createAppTriggerHost(deps: AppTriggerHostDeps) {
     if (method !== "GET" || (path !== "/api/internal/triggers" && path !== "/api/internal/trigger-events")) return PASS;
     if (!context.ownsThread(context.from.id, context.threadId)) return json(res, 403, { error: "source conversation does not belong to sender" });
     if (path === "/api/internal/trigger-events") {
-      if (context.guestDriven) return json(res, 403, { error: GUEST_REFUSAL });
       try {
         return json(res, 200, await catalog(context.from, url.searchParams.get("app") ?? undefined, url.searchParams.get("search") ?? undefined));
       } catch (error) {
@@ -184,7 +178,7 @@ export function createAppTriggerHost(deps: AppTriggerHostDeps) {
     if (url.searchParams.get("includeAddress") !== "1" || !shown) return json(res, 200, listing);
     if (shown.kind !== "webhook") return json(res, 200, { ...listing, trigger: { ...shown, addressRefused: "Only an automation another app sends to (a webhook) has an address." } });
     const owner = deps.store.bot(ownerId);
-    const address = owner ? addressFor({ from: context.from, owner, guestDriven: context.guestDriven, outsideDriven: context.outsideDriven() }, deps.webhooks, shown.id, deps.webhookBase()) : {};
+    const address = owner ? addressFor({ from: context.from, owner, outsideDriven: context.outsideDriven() }, deps.webhooks, shown.id, deps.webhookBase()) : {};
     return json(res, 200, { ...listing, trigger: { ...shown, ...address } });
   };
 
@@ -194,8 +188,6 @@ export function createAppTriggerHost(deps: AppTriggerHostDeps) {
     forBot?: { botId: string; name: string };
     sender?: { botId: string; name: string; color: string };
   }): Promise<void> {
-    // Its events would stream the owner's app data into a conversation someone else drives.
-    if (input.guestDriven) return json(res, 403, { error: GUEST_REFUSAL });
     const owner = deps.store.bot(input.forBot?.botId ?? input.from.id);
     const app = input.operation.action === "create" && input.operation.trigger && typeof input.operation.trigger === "object"
       ? String((input.operation.trigger as { app?: unknown }).app ?? "").toLowerCase() : "";

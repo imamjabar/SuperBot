@@ -9,16 +9,16 @@ export function useDesktopNotices(desktop: DesktopNoticesBridge | undefined): De
   useEffect(() => {
     if (!desktop) return;
     let active = true;
-    void desktop.state().then(next => { if (active) setAnswer(next); }, () => { if (active) setAnswer({ seen: [], cloud: false }); });
+    void desktop.state().then(next => { if (active) setAnswer(next); }, () => { if (active) setAnswer({ seen: [] }); });
     return () => { active = false; };
   }, [desktop]);
   return desktop ? answer : null;
 }
 
-const OTHER_DIALOGS = '[role="dialog"], [role="alertdialog"], [aria-modal="true"], [data-tour-card], [data-cloud-setup-ready]';
+const OTHER_DIALOGS = '[role="dialog"], [role="alertdialog"], [aria-modal="true"], [data-tour-card]';
 const QUEUE_POPUPS = [GROK_MOVE_POPUP, SIMPLE_MODE_PROMPT].join(", ");
 
-/** Any dialog on screen counts, modal or not, and the card that says a new Cloud is set up; never the queue's own popups. */
+/** Any dialog on screen counts, modal or not, and the tour card; never the queue's own popups. */
 export function otherDialogOpen(): boolean {
   return [...document.querySelectorAll<HTMLElement>(OTHER_DIALOGS)].some(element => !element.closest(QUEUE_POPUPS) && element.checkVisibility());
 }

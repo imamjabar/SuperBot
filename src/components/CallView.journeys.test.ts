@@ -97,7 +97,6 @@ const room = {
   bulletin: "", unread: false, createdAt: 1, messages: [],
 } as unknown as Group;
 const noKey = { configured: false, voice: "marin", readTypedReplies: true, idleMinutes: 5 };
-const CLOUD = { cloudHome: true, tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const SERVER = { tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const THIS_COMPUTER = { tts: { configured: true, ready: true, voice: "voice-1" }, live: noKey } as AppState["config"];
 const KEY_NEEDED = "Live calls use your own OpenAI key. Add it in Settings → API keys.";
@@ -238,27 +237,7 @@ afterEach(() => {
 });
 
 describe("calling a bot off the Mac", () => {
-  it("in a browser on the person's Cloud, the first visit's call button is a Live call that points to API keys, then calls once a key is saved", async () => {
-    expect(callMode()).toBe("turns");
-    chat(CLOUD);
-    await firstLiveCall();
-    expect(requests.filter((request) => request.method !== "GET").map(({ path, method }) => `${method} ${path}`))
-      .toEqual(["POST /api/live/session", "POST /api/live/session"]);
-  });
-
-  it("on My Cloud in the Mac app, the call is Live, and Take turns says it works on This computer", async () => {
-    open(desktopApp("darwin", "my-cloud"));
-    chat(CLOUD);
-    expectTurnsDisabled("Calls where you take turns work with bots on this Mac. They listen with your Mac's own speech recognition, which only bots on this Mac can use.");
-    await firstLiveCall();
-  });
-
-  it.each(["win32", "linux"] as const)("on My Cloud in the %s app, the call is Live, and Take turns says it works on This computer", async (platform) => {
-    open(desktopApp(platform, "my-cloud"));
-    chat(CLOUD);
-    expectTurnsDisabled("Calls where you take turns work with bots on this computer. They listen from this computer's own window, so only bots on this computer can use them.");
-    await firstLiveCall();
-  });
+  // Cloud tests removed
 
   it.each(["win32", "linux"] as const)("on This computer in the %s app with no Fish Audio key, the call is Live, Take turns asks for the key, and Live points to API keys", async (platform) => {
     open(desktopApp(platform, "this-computer"));
@@ -277,15 +256,11 @@ describe("calling a bot off the Mac", () => {
     expect(turns?.textContent).toContain("Fish Audio turns what you say into text, so your voice goes to Fish Audio.");
   });
 
-  it.each([
-    ["My Cloud in a Mac app that doesn't say", "darwin", CLOUD, undefined],
-    ["My Cloud in a Windows app that refused it", "win32", CLOUD, "refused"],
-    ["another server in the Linux app", "linux", SERVER, "refused"],
-  ] as const)("on %s, a refused microphone says so with Open in browser, and no key is asked for", async (_where, platform, config, answer) => {
+  it("on another server in the Linux app, a refused microphone says so with Open in browser, and no key is asked for", async () => {
     microphone = "refused";
-    pageMic = answer;
-    open(desktopApp(platform, "my-cloud"));
-    chat(config);
+    pageMic = "refused";
+    open(desktopApp("linux", "my-cloud"));
+    chat(SERVER);
     press(callButton());
     await vi.waitFor(() => expect(text()).toContain(APP_REFUSED));
     expect(getUserMedia).toHaveBeenCalledTimes(1);
@@ -329,13 +304,6 @@ describe("calling a bot off the Mac", () => {
   });
 
   it("shows a room's call button only on this computer's own page, and asks for a Fish Audio key off the Mac", () => {
-    roomHeader(CLOUD);
-    expect(callButton()).toBeNull();
-    for (const platform of ["darwin", "win32", "linux"] as const) {
-      open(desktopApp(platform, "my-cloud"));
-      roomHeader(CLOUD);
-      expect(callButton(), `${platform} on My Cloud`).toBeNull();
-    }
     for (const platform of ["win32", "linux"] as const) {
       open(desktopApp(platform, "this-computer"));
       flushSync(() => root.render(null));

@@ -19,7 +19,7 @@ async function scratch(t) {
 }
 
 function scriptedServer(jobs) {
-  const env = { id: "cloud-fixture", name: "Fixture Cloud", origin: "https://cloud.fixture.test" };
+  const env = { id: "server-fixture", name: "Fixture Server", origin: "https://server.fixture.test" };
   const json = value => ({ ok: true, status: 200, body: (async function* () { yield Buffer.from(JSON.stringify(value)); })() });
   const results = [];
   let registration = null;
@@ -93,7 +93,7 @@ test("a read-only folder never reaches a shell, a write or the screen, whatever 
   ]);
   assert.equal(log[0].detail, "Docs/plan.md");
   assert.equal(log.at(-1).detail.startsWith("echo pwned"), true);
-  assert.ok(log.every(entry => entry.server === "Fixture Cloud" && entry.origin === "https://cloud.fixture.test"));
+  assert.ok(log.every(entry => entry.server === "Fixture Server" && entry.origin === "https://server.fixture.test"));
   assert.doesNotMatch(JSON.stringify(log), /original|changed|planted|rm -rf/);
 });
 

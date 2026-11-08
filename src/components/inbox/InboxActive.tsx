@@ -4,16 +4,11 @@ import { Pin, PinOff } from "lucide-react";
 import type { InboxView } from "../../../shared/inbox";
 import { t } from "@/lib/i18n";
 import { useStore } from "@/state/store";
-import { useTeamPeople } from "@/state/team-people";
 import { AttentionThreadRows, attentionJumpAction, crossBotAttentionThreads } from "../SidebarBotActivity";
-import { NeedsYouLine } from "../TeamOwner";
 import { setAttentionPinned, useAttentionPinned } from "./attention-pinned";
-import { closeInbox } from "@/state/inbox";
-import { inboxFixes } from "./inbox-view";
 
 export function InboxActive({ view }: { view: InboxView | null }) {
   const { state, dispatch } = useStore();
-  const team = useTeamPeople();
   const pinned = useAttentionPinned();
   const rows = view?.rows ?? [];
   const asked = new Set(rows.filter((row) => row.tab === "needs-you").map((row) => row.origin?.threadId));
@@ -21,14 +16,8 @@ export function InboxActive({ view }: { view: InboxView | null }) {
   const atWork = (task: { busy?: boolean; activity?: string; queued?: boolean }) => task.busy === true || task.activity === "working" || task.queued === true;
   const entries = crossBotAttentionThreads(state.bots, state.pendingQueued, undefined, state.groups)
     .filter((entry) => !asked.has(entry.task.threadId) && (atWork(entry.task) || !news.has(entry.task.threadId)));
-  const fixes = inboxFixes(team?.needsYou, view);
   return (
     <>
-      {fixes.length > 0 && (
-        <section data-inbox-fixes className="border-t border-hairline/40 px-1.5 py-1.5">
-          {fixes.map((item) => <NeedsYouLine key={`${item.kind}:${item.id}`} item={item} onOpened={closeInbox} />)}
-        </section>
-      )}
       {(entries.length > 0 || pinned) && (
         <section data-inbox-active aria-label={t("attention.title")} className="border-t border-hairline/40 px-1.5 py-1.5">
           <div className="flex items-center gap-1 px-2 py-0.5">

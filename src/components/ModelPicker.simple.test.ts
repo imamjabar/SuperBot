@@ -15,7 +15,6 @@ const fixture = vi.hoisted(() => {
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
   return {
     advanced: false,
-    cloudHome: false,
     ownerOrAdmin: true as boolean | null,
     values: [] as unknown[],
     index: 0,
@@ -44,7 +43,7 @@ vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.owne
 vi.mock("@/state/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/state/store")>()),
   useStore: () => ({
-    state: { instances: fixture.instances, bots: fixture.bots, modelVariantSessions: {}, config: { cloudHome: fixture.cloudHome } },
+    state: { instances: fixture.instances, bots: fixture.bots, modelVariantSessions: {}, config: {} },
     dispatch: fixture.dispatch,
     refreshInstances: fixture.refreshInstances,
     refreshModels: fixture.refreshModels,
@@ -153,7 +152,6 @@ const click = (node: Node | undefined) => (node!.props.onClick as (event: { deta
 
 beforeEach(() => {
   fixture.advanced = false;
-  fixture.cloudHome = false;
   fixture.ownerOrAdmin = true;
   fixture.values = [];
   fixture.index = 0;
@@ -440,9 +438,8 @@ describe("the model picker in Simple mode", () => {
     }));
   });
 
-  it.each([[true, false], [true, null], [false, false], [false, null]] as const)(
-    "keeps a guest's model and effort changes thread-only (Cloud: %s, owner status: %s)", (cloudHome, ownerOrAdmin) => {
-    fixture.cloudHome = cloudHome;
+  it.each([false, null] as const)(
+    "keeps a guest's model and effort changes thread-only (owner status: %s)", (ownerOrAdmin) => {
     fixture.ownerOrAdmin = ownerOrAdmin;
     const opened = open(bot());
     pane(opened)!.props.onPick(instance("claude"), "claude-sonnet-5-5");
@@ -457,8 +454,7 @@ describe("the model picker in Simple mode", () => {
     });
   });
 
-  it("still updates defaults for the Cloud owner", () => {
-    fixture.cloudHome = true;
+  it("still updates defaults for the owner", () => {
     const opened = open(bot());
     pane(opened)!.props.onPick(instance("claude"), "claude-sonnet-5-5");
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ updateBotDefault: true }));
@@ -466,8 +462,7 @@ describe("the model picker in Simple mode", () => {
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ updateBotDefault: true }));
   });
 
-  it("does not reuse the full picker's bot scope for a Cloud guest's Simple choice", () => {
-    fixture.cloudHome = true;
+  it("does not reuse the full picker's bot scope for a guest's Simple choice", () => {
     fixture.ownerOrAdmin = false;
     fixture.advanced = true;
     const forBot = bot();
@@ -478,8 +473,7 @@ describe("the model picker in Simple mode", () => {
     expect(fixture.dispatch).toHaveBeenLastCalledWith(expect.objectContaining({ updateBotDefault: false }));
   });
 
-  it.each([false, null, true])("uses the Cloud owner's actual authority for named-variant defaults (%s)", (ownerOrAdmin) => {
-    fixture.cloudHome = true;
+  it.each([false, null, true])("uses the owner's actual authority for named-variant defaults (%s)", (ownerOrAdmin) => {
     fixture.ownerOrAdmin = ownerOrAdmin;
     const variants = [{ id: "default", label: "Default" }, { id: "high", label: "High" }];
     fixture.instances = [{ ...claude(true, [{ id: "claude-opus-5-5", label: "Opus 5.5", variants }]), capabilities: { modelVariants: true } }];
@@ -557,9 +551,8 @@ describe("the model picker in Simple mode", () => {
   });
 
   it.each([[true, true], [false, false], [null, false]] as const)(
-    "lets the bot panel's picker, given the open thread, set the default only for the Cloud owner (owner: %s)",
+    "lets the bot panel's picker, given the open thread, set the default only for the owner (owner: %s)",
     (ownerOrAdmin, updatesDefault) => {
-      fixture.cloudHome = true;
       fixture.ownerOrAdmin = ownerOrAdmin;
       const simple = pane(open(bot(), { contained: true, thread: true }))!;
       expect(simple.props.thinking).toBeNull();

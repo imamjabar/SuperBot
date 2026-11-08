@@ -11,13 +11,13 @@ export const CALL_MODES: ReadonlyArray<{ id: CallMode; label: LocaleKey }> = [
   { id: "live", label: "call.mode.live" },
 ];
 
-export function liveDisclosure({ cloudHome = false, azure = false }: { cloudHome?: boolean; azure?: boolean } = {}): string {
-  if (azure) return t(cloudHome ? "call.live.disclosureAzureCloud" : "call.live.disclosureAzure");
-  return t(cloudHome ? "call.live.disclosureCloud" : "call.live.disclosure");
+export function liveDisclosure({ azure = false }: { azure?: boolean } = {}): string {
+  if (azure) return t("call.live.disclosureAzure");
+  return t("call.live.disclosure");
 }
 
-export function callModeHint(mode: CallMode, where: { cloudHome?: boolean } = {}): string {
-  if (mode === "live") return `${t("call.mode.liveHint")} ${liveDisclosure(where)}`;
+export function callModeHint(mode: CallMode): string {
+  if (mode === "live") return `${t("call.mode.liveHint")} ${liveDisclosure()}`;
   return t(desktopCapabilitiesNow().dictation.engine === "fish-audio" ? "call.mode.turnsHintFish" : "call.mode.turnsHint");
 }
 

@@ -1,4 +1,3 @@
-import { cloudHomeOffersPlace } from "../../shared/cloud-home";
 import { toolSurfaceKind } from "../../shared/tool-surface";
 import type { Bot, Task } from "@/state/store";
 import type { LocaleKey } from "@/locales";
@@ -7,9 +6,6 @@ export type Place = "cloud" | "vm" | "local" | "browser";
 export const PLACES: readonly Place[] = ["cloud", "vm", "local", "browser"];
 export type EffectivePlace = Place | "auto" | "off";
 
-export function placeOffered(place: Place, config: { cloudHome?: boolean } | null | undefined): boolean {
-  return !config?.cloudHome || cloudHomeOffersPlace(place);
-}
 
 export function effectivePlace(bot: Pick<Bot, "computer">, task?: Pick<Task, "surface"> | null): EffectivePlace {
   if (bot.computer === "off") return "off";

@@ -41,7 +41,7 @@ it("a bot given Gmail by its app switch reaches gmail.search_emails by name on C
   const scratch = mkdtempSync(join(tmpdir(), "omb-app-tools-"));
   const gate = join(scratch, "finish");
   const fixture = await launchVerificationServer({
-    ...process.env, OMB_COMPOSIO_BROKER_URL: apps.url, OMB_COMPOSIO_BROKER_TOKEN: apps.token,
+    ...process.env, ...apps.env,
     FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate, FAKE_ACP_HANG_ON: "Find Ada's mail again",
   }, undefined, undefined, undefined, undefined, undefined, ["cline"]);
   const api = async (method: string, path: string, body?: unknown, expected = 200) => {

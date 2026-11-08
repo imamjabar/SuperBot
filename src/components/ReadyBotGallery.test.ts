@@ -89,14 +89,4 @@ describe("ready-made bots gallery", () => {
     expect(onAdded).not.toHaveBeenCalled();
   });
 
-  it("at Starter's limit opens the upgrade popup instead of a form to fill in", async () => {
-    const { botLimitShown, closeBotLimit } = await import("@/lib/bot-limit");
-    opened.state = { config: { botLimit: 5 }, bots: Array.from({ length: 5 }, () => ({})) };
-    render();
-    flushSync(() => button("Add Fern, Plant care log").click());
-    expect(opened.props).toBeNull();
-    expect(onDialog).not.toHaveBeenCalled();
-    expect(botLimitShown()).toBe(true);
-    closeBotLimit();
-  });
 });

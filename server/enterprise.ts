@@ -67,12 +67,12 @@ export interface WorkspaceAccess {
   authorize(req: IncomingMessage, auth: RequestAuth): Promise<{ status: 401 | 403 | 503; error: string } | null>;
   revalidate(): Promise<void>;
 }
-
 export function hostedWorkspaceConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.OMB_ADMIN_URL !== undefined || env.OMB_ADMIN_WORKSPACE !== undefined || env.OMB_ADMIN_MEMBERSHIP !== undefined;
 }
 
 /** A partial setting is never standalone. */
+
 export function hostedWorkspaceConfiguration(env: NodeJS.ProcessEnv = process.env): { admin: URL; tenant: URL; workspace: string; portalMembership: boolean } | null {
   try {
     const origin = (raw: string | undefined) => {
@@ -103,6 +103,7 @@ export function sharedWorkspaceFullAccessConfigured(env: NodeJS.ProcessEnv = pro
   return env.OMB_SHARED_WORKSPACE_FULL_ACCESS === "1" && env.OMB_DESKTOP_PARENT !== "1" &&
     hostedWorkspaceConfiguration(env)?.portalMembership === true;
 }
+
 
 /** A configured server without this hook must refuse hosted access, never fall back to email or QR credentials. */
 export function createWorkspaceAccess(options: Omit<WorkspaceAccessOptions, "entitled">): WorkspaceAccess | null {
