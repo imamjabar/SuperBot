@@ -1181,12 +1181,6 @@
 [data-chat-bubble="simple"].chat-text {
   line-height: 22px;
 }
-@media (max-width: 639.98px) {
-  [data-chat-bubble="simple"] :is(.chat-md, .chat-text),
-  [data-chat-bubble="simple"].chat-text {
-    line-height: 1.5;
-  }
-}
 [data-chat-bubble="simple"] .chat-md > * + * {
   margin-top: 10px;
 }
@@ -1872,7 +1866,7 @@ body {
   border-radius: 20px;
   padding: 10px 16px;
   background: color-mix(in srgb, var(--color-ink) 8%, transparent);
-  font-size: 16px;
+  font-size: var(--text-body);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }

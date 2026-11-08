@@ -9,10 +9,10 @@ import type { Message } from "@/state/store";
 import { isCancelledTranscriptRow } from "../../shared/client-cancel";
 import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-guard.ts";
 
-/** Simple mode's message text: 15/22, the size whose cap height matches the design. */
-export const SIMPLE_BUBBLE_TEXT = "text-body leading-[22px] max-sm:text-[16px] max-sm:leading-normal";
+/** Simple mode's message text: 15/22 on every screen, the size whose cap height matches the design. */
+export const SIMPLE_BUBBLE_TEXT = "text-body leading-[22px]";
 
-const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] max-sm:px-4 max-sm:py-3 ${SIMPLE_BUBBLE_TEXT}`;
+const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] max-sm:px-3.5 max-sm:py-2 ${SIMPLE_BUBBLE_TEXT}`;
 
 /** Simple mode's bot bubble: the one surface tone. */
 export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} bg-card text-ink`;
