@@ -392,7 +392,6 @@
   "settings.windowFrame.restart": "{app} 重新启动后生效。",
   "settings.windowFrame.restartNow": "立即重新启动",
   "rail.remove": "从列表中移除",
-  "rail.makeHomeFailed": "机器人没有开始迁移。请稍后重试。",
   "rail.removeAsk": "要把「{name}」从列表中移除吗？你随时可以购买新的 Cloud。",
   "rail.removeServerAsk": "要把「{name}」从列表中移除吗？此应用会退出该服务器，服务器上的内容不会有任何改变。",
   "rail.removeYes": "移除",

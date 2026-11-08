@@ -74,8 +74,6 @@ export interface BotMessageRouteDeps {
   }): Promise<Message>;
   usageTriggerFor(auth: RequestAuth): UsageTrigger;
   messageSender(auth: RequestAuth): ResolvedSender | undefined;
-  cloudGuestSendRefusal(auth: RequestAuth, threadId: string): string | null;
-  cloudThreadRefusal(auth: RequestAuth, threadId: string): string | null;
   /** The bot's one chat with the person; a person writes nowhere else. */
   mainChat(botId: string): MainChat | undefined;
   cardAnswerRefusal(auth: RequestAuth, threadId: string, requestId: string, behavior: string): string | null;
@@ -163,7 +161,7 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
   const {
     store, registry, handoffs, liveTurn, phoneSecretSubmissions, directTurnDispatchClaims, groupSpeakers,
     desktopManaged: DESKTOP_MANAGED, DirectSendRefused,
-    acceptDirectSend, directSendRefusal, startTurn, usageTriggerFor, messageSender, cloudGuestSendRefusal, cloudThreadRefusal,
+    acceptDirectSend, directSendRefusal, startTurn, usageTriggerFor, messageSender,
     cardAnswerRefusal, commandRememberRefusal, requestBehavior, requestedTaskBot, botForThread, threadBusy,
     botAtThreadCapacity, parksBehindCoordination, activeGroupTurnForBot, runningTurnInstance, engineSteersImages, resolveReplyTarget,
     turnSelection, policyModelRefusal, clearUnattended, drainQueuedSends, answeringCardAs, resolveAndSendTrust, resolveAndSendTeamSetup, resolveAndSendMcp,
@@ -234,8 +232,6 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
         return json(res, 400, { error: "threadId must be a task id" });
       }
       const threadId = body.threadId ?? bot.threadId;
-      const notYours = cloudGuestSendRefusal(auth, threadId);
-      if (notYours) return json(res, 403, { error: notYours });
       const jobOnly = pressed ? null : personThreadRefusal(auth, bot.id, threadId);
       if (jobOnly) return json(res, 409, jobOnly);
       if (body.mode !== undefined && body.mode !== "chat" && body.mode !== "goal") return json(res, 400, { error: "mode must be chat or goal" });
@@ -465,8 +461,6 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const body = await readBody(req);
       requirePinnedClientThread(m[1], body?.threadId);
       const bot = requestedTaskBot(m[1], body?.threadId);
-      const notYours = cloudThreadRefusal(auth, bot.threadId);
-      if (notYours) return json(res, 403, { error: notYours });
       await startTurn(bot.id, "Summarize conversation context", {
         threadId: bot.threadId, compactOnly: true, cardContinuation: true, trigger: usageTriggerFor(auth),
       });
@@ -479,8 +473,6 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const body = await readBody(req);
       requirePinnedClientThread(m[1], body?.threadId);
       const bot = requestedTaskBot(m[1], body.threadId);
-      const notYours = cloudThreadRefusal(auth, bot.threadId);
-      if (notYours) return json(res, 403, { error: notYours });
       const jobOnly = personThreadRefusal(auth, bot.id, bot.threadId);
       if (jobOnly) return json(res, 409, jobOnly);
       const textRefused = messageTextRefusal(body.text);
@@ -529,8 +521,6 @@ export function createBotMessageRoutes(deps: BotMessageRouteDeps): RouteHandler 
       const body = await readBody(req);
       requirePinnedClientThread(m[1], body?.threadId);
       const bot = requestedTaskBot(m[1], body.threadId);
-      const notYours = cloudThreadRefusal(auth, bot.threadId);
-      if (notYours) return json(res, 403, { error: notYours });
       if (threadBusy(bot.id, bot.threadId)) return json(res, 409, { error: "the thread is working — stop it before switching versions" });
       if (phoneSecretSubmissions.hasThread(bot.threadId)) {
         return json(res, 409, { error: "this task is securely saving a credential — try again when it finishes" });

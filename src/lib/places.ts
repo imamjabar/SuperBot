@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { PlaceColorOutcome, PlaceSwatch } from "../../electron/place-look.mjs";
 import type { RailPlace, RailState } from "../../electron/rail-places.mjs";
-import { t } from "@/lib/i18n";
 
 const NONE: RailState = { places: [], add: { link: false, address: false } };
 let current: RailState = NONE;
@@ -56,10 +55,6 @@ export async function removePlace(id: string): Promise<"saved" | "removed" | "fa
   if (!answer) return "failed";
   if (answer.outcome === "removed" || answer.outcome === "saved") void refreshPlaces();
   return answer.outcome as "saved" | "removed" | "failed" | "unsupported";
-}
-
-export async function makeHome(_id: string): Promise<true | string> {
-  return t("rail.makeHomeFailed");
 }
 
 export const railShown = (state: RailState): boolean => state.beside === true || state.places.length > 0;

@@ -450,7 +450,6 @@
   "settings.windowFrame.restart": "Berlaku saat {app} dimulai ulang.",
   "settings.windowFrame.restartNow": "Mulai ulang sekarang",
   "rail.remove": "Hapus dari daftar",
-  "rail.makeHomeFailed": "Bot kamu tidak mulai berpindah. Coba lagi sebentar lagi.",
   "rail.removeAsk": "Hapus “{name}” dari daftar kamu? Kamu dapat membeli Cloud baru kapan saja.",
   "rail.removeServerAsk": "Hapus “{name}” dari daftar kamu? Aplikasi ini akan keluar darinya di sana; tidak ada yang berubah di dalamnya.",
   "rail.removeYes": "Hapus",

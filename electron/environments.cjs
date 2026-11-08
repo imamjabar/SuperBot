@@ -113,13 +113,14 @@ function workspaceSenderAllowed(event, contents, state, localOrigin) {
 function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, iconFor = null }) {
   const active = activeEnvironment(state);
   return [
+    { id: "workspace-local", label: "This computer", type: "radio", checked: !active, ...(iconFor && cleanColor(state.localColor) ? { icon: iconFor(state.localColor) } : {}), click: () => onSwitch(LOCAL_ID) },
     ...state.environments.map((entry) => {
       const isCurrent = entry.id === state.activeId;
-      const dot = iconFor && entry.color ? iconFor(entry.color) : null;
+      const dot = iconFor && cleanColor(entry.color) ? iconFor(entry.color) : null;
       return {
         id: `workspace-${entry.id}`,
         label: entry.name,
-        type: "checkbox",
+        type: "radio",
         checked: isCurrent,
         ...(dot ? { icon: dot } : {}),
         click: () => onSwitch(entry.id),

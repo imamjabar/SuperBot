@@ -14,9 +14,6 @@ export function createSharedComputerRoutes(deps: {
   environmentId: string;
   principal: (auth: RequestAuth) => string | null;
   personKey: (session: Pick<SessionRecord, "id" | "email">) => string;
-  /** On the person's own Cloud: what its bots ask of their computer, and the app there saying how it is. */
-  asks?: unknown;
-  answerer?: unknown;
 }): RouteHandler {
   return async ({ req, res, path, method, auth, json, readBody }: RouteContext): Promise<typeof PASS | void> => {
     if (path !== "/api/shared-computers" && !path.startsWith("/api/shared-computers/")) return PASS;
@@ -37,9 +34,6 @@ export function createSharedComputerRoutes(deps: {
       if (registration.environmentId !== deps.environmentId) return json(res, 409, { error: "Workspace identity changed. Pair again before sharing this computer." });
       deps.computers.register(registration, { session: auth.session.id, person: deps.personKey(auth.session) }, secret);
       return json(res, 200, { ok: true });
-    }
-    if (path === "/api/shared-computers/asks") {
-      return json(res, 404, { error: "not found" });
     }
     const route = /^\/api\/shared-computers\/([\w-]+)\/(poll|lease|result|disconnect)$/.exec(path);
     if (!route) return json(res, 404, { error: "not found" });

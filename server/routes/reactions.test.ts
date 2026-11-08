@@ -23,7 +23,6 @@ async function fixture(overrides: Partial<ReactionRouteDeps> = {}) {
       return { message: { ...MESSAGE, reactions: [{ emoji: input.emoji, by: input.reactor.by }] }, delivery: "started" };
     },
     reactorFor: () => ({ by: "p_alice", name: "alice@example.test" }),
-    cloudGuestSendRefusal: () => null,
     ...overrides,
   };
   const routes = [createReactionRoutes(deps)];
@@ -65,12 +64,6 @@ describe("POST /api/threads/:threadId/messages/:messageId/reactions", () => {
     expect(await send({ emoji: "🔥" })).toEqual({ status: 400, body: { error: "emoji must be one of 👍 👎 ❤️ 😂 🎉 👀" } });
     expect(await send({})).toMatchObject({ status: 400 });
     expect(await send({ emoji: "👍", on: "yes" })).toEqual({ status: 400, body: { error: "on must be true or false" } });
-    expect(calls).toEqual([]);
-  });
-
-  it("refuses a Cloud guest in a conversation they did not start", async () => {
-    const { calls, send } = await fixture({ cloudGuestSendRefusal: () => "On this Cloud you can only write in conversations you started. Start a new conversation with this bot." });
-    expect(await send({ emoji: "👍" })).toEqual({ status: 403, body: { error: "On this Cloud you can only write in conversations you started. Start a new conversation with this bot." } });
     expect(calls).toEqual([]);
   });
 

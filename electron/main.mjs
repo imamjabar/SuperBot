@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildErrorPage, desktopViewerErrorPage } from "./error-pages.mjs";
-import { startCua, stopCua, registerCuaIpc, requestComputerUse, setCuaStateListener, grantLocalComputer } from "./cua.mjs";
+import { startCua, stopCua, registerCuaIpc, setCuaStateListener, grantLocalComputer } from "./cua.mjs";
 import { createAndroidDeviceController } from "./android-device.mjs";
 import { finishSpeech, speechBusy, startSpeech, stopSpeech } from "./speech.mjs";
 import { installTalk, isTalkPanel } from "./talk-main.mjs";
@@ -1353,8 +1353,7 @@ function sharingController() {
   return computerSharing;
 }
 
-const cleanWorkspace = createCleanWorkspace({ dataDir: desktopDataDir, running: () => runningDataDir, swap: dir => switchLocalEnvironmentTo(dir, LOCAL_ID, true), allowed: () => app.isPackaged && !desktopRemoteAccess, changed: () => { computerSharing?.cloudChanged(); }, log: slog });
-const screenControl = createScreenControl({ connection: () => cuaReady, remote: () => Boolean(desktopRemoteAccess), request: requestComputerUse, log: slog });
+const cleanWorkspace = createCleanWorkspace({ dataDir: desktopDataDir, running: () => runningDataDir, swap: dir => switchLocalEnvironmentTo(dir, LOCAL_ID, true), allowed: () => app.isPackaged && !desktopRemoteAccess, log: slog });
 const loginItem = createOpenAtLogin({ app, file: path.join(app.getPath("userData"), "open-at-login.json"), home: os.homedir() });
 installOpenAtLogin({ ipcMain, guard: localOrHome, loginItem, changed: refreshApplicationMenu });
 let hiddenStart = false;
@@ -2559,9 +2558,7 @@ async function broadcastDesktopCapabilities() {
 }
 
 setCuaStateListener((connection) => {
-  screenControl.changed(connection);
   cuaReady = Promise.resolve(connection);
-  void computerSharing?.screenChanged();
   void broadcastDesktopCapabilities().catch((error) => {
     console.error("[desktop] capability broadcast failed:", error);
   });
@@ -2858,7 +2855,6 @@ app.on("before-quit", (e) => {
   managedDesktop?.close();
   companyBackupController?.abort();
   computerSharing?.close();
-  lendingTray?.destroy();
   if (cuaCleanedUp) return;
   e.preventDefault();
   // Cancel a scheduled recovery before yielding.

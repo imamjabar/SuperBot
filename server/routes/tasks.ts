@@ -42,7 +42,6 @@ export interface TaskRouteDeps {
   actorKey(auth: RequestAuth & { kind: "session" }): string;
   /** The bot's one chat with the person, who never opens another. */
   mainChat(botId: string): MainChat | undefined;
-  cloudThreadRefusal(auth: RequestAuth, threadId: string): string | null;
   supportsApprovalMode(selection: ModelSelection, mode: ApprovalMode): boolean;
   threadBusy(botId: string, threadId: string): boolean;
   broadcast(payload: Record<string, unknown>): void;
@@ -72,7 +71,7 @@ export interface TaskRouteDeps {
 export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTasks(botId: string, threadIds: string[]): ReturnType<TaskRouteDeps["store"]["deleteTasks"]> } {
   const {
     store, hostedModels, coordinator, handoffs, skillReview, threadStarters, phoneSecretSubmissions, titleRegenerations,
-    directTurnGenerationByThread, actorKey, cloudThreadRefusal,
+    directTurnGenerationByThread, actorKey,
     supportsApprovalMode, threadBusy, broadcast, publicBot, wireBot, wireTask, pageSize, messagePage, checkedModelSelection,
     checkedTaskModelSwitch, threadTitleGate, generateThreadTitle, settleDirectFollowup, clearTurnDigestState,
     revokeInternalCapabilitiesForThread, stagedSkillCleanupsForThread, rejectDeletedThreadSkillStages,
@@ -80,8 +79,6 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
   const DESKTOP_MANAGED = deps.desktopManaged;
   const deleteRefusal = (auth: RequestAuth, botId: string, threadId: string): { status: 403 | 404 | 409; error: string } | null => {
     if (!store.taskByThread(botId, threadId)) return { status: 404, error: "no such task" };
-    const notYours = cloudThreadRefusal(auth, threadId);
-    if (notYours) return { status: 403, error: notYours };
     if (phoneSecretSubmissions.hasThread(threadId)) {
       return { status: 409, error: "this task is securely saving a credential — try again when it finishes" };
     }
@@ -237,8 +234,6 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       if (!current) return json(res, 404, { error: "no such task" });
       const allowed = new Set(["title", "projectId", "modelSelection", "updateBotDefault", "resetApprovalToAsk", "approvalMode", "autoApprove", "requireAvailableModel", "pinnedMessageId", "acknowledgeLocalAuto", "archivedAt", "pinned", "snoozedUntil", "surface", "refreshPermissions", "link"]);
       if (Object.keys(body).some((key) => !allowed.has(key))) return json(res, 400, { error: "unsupported thread setting" });
-      const notYours = cloudThreadRefusal(auth, m[2]);
-      if (notYours) return json(res, 403, { error: notYours });
       if (body.updateBotDefault === true && !ownerOrAdmin(auth)) {
         return json(res, 403, { error: "forbidden: this session may change this thread's model, not the bot's default (needs the admin scope)" });
       }
@@ -383,8 +378,6 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
     if (m && method === "POST") {
       const current = store.projectBotForTask(m[1], m[2]);
       if (!current) return json(res, 404, { error: "no such task" });
-      const notYours = cloudThreadRefusal(auth, m[2]);
-      if (notYours) return json(res, 403, { error: notYours });
       const gate = threadTitleGate(current);
       if (!gate.ok) return json(res, 409, { error: gate.refusal });
       if (titleRegenerations.has(m[2])) return json(res, 409, { error: "a new title is already being generated for this thread" });

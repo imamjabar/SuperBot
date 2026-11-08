@@ -10,7 +10,6 @@ export interface ReactionRouteDeps {
   }): Promise<{ message: Message; delivery: ReactionDelivery }>;
   /** Who is reacting, from their session alone: a request body never names them. */
   reactorFor(auth: RequestAuth): Reactor;
-  cloudGuestSendRefusal(auth: RequestAuth, threadId: string): string | null;
 }
 
 export function createReactionRoutes(deps: ReactionRouteDeps): RouteHandler {
@@ -21,8 +20,6 @@ export function createReactionRoutes(deps: ReactionRouteDeps): RouteHandler {
     const emoji = normalizeReaction(body?.emoji);
     if (!emoji) return json(res, 400, { error: `emoji must be one of ${REACTIONS.join(" ")}` });
     if (body.on !== undefined && typeof body.on !== "boolean") return json(res, 400, { error: "on must be true or false" });
-    const notYours = deps.cloudGuestSendRefusal(auth, m[1]);
-    if (notYours) return json(res, 403, { error: notYours });
     try {
       return json(res, 200, await deps.react({ auth, threadId: m[1], messageId: m[2], emoji, reactor: deps.reactorFor(auth), on: body.on }));
     } catch (error) {

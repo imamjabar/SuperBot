@@ -58,7 +58,6 @@ export interface ChannelRouteDeps {
   groupSpeakers: ReadonlyMap<string, { botId: string }>;
   groupTurnOperations: ReadonlyMap<string, ReadonlySet<{ threadId: string; cancelled: boolean }>>;
   lastReply: Pick<Map<string, string>, "delete">;
-  cloudThreadRefusal(auth: RequestAuth, threadId: string): string | null;
   messageSender(auth: RequestAuth): ResolvedSender | undefined;
   usageTriggerFor(auth: RequestAuth): UsageTrigger;
   publicGroupState(record: GroupRecord): WireGroup;
@@ -103,7 +102,7 @@ const createGroupTaskRequestSchema = z.object({ title: z.string().optional() });
 export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
   const {
     store, cfg, broadcast, actorKey, threadStarters, phoneSecretSubmissions, sendSequencer, roomMemberContexts, skillReview,
-    groupSpeakers, groupTurnOperations, lastReply, cloudThreadRefusal, messageSender, usageTriggerFor, publicGroupState,
+    groupSpeakers, groupTurnOperations, lastReply, messageSender, usageTriggerFor, publicGroupState,
     groupWithThread, updateChannel, groupIsWorking, groupThreadIsWorking, readCursor, pageSize, messagePage,
     resolveReplyTarget, runningTurnInstance, startGroupTurn, engineSteersImages, applyRoomHoldsFromMessage, cancelGroupTurnOperations,
     drainQueuedChannelSends, clearTurnDigestState, closeOpenApprovals, revokeInternalCapabilitiesForThread,
@@ -116,8 +115,7 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
     }
     if (groupThreadIsWorking(groupId, threadId)) return { status: 409, error: "this task is running — stop it first" };
     if (!store.groupTaskByThread(groupId, threadId)) return { status: 404, error: "no such channel task" };
-    const notYours = cloudThreadRefusal(auth, threadId);
-    return notYours ? { status: 403, error: notYours } : null;
+    return null;
   };
   const deleteGroupTasks = (groupId: string, threadIds: string[]) => {
     const stagedSkillCleanups = new Map(threadIds.map((threadId) => [threadId, stagedSkillCleanupsForThread(threadId)]));
@@ -226,8 +224,6 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       if (parsedLimit && !parsedLimit.ok) return json(res, 400, { error: parsedLimit.error });
       // Echoing the current title is not a rename: newer clients send it so an older server keeps the title.
       const titleChange = renaming && body.title !== existing.title;
-      const notYours = titleChange ? cloudThreadRefusal(auth, m[2]) : null;
-      if (notYours) return json(res, 403, { error: notYours });
       if (titleChange && groupThreadIsWorking(group.id, m[2])) {
         return json(res, 409, { error: "this task is running — stop it first" });
       }
@@ -260,11 +256,6 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
         if (field) return json(res, 403, { error: `forbidden: this session may rename or mark a room, not change "${field}" (needs the admin scope)` });
       }
       const renamed = store.group(m[1]);
-      if (renamed && body && typeof body === "object" &&
-        ((body.name !== undefined && body.name !== renamed.name) || (body.bulletin !== undefined && body.bulletin !== (renamed.bulletin ?? "")))) {
-        const notYours = cloudThreadRefusal(auth, renamed.threadId);
-        if (notYours) return json(res, 403, { error: notYours });
-      }
       if (deps.personMarkRoom && auth.kind === "session" && renamed && typeof body?.unread === "boolean") {
         const { unread, ...shared } = body;
         const group = Object.keys(shared).length ? updateChannel(m[1], shared) : renamed;
@@ -554,8 +545,6 @@ export function createChannelRoutes(deps: ChannelRouteDeps): RouteHandler {
       const group = store.group(m[1]);
       if (!group) return json(res, 404, { error: "no such room" });
       if (!group.memberIds.includes(m[2])) return json(res, 404, { error: "that bot is not in this room" });
-      const notYours = cloudThreadRefusal(auth, group.threadId);
-      if (notYours) return json(res, 403, { error: notYours });
       if (!roomMemberContexts.request(group.threadId, m[2])) {
         return json(res, 409, { error: "this bot has no measured context in this room yet" });
       }

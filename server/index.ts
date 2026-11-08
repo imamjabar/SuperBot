@@ -225,7 +225,7 @@ import { createOneOnOneGoals } from "./host/one-on-one-goals.ts";
 
 import { BUILT_IN_DRIVERS } from "./drivers/builtIn.ts";
 import { openCodeProviderKeysAllowed, setOpenCodeProviderKeyPolicy } from "./drivers/acp/opencode-go.ts";
-import { readMessageText, recallMessages, recentMessages, closeMessageSearch, closeMessageDb, chatFollowups, cancelledChatFollowup, settleChatFollowups, threadsReferencing, logNotification, lastRowAt, threadsWithCardsSince } from "./message-db.ts";
+import { openCardRows, readMessageText, recallMessages, recentMessages, closeMessageSearch, closeMessageDb, chatFollowups, cancelledChatFollowup, settleChatFollowups, threadsReferencing, logNotification, lastRowAt, threadsWithCardsSince } from "./message-db.ts";
 import { briefCrossingLabel, claimRecallCrossings, recallCrossingLabel } from "./recall-disclosure.ts";
 import { parseSince, parseUntil, recentWork, recentWorkPrompt, turnOutcomeLine } from "./recent-work.ts";
 import { chiefEscalationsEnabled, NEEDS_INPUT_GATE, peerApprovalGate, RAISED_GATE } from "./escalations.ts";
@@ -267,7 +267,7 @@ import { computerKindForResource, ManagedDesktopPolicy, type ComputerKind } from
 import { hostedModelPolicy } from "./hosted-models.ts";
 import { botBox, startBotBoxAtBoot } from "./bot-box/boot.ts"; import { attachmentsForBox } from "./box-attachments.ts"; import { brokerPath } from "./bot-box/broker-probe.ts";
 import { createBotNameClash } from "./host/bot-name-clash.ts"; import { createUploadOwners, uploadsFor } from "./host/member-uploads.ts"; import { createVisibilityHost } from "./host/visibility-host.ts"; import { createBotAccessHost, refusalFor } from "./host/bot-access-gate.ts";
-import { createSharedComputerRoutes } from "./routes/shared-computers.ts";
+import { createSharedComputerRoutes } from "./routes/shared-computers.ts"; import { createInboxRoutes } from "./routes/inbox.ts"; import { createPlaceInbox, guestNameIn, placeInboxViewer } from "./host/place-inbox.ts";
 import { mcpReconnectLine, retryBrokeredMcp } from "./bot-box/broker-mcp.ts";
 import { baseBotId } from "./audience.ts"; import { createPersonRooms, type OwnGroupFrames } from "./host/room-reads.ts";
 import { RESTART_EXIT_CODE } from "./restart.ts";
@@ -767,10 +767,6 @@ function messageSender(auth: RequestAuth): ResolvedSender | undefined {
   return name ? { name, id: actorKey(auth) } : undefined;
 }
 
-/** On a Team Cloud, whose conversation this is: the member's own, or the routine run's writer. */
-function teamConversationPerson(_threadId: string): string | undefined {
-  return undefined;
-}
 
 /** What people's lines are called in this conversation's turns. Where one person uses the server, the profile's name; on
  * a Team Cloud each line its own speaker's, and a line with none the person whose conversation it is. The server's
@@ -838,16 +834,6 @@ function sessionLendingPrincipal(auth: RequestAuth): string | null {
   return auth.kind === "session" ? personKey(auth.session) : null;
 }
 
-
-/** On a Cloud home only the owner's devices may rename, rerun, rewrite or delete the owner's conversations; anyone else only their own. */
-function cloudThreadRefusal(_auth: RequestAuth, _threadId: string): string | null {
-  return null;
-}
-
-/** A guest writes only in conversations it started: a line steered into the owner's running turn would reach it before anything could reclassify that turn. */
-function cloudGuestSendRefusal(_auth: RequestAuth, _threadId: string): string | null {
-  return null;
-}
 
 
 const personRooms = createPersonRooms({ reads: null, store: () => store, newestMessageId: (threadId) => readCursor(threadId).lastReadMessageId, publicGroupState, broadcast });
@@ -3904,7 +3890,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
       return outwardActions(turnRows(node));
     },
     shareAnswer: createShareAnswer({ askedFrom: (node) => (node.parentId ? coordinator.node(node.parentId)?.threadId : undefined), pinned: (botId, threadId) => store.taskByThread(botId, threadId)?.cwd, botFolder: (botId) => store.bot(botId)?.cwd, privateFolders: TASK_WORKSPACES_DIR }),
-    joined: (node) => { store.appendMessage(node.threadId, { role: "bot", kind: "activity", tool: { name: `notice: ${serverLine(personLanguages.forLine(teamConversationPerson(node.threadId) ?? threadPersonKey(node.threadId)), "server.teammates.sameRequest")}`, ok: true } }); },
+    joined: (node) => { store.appendMessage(node.threadId, { role: "bot", kind: "activity", tool: { name: `notice: ${serverLine(personLanguages.forLine(threadPersonKey(node.threadId)), "server.teammates.sameRequest")}`, ok: true } }); },
   },
 });
 threadsAwaitingTeammates = () => coordinator.awaitingTeammateThreads();
@@ -4765,12 +4751,12 @@ const providerLabel = (provider: string): string => {
 };
 
 // Rewritten by every dispatch, so a quiet turn never silences the next one.
-const quietTurnThreads = new Set<string>(); const doneNotice = createDoneNotice({ awaitingTeammates: (threadId) => coordinator.awaitingTeammateThreads().has(threadId), queuedFollowUp: hasQueuedPersonMessage }); const personWaits = createPersonWaits({ store, notify, threadsWithCards: threadsWithCardsSince });
+const quietTurnThreads = new Set<string>(); const doneNotice = createDoneNotice({ awaitingTeammates: (threadId) => coordinator.awaitingTeammateThreads().has(threadId), queuedFollowUp: hasQueuedPersonMessage }); const personWaits = createPersonWaits({ store, notify, threadsWithCards: threadsWithCardsSince }); const placeInbox = createPlaceInbox({ dataDir: DATA_DIR, store, openCards: openCardRows, waiting: () => personWaits.waiting(), send: (notification) => { broadcast({ kind: "notify", notification: logNotification(notification) }); }, sees: (auth, threadId) => visibleTo(viewerFor(auth)).thread(threadId), mayAnswer: (auth, threadId, requestId) => cardAnswerRefusal(auth, threadId, requestId, "allow") === null, viewer: (auth) => placeInboxViewer(auth, { personal: false, owner: () => true, personOf: personKey }), guestOf: () => null, guestName: (threadId) => guestNameIn(store.messagesFor(threadId)), handedBy: (threadId) => { const from = delegatorOf(threadId); return from && from.threadId !== threadId ? from.botId ?? store.botByThread(from.threadId)?.id ?? null : null; } });
 const QUIET_TURN_NEWS: ReadonlySet<Notification["kind"]> = new Set(["done", "turn-failed", "incident"]);
 
-function notify(notification: Notification | null) {
+function notify(notification: Notification | null, how: { routine?: boolean } = {}) {
   if (notification && QUIET_TURN_NEWS.has(notification.kind) && quietTurnThreads.has(notification.threadId)) return;
-  if (notification) broadcast({ kind: "notify", notification: logNotification(notification) });
+  const routed = notification && placeInbox.route(notification, how); if (routed) broadcast({ kind: "notify", notification: logNotification(routed) });
 }
 
 const roomTurnLevels = createRoomTurnLevels();
@@ -11754,14 +11740,14 @@ ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: (
 const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) }));
 ROUTES.push(createSharedComputerRoutes({ enabled: lendingEnabled, computers: sharedComputers, sessionLive: (id) => sessions.isLive(id), environmentId: ENVIRONMENT_ID,
-  principal: sessionLendingPrincipal, personKey, answerer: cardAnswererFor }));
+  principal: sessionLendingPrincipal, personKey }));
 // `routines` is assigned at boot, so it is read per request.
 ROUTES.push(createBotMessageRoutes({
   store, registry, handoffs, liveTurn: (threadId) => liveTurns.running(threadId), phoneSecretSubmissions, directTurnDispatchClaims, groupSpeakers,
   routines: () => routines,
   fromPhone: phones.fromPhone, notePhoneSend: phones.noteSend,
   desktopManaged: DESKTOP_MANAGED, DirectSendRefused,
-  acceptDirectSend, directSendRefusal, startTurn, usageTriggerFor, messageSender, cloudGuestSendRefusal, cloudThreadRefusal,
+  acceptDirectSend, directSendRefusal, startTurn, usageTriggerFor, messageSender,
   cardAnswerRefusal, commandRememberRefusal, requestBehavior, requestedTaskBot, botForThread, threadBusy,
   mainChat: personMainChat,
   botAtThreadCapacity, parksBehindCoordination, activeGroupTurnForBot, runningTurnInstance, engineSteersImages, resolveReplyTarget,
@@ -11775,12 +11761,12 @@ ROUTES.push(createBotMessageRoutes({
 }));
 const chatApps = createChatApps({ store, dataDir: DATA_DIR });
 const chatAppsMcp = createChatAppsMcp({ store, apps: chatApps, dataDir: DATA_DIR, storedServers: () => cfg.mcpServers ?? {}, mountedServers: engineMcpServers, oauth: mcpOAuth });
-ROUTES.push(createChatAppRoutes({ store, apps: chatApps, threadRefusal: cloudThreadRefusal, mcpRpc: chatAppsMcp.rpc }));
+ROUTES.push(createChatAppRoutes({ store, apps: chatApps, mcpRpc: chatAppsMcp.rpc }));
 const { react } = createReactions({
   store, reply: (input) => personReplies.deliver({ ...input, about: "message" }),
   answerCard: (input) => respondToCard({ ...input, via: "reaction" }), withdraw: personReplies.withdraw,
 });
-const publishedPages = createPublishedPages({ dataDir: DATA_DIR, selfHosted: utilityParentPort === undefined, patch: (threadId, messageId, text, publishedPage) => void store.patchMessage(threadId, messageId, { text, publishedPage }), apps: { chat: chatApps, store } }); ROUTES.push(createReactionRoutes({ react, reactorFor, cloudGuestSendRefusal }), publishedPages.routes, savedSteps.routes, createPlacesElsewhereRoutes({ elsewhere: placesElsewhere, owner: (auth) => !sharedMembership() && auth.kind === "loopback" }));
+const publishedPages = createPublishedPages({ dataDir: DATA_DIR, selfHosted: utilityParentPort === undefined, patch: (threadId, messageId, text, publishedPage) => void store.patchMessage(threadId, messageId, { text, publishedPage }), apps: { chat: chatApps, store } }); ROUTES.push(createReactionRoutes({ react, reactorFor }), publishedPages.routes, savedSteps.routes, createPlacesElsewhereRoutes({ elsewhere: placesElsewhere, owner: (auth) => !sharedMembership() && auth.kind === "loopback" }));
 // `let` slots are read per request.
 ROUTES.push(createThreadRoutes({
   groupFor: personRooms.groupForAuth,
@@ -11842,7 +11828,7 @@ ROUTES.push(createBotMemoryRoutes({
     broadcast({ kind: "config", ...configStatus() });
   },
 }));
-ROUTES.push(createDeciderRoutes({ decider, extractor, config: () => cfg }), createTtsRoutes({ config: () => cfg }), createHelperSuggestionRoutes({ notNow: proactive.suggestionNotNow }), createSetupRequestRoutes({ store, language: () => appLanguage() ?? Intl.DateTimeFormat().resolvedOptions().locale, sendRefusal: cloudGuestSendRefusal, presser: (auth) => setupPresser(sharedMembership(), auth, messageSender(auth)), canSetUp: (botId, threadId) => registry.get(store.projectBotForTask(botId, threadId)?.modelSelection.instanceId ?? "")?.adapter.capabilities.agentsMcp === true, send: (auth, botId, threadId, text) => acceptDirectSend({ botId, threadId, text, sender: messageSender(auth), trigger: usageTriggerFor(auth), personPresent: auth.kind === "session" || DESKTOP_MANAGED }) }), createNotificationRoutes(undefined, threadShown), createWebPushRoutes(webPush), createUpdateCheckRoutes({ check: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: false }) }), createTimeZoneRoutes({ adopts: false, dataDir: DATA_DIR, changed: () => routines?.rescheduleLocalTimes() }), createTodayRoutes({ visibleFor: (auth) => visibleTo(viewerFor(auth)), sources: () => ({ bots: store.bots, groups: store.groups, routines, parked: coordinator.active(), engines: registry.instances().map((instance) => ({ instanceId: instance.instanceId, snapshot: registry.lastSnapshot(instance.instanceId) })) }) }));
+ROUTES.push(createDeciderRoutes({ decider, extractor, config: () => cfg }), createTtsRoutes({ config: () => cfg }), createHelperSuggestionRoutes({ notNow: proactive.suggestionNotNow }), createSetupRequestRoutes({ store, language: () => appLanguage() ?? Intl.DateTimeFormat().resolvedOptions().locale, presser: (auth) => setupPresser(sharedMembership(), auth, messageSender(auth)), canSetUp: (botId, threadId) => registry.get(store.projectBotForTask(botId, threadId)?.modelSelection.instanceId ?? "")?.adapter.capabilities.agentsMcp === true, send: (auth, botId, threadId, text) => acceptDirectSend({ botId, threadId, text, sender: messageSender(auth), trigger: usageTriggerFor(auth), personPresent: auth.kind === "session" || DESKTOP_MANAGED }) }), createNotificationRoutes(undefined, threadShown), createWebPushRoutes(webPush), createUpdateCheckRoutes({ check: serverUpdateChecker({ desktopManaged: DESKTOP_MANAGED, managed: false }) }), createTimeZoneRoutes({ adopts: false, dataDir: DATA_DIR, changed: () => routines?.rescheduleLocalTimes() }), createTodayRoutes({ visibleFor: (auth) => visibleTo(viewerFor(auth)), sources: () => ({ bots: store.bots, groups: store.groups, routines, parked: coordinator.active(), engines: registry.instances().map((instance) => ({ instanceId: instance.instanceId, snapshot: registry.lastSnapshot(instance.instanceId) })) }) }), createInboxRoutes(placeInbox));
 ROUTES.push(createSidebarSectionRoutes({ store, teamComputers, maxBots: MAX_WORKSPACE_BOTS, assertTeamComputerChangeIdle, wireBot }), createPresenceRoutes({ isOwner: ownerOrAdmin, heard: (auth, language) => personLanguages.heard(auth.kind === "session" ? actorKey(auth) : THIS_COMPUTER, language), sawChat: (auth, threadId) => { if (ownerOrAdmin(auth) && store.botByThread(threadId)) sawThread(threadId); }, active: async (source, zone, language) => { const answer = await proactive.brief.active(source, zone, language); firstHourHooks.arrived(); return answer; } }));
 ROUTES.push(createSignInCardRoutes({ settle: signInSettle.settle, saveLogin: saveLoginFromCard, saveTarget: signInSaveTarget, threadVisible: (auth, threadId) => visibleTo(viewerFor(auth)).thread(threadId) }));
 ROUTES.push(createRoomHoldRoutes({
@@ -11879,7 +11865,7 @@ ROUTES.push(createChannelRoutes({
   groupSpeakers,
   groupTurnOperations,
   lastReply,
-  cloudThreadRefusal,
+  threadRead: (auth, threadId) => placeInbox.seen(auth, threadId),
   messageSender,
   usageTriggerFor,
   publicGroupState,
@@ -11915,7 +11901,7 @@ const taskRoutes = createTaskRoutes({
   titleRegenerations,
   directTurnGenerationByThread,
   actorKey,
-  cloudThreadRefusal,
+  threadRead: (auth, threadId) => placeInbox.seen(auth, threadId),
   mainChat: personMainChat,
   supportsApprovalMode,
   threadBusy, broadcast,
@@ -14289,15 +14275,10 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         runs: routineRunsFor((from, to) => routines!.listRuns(from, to), url.searchParams).filter((run) => routineRunVisible(run, visible)),
       });
     }
-    const routineResultsRefusal = (body: unknown): string | null =>
-      body && typeof body === "object" && typeof (body as { resultsThreadId?: unknown }).resultsThreadId === "string"
-        ? cloudThreadRefusal(auth, (body as { resultsThreadId: string }).resultsThreadId) : null;
     if (path === "/api/routines" && method === "POST") {
       const body = await readBody(req);
       const hidden = hiddenRoutineTarget(body, visible);
       if (hidden) return json(res, 404, { error: hidden });
-      const notYours = routineResultsRefusal(body);
-      if (notYours) return json(res, 403, { error: notYours });
       const writer = auth.kind === "session" ? actorKey(auth) : "nobody";
       const routine = withRoutineWriter(writer, () => routines!.create(body));
       if (ownerOrAdmin(auth)) phones.routineAuthors?.record(routine.id, routine);

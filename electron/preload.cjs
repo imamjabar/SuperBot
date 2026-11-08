@@ -74,17 +74,9 @@ function railKeepsItsSize() {
 if (typeof window !== "undefined") {
   for (const type of ["resize", "DOMContentLoaded"]) window.addEventListener(type, () => { leaveRailRoom(); railKeepsItsSize(); });
 }
-const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "updatesConsent", "windowControls", "onOpenAppSettings", "windowFrame"]);
-/** My Cloud's own page once it is the person's home (main checks the sender again): it is this app's page then. */
-const HOME_PAGE = ["home", "onChatLink", "onPackageInstall", "exportDiagnostics", "openLogsFolder", "openAtLogin", "callActive"];
+const REMOTE_SAFE = new Set(["platform", "app", "getCapabilities", "onCapabilitiesChanged", "applySkin", "setUnreadCount", "permStatus", "workspaces", "rail", "desktopNotices", "desktopNotifications", "desktopAnalytics", "desktopLanguage", "windowControls", "onOpenAppSettings", "windowFrame"]);
 function updaterOffered() {
   try { return ipcRenderer.sendSync("update:offered") === true; } catch { return false; }
-}
-function homePage() {
-  try { return ipcRenderer.sendSync("home:page") === true; } catch { return false; }
-}
-function reloadedForUpdate() {
-  try { return ipcRenderer.sendSync("home:updating") === true; } catch { return false; }
 }
 function savedAnalyticsChoice() {
   try { const saved = ipcRenderer.sendSync("desktop-analytics:read"); return typeof saved === "boolean" ? saved : null; } catch { return null; }
@@ -100,8 +92,7 @@ ipcRenderer.on("desktop-language:changed", (_event, language) => {
   languageChoice = language;
   for (const listener of languageListeners) listener(language);
 });
-const onHomePage = !isLocalPage && homePage();
-const remoteKeys = isLocalPage ? REMOTE_SAFE : new Set([...REMOTE_SAFE, ...(updaterOffered() ? ["updater"] : []), ...(onHomePage ? HOME_PAGE : [])]);
+const remoteKeys = isLocalPage ? REMOTE_SAFE : new Set([...REMOTE_SAFE, ...(updaterOffered() ? ["updater"] : [])]);
 
 // Keep in parity with shared/workspace-backup-client.ts (a sandboxed preload cannot import it).
 const COMPANY_BACKUP_CLIENT_KEYS = [
@@ -166,9 +157,6 @@ const bridge = {
     // Remove from list, for a Cloud the window's rail lists as removable, from a click on the rail's own page (main refuses any other page).
     remove: (id) => isLocalPage || navigator.userActivation?.isActive === true
       ? ipcRenderer.invoke("workspaces:remove", String(id)) : Promise.reject(new Error("Choose Remove from list.")),
-    // Make a server of the person's own their bots' home, from a click on the rail's own page (main refuses any other page).
-    makeHome: (id) => isLocalPage || navigator.userActivation?.isActive === true
-      ? ipcRenderer.invoke("workspaces:make-home", String(id)) : Promise.reject(new Error("Choose Make my home.")),
     onChanged: (cb) => {
       const handler = () => cb();
       ipcRenderer.on("workspaces:changed", handler);
@@ -445,29 +433,6 @@ const bridge = {
     activity: id => ipcRenderer.invoke("sharing:activity", id),
   },
   confirm: message => ipcRenderer.invoke("dialog:confirm", message),
-  /** The window onto My Cloud once it is the person's home: this computer's screen while My Cloud can't be opened, and
-   * on My Cloud's own page a new session when its own has ended. */
-  home: {
-    state: () => ipcRenderer.invoke("home:state"),
-    onState: cb => {
-      const handler = (_event, view) => cb(view);
-      ipcRenderer.on("home:state-changed", handler);
-      return () => ipcRenderer.removeListener("home:state-changed", handler);
-    },
-    retry: () => ipcRenderer.invoke("home:retry"),
-    remove: () => ipcRenderer.invoke("home:remove"),
-    signIn: () => isLocalPage || navigator.userActivation?.isActive === true
-      ? ipcRenderer.invoke("home:sign-in") : Promise.reject(new Error("Choose Sign in to sign in again.")),
-    repair: () => ipcRenderer.invoke("home:repair"),
-    updating: onHomePage && reloadedForUpdate(),
-  },
-  updatesConsent: {
-    state: () => ipcRenderer.invoke("updates-consent:state"),
-    choose: choice => ipcRenderer.invoke("updates-consent:choose", {
-      status: String(choice?.status),
-      ...(typeof choice?.email === "string" ? { email: choice.email } : {}),
-    }),
-  },
   desktopProfile: {
     systemName: () => ipcRenderer.invoke("desktop-profile:system-name"),
   },

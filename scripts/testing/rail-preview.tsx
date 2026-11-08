@@ -20,7 +20,6 @@ interface RailPlace {
   ended?: boolean;
   removable?: boolean;
   forget?: boolean;
-  makeHome?: boolean;
 }
 interface RailState {
   places: RailPlace[];

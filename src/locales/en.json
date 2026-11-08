@@ -450,7 +450,6 @@
   "settings.windowFrame.restart": "Takes effect when {app} restarts.",
   "settings.windowFrame.restartNow": "Restart now",
   "rail.remove": "Remove from list",
-  "rail.makeHomeFailed": "Your bots didn't start moving. Try again in a moment.",
   "rail.removeAsk": "Remove “{name}” from your list? You can buy a new Cloud any time.",
   "rail.removeServerAsk": "Remove “{name}” from your list? This app signs out of it there; nothing on it changes.",
   "rail.removeYes": "Remove",
