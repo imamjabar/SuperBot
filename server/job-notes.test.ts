@@ -173,8 +173,7 @@ describe("job-notes", () => {
     expect(delivery.message.requestMessageId).toBe("req-123");
     expect(delivery.message.attachments).toHaveLength(1);
     const csvAtt = delivery.message.attachments![0]!;
-    expect(csvAtt.mime).toBe("text/csv");
-    expect(csvAtt.name).toBe("price-market-check.csv");
+    expect(csvAtt).toMatchObject({ kind: "file", mime: "text/csv", name: "price-market-check.csv" });
 
     // Verify CSV file content
     const csvBytes = readFileSync(csvAtt.path);
@@ -231,7 +230,7 @@ describe("job-notes", () => {
     const mdAtt = attachments.find((a) => a.mime === "text/markdown");
     expect(csvAtt).toBeDefined();
     expect(mdAtt).toBeDefined();
-    expect(mdAtt!.name).toBe("long-research.md");
+    expect(mdAtt).toMatchObject({ kind: "file", name: "long-research.md" });
 
     const savedMd = readFileSync(mdAtt!.path, "utf8");
     expect(savedMd).toBe(longReport);
