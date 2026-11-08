@@ -33,8 +33,8 @@ afterEach(async () => { await Promise.all(hosts.splice(0).map((host) => host.bro
 
 const turn = { threadId: "thread-1", generation: "gen-1" };
 
-function setup(engine: "chrome" | "agent-browser" | undefined, { server = false, device, lendRefusal, holder, bots: botIds = ["scout"], turnResources }: {
-  server?: boolean; device?: BrowserHostDeps["device"]; lendRefusal?: BrowserHostDeps["lendRefusal"]; holder?: (resource: string) => TurnOwner | undefined;
+function setup(engine: "chrome" | "agent-browser" | undefined, { server = false, holder, bots: botIds = ["scout"], turnResources }: {
+  server?: boolean; holder?: (resource: string) => TurnOwner | undefined;
   bots?: string[]; turnResources?: BrowserHostDeps["turnResources"];
 } = {}) {
   const cfg = {
@@ -55,8 +55,6 @@ function setup(engine: "chrome" | "agent-browser" | undefined, { server = false,
     mintInternalCapability: (capability) => { minted.push(capability); return "capability-token"; },
     DESKTOP_MANAGED: !server,
     PORT: 4100,
-    device,
-    lendRefusal,
   });
   hosts.push(host);
   return { cfg, host, minted, bots };
@@ -220,14 +218,6 @@ describe("a deleted bot's browser", () => {
   const deleted = { type: "openmausbot:browser-bot-deleted" as const, requestId: "00000000-0000-4000-8000-000000000000", botId: "gone" };
   const closed = () => vi.mocked(closeBrowserSession).mock.calls.map(([binary, env]) => `${binary} ${env.AGENT_BROWSER_SESSION}`);
 
-  it("on a Cloud home, is closed and its sign-ins erased with the image's agent-browser", async () => {
-    engines();
-    const { host } = setup(undefined, { server: true });
-    expect(await host.eraseDeletedBrowser(deleted)).toBe(true);
-    expect(vi.mocked(clearBrowserSessionState).mock.calls.map(([binary, session]) => `${binary} ${session}`)).toEqual([`${PATH_ENGINE} bot-gone`]);
-    vi.mocked(clearBrowserSessionState).mockResolvedValue(false);
-    expect(await host.eraseDeletedBrowser(deleted)).toBe(false);
-  });
 
   it("elsewhere, is erased only with the agent-browser OpenMausBot installed, and otherwise just closed", async () => {
     engines();
@@ -240,16 +230,6 @@ describe("a deleted bot's browser", () => {
     expect(vi.mocked(clearBrowserSessionState).mock.calls.map(([binary, session]) => `${binary} ${session}`)).toEqual([`${MANAGED_ENGINE} bot-gone`]);
   });
 
-  it("on a Cloud home, is closed by the minute's sweep even after this run used it, and nobody else's browser is", async () => {
-    engines();
-    daemons(["bot-gone", "default", "work-own"]);
-    const { host } = setup(undefined, { server: true });
-    host.usedBrowserSessions.set("bot-gone", { command: PATH_ENGINE, env: {} });
-    host.browserSweep.start();
-    await vi.waitFor(() => expect(closed()).toContain(`${PATH_ENGINE} bot-gone`));
-    expect(closed()).toEqual([`${PATH_ENGINE} bot-gone`]);
-    await host.browserSweep.closeAll();
-  });
 
   it("off a Cloud home, is left to the deletion, as anything else under the same HOME", async () => {
     engines();

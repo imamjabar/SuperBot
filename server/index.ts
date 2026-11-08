@@ -17,7 +17,7 @@ import { autoCompactWindow } from "./drivers/claude.ts";
 import { RoomContextTracker, roomResetNote } from "./room-context.ts";
 import { createRoomTranscript, GROUP_CONTEXT_MESSAGES } from "./host/room-transcript.ts";
 import { createRoomSessions } from "./host/room-sessions.ts";
-import { LentComputers, provenRequestPerson, SharedComputers, sharedComputerOperation } from "./shared-computers.ts"; import { lentScreenResult } from "./lent-screen-guidance.ts"; import { DeviceLinks } from "./device-links.ts";
+import { LentComputers, provenRequestPerson, SharedComputers, sharedComputerOperation } from "./shared-computers.ts"; import { lentScreenResult } from "./lent-screen-guidance.ts";
 import { createPlacesElsewhere } from "./places-elsewhere.ts"; import { createPlacesElsewhereRoutes } from "./routes/places-elsewhere.ts"; import { assertRoomFolder } from "./room-folder.ts";
 import { SharedComputerControl } from "./shared-computer-control.ts";
 import { STATUS_REPLY_TIMEOUT_MS } from "./runtime/status-reply.ts"; import { createCoordinator, type ComposedTurn, type CoordinateBotsCall, type Coordinator, type HandoffOpener, type HandoffOptions, type HandoffView, type HostTurnResult } from "./coordinator.ts";
@@ -667,7 +667,7 @@ const sessions = new SessionRegistry({
   },
   portalMembership: false, recheckMs: 1_000,
 }); onConfigSaved(() => sessions.membershipChanged());
-const deviceLinks = new DeviceLinks(); const sharedComputers = new SharedComputers(id => sessions.isLive(id), new LentComputers(join(DATA_DIR, "lent-computers.json")), deviceLinks);
+const sharedComputers = new SharedComputers(id => sessions.isLive(id), new LentComputers(join(DATA_DIR, "lent-computers.json")));
 const webPush = createWebPush(DATA_DIR);
 /** The language set on this server. threadLanguage: the one a line in a conversation is written in, its person's, else the place's (server/server-lines.ts). */
 const appLanguage = (): string | undefined => cfg.language; const personLanguages = createPersonLanguages({ dataDir: DATA_DIR, configured: appLanguage }); const threadLanguage = (threadId: string): string | undefined => personLanguages.forLine(threadPersonKey(threadId)); setConversationLanguage(threadLanguage);
@@ -11754,7 +11754,7 @@ ROUTES.push(createHostedSlackRoutes({ bot: (id) => store.bot(id), hostedReady: (
 const orgInstallStatuses = () => orgLibrary?.installStatuses() ?? new Map();
 ROUTES.push(createBotPresetRoutes({ presets: presetStore, orgStatuses: orgInstallStatuses })); ROUTES.push(createWorkspaceBannerRoutes({ changed: () => broadcast({ kind: "config", ...configStatus() }) }));
 ROUTES.push(createSharedComputerRoutes({ enabled: lendingEnabled, computers: sharedComputers, sessionLive: (id) => sessions.isLive(id), environmentId: ENVIRONMENT_ID,
-  principal: sessionLendingPrincipal, personKey, links: null, upgrades, answerer: cardAnswererFor }));
+  principal: sessionLendingPrincipal, personKey, answerer: cardAnswererFor }));
 // `routines` is assigned at boot, so it is read per request.
 ROUTES.push(createBotMessageRoutes({
   store, registry, handoffs, liveTurn: (threadId) => liveTurns.running(threadId), phoneSecretSubmissions, directTurnDispatchClaims, groupSpeakers,

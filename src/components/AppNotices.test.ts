@@ -35,11 +35,9 @@ import { ADVANCED_MODE_KEY, setAdvancedMode } from "@/lib/interface-mode";
 import { SIMPLE_MODE_PROMPT_KEY } from "@/lib/simple-mode-prompt";
 import { api } from "@/state/store";
 
-const NOW = new Date(2026, 9, 9, 12).getTime();
 
 let storage: Map<string, string>;
 let viewer: WelcomeViewer | null;
-let now: number;
 
 const PRELOAD = readFileSync(join(process.cwd(), "electron", "preload.cjs"), "utf8").replace(/\r\n/g, "\n");
 const LOCAL_ORIGIN = "http://127.0.0.1:8799";
@@ -59,7 +57,7 @@ function desktopMachine(): Desktop {
   registerDesktopPrefs({
     ipcMain: { handle: (channel, handler) => void machine.handlers.set(channel, handler as Handler), on: (channel, listener) => void machine.listeners.set(channel, listener as Handler) },
     read: () => machine.saved, write: value => { machine.saved = JSON.parse(JSON.stringify(value)); }, page: event => (event as { page: Page }).page,
-    cloudOffered: async () => false, localConfig: () => machine.config, now: () => now,
+    localConfig: () => machine.config,
   });
   return machine;
 }
@@ -110,7 +108,7 @@ const hints = () => f.state.config.onboarding.hintsSeen as string[];
 
 beforeEach(() => {
   vi.clearAllMocks(); vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-  storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.brand = "default"; f.dispatch = vi.fn(); now = NOW; desk = desktopMachine();
+  storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.brand = "default"; f.dispatch = vi.fn(); desk = desktopMachine();
   setLocale("en"); viewer = LOCAL_VIEWER;
   session = new Map(); f.viewerEmail = undefined;
   vi.stubGlobal("sessionStorage", { getItem: (key: string) => session.get(key) ?? null, setItem: (key: string, value: string) => session.set(key, value) });

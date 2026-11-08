@@ -67,15 +67,12 @@ export function remoteClipboardWriteAllowed(permission, requestingUrlOrOrigin, a
 }
 
 /**
- * @param {{ rendererOrigin: () => string, mainContents: () => unknown, cloudHomeOrigin: () => string | null,
- *   cloudHomeRestoring?: () => Promise<unknown> | null, activeRemoteOrigin?: () => string | null,
+ * @param {{ rendererOrigin: () => string, mainContents: () => unknown, activeRemoteOrigin?: () => string | null,
  *   activeRemoteMicrophone?: () => boolean, askRemoteMicrophone?: (origin: string) => Promise<unknown> | null,
  *   homeOrigin?: () => string | null }} context
- *   Every getter is read per request, so a sign-out or server switch withdraws access at once. `homeOrigin`: My Cloud
- *   once the person's bots moved there (home-window.mjs), whose page alone may show notifications besides this
- *   computer's and the active remote server's.
+ *   Every getter is read per request, so a sign-out or server switch withdraws access at once.
  */
-export function appPermissionHandlers({ rendererOrigin, mainContents, cloudHomeOrigin, cloudHomeRestoring = () => null, activeRemoteOrigin = () => null,
+export function appPermissionHandlers({ rendererOrigin, mainContents, activeRemoteOrigin = () => null,
   activeRemoteMicrophone = () => false, askRemoteMicrophone = () => null, homeOrigin = () => null }) {
   // Notifications for the main window's main frame on `origin`: My Cloud as home, or the remote server the person
   // switched to (Settings → Notifications there has no browser site settings to fall back on).
@@ -85,17 +82,13 @@ export function appPermissionHandlers({ rendererOrigin, mainContents, cloudHomeO
     return (permission === "notifications" || permission === "fullscreen") && Boolean(page) && Boolean(contents) &&
       contents === mainContents() && details?.isMainFrame === true && webOrigin(requesting) === page;
   };
-  const asksAsCloud = (contents, permission, requesting, details) =>
-    Boolean(contents) && contents === mainContents() && mainFrameMicrophoneAllowed(permission, requesting, requesting, details);
   const asksAsRemote = (contents, permission, requesting, details) =>
     Boolean(contents) && contents === mainContents() && mainFrameMicrophoneAllowed(permission, requesting, activeRemoteOrigin(), details);
   const clipboardWrite = (contents, permission, requesting, details) =>
     Boolean(contents) && contents === mainContents() &&
-    (remoteClipboardWriteAllowed(permission, requesting, activeRemoteOrigin(), details) ||
-      remoteClipboardWriteAllowed(permission, requesting, cloudHomeOrigin(), details));
+    remoteClipboardWriteAllowed(permission, requesting, activeRemoteOrigin(), details);
   const allowed = (contents, permission, requesting, details) =>
     appPermissionAllowed(permission, requesting, rendererOrigin(), details) ||
-    (asksAsCloud(contents, permission, requesting, details) && mainFrameMicrophoneAllowed(permission, requesting, cloudHomeOrigin(), details)) ||
     (asksAsRemote(contents, permission, requesting, details) && activeRemoteMicrophone() === true) ||
     clipboardWrite(contents, permission, requesting, details) ||
     notifiesAs(homeOrigin(), contents, permission, requesting, details) ||
@@ -111,8 +104,7 @@ export function appPermissionHandlers({ rendererOrigin, mainContents, cloudHomeO
         const asking = asksAsRemote(contents, permission, requesting, details) ? askRemoteMicrophone(activeRemoteOrigin()) : null;
         return asking ? settle(asking).then(decide) : false;
       };
-      const restoring = !decide() && asksAsCloud(contents, permission, requesting, details) ? cloudHomeRestoring() : null;
-      const answer = restoring ? settle(restoring).then(decideOrAsk) : decideOrAsk();
+      const answer = decideOrAsk();
       if (typeof answer === "boolean") return callback(answer);
       void answer.then(callback);
     },

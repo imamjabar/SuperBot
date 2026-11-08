@@ -820,7 +820,7 @@ describe("the prompt of a bridged turn", () => {
   });
 
   it("never names a tool the bridge may have hidden, so it cannot send a bot to call one directly", () => {
-    const everyTool = availableTools({ skillAuthoring: true, sharedComputers: true, voiceNotes: true, cloudHome: false, chief: true, botId: WATCHER_OPTIONS_CARD_BOT_ID }).map((tool) => tool.name);
+    const everyTool = availableTools({ skillAuthoring: true, sharedComputers: true, voiceNotes: true, chief: true, botId: WATCHER_OPTIONS_CARD_BOT_ID }).map((tool) => tool.name);
     expect(everyTool.length).toBeGreaterThan(BRIDGE_HOT_TOOL_NAMES.size);
     for (const tool of everyTool) expect(AGENTS_TOOL_BRIDGE_PROMPT, tool).not.toContain(tool);
   });

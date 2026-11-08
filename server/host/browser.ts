@@ -12,7 +12,7 @@ import { BrowserRuntime, TransportError, attachesToChrome, browserRuntimeEnv, fo
 import { RelayTimeout, relay, relayCommand, relayInput } from "../browser-relay.ts";
 import { browserSteps } from "../browser-steps.ts";
 import { BrowserLive } from "../browser-live.ts";
-import { browserEgress, type EgressSetup } from "../browser/egress/registry.ts";
+import { browserEgress } from "../browser/egress/registry.ts";
 import {
   agentBrowserIntegration,
   BUILT_IN_BROWSER_SYSTEM_PROMPT,
@@ -44,7 +44,7 @@ import { harnessMcpTokenEnv } from "../harness-mcp-token.ts";
 import type { FillLoginDeps } from "../login-fill.ts";
 import { AGENTS_NODE_FLAG, SPAWNED_PROXIES } from "../proxy-paths.ts";
 import type { Store } from "../store.ts";
-import type { TurnOwner, TurnResources } from "../turn-resources.ts";
+import type { TurnResources } from "../turn-resources.ts";
 
 export interface BrowserHostDeps {
   cfg: AppConfig;
@@ -58,29 +58,13 @@ export interface BrowserHostDeps {
   }): string;
   DESKTOP_MANAGED: boolean;
   PORT: number;
-  /** A Cloud home's way out through the person's own lent computer. */
-  device?: EgressSetup["device"];
-  /** Why a turn may not use the person's lent computer (cloud-lending.ts plus the memory check), or null when it may.
-   * Without it, no browser a turn holds may. */
-  lendRefusal?(turn: TurnOwner): LendRefusal | null;
   /** The engine memory guard, told which browsers each thread's turn starts or holds. */
   engineMemory?: { useBrowsers(browsers: EngineBrowsers): void };
 
 }
 
-/** The lent computer's connection for a browser's pages, under the rule for everything it lends: only while the last
- * turn to hold that browser may use the lent computer. A browser no turn has held is the person's own. */
-function lentDevice(device: NonNullable<EgressSetup["device"]>, holder: (session: string) => TurnOwner | undefined, mayLend: (turn: TurnOwner) => boolean) {
-  const lends = new Map<string, boolean>();
-  return (session: string) => {
-    const turn = holder(session);
-    if (turn) lends.set(session, mayLend(turn));
-    return lends.get(session) === false ? null : device(session);
-  };
-}
 
 type Spec = { command: string; args?: readonly string[]; env: Record<string, string> };
-type LendRefusal = "unproven" | "not-owner" | "someone-else" | "memory-changed" | "memory-changed-here";
 
 export function createBrowserHost(deps: BrowserHostDeps) {
   const { cfg, turnResources, activeInternalGenerationByThread, mintInternalCapability, DESKTOP_MANAGED, PORT } = deps;
@@ -110,8 +94,6 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     idleMs,
     log: (line) => console.warn(line),
   });
-  const lendRefusal = deps.lendRefusal ?? ((): LendRefusal => "unproven");
-  const mayLend = (turn: TurnOwner) => lendRefusal(turn) === null;
   const browserRuntime = new RuntimeRouter(agentBrowserRuntime, chromeEngine, {
     refusal: (_session, spec, params) => (attachesToChrome(spec.env) ? null : browserEgress.callRefusal(params)),
     annotate: passkeyAnnotation(DESKTOP_MANAGED ? "desktop" : "server"),
@@ -120,10 +102,9 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   const usedBrowserSessions = new Map<string, Spec>();
   const audiences = new AudienceBrowsers(join(DATA_DIR, "browser", "audiences.json"));
   const browserAudience = (_threadId: string | undefined): Audience => "team";
-  const device = deps.device && lentDevice(deps.device, (session) => turnResources.holder(`browser:${session}`), mayLend);
   const egressHost = DESKTOP_MANAGED ? "desktop" : "server";
   const sitesSwitch = egressHost === "server";
-  browserEgress.configure({ host: egressHost, config: () => cfg.browserEngine?.egress, ...(device ? { device } : {}) });
+  browserEgress.configure({ host: egressHost, config: () => cfg.browserEngine?.egress });
   /** A live bot's, profile's or temporary browser of this data dir, for any audience. */
   const belongs = (session: string) => isTemporaryBrowserSession(session) || audiences.variants().some((suffix) =>
     store.bots.some((bot) => browserSessionId(bot.id + suffix, "") === session)

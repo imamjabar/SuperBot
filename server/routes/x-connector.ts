@@ -40,7 +40,6 @@ export function createXConnectorRoutes(deps: XConnectorDeps): RouteHandler {
     const status: XConnectorStatus = {
       using: using ? (using.included ? "included" : "own") : null,
       ownKey: using?.included === false,
-      included: included !== null,
       ...(!included && deps.unavailable() ? { unavailable: true as const } : {}),
       ...(usage ? { usage } : {}),
     };

@@ -1347,10 +1347,6 @@ function sharingController() {
     fetch: (...args) => session.defaultSession.fetch(...args),
     environments: () => environmentsState.environments,
     enabled: refreshSharedComputersAllowed,
-    cloud: lendingTarget.cloud, myCloud: lendingTarget.environment, ownClouds: lendingTarget.places, screen: screenControl.now, askForScreen, power: cloudPower, cloudPower: origin => cloudAccount?.powerOf?.(origin) ?? null, reconnect: reconnectCloud,
-    prompt: createAskPrompt({ dialog, window: () => mainWindow, idleSeconds: () => powerMonitor.getSystemIdleState(1) === "unknown" ? null : powerMonitor.getSystemIdleTime() }), startScreen: screenControl.start, confirmTerminal: () => lendingDialogs.lendTerminal(true, () => sharingController().lendTerminal(true)), log: slog,
-    linkHeaders: async env => ({ cookie: (await session.defaultSession.cookies.get({ url: env.origin })).map(cookie => `${cookie.name}=${cookie.value}`).join("; ") }),
-    onChange: summary => { lendingIndicator().update(summary); loginItem.follow(summary.lending.length > 0); },
     cuaConnection: () => cuaReady, screenLocked: () => powerMonitor.getSystemIdleState(1) === "locked", idleSeconds: () => powerMonitor.getSystemIdleState(1) === "unknown" ? null : powerMonitor.getSystemIdleTime(),
     hostControl: createHostScreenLease({ url: () => `http://127.0.0.1:${SERVER_PORT}/api/desktop/shared-computer-control`, headers: () => desktopServerHeaders({}, { packaged: app.isPackaged, token: desktopMutationToken }) }),
   });
@@ -1359,29 +1355,9 @@ function sharingController() {
 
 const cleanWorkspace = createCleanWorkspace({ dataDir: desktopDataDir, running: () => runningDataDir, swap: dir => switchLocalEnvironmentTo(dir, LOCAL_ID, true), allowed: () => app.isPackaged && !desktopRemoteAccess, changed: () => { computerSharing?.cloudChanged(); }, log: slog });
 const screenControl = createScreenControl({ connection: () => cuaReady, remote: () => Boolean(desktopRemoteAccess), request: requestComputerUse, log: slog });
-let screenAskedAt = -Infinity;
-/** Computer control starts again, as Settings' Retry does, which asks macOS for what it never asked; at most every 10 minutes. */
-function askForScreen(connection) {
-  if (process.platform !== "darwin" || desktopRemoteAccess || !missingPermissions(connection?.reason).length || Date.now() - screenAskedAt < 10 * 60_000) return;
-  screenAskedAt = Date.now();
-  void requestComputerUse().catch(error => slog(`computer control: ${error?.message ?? error}`));
-}
 const loginItem = createOpenAtLogin({ app, file: path.join(app.getPath("userData"), "open-at-login.json"), home: os.homedir() });
 installOpenAtLogin({ ipcMain, guard: localOrHome, loginItem, changed: refreshApplicationMenu });
 let hiddenStart = false;
-
-const lendingActivity = createActivityWindow({ BrowserWindow, icon: APP_ICON, background: () => windowBackground(nativeTheme.shouldUseDarkColors),
-  entries: () => sharingController().activity(undefined, 200),
-  locale: () => { try { return jsonFile(path.join(app.getPath("userData"), "desktop-prefs.json")).read()?.language || app.getLocale(); } catch { return app.getLocale(); } } });
-let lendingTray = null;
-function lendingIndicator() {
-  lendingTray ??= createLendingIndicator({
-    Tray, Menu, nativeImage, iconPath: APP_ICON, onPause: () => sharingController().pause(), onActivity: () => lendingActivity.show(),
-    onResume: () => void sharingController().resume()?.catch(error => slog(`lending resume: ${error?.message ?? error}`)), onStartScreen: () => void screenControl.start(),
-    onTerminal: on => void lendingDialogs.lendTerminal(on, () => sharingController().lendTerminal(on)).catch(error => slog(`lending terminal: ${error?.message ?? error}`)),
-  });
-  return lendingTray;
-}
 
 async function offerComputerSharing(win) {
   const env = activeEnvironment(environmentsState);
@@ -2734,7 +2710,7 @@ app.whenReady().then(async () => {
   androidDevice.registerIpc(ipcMain);
   registerUpdaterIpc({ pageAllowed: updaterPageAllowed });
   desktopPrefs = createDesktopPrefs(jsonFile(path.join(app.getPath("userData"), "desktop-prefs.json")));
-  registerDesktopPrefs({ ipcMain, prefs: desktopPrefs, localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read, cloudOffered: () => Promise.resolve(false),
+  registerDesktopPrefs({ ipcMain, prefs: desktopPrefs, localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read,
     frame: { made: () => windowFrameMade, restarts: process.platform === "win32", changed: () => void broadcastDesktopCapabilities() },
     languageChanged: (language, sender) => {
       for (const win of appWindows()) if (!win.isDestroyed() && win.webContents !== sender) win.webContents.send("desktop-language:changed", language);

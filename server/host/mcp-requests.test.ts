@@ -109,8 +109,8 @@ describe("MCP approval cards", () => {
     expect(await after.respond(requestId, "allow")).toMatchObject({ status: 200, body: { alreadySettled: false, result: { state: "expired" } } });
     expect(after.apply).not.toHaveBeenCalled();
     expect(after.answers).toHaveLength(1);
-    expect(after.answers[0]).toContain("OpenMausBot restarted, so this request expired. Ask again if you still need it.");
-    expect(after.store.rows[0]!.card).toMatchObject({ expired: true, options: [], held: "OpenMausBot restarted, so this request expired.", mcpRequest: { resumed: true } });
+    expect(after.answers[0]).toContain("restarted, so this request expired. Ask again if you still need it.");
+    expect(after.store.rows[0]!.card).toMatchObject({ expired: true, options: [], held: expect.stringContaining("restarted, so this request expired."), mcpRequest: { resumed: true } });
   });
 
   it("a restart expires an open Change card for the turn parked on it, which hears why, and leaves a Turn on card open", () => {
