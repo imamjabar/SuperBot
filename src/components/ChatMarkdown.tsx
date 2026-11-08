@@ -25,6 +25,8 @@ import { looksLikeThreadRefUrl, parseThreadRefUrl, resolveThreadRefAddress, rema
 import { MarkdownImagePreview, MessageFolderFiles, OutsideWorkspaceFile, saveFailureText, useLocalFileSave, type MessageAttachmentContext } from "./AttachmentPreview";
 import { ThreadLink, ThreadRefsContext, threadLinkFromProps, type ThreadRefsValue } from "./ThreadRefs";
 import { MarkdownTable } from "./MarkdownTable";
+import { AnswerCallout, AnswerChartBlock, AnswerFactsBlock } from "./AnswerBlocks";
+import { CALLOUT_KINDS, remarkCallouts, type CalloutKind } from "@/lib/answer-blocks";
 import { CodeBlock, CodePlate, codeHash } from "./CodeBlock";
 export { CodeBlock, HIGHLIGHT_CACHE_MAX, HIGHLIGHT_CACHE_MAX_CHARS, HIGHLIGHT_MAX_CHARS, type CodeBlockProps } from "./CodeBlock";
 import { FilePreviewButton } from "./FilePreviewButton";
@@ -588,10 +590,14 @@ function MarkdownCode({ node, children }: BlockProps) {
   const flat = (n: any): string =>
     typeof n === "string" ? n : Array.isArray(n) ? n.map(flat).join("") : (n?.props?.children ? flat(n.props.children) : "");
   const code = flat(child?.props?.children).replace(/\n$/, "");
-  if (lang.trim().toLowerCase() === "mermaid") {
+  const block = lang.trim().toLowerCase();
+  if (block === "mermaid") {
     return <MermaidDiagram code={code} />;
   }
-  return <CodeBlock code={code} lang={lang} initialWrap={wrap} />;
+  const plain = <CodeBlock code={code} lang={lang} initialWrap={wrap} />;
+  if (block === "chart") return <AnswerChartBlock code={code} fallback={plain} />;
+  if (block === "facts") return <AnswerFactsBlock code={code} fallback={plain} />;
+  return plain;
 }
 
 function MarkdownImage(props: ComponentProps<"img"> & ExtraProps) {
@@ -710,6 +716,10 @@ const MARKDOWN_COMPONENTS: Components = {
     return <div dir={blockDirection(node)} className="mt-1.5 text-body-sm font-semibold text-ink-secondary">{children}</div>;
   },
   blockquote({ node, children }: BlockProps) {
+    const callout = node?.properties?.dataCallout;
+    if (typeof callout === "string" && (CALLOUT_KINDS as readonly string[]).includes(callout)) {
+      return <AnswerCallout kind={callout as CalloutKind} dir={blockDirection(node)}>{children}</AnswerCallout>;
+    }
     return (
       <blockquote dir={blockDirection(node)} className="border-s-2 border-hairline ps-3 text-ink-secondary">{children}</blockquote>
     );
@@ -728,7 +738,7 @@ const NO_THREAD_REFS: ThreadRefsValue = { threads: [] };
 
 // One plugin list for everything every message shares; a message adds mentions only when it has an "@" and thread
 // links only when it may name one, so most messages render the same way whatever the bot list holds.
-const BASE_REMARK_PLUGINS: NonNullable<MarkdownOptions["remarkPlugins"]> = [[remarkGfm, GFM_OPTIONS], remarkMath, remarkWindowsPathDestinations, unwrapLinkedImages, remarkSoftBreaks, remarkGithubRefs];
+const BASE_REMARK_PLUGINS: NonNullable<MarkdownOptions["remarkPlugins"]> = [[remarkGfm, GFM_OPTIONS], remarkMath, remarkWindowsPathDestinations, unwrapLinkedImages, remarkCallouts, remarkSoftBreaks, remarkGithubRefs];
 const NO_REHYPE_PLUGINS: NonNullable<MarkdownOptions["rehypePlugins"]> = [];
 let katexPlugins: { plugin: KatexPlugin; list: NonNullable<MarkdownOptions["rehypePlugins"]> } | null = null;
 const rehypePluginsFor = (math: KatexPlugin | null) => {
