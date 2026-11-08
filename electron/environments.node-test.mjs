@@ -172,7 +172,7 @@ test("the places line names this computer's bots briefly, says nothing when its 
 test("native window identity distinguishes hosted HTML, companion data, and the local workspace", () => {
   const state = { environments: [{ id: "old", name: "Old team", origin: "https://old.example" }], activeId: "old" };
   assert.equal(env.workspaceWindowTitle(state), "SuperBot — Hosted: Old team (old.example)");
-  assert.equal(env.workspaceWindowTitle(state, { serverName: "Office", endpoint: "https://c-office.openmausbot.com" }), "OpenMausBot — Connected to: Office (c-office.openmausbot.com)");
+  assert.equal(env.workspaceWindowTitle(state, { serverName: "Office", endpoint: "https://c-office.openmausbot.com" }), "SuperBot — Connected to: Office (c-office.openmausbot.com)");
   assert.equal(env.workspaceWindowTitle(env.withActive(state, "local")), "SuperBot");
 });
 

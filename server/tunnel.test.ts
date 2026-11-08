@@ -241,7 +241,7 @@ describe.skipIf(!posix)("startTunnel: guardian, gateway and connector, verified 
       const settled = await tunnel.started;
       expect(settled.status, states.join(",")).toBe("ready");
       const viaGateway: any = await (await fetch(`http://127.0.0.1:${originPort}/api/health`)).json();
-      expect(viaGateway.app).toBe("openmausbot");
+      expect(viaGateway.app).toBe("superbot");
       expect(viaGateway.peer).toBeNull();
       // the connector is spawned right after the gateway binds; its shell writes the pid a moment later
       const connectorPidOtherThan = async (previous: number) => {

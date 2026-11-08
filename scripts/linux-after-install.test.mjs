@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hook = path.join(root, "build", "linux-after-install.sh");
 const removeHook = path.join(root, "build", "linux-after-remove.sh");
-const browserPolicy = path.join(root, "build", "linux-superbot-browser.apparmor");
+const browserPolicy = path.join(root, "build", "linux-openmausbot-browser.apparmor");
 const temporaryDirectories = [];
 
 function fixture() {

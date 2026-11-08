@@ -52,7 +52,7 @@ after=$(omb_id) || { echo "omb is not running after the update" >&2; exit 1; }
 [ "$after" != "$before" ] || { echo "omb was not recreated; it still runs the previous server" >&2; exit 1; }
 timeout 120 $C up -d --no-deps --no-build --force-recreate caddy
 tries=0
-until curl -fsS --max-time 5 http://127.0.0.1:8080/api/health | grep -q '"openmausbot"'; do
+until curl -fsS --max-time 5 http://127.0.0.1:8080/api/health | grep -q '"superbot"'; do
   tries=$((tries + 1))
   [ "$tries" -lt 20 ] || { echo "the app does not answer its health check on 127.0.0.1:8080" >&2; exit 1; }
   sleep 3

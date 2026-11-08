@@ -12187,7 +12187,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     if (method === "GET" && path === "/.well-known/superbot/environment") {
       return json(res, 200, environmentDescriptor({ environmentId: ENVIRONMENT_ID, desktopManaged: DESKTOP_MANAGED, emailSignIn: !HOSTED_WORKSPACE && emailSignIn.enabled(), sharedComputers: lendingEnabled() }));
     }
-    const domainCheck = /^\/\.well-known\/openmausbot\/domain-check\/([a-f0-9]{64})$/.exec(path);
+    const domainCheck = /^\/\.well-known\/superbot\/domain-check\/([a-f0-9]{64})$/.exec(path);
     if (method === "GET" && domainCheck) {
       res.setHeader("cache-control", "no-store");
       const challenge = customDomainVerifier.challenge(domainCheck[1]);
