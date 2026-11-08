@@ -38,6 +38,8 @@ vi.mock("@/lib/interface-mode", async (importOriginal) => ({
   useAdvancedMode: () => mode.advanced,
   readAdvancedMode: () => mode.advanced,
 }));
+const viewport = vi.hoisted(() => ({ onScreen: true }));
+vi.mock("@/lib/on-screen", () => ({ useOnScreen: () => viewport.onScreen }));
 
 vi.mock("react", async (importOriginal) => {
   const react = await importOriginal<typeof React>();
@@ -494,6 +496,37 @@ it("leaves a block past the highlight bound as plain text and never tokenizes it
     expect(paint(past)).not.toContain('class="highlighted"');
     expect(shiki.codeToHtml).not.toHaveBeenCalled();
   } finally {
+    for (const close of cleanup) if (typeof close === "function") close();
+    effect.mockImplementation(originalUseEffect);
+    shiki.codeToHtml.mockReset();
+  }
+});
+
+it("tokenizes a code block only once it comes on screen", async () => {
+  const originalUseEffect = (await vi.importActual<typeof React>("react")).useEffect;
+  const effects: React.EffectCallback[] = [];
+  const effect = vi.mocked(React.useEffect).mockImplementation((callback) => { effects.push(callback); });
+  shiki.codeToHtml.mockReset();
+  shiki.codeToHtml.mockImplementation(async (code: string) => `<pre class="highlighted">${code}</pre>`);
+  const cleanup: ReturnType<React.EffectCallback>[] = [];
+  const paint = () => {
+    const html = renderToStaticMarkup(createElement(CodeBlock, { code: "scrolled away", lang: "text" }));
+    for (const callback of effects.splice(0)) cleanup.push(callback());
+    return html;
+  };
+  try {
+    viewport.onScreen = false;
+    paint();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(shiki.codeToHtml).not.toHaveBeenCalled();
+    expect(paint()).toContain("scrolled away");
+
+    viewport.onScreen = true;
+    paint();
+    await vi.waitFor(() => expect(shiki.codeToHtml).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(paint()).toContain('class="highlighted"'));
+  } finally {
+    viewport.onScreen = true;
     for (const close of cleanup) if (typeof close === "function") close();
     effect.mockImplementation(originalUseEffect);
     shiki.codeToHtml.mockReset();
