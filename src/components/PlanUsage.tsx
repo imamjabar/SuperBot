@@ -17,15 +17,15 @@ export function UsageSummaryCard({ kind, title, percent, label, note, children }
   const band = percent >= 100 ? "full" : percent >= 80 ? "near" : "ok";
   return (
     <section data-usage-summary={kind} data-band={band} aria-label={label} className={cn(SIMPLE_CARD, "px-4 py-3.5")}>
-      <p className="text-[13px] leading-[18px] text-ink">{title}</p>
+      <p className="text-small leading-[18px] text-ink">{title}</p>
       <p className="mt-2 flex items-baseline gap-1.5">
         <span className="text-[22px] font-medium leading-7 tracking-[-0.012em] text-ink tabular-nums">{percent}%</span>
-        <span className="text-[13px] text-ink-secondary">{t("settings.simple.billing.used")}</span>
+        <span className="text-small text-ink-secondary">{t("settings.simple.billing.used")}</span>
       </p>
       <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="mt-2 h-1 w-full overflow-hidden rounded-full bg-ink/[0.04]">
         <div className={cn("h-full rounded-full", SUMMARY_BAR[band])} style={{ width: `${percent > 0 ? Math.max(percent, 1) : 0}%` }} />
       </div>
-      <p className="mt-2 text-[12px] leading-4 text-ink-secondary">{note}</p>
+      <p className="mt-2 text-caption leading-4 text-ink-secondary">{note}</p>
       {children}
     </section>
   );
@@ -150,13 +150,13 @@ function WindowRow({
     : window.remainingPercent == null ? null : t("planUsage.left", { remaining: Math.round(window.remainingPercent) });
   return (
     <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1">
-      <div className="text-[12px] text-ink-secondary">{label}</div>
+      <div className="text-caption text-ink-secondary">{label}</div>
       {window.available && headline ? (
         <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2 text-[13px] text-ink">
+          <div className="flex flex-wrap items-baseline gap-x-2 text-small text-ink">
             <span className="tabular-nums">{headline}</span>
-            {detail && <span data-plan-spend className="text-[12px] tabular-nums text-ink-secondary">{detail}</span>}
-            {when && <span className="text-[12px] text-ink-secondary">{t("planUsage.resetsIn", { when })}</span>}
+            {detail && <span data-plan-spend className="text-caption tabular-nums text-ink-secondary">{detail}</span>}
+            {when && <span className="text-caption text-ink-secondary">{t("planUsage.resetsIn", { when })}</span>}
           </div>
           <div
             className="mt-1 h-1.5 overflow-hidden rounded-full bg-inset"
@@ -170,7 +170,7 @@ function WindowRow({
           </div>
         </div>
       ) : (
-        <div className="text-[12px] text-ink-secondary">{t("planUsage.notReported")}</div>
+        <div className="text-caption text-ink-secondary">{t("planUsage.notReported")}</div>
       )}
     </div>
   );
@@ -247,7 +247,7 @@ export function PlanUsageSummary() {
       note={spending.budget.spend ? formatPlanSpend(spending.budget.spend) : null} />;
   }
   if (!busiest) {
-    return <section data-usage-summary="own-ai" className={cn(SIMPLE_CARD, "px-4 py-3.5 text-[14px] leading-5 text-ink-secondary")}>{t("settings.simple.billing.ownAi")}</section>;
+    return <section data-usage-summary="own-ai" className={cn(SIMPLE_CARD, "px-4 py-3.5 text-body-sm leading-5 text-ink-secondary")}>{t("settings.simple.billing.ownAi")}</section>;
   }
   const percent = Math.round(Math.min(100, Math.max(0, busiest.used)));
   const when = formatResetDistance(busiest.provider.weekly.resetsAt, now);
@@ -275,18 +275,18 @@ export function PlanUsage() {
           {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
         </button>
       </div>
-      {loading && !report && <p role="status" className="text-[13px] text-ink-secondary">{t("planUsage.loading")}</p>}
-      {error && <p role="alert" className="mb-3 text-[13px] text-danger">{error}</p>}
+      {loading && !report && <p role="status" className="text-small text-ink-secondary">{t("planUsage.loading")}</p>}
+      {error && <p role="alert" className="mb-3 text-small text-danger">{error}</p>}
       {report && report.providers.length === 0 && (
-        <p className="text-[13px] text-ink-secondary">{t("planUsage.empty")}</p>
+        <p className="text-small text-ink-secondary">{t("planUsage.empty")}</p>
       )}
       {report && report.providers.length > 0 && (
         <div className="flex flex-col gap-4">
           {report.providers.map((provider) => (
             <div key={provider.id} className="border-t border-hairline/30 pt-3 first:border-t-0 first:pt-0">
               <div className="mb-2 flex min-w-0 items-baseline gap-2">
-                <span className="truncate text-[14px] font-medium text-ink">{providerLabel(provider)}</span>
-                {provider.plan && <span className="truncate text-[12px] text-ink-secondary">{provider.plan}</span>}
+                <span className="truncate text-body-sm font-medium text-ink">{providerLabel(provider)}</span>
+                {provider.plan && <span className="truncate text-caption text-ink-secondary">{provider.plan}</span>}
               </div>
               {provider.ok ? (
                 <div className="flex flex-col gap-2">
@@ -309,10 +309,10 @@ export function PlanUsage() {
                   ))}
                   {(provider.models ?? []).length > 0 && (
                     <div className="mt-1 flex flex-col gap-2">
-                      <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">{t("planUsage.byModel")}</div>
+                      <div className="text-micro font-medium uppercase tracking-[0.08em] text-ink-secondary">{t("planUsage.byModel")}</div>
                       {(provider.models ?? []).map((model) => (
                         <div key={model.name} className="flex flex-col gap-1">
-                          <div className="truncate text-[13px] font-medium text-ink">{model.name}</div>
+                          <div className="truncate text-small font-medium text-ink">{model.name}</div>
                           {model.windows.map((entry, index) => (
                             <WindowRow
                               key={`${model.name}-${entry.label}-${index}`}
@@ -333,7 +333,7 @@ export function PlanUsage() {
                   )}
                 </div>
               ) : (
-                <p className="text-[13px] text-danger">{providerError(provider)}</p>
+                <p className="text-small text-danger">{providerError(provider)}</p>
               )}
             </div>
           ))}

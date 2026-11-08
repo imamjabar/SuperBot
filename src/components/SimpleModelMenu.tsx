@@ -82,8 +82,8 @@ function GroupBody({ group, props }: { group: MenuGroup; props: SimpleModelMenuP
     case "policy":
       return (
         <div data-simple-policy className="flex flex-col gap-0.5 py-1 pl-8 pr-2">
-          <p className="text-[13px] leading-[18px] text-ink-secondary">{t("policy.managedBy", { organization: body.organization })}</p>
-          <p className="text-[12px] leading-4 text-ink-tertiary">{t(body.team ? "policy.teamModelBlocked" : "policy.modelBlocked", { organization: body.organization })}</p>
+          <p className="text-small leading-[18px] text-ink-secondary">{t("policy.managedBy", { organization: body.organization })}</p>
+          <p className="text-caption leading-4 text-ink-tertiary">{t(body.team ? "policy.teamModelBlocked" : "policy.modelBlocked", { organization: body.organization })}</p>
         </div>
       );
     case "setUp":
@@ -161,12 +161,12 @@ function Thinking({ thinking, labelId }: { thinking: SimpleThinking; labelId: st
   return (
     <div data-simple-thinking className="flex flex-col">
       <div className="flex h-6 items-end justify-between gap-2 px-2 pb-0.5">
-        <span id={labelId} className="text-[12px] font-medium leading-4 text-ink-tertiary">{t("botSettings.simple.thinking")}</span>
+        <span id={labelId} className="text-caption font-medium leading-4 text-ink-tertiary">{t("botSettings.simple.thinking")}</span>
         {(levels.current === undefined
-          ? <span title={t("model.simple.thinkingDefault")} className="text-[12px] leading-4 text-ink-tertiary">{t("model.effort.default")}</span>
+          ? <span title={t("model.simple.thinkingDefault")} className="text-caption leading-4 text-ink-tertiary">{t("model.effort.default")}</span>
           : (
             <button type="button" data-simple-effort-default onClick={levels.onReset} title={t("model.simple.thinkingDefault")}
-              className="-mr-1 rounded-[5px] px-1 text-[12px] leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
+              className="-mr-1 rounded-[5px] px-1 text-caption leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
               {t("model.simple.useDefault")}
             </button>
           ))}
@@ -183,7 +183,7 @@ function Thinking({ thinking, labelId }: { thinking: SimpleThinking; labelId: st
             title={t("model.simple.thinkingLevel", { level: effortLabel(level) })}
             onClick={() => levels.onPick(level)}
             className={cn(
-              "h-6 min-w-0 truncate rounded-full px-1 text-[12px] leading-4 transition-colors touch:h-8",
+              "h-6 min-w-0 truncate rounded-full px-1 text-caption leading-4 transition-colors touch:h-8",
               levels.current === level ? "bg-ink/[0.1] font-medium text-ink" : "text-ink-secondary hover:text-ink",
             )}
           >
@@ -210,7 +210,7 @@ export function SimpleModelMenu(props: SimpleModelMenuProps) {
             onChange={(event) => props.onQuery(event.target.value)}
             placeholder={t("model.search")}
             aria-label={menu.groups.every((group) => group.instance.access === "custom") ? t("model.searchLocal") : t("model.search")}
-            className="min-w-0 flex-1 bg-transparent text-[13px] leading-[18px] text-ink outline-none placeholder:text-ink-tertiary"
+            className="min-w-0 flex-1 bg-transparent text-small leading-[18px] text-ink outline-none placeholder:text-ink-tertiary"
           />
           {query && (
             <button type="button" aria-label={t("model.simple.clearSearch")} onClick={() => props.onQuery("")}

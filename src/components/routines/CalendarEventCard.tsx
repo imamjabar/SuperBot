@@ -143,7 +143,7 @@ export function CalendarEventCard({
         <div className="flex min-w-0 items-start gap-1.5">
           {avatar(compact ? 18 : 22)}
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[11px] font-semibold leading-tight">{name}</div>
+            <div className="truncate text-micro font-semibold leading-tight">{name}</div>
             <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[10px] opacity-80">{dot}<span className="truncate">{niceTime(item.at)} · {intervalCadence && !room && !isCall ? `${who ?? ""} · ${intervalCadence}` : who}</span></div>
           </div>
           {ownerBots.length > 1 && <span className="rounded bg-inset/60 px-1 py-0.5 text-[8px]">+{ownerBots.length - 1}</span>}
@@ -151,7 +151,7 @@ export function CalendarEventCard({
       ) : fit === "compact" ? (
         <div className="flex h-full min-w-0 items-center gap-1">
           {isCall && <Video size={11} className="shrink-0" />}
-          <span className="min-w-0 flex-1 truncate text-[11px] font-semibold leading-none">{name}</span>
+          <span className="min-w-0 flex-1 truncate text-micro font-semibold leading-none">{name}</span>
           {dot}
           <span className="shrink-0 text-[10px] leading-none tabular-nums opacity-80">{niceTime(item.at)}</span>
         </div>

@@ -56,7 +56,7 @@ export function TraceView({ id, at, actions }: { id: string; at?: number; action
   if (detail) return <TraceWaterfall detail={detail} now={now} actions={actions} />;
   const missing = error !== null && /no such trace|404/i.test(error);
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-hairline/50 bg-card px-5 py-4 text-[13px] text-ink-secondary">
+    <div className="flex items-center gap-2 rounded-2xl border border-hairline/50 bg-card px-5 py-4 text-small text-ink-secondary">
       {error === null && <Loader2 size={14} className="shrink-0 animate-spin" />}
       <span role={error === null ? undefined : "alert"} className="min-w-0 flex-1">{error === null ? t("trace.loading") : missing ? t("trace.missing") : t("trace.error", { error })}</span>
       {actions}

@@ -40,7 +40,7 @@ export function InboxRowItem({ row, now, onOpen, onAction, inCard = false }: {
       className={cn("group relative flex min-w-0 items-center gap-2 pr-1.5 focus-within:bg-raised/70 hover:bg-raised/70",
         inCard ? (row.unread ? "bg-raised/45" : "bg-transparent") : "rounded-lg")}>
       <button type="button" onClick={() => onOpen(row)} title={[sender, inCard ? subject : headline, place].filter(Boolean).join(" · ")}
-        className={cn("flex min-w-0 flex-1 gap-2 pl-2.5 text-left text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60", inCard ? "items-center py-1.5" : "items-start py-2",
+        className={cn("flex min-w-0 flex-1 gap-2 pl-2.5 text-left text-small outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60", inCard ? "items-center py-1.5" : "items-start py-2",
           row.unread ? "font-semibold text-ink" : "font-normal text-ink-secondary")}>
         {row.tab === "needs-you" ? <span data-inbox-waits className={cn("size-1.5 shrink-0 rounded-full", inCard ? "bg-warning" : "mt-[7px] bg-accent")} role="img" aria-label={t("inbox.waitsOnYou")} />
           : !inCard && <span data-inbox-unread-dot={row.unread ? "" : undefined} aria-hidden="true" className={cn("mt-[7px] size-1.5 shrink-0 rounded-full", row.unread ? "bg-accent" : "bg-transparent")} />}
@@ -52,22 +52,22 @@ export function InboxRowItem({ row, now, onOpen, onAction, inCard = false }: {
               <span className="max-w-[45%] shrink-0 truncate">{subject}</span>
               <span className="min-w-0 truncate font-normal text-ink-tertiary">{textOf(row)}</span>
             </span>
-            <span className="shrink-0 text-[11px] font-normal tabular-nums text-ink-tertiary group-focus-within:invisible group-hover:invisible">{threadUpdatedLabel(row.at, now)}</span>
+            <span className="shrink-0 text-micro font-normal tabular-nums text-ink-tertiary group-focus-within:invisible group-hover:invisible">{threadUpdatedLabel(row.at, now)}</span>
           </>
         ) : (
           <span className="min-w-0 flex-1 space-y-px">
             <span className="flex items-baseline gap-1.5">
               <span data-inbox-from className="min-w-0 shrink truncate font-semibold">{sender}</span>
-              {place && <span data-inbox-place className="min-w-0 flex-1 truncate text-[12px] font-normal text-ink-tertiary">{place}</span>}
-              <span className="ms-auto shrink-0 ps-1 text-[11px] font-normal tabular-nums text-ink-tertiary group-focus-within:invisible group-hover:invisible">{threadUpdatedLabel(row.at, now)}</span>
+              {place && <span data-inbox-place className="min-w-0 flex-1 truncate text-caption font-normal text-ink-tertiary">{place}</span>}
+              <span className="ms-auto shrink-0 ps-1 text-micro font-normal tabular-nums text-ink-tertiary group-focus-within:invisible group-hover:invisible">{threadUpdatedLabel(row.at, now)}</span>
             </span>
-            <span data-inbox-subject className={cn("block truncate text-[13px] font-semibold", unreadish ? "text-ink" : "text-ink-secondary")}>{headline}</span>
+            <span data-inbox-subject className={cn("block truncate text-small font-semibold", unreadish ? "text-ink" : "text-ink-secondary")}>{headline}</span>
             {choices ? (
-              <span data-inbox-choices className="flex min-w-0 items-center gap-1.5 text-[12px] font-normal text-ink-secondary">
+              <span data-inbox-choices className="flex min-w-0 items-center gap-1.5 text-caption font-normal text-ink-secondary">
                 <Split size={12} aria-hidden="true" className="shrink-0 rotate-180 text-warning" />
                 <span className="min-w-0 truncate">{choices}</span>
               </span>
-            ) : snippet && <span className="block truncate text-[12px] font-normal text-ink-tertiary">{snippet}</span>}
+            ) : snippet && <span className="block truncate text-caption font-normal text-ink-tertiary">{snippet}</span>}
           </span>
         )}
       </button>

@@ -97,8 +97,8 @@ export function NewBrowserSettings() {
     <div className="mt-4 border-t border-hairline/30 pt-4" data-testid="new-browser-settings">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[14px] font-medium text-ink">{t("settings.experimental.newBrowser")}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">{t("settings.experimental.newBrowserDetail")}</div>
+          <div className="text-body-sm font-medium text-ink">{t("settings.experimental.newBrowser")}</div>
+          <div className="mt-0.5 text-caption leading-relaxed text-ink-secondary">{t("settings.experimental.newBrowserDetail")}</div>
         </div>
         <Switch
           checked={on}
@@ -108,7 +108,7 @@ export function NewBrowserSettings() {
           className="disabled:cursor-wait disabled:opacity-50"
         />
       </div>
-      {error ? <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-caption text-danger">{error}</p> : null}
     </div>
   );
 }

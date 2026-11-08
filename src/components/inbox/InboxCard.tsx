@@ -74,7 +74,7 @@ export function InboxCard({ view }: { view: InboxView }) {
   const shell = cn("my-1 w-full max-w-[560px] rounded-[24px]", ELEVATED_CARD);
   if (!rows.length) {
     return (
-      <section data-inbox-card="caught-up" aria-label={t("inbox.card.caughtUp")} className={cn(shell, "flex items-center gap-2 px-4 py-2 text-[13px] text-ink-secondary")}>
+      <section data-inbox-card="caught-up" aria-label={t("inbox.card.caughtUp")} className={cn(shell, "flex items-center gap-2 px-4 py-2 text-small text-ink-secondary")}>
         <Check size={14} aria-hidden="true" className="shrink-0 text-success" />
         <span className="min-w-0 flex-1 truncate">{t("inbox.card.caughtUp")}{counts.info > 0 && ` · ${t("inbox.card.forInfo", { count: counts.info })}`}</span>
         <button type="button" onClick={openAll} className={cn(ASK_QUIET_BUTTON, "-me-2")}>{t("inbox.card.open")}</button>
@@ -85,7 +85,7 @@ export function InboxCard({ view }: { view: InboxView }) {
     <section data-inbox-card="open" aria-label={t("inbox.card.summary", { needs: counts["needs-you"], info: counts.info })} className={cn(shell, "overflow-hidden")}>
       <header className="flex items-center gap-2 px-4 pb-1 pt-3">
         <Inbox size={15} aria-hidden="true" className="shrink-0 text-ink-secondary" />
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink-secondary">{t("inbox.card.summary", { needs: counts["needs-you"], info: counts.info })}</span>
+        <span className="min-w-0 flex-1 truncate text-small font-medium text-ink-secondary">{t("inbox.card.summary", { needs: counts["needs-you"], info: counts.info })}</span>
         <button type="button" onClick={openAll} className={cn(ASK_QUIET_BUTTON, "-me-2")}>{t("inbox.card.open")}</button>
       </header>
       {rows.map((row) => (

@@ -7,7 +7,7 @@ import { useLiveTurn } from "@/lib/stop-turn";
 import { useStore } from "@/state/store";
 import type { FirstReplyRescue } from "../../shared/first-reply-rescue";
 
-const pill = "rounded-full border border-hairline/40 px-2.5 py-1 text-[13px] text-ink hover:bg-raised";
+const pill = "rounded-full border border-hairline/40 px-2.5 py-1 text-small text-ink hover:bg-raised";
 
 /** A first reply that has not come: who is waiting on which AI, and two ways out. A quiet notice, never an error; it
  * goes once the AI starts answering, and keeps no live buttons once its own turn is no longer the one running.
@@ -35,7 +35,7 @@ export function FirstReplyRescueRow({ rescue, text, at }: { rescue: FirstReplyRe
     if (!advanced) openBotSettings(dispatch, "model", { botId: rescue.botId });
   };
   return (
-    <div role="status" data-first-reply-rescue className="flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-hairline/40 bg-panel px-3 py-2 text-[13px] text-ink-secondary">
+    <div role="status" data-first-reply-rescue className="flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-hairline/40 bg-panel px-3 py-2 text-small text-ink-secondary">
       <span className="flex min-w-0 items-start gap-2">
         <Info size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
         <span className="min-w-0 break-words">{bot ? t(rescue.over ? "chat.rescue.over" : "chat.rescue.waiting", { bot: bot.name, ai }) : text}</span>

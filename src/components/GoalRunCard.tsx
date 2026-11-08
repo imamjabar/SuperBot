@@ -59,7 +59,7 @@ export function GoalRunCard({ message, solo = false, onStop }: { message: Messag
   if (!run) {
     const fallback = compact(message.text, DETAIL_LIMIT);
     return fallback ? (
-      <div className="w-fit max-w-[min(var(--chat-bubble-max),var(--chat-card-pct))] rounded-2xl bg-card px-4 py-2.5 text-[14px] leading-relaxed text-ink">
+      <div className="w-fit max-w-[min(var(--chat-bubble-max),var(--chat-card-pct))] rounded-2xl bg-card px-4 py-2.5 text-body-sm leading-relaxed text-ink">
         {fallback}
       </div>
     ) : null;
@@ -83,13 +83,13 @@ export function GoalRunCard({ message, solo = false, onStop }: { message: Messag
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h3 className="truncate text-[14px] font-semibold text-ink">{goal || "Group goal"}</h3>
-            <span aria-live="polite" className={cn("text-[12px] font-medium", copy.tone)}>
+            <h3 className="truncate text-body-sm font-semibold text-ink">{goal || "Group goal"}</h3>
+            <span aria-live="polite" className={cn("text-caption font-medium", copy.tone)}>
               {copy.label}
             </span>
           </div>
-          {detail && <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-secondary">{detail}</p>}
-          <p className="mt-1 text-[12px] text-ink-tertiary">
+          {detail && <p className="mt-1 line-clamp-2 text-small leading-relaxed text-ink-secondary">{detail}</p>}
+          <p className="mt-1 text-caption text-ink-tertiary">
             {run.coordinatorName}{solo ? "" : " coordinating"} · {turns}
           </p>
         </div>
@@ -97,7 +97,7 @@ export function GoalRunCard({ message, solo = false, onStop }: { message: Messag
           <button
             type="button"
             onClick={onStop}
-            className="shrink-0 rounded-lg border border-hairline/50 px-2.5 py-1 text-[12px] font-medium text-ink-secondary hover:bg-raised hover:text-ink"
+            className="shrink-0 rounded-lg border border-hairline/50 px-2.5 py-1 text-caption font-medium text-ink-secondary hover:bg-raised hover:text-ink"
           >
             {t("chat.stop")}
           </button>

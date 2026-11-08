@@ -49,7 +49,7 @@ export function WidgetNodeView({ node, where }: { node: WidgetNode; where: Widge
     case "Label":
       return <LabelNode node={node} where={where} />;
     case "Markdown":
-      return <div className="min-w-0 text-[14px] text-ink [&_.chat-md]:leading-[21px]!"><ChatMarkdown text={widgetString(node, "value") ?? ""} /></div>;
+      return <div className="min-w-0 text-body-sm text-ink [&_.chat-md]:leading-[21px]!"><ChatMarkdown text={widgetString(node, "value") ?? ""} /></div>;
     case "Image":
       return <WidgetImage node={node} where={where} />;
     case "Icon": {
@@ -247,7 +247,7 @@ function LabelNode({ node, where }: { node: WidgetNode; where: WidgetWhere }) {
       htmlFor={field && field.type !== "RadioGroup" && field.type !== "DayPicker" ? widgetFieldId(form, field.name) : undefined}
       dir="auto"
       className={cn(
-        "min-w-0", above ? WIDGET_CAPTION : "shrink-0 text-[14px] leading-5 text-ink-secondary",
+        "min-w-0", above ? WIDGET_CAPTION : "shrink-0 text-body-sm leading-5 text-ink-secondary",
         TEXT_SIZE[widgetString(node, "size") ?? ""]?.[0], WEIGHT[widgetString(node, "weight") ?? ""], INK[widgetString(node, "color") ?? ""],
         TEXT_ALIGN[widgetString(node, "textAlign") ?? ""],
       )}

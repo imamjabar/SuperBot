@@ -145,7 +145,7 @@ export function InspectorPanel({ bot }: { bot: Bot }) {
   return (
     <aside aria-label="Inspector" className="animate-panel-in absolute inset-0 z-40 flex h-full min-w-0 flex-col border-l border-hairline/40 bg-panel md:static md:z-auto md:w-[min(460px,45vw)] md:shrink-0">
       <div {...dragProps} className="flex items-center justify-between px-4 py-3">
-        <span className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+        <span className="flex items-center gap-2 text-body font-semibold text-ink">
           <Bug size={16} className="text-ink-secondary" /> Inspector
         </span>
         <button
@@ -181,7 +181,7 @@ export function InspectorPanel({ bot }: { bot: Bot }) {
               tabIndex={lens === l ? 0 : -1}
               onClick={() => setLens(l)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-[12px] font-medium capitalize",
+                "rounded-md px-2.5 py-1 text-caption font-medium capitalize",
                 lens === l ? "bg-raised text-ink" : "text-ink-secondary hover:text-ink",
               )}
             >
@@ -189,7 +189,7 @@ export function InspectorPanel({ bot }: { bot: Bot }) {
             </button>
           ))}
         </div>
-        {lens !== "run" && <span className="ml-auto text-[11px] text-ink-secondary">
+        {lens !== "run" && <span className="ml-auto text-micro text-ink-secondary">
           {page ? (shown < total ? `last ${shown} of ${total}` : `${shown} entries`) : "loading…"}
         </span>}
         {lens !== "run" && <button onClick={() => managedRefresh.current()} className="rounded-md p-1 text-ink-secondary hover:bg-raised hover:text-ink" title="Reload from disk">
@@ -198,7 +198,7 @@ export function InspectorPanel({ bot }: { bot: Bot }) {
       </div>
 
       <div role="tabpanel" id={`inspector-panel-${lens}`} aria-labelledby={`inspector-tab-${lens}`} tabIndex={0} className="flex min-h-0 flex-1 flex-col outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60">
-      {lens === "run" ? <RunLog key={threadId} events={activity} /> : <div ref={listRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto font-mono text-[12px]">
+      {lens === "run" ? <RunLog key={threadId} events={activity} /> : <div ref={listRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto font-mono text-caption">
         {error && <div className="px-4 py-3 text-danger">couldn't load: {error}</div>}
         {page && rows.length === 0 && !error && (
           <div className="px-4 py-6 text-ink-secondary">
@@ -228,7 +228,7 @@ function Row({ row, open, onToggle }: { row: InspectorRow; open: boolean; onTogg
         <span className="shrink-0 tabular-nums text-ink-secondary">{formatTime(row.at)}</span>
         <span
           className={cn(
-            "shrink-0 rounded px-1 text-[11px]",
+            "shrink-0 rounded px-1 text-micro",
             row.kind === "native" ? "bg-accent/15 text-accent" : row.tone === "error" ? "bg-danger/20 text-danger" : "bg-inset text-ink-secondary",
           )}
         >
@@ -238,7 +238,7 @@ function Row({ row, open, onToggle }: { row: InspectorRow; open: boolean; onTogg
         <span className={cn("min-w-0 flex-1 truncate", row.tone === "error" ? "text-danger" : "text-ink")}>{row.summary}</span>
       </button>
       {open && (
-        <pre className="max-h-[50vh] overflow-auto whitespace-pre-wrap break-all border-t border-hairline/20 bg-app px-3 py-2 text-[11px] leading-relaxed text-ink">
+        <pre className="max-h-[50vh] overflow-auto whitespace-pre-wrap break-all border-t border-hairline/20 bg-app px-3 py-2 text-micro leading-relaxed text-ink">
           {JSON.stringify(row.data, null, 2)}
         </pre>
       )}

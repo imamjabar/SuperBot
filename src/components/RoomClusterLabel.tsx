@@ -21,7 +21,7 @@ export function ClusterLabel({ bot, name, color }: { bot?: Bot; name: string; co
         readable={known}
       />
       <span
-        className={cn("text-[11px] font-medium", known ? "bot-identity" : "text-ink-secondary")}
+        className={cn("text-micro font-medium", known ? "bot-identity" : "text-ink-secondary")}
         data-bot-color={known ? color : undefined}
       >{name}</span>
     </div>

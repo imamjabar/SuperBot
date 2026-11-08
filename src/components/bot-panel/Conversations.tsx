@@ -12,7 +12,7 @@ import { isArchived, orderedThreadList, SidebarThreadRow, stampClock, threadRece
 import { filterTasks } from "../TaskPicker";
 
 export const CONVERSATIONS_SHOWN = 3;
-const PANEL_ROW_LOOK = "[&_.font-semibold]:font-medium [&_time]:text-[12px] [&_time]:text-ink-tertiary [&_span.bg-accent]:size-2";
+const PANEL_ROW_LOOK = "[&_.font-semibold]:font-medium [&_time]:text-caption [&_time]:text-ink-tertiary [&_span.bg-accent]:size-2";
 const LAST_LINE_PAGE = 8;
 const MAX_CACHED = 200;
 
@@ -129,7 +129,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
             data-conversations-new
             aria-label={t("botPanel.conversations.new")}
             onClick={startNew}
-            className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-ink/[0.05] px-3.5 text-[14px] font-medium text-ink transition-colors hover:bg-ink/[0.09]"
+            className="flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-ink/[0.05] px-3.5 text-body-sm font-medium text-ink transition-colors hover:bg-ink/[0.09]"
           >
             <SquarePen size={15} aria-hidden="true" className="shrink-0 text-ink-secondary" />
             <span className="truncate">{t("botPanel.conversations.new")}</span>
@@ -164,14 +164,14 @@ export function BotConversations({ bot }: { bot: Bot }) {
           }}
           placeholder={t("botPanel.conversations.searchPlaceholder", { name: bot.name })}
           aria-label={t("botPanel.conversations.searchPlaceholder", { name: bot.name })}
-          className="mb-1.5 w-full rounded-[10px] border border-hairline/60 bg-inset px-3 py-1.5 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-focus"
+          className="mb-1.5 w-full rounded-[10px] border border-hairline/60 bg-inset px-3 py-1.5 text-small text-ink outline-none placeholder:text-ink-tertiary focus:border-focus"
         />
       )}
       {listed && <div role="list" aria-label={t("botPanel.conversations.title")} className={cn("flex flex-col gap-px", PANEL_ROW_LOOK)}>
         {shown.map(row)}
       </div>}
       {listed && needle && shown.length === 0 && (
-        <p className="px-3 py-3 text-[13px] text-ink-secondary">{t("task.noMatch", { query: needle })}</p>
+        <p className="px-3 py-3 text-small text-ink-secondary">{t("task.noMatch", { query: needle })}</p>
       )}
       {listed && !needle && hidden > 0 && (
         <button
@@ -179,7 +179,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
           data-conversations-more
           aria-expanded={expanded}
           onClick={() => setExpanded((open) => !open)}
-          className="mt-0.5 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
+          className="mt-0.5 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-small text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
         >
           {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
           {expanded ? t("botPanel.conversations.showFewer") : t("botPanel.conversations.showMore", { count: hidden })}
@@ -191,7 +191,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
           data-conversations-archived
           aria-expanded={showArchived}
           onClick={() => setShowArchived((open) => !open)}
-          className="mt-0.5 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
+          className="mt-0.5 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-small text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
         >
           {showArchived ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
           {t("task.archivedList", { count: archived.length })}

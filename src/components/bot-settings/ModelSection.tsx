@@ -20,8 +20,8 @@ export function ModelSection({ bot }: { bot: Bot }) {
           contained
           label={
             <div>
-              <div className="text-[15px] font-medium text-ink">{t("model.section.default")}</div>
-              <div className="mt-0.5 text-[13px] text-ink-secondary">
+              <div className="text-body font-medium text-ink">{t("model.section.default")}</div>
+              <div className="mt-0.5 text-small text-ink-secondary">
                 {draft ? t("model.section.starting") : t("model.section.threads")}
               </div>
               <ProposalStatus bot={bot} kind="chief" />
@@ -29,7 +29,7 @@ export function ModelSection({ bot }: { bot: Bot }) {
           }
         />
         {!draft && <ThreadModelsLine bot={bot} className="mt-3" />}
-        {!draft && <div className="mt-3 text-[13px] text-ink-secondary">{t("model.section.installationDefault")}</div>}
+        {!draft && <div className="mt-3 text-small text-ink-secondary">{t("model.section.installationDefault")}</div>}
       </div>
 
       <EffortRow
@@ -37,9 +37,9 @@ export function ModelSection({ bot }: { bot: Bot }) {
         className="rounded-xl bg-card p-4"
         label={
           <div>
-            <div className="text-[15px] font-medium text-ink">{modelVariants ? t("model.simple.reasoning") : t("model.section.effort")}</div>
+            <div className="text-body font-medium text-ink">{modelVariants ? t("model.simple.reasoning") : t("model.section.effort")}</div>
             {/* Codex applies a level to the whole thread and cannot take one back, so this says what the app sends, not where the engine ends up. */}
-            <div className="mt-0.5 text-[13px] text-ink-secondary">
+            <div className="mt-0.5 text-small text-ink-secondary">
               {modelVariants ? (draft ? t("model.section.startingReasoning") : t("model.section.threads")) : t(bot.modelSelection.effort ? "model.section.effortHelp" : "model.section.effortHelpDefault")}
             </div>
             <ProposalStatus bot={bot} kind="chief" />
@@ -59,8 +59,8 @@ function KeepWarmRow({ bot, workspaceOn, onChange }: { bot: Bot; workspaceOn: bo
   const value = bot.cacheKeepWarm === true ? "on" : bot.cacheKeepWarm === false ? "off" : "follow";
   return (
     <div className="rounded-xl bg-card p-4">
-      <label htmlFor="bot-cache-keepwarm" className="text-[15px] font-medium text-ink">{t("bot.keepWarm.title")}</label>
-      <div className="mt-0.5 text-[13px] text-ink-secondary">{t("bot.keepWarm.help")}</div>
+      <label htmlFor="bot-cache-keepwarm" className="text-body font-medium text-ink">{t("bot.keepWarm.title")}</label>
+      <div className="mt-0.5 text-small text-ink-secondary">{t("bot.keepWarm.help")}</div>
       <Select className="mt-3 max-w-full" id="bot-cache-keepwarm" value={value}
         onChange={(event) => onChange(event.target.value === "on" ? true : event.target.value === "off" ? false : null)}>
         <option value="follow">{t("bot.keepWarm.follow", { state: t(workspaceOn ? "bot.keepWarm.on" : "bot.keepWarm.off") })}</option>
@@ -105,14 +105,14 @@ export function FallbackChain({ bot, onChange }: { bot: Bot; onChange: (fallback
 
   return (
     <div className="rounded-xl bg-card p-4">
-      <div className="text-[15px] font-medium text-ink">{t("model.fallback.title")}</div>
-      <div className="mt-0.5 text-[13px] text-ink-secondary">
+      <div className="text-body font-medium text-ink">{t("model.fallback.title")}</div>
+      <div className="mt-0.5 text-small text-ink-secondary">
         {t("model.fallback.uses")}
       </div>
       {chain.length > 0 && (
         <ol className="mt-3 flex flex-col gap-1">
           {chain.map((entry, index) => (
-            <li key={index} className="flex items-center gap-2 rounded-lg bg-inset px-3 py-1.5 text-[13px]">
+            <li key={index} className="flex items-center gap-2 rounded-lg bg-inset px-3 py-1.5 text-small">
               <span className="w-4 shrink-0 tabular-nums text-ink-secondary">{index + 1}.</span>
               <span className="min-w-0 flex-1 truncate text-ink">{nameOf(entry.instanceId)}</span>
               <Select size="sm" className="max-w-[45%] shrink-0" value={entry.model}

@@ -51,7 +51,7 @@ function NavRow({
       )}
     >
       {icon(active)}
-      {!iconsOnly && <span className="flex-1 truncate text-[14px] font-medium leading-5">{label}</span>}
+      {!iconsOnly && <span className="flex-1 truncate text-body-sm font-medium leading-5">{label}</span>}
       {attention && (
         <span
           data-testid="routines-attention"

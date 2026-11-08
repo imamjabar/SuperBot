@@ -33,7 +33,7 @@ export interface BotApiView {
 /** The key rides only on the answer that made it: nothing keeps it after this view. */
 type Minted = BotApiView & { key: string };
 
-const buttonCls = "rounded-lg bg-control px-3 py-1.5 text-[13px] text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50";
+const buttonCls = "rounded-lg bg-control px-3 py-1.5 text-small text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50";
 
 export function callsLine(view: Pick<BotApiView, "callCount" | "lastCalledAt">, now = Date.now()): string {
   if (!view.callCount || view.lastCalledAt === undefined) return t("botApi.callsNone");
@@ -113,9 +113,9 @@ function BotApiSection({ bot, webhooksLink = false, className }: { bot: Bot; web
     <div className={cn("rounded-xl bg-card p-4", className)} data-testid="bot-api">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[15px] font-medium text-ink">{t("botApi.title")}</div>
-          <div className="mt-0.5 text-[14px] text-ink">{t("botApi.switch")}</div>
-          <div className="mt-0.5 text-[13px] text-ink-secondary">{canManage || !view ? t("botApi.hint", { name: bot.name }) : t("botApi.notAllowed", { name: bot.name })}</div>
+          <div className="text-body font-medium text-ink">{t("botApi.title")}</div>
+          <div className="mt-0.5 text-body-sm text-ink">{t("botApi.switch")}</div>
+          <div className="mt-0.5 text-small text-ink-secondary">{canManage || !view ? t("botApi.hint", { name: bot.name }) : t("botApi.notAllowed", { name: bot.name })}</div>
         </div>
         <Switch
           aria-label={t("botApi.switch")}
@@ -125,31 +125,31 @@ function BotApiSection({ bot, webhooksLink = false, className }: { bot: Bot; web
           data-testid="bot-api-switch"
         />
       </div>
-      {view?.canTakeCalls === false && <div className="mt-2 text-[13px] text-warning" data-testid="bot-api-cant-take">{t("botApi.cantTake")}</div>}
+      {view?.canTakeCalls === false && <div className="mt-2 text-small text-warning" data-testid="bot-api-cant-take">{t("botApi.cantTake")}</div>}
       {view?.enabled && (
         <div className="mt-3 flex flex-col gap-2">
-          <pre data-testid="bot-api-curl" className="whitespace-pre-wrap break-all rounded-lg bg-inset px-3 py-2 font-mono text-[12px] leading-[1.5] text-ink">{curl}</pre>
+          <pre data-testid="bot-api-curl" className="whitespace-pre-wrap break-all rounded-lg bg-inset px-3 py-2 font-mono text-caption leading-[1.5] text-ink">{curl}</pre>
           <div className="flex justify-end">
             <button type="button" onClick={() => void copy()} className={cn(buttonCls, "inline-flex items-center gap-1.5")} data-testid="bot-api-copy">
               <Copy size={13} aria-hidden="true" />
               {copied === "copied" ? t("botApi.copied") : copied === "failed" ? t("botApi.copyFailed") : t("botApi.copy")}
             </button>
           </div>
-          <div className={cn("text-[12px]", freshKey ? "text-warning" : "text-ink-secondary")} data-testid="bot-api-key-note">
+          <div className={cn("text-caption", freshKey ? "text-warning" : "text-ink-secondary")} data-testid="bot-api-key-note">
             {freshKey ? t("botApi.keyOnce") : t("botApi.keyHidden")}
           </div>
-          <div className="text-[12px] text-ink-secondary" data-testid="bot-api-password">{t("botApi.password")}</div>
-          {onlyThisComputer(view.url) && <div className="text-[12px] text-ink-secondary" data-testid="bot-api-local">{t("botApi.localOnly")}</div>}
+          <div className="text-caption text-ink-secondary" data-testid="bot-api-password">{t("botApi.password")}</div>
+          {onlyThisComputer(view.url) && <div className="text-caption text-ink-secondary" data-testid="bot-api-local">{t("botApi.localOnly")}</div>}
           {canManage && (
             confirmingNewKey ? (
-              <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-secondary">
+              <div className="flex flex-wrap items-center gap-2 text-small text-ink-secondary">
                 <span>{t("botApi.newKeyConfirm")}</span>
                 <button type="button" onClick={() => void newKey()} disabled={busy} className={buttonCls} data-testid="bot-api-replace">{t("botApi.replace")}</button>
                 <button type="button" onClick={() => setConfirmingNewKey(false)} className={buttonCls}>{t("common.cancel")}</button>
               </div>
             ) : (
               <div className="flex items-start justify-between gap-3">
-                <details className="min-w-0 flex-1 text-[12px] text-ink-secondary" data-testid="bot-api-calls" onToggle={(event) => { if (event.currentTarget.open) refreshCalls(); }}>
+                <details className="min-w-0 flex-1 text-caption text-ink-secondary" data-testid="bot-api-calls" onToggle={(event) => { if (event.currentTarget.open) refreshCalls(); }}>
                   <summary className="cursor-pointer">{callsLine(view)}</summary>
                   <ul className="mt-1.5 flex flex-col gap-1">
                     {(view.calls ?? []).map((call) => (
@@ -165,12 +165,12 @@ function BotApiSection({ bot, webhooksLink = false, className }: { bot: Bot; web
           )}
         </div>
       )}
-      {error && <div className="mt-2 text-[12px] text-danger">{error}</div>}
+      {error && <div className="mt-2 text-caption text-danger">{error}</div>}
       {webhooksLink && (
         <button
           type="button"
           onClick={() => dispatch({ type: "showRoutines", view: "list" })}
-          className="mt-3 text-[13px] text-ink-secondary hover:text-ink"
+          className="mt-3 text-small text-ink-secondary hover:text-ink"
           data-testid="bot-api-webhooks"
         >
           {webhooksLine(webhookCount)}

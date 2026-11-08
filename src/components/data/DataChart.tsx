@@ -141,11 +141,11 @@ export function DataChart({ botId, cardId, spec, rowCount, theme, revision, inli
     <div className="relative min-h-0 w-full flex-1" data-testid="data-chart">
       <div ref={host} className="relative h-full w-full" />
       {state.loading && (
-        <div className="absolute inset-0 flex items-center justify-center gap-2 text-[12px] text-ink-secondary" role="status">
+        <div className="absolute inset-0 flex items-center justify-center gap-2 text-caption text-ink-secondary" role="status">
           <Loader2 size={14} className="animate-spin" aria-hidden="true" />{t("data.chart.loading")}
         </div>
       )}
-      {state.error && <p role="alert" className="absolute inset-x-0 bottom-0 z-10 max-h-20 overflow-auto rounded bg-panel/95 px-3 py-2 text-[12px] text-danger">{t("data.chart.failed", { reason: state.error })}</p>}
+      {state.error && <p role="alert" className="absolute inset-x-0 bottom-0 z-10 max-h-20 overflow-auto rounded bg-panel/95 px-3 py-2 text-caption text-danger">{t("data.chart.failed", { reason: state.error })}</p>}
     </div>
   );
 }

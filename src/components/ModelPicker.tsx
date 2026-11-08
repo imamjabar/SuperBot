@@ -108,7 +108,7 @@ export function EffortRow({
             }
             onClick={() => dispatch({ type: "setModel", botId: bot.id, threadId, ...(updateBotDefault ? { updateBotDefault: true } : {}), selection: { ...selection, effort: level } })}
             className={cn(
-              "rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70",
+              "rounded-full border px-2.5 py-1 text-caption focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70",
               selection.effort === level
                 ? "border-accent/60 bg-control text-ink"
                 : "border-hairline/40 text-ink-secondary hover:bg-control/60 hover:text-ink",
@@ -160,14 +160,14 @@ export function ModelVariantRow({ bot, threadId, updateBotDefault, className, la
           {options.map((option, index) => <option key={option.id} value={String(index)}>{variantLabel(option, instance.driverKind)}</option>)}
         </Select>
       </label>
-      {missing && <p className={cn("mt-1 text-ink-secondary", quiet ? "text-[12px] leading-4 text-ink-tertiary" : "text-[11px]")}>{unavailable ? t("model.variant.unavailableHelp") : t("model.variant.unverifiedHelp")}</p>}
+      {missing && <p className={cn("mt-1 text-ink-secondary", quiet ? "text-caption leading-4 text-ink-tertiary" : "text-micro")}>{unavailable ? t("model.variant.unavailableHelp") : t("model.variant.unverifiedHelp")}</p>}
     </div>
   );
   return (
     <div className={className}>
       {label}
       {(selection.variant === undefined || missing) && (
-        <p className="mt-2 text-[12px] text-ink-secondary">
+        <p className="mt-2 text-caption text-ink-secondary">
           {unavailable ? t("model.variant.unavailableChoice", { variant: selection.variant ?? "" })
             : missing ? t("model.variant.unverifiedChoice", { variant: selection.variant ?? "" }) : t("model.variant.none")}
           {current !== undefined && ` ${t("model.variant.sessionValue", { variant: variantLabel(options.find((option) => option.id === current) ?? { id: current, label: current }, instance.driverKind) })}`}
@@ -176,7 +176,7 @@ export function ModelVariantRow({ bot, threadId, updateBotDefault, className, la
       {selection.variant !== undefined && (
         <button type="button" disabled={bot.busy} onClick={() => choose()}
           title={t("model.variant.clearHint")}
-          className="mt-2 block text-[12px] text-ink-secondary underline underline-offset-2 hover:text-ink disabled:opacity-50">
+          className="mt-2 block text-caption text-ink-secondary underline underline-offset-2 hover:text-ink disabled:opacity-50">
           {t("model.variant.clear")}
         </button>
       )}
@@ -191,7 +191,7 @@ export function ModelVariantRow({ bot, threadId, updateBotDefault, className, la
               title={t("model.variant.use", { variant: variantLabel(option, instance.driverKind) })}
               onClick={() => choose(option.id)}
               className={cn(
-                "rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 disabled:opacity-50",
+                "rounded-full border px-2.5 py-1 text-caption focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 disabled:opacity-50",
                 selection.variant === option.id ? "border-accent/60 bg-control text-ink" : "border-hairline/40 text-ink-secondary hover:bg-control/60 hover:text-ink",
               )}
             >
@@ -539,7 +539,7 @@ export function ModelPicker({
     : variantChoices(state, selection, threadId ?? bot.threadId) ? {
       variants: (
         <ModelVariantRow compact quiet bot={shown} threadId={threadId} updateBotDefault={Boolean(threadId) && simpleUpdatesBotDefault} className="px-2 py-1"
-          label={<span className="shrink-0 text-[12px] font-medium leading-4 text-ink-tertiary">{t("botSettings.simple.thinking")}</span>} />
+          label={<span className="shrink-0 text-caption font-medium leading-4 text-ink-tertiary">{t("botSettings.simple.thinking")}</span>} />
       ),
     }
     : levels.length > 0 && !shown.busy ? { levels, current: selection.effort, onPick: writeEffort, onReset: () => writeEffort(undefined) }
@@ -612,7 +612,7 @@ export function ModelPicker({
     <button
       {...triggerProps}
       className={cn(
-        "group flex items-center gap-1.5 rounded-full py-1 pl-2 pr-2.5 text-[13px] text-ink disabled:cursor-not-allowed",
+        "group flex items-center gap-1.5 rounded-full py-1 pl-2 pr-2.5 text-small text-ink disabled:cursor-not-allowed",
         contained
           ? "hover:bg-ink/[0.06] aria-expanded:bg-ink/[0.08] disabled:opacity-50 disabled:hover:bg-transparent"
           : cn(ELEVATED_FLOAT, ELEVATED_HOVER, "disabled:text-ink-tertiary disabled:hover:bg-composer"),
@@ -657,7 +657,7 @@ export function ModelPicker({
     <button
       {...triggerProps}
       className={cn(
-        "group flex items-center rounded-full text-[13px] leading-[18px] text-ink-secondary disabled:cursor-not-allowed disabled:text-ink-tertiary",
+        "group flex items-center rounded-full text-small leading-[18px] text-ink-secondary disabled:cursor-not-allowed disabled:text-ink-tertiary",
         contained
           ? "min-w-0 max-w-[58%] transition-colors duration-150 hover:bg-ink/[0.06] hover:text-ink aria-expanded:bg-ink/[0.08] aria-expanded:text-ink disabled:hover:bg-transparent"
           : cn("shrink-0", ELEVATED_FLOAT, ELEVATED_HOVER, "hover:text-ink aria-expanded:text-ink disabled:hover:bg-composer"),
@@ -712,13 +712,13 @@ export function ModelPicker({
               <div role="group" aria-label={t("model.scope.label")} className="flex gap-1">
                 {(["thread", "bot"] as const).map((value) => (
                   <button key={value} type="button" aria-pressed={scope === value} onClick={() => setScope(value)}
-                    className={cn("h-6 rounded-full px-2.5 text-[12px] leading-4",
+                    className={cn("h-6 rounded-full px-2.5 text-caption leading-4",
                       scope === value ? "bg-ink/[0.08] font-medium text-ink" : "text-ink-secondary hover:bg-ink/[0.06] hover:text-ink")}>
                     {value === "bot" ? t("model.scope.bot") : t("model.scope.thread")}
                   </button>
                 ))}
               </div>
-              <p className="mt-1.5 text-[12px] leading-4 text-ink-tertiary">
+              <p className="mt-1.5 text-caption leading-4 text-ink-tertiary">
                 {scope === "bot" ? t("model.scope.botHelp") : t("model.scope.threadHelp")}
               </p>
             </div>
@@ -727,7 +727,7 @@ export function ModelPicker({
             <>
               <div className="shrink-0 px-3.5 pb-2 pt-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="truncate text-[14px] font-semibold leading-5 text-ink">{signInFamily(railInstance) ? SIGN_IN_FAMILY_LABEL[signInFamily(railInstance)!] : railInstance.displayName}</div>
+                  <div className="truncate text-body-sm font-semibold leading-5 text-ink">{signInFamily(railInstance) ? SIGN_IN_FAMILY_LABEL[signInFamily(railInstance)!] : railInstance.displayName}</div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
@@ -750,7 +750,7 @@ export function ModelPicker({
                     </button>
                     <span
                       className={cn(
-                        "flex h-5 shrink-0 items-center rounded-full px-2 text-[11px] font-medium leading-4",
+                        "flex h-5 shrink-0 items-center rounded-full px-2 text-micro font-medium leading-4",
                         blocked ? "bg-warning/10 text-warning" : "bg-success/10 text-success",
                       )}
                     >
@@ -770,7 +770,7 @@ export function ModelPicker({
                 )}
                 {railInstance.access === "api"
                   ? <ApiKeyHint instance={railInstance} />
-                  : pane === "custom" && <div className="mt-0.5 text-[12px] leading-4 text-ink-tertiary">{t("model.localHint")}</div>}
+                  : pane === "custom" && <div className="mt-0.5 text-caption leading-4 text-ink-tertiary">{t("model.localHint")}</div>}
               </div>
 
               {pane === "custom" && canReturnToOfficial && (
@@ -791,7 +791,7 @@ export function ModelPicker({
               )}
 
               {railInstance.policy ? (
-                <div data-policy-blocked className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-3 pt-1 text-[13px] leading-[18px] text-ink-secondary">
+                <div data-policy-blocked className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-3 pt-1 text-small leading-[18px] text-ink-secondary">
                   <p className="font-medium text-ink">{t("policy.managedBy", { organization: railInstance.policy.organizationName })}</p>
                   <p className="mt-1">{t(railInstance.policy.team ? "policy.teamModelBlocked" : "policy.modelBlocked", { organization: railInstance.policy.organizationName })}</p>
                 </div>
@@ -799,12 +799,12 @@ export function ModelPicker({
                 <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-1">
                   <EngineSetup instance={railInstance} intent={pane === "custom" ? "inject" : "cloud"} quiet={!advanced} onHost={remote} />
                   {!remote && railInstance.claudeAccount && needsSignIn(railInstance) && pane !== "custom" && (
-                    <p className="mt-2 px-1.5 text-[12px] leading-4 text-ink-tertiary">
+                    <p className="mt-2 px-1.5 text-caption leading-4 text-ink-tertiary">
                       {railInstance.claudeAccount.signInShell === "powershell" && `${t("engines.account.powershell")} `}
                       {t("engines.account.signInHint")}
                     </p>
                   )}
-                  <p className="mt-2 text-center text-[12px] leading-4 text-ink-tertiary">
+                  <p className="mt-2 text-center text-caption leading-4 text-ink-tertiary">
                     {railInstance.snapshot.chatgptPlan ? t("engineSetup.chatgpt.modelsAfterSignIn") : pane === "main" && official.length > 0
                       ? official.length === 1
                         ? t("model.afterSetupOne")
@@ -846,7 +846,7 @@ export function ModelPicker({
                         </div>
                         {shownOfficial.map(renderRow)}
                         {shownOfficial.length === 0 && (
-                          <div className="px-2 py-5 text-center text-[13px] leading-[18px] text-ink-secondary">
+                          <div className="px-2 py-5 text-center text-small leading-[18px] text-ink-secondary">
                             {t("model.noMatch", { query: query.trim() })}
                           </div>
                         )}
@@ -872,12 +872,12 @@ export function ModelPicker({
                         {rest.map(renderRow)}
                         {custom.length === 0 && (lookingForLocal ? lookingForLocalStatus : (
                           <div className="px-3 py-6 text-center">
-                            <div className="text-[13px] leading-[18px] text-ink">{t("model.noLocal")}</div>
-                            <div className="mt-1 text-[12px] leading-4 text-ink-tertiary">{t("model.noLocalHint")}</div>
+                            <div className="text-small leading-[18px] text-ink">{t("model.noLocal")}</div>
+                            <div className="mt-1 text-caption leading-4 text-ink-tertiary">{t("model.noLocalHint")}</div>
                           </div>
                         ))}
                         {custom.length > 0 && filteredCustom.length === 0 && (
-                          <div className="px-2 py-5 text-center text-[13px] leading-[18px] text-ink-secondary">
+                          <div className="px-2 py-5 text-center text-small leading-[18px] text-ink-secondary">
                             {t("model.noMatch", { query: query.trim() })}
                           </div>
                         )}
@@ -894,7 +894,7 @@ export function ModelPicker({
                   threadId={threadId}
                   updateBotDefault={Boolean(threadId && scope === "bot")}
                   className="shrink-0 border-t-[0.5px] border-ink/10 px-3.5 py-[5px]"
-                  label={<span className="text-[13px] leading-[18px] text-ink">{active?.capabilities?.modelVariants ? t("model.simple.reasoning") : t("model.section.effort")}</span>}
+                  label={<span className="text-small leading-[18px] text-ink">{active?.capabilities?.modelVariants ? t("model.simple.reasoning") : t("model.section.effort")}</span>}
                 />
               )}
 
@@ -910,12 +910,12 @@ export function ModelPicker({
                   }
                   disabled={!canOpenCustom}
                   onClick={() => openLocalModels(railInstance)}
-                  className="flex h-10 w-full shrink-0 items-center justify-between gap-2 border-t-[0.5px] border-ink/10 px-3.5 text-left text-[13px] leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] disabled:cursor-not-allowed disabled:text-ink-tertiary disabled:hover:bg-transparent"
+                  className="flex h-10 w-full shrink-0 items-center justify-between gap-2 border-t-[0.5px] border-ink/10 px-3.5 text-left text-small leading-[18px] text-ink hover:bg-ink/[0.06] focus:bg-ink/[0.06] disabled:cursor-not-allowed disabled:text-ink-tertiary disabled:hover:bg-transparent"
                 >
                   <span>{t("model.useLocal")}</span>
                   <span className="flex items-center gap-2">
                     {custom.length > 0 && (
-                      <span className="text-[12px] leading-4 text-ink-tertiary">{t("model.available", { count: custom.length })}</span>
+                      <span className="text-caption leading-4 text-ink-tertiary">{t("model.available", { count: custom.length })}</span>
                     )}
                     <ChevronRight size={16} strokeWidth={MENU_STROKE} className={MENU_TRAILING} aria-hidden="true" />
                   </span>
@@ -923,16 +923,16 @@ export function ModelPicker({
               )}
             </>
           ) : (
-            <div className="px-3.5 py-5 text-[13px] leading-[18px] text-ink-secondary">{t("model.noProviders")}</div>
+            <div className="px-3.5 py-5 text-small leading-[18px] text-ink-secondary">{t("model.noProviders")}</div>
           )}
           {!remote && (
             <div className="flex h-9 shrink-0 items-center gap-1 border-t-[0.5px] border-ink/10 px-1.5">
               <button type="button" onClick={openEngines}
-                className="h-7 min-w-0 flex-1 truncate rounded-md px-2 text-left text-[12px] leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
+                className="h-7 min-w-0 flex-1 truncate rounded-md px-2 text-left text-caption leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
                 {t("settings.engines.title")}
               </button>
               <button type="button" data-model-add-api-keys onClick={openApiKeys}
-                className="flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
+                className="flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-caption leading-4 text-ink-secondary hover:bg-ink/[0.06] hover:text-ink">
                 <KeyRound size={14} strokeWidth={MENU_STROKE} aria-hidden="true" />
                 {apiKeysLabel(pickerInstances)}
               </button>
@@ -1012,7 +1012,7 @@ export function ModelPicker({
       {menu && floating ? createPortal(menu, document.body) : menu}
       {!contained && changedBotModel && !open && ownModelThreads > 0 && (
         <div data-thread-models-notice role="status"
-          className="menu-surface absolute right-0 top-full z-30 mt-1 flex w-max max-w-[min(300px,calc(100vw-2rem))] items-center gap-2 py-1.5 pl-3 pr-1.5 text-[13px] leading-[18px]">
+          className="menu-surface absolute right-0 top-full z-30 mt-1 flex w-max max-w-[min(300px,calc(100vw-2rem))] items-center gap-2 py-1.5 pl-3 pr-1.5 text-small leading-[18px]">
           <ThreadModelsLine bot={profile} />
           <button type="button" aria-label={t("common.close")} onClick={() => setChangedBotModel(false)}
             className="flex size-6 shrink-0 items-center justify-center rounded-full text-ink-tertiary hover:bg-ink/[0.06] hover:text-ink">

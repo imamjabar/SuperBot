@@ -273,8 +273,8 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
             className="flex size-full flex-col items-center justify-center gap-2 p-3 text-center text-ink-secondary transition-colors hover:bg-raised/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60 disabled:cursor-wait disabled:hover:bg-transparent"
           >
             {loading ? <LoaderCircle size={24} className="animate-spin" /> : <Play size={24} />}
-            <span className="text-[12px]">{loading ? t("attach.videoLoading") : error ? t("chat.retry") : t("attach.loadVideo")}</span>
-            {!error && !loading && <span className="text-[11px]">{t("attach.videoHint")}</span>}
+            <span className="text-caption">{loading ? t("attach.videoLoading") : error ? t("chat.retry") : t("attach.loadVideo")}</span>
+            {!error && !loading && <span className="text-micro">{t("attach.videoHint")}</span>}
           </button>
         )}
         {(preview || loading || error) && (
@@ -284,7 +284,7 @@ function VideoAttachment({ file, message }: { file: GalleryFile; message: Messag
         )}
         {!preview && !loading && <Film size={13} className="pointer-events-none absolute left-2 top-2 text-ink-secondary/50" />}
       </div>
-      {error && <p role="alert" className="px-3 py-2 text-[11px] text-danger">{error}</p>}
+      {error && <p role="alert" className="px-3 py-2 text-micro text-danger">{error}</p>}
       <AttachedFileChip file={file} linked={file.linked} message={message} className="max-w-none rounded-none border-0 border-t border-hairline/30 bg-transparent" />
     </div>
   );
@@ -374,12 +374,12 @@ function AudioAttachment({ file, message }: { file: GalleryFile; message: Messag
               {loading ? <LoaderCircle size={14} className="animate-spin" /> : <Play size={13} fill="currentColor" />}
             </button>
           )}
-        <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-ink" title={file.name}>{file.name}</span>
+        <span className="min-w-0 flex-1 truncate text-caption font-medium text-ink" title={file.name}>{file.name}</span>
         {src && <a href={src} download={file.name} aria-label={t("attach.saveAria", { name: file.name })} title={t("attach.saveAria", { name: file.name })}
           className="shrink-0 rounded-lg p-1 text-ink-secondary hover:bg-raised hover:text-ink"><Download size={14} /></a>}
       </div>
       {src && !error && <audio src={src} controls autoPlay preload="metadata" aria-label={t("attach.previewAudio", { name: file.name })} onError={() => { setSrc(null); setError(t("attach.audioUnavailable")); }} className="h-9 w-full" />}
-      {error && <p role="alert" className="text-[11px] text-danger">{error}</p>}
+      {error && <p role="alert" className="text-micro text-danger">{error}</p>}
     </div>
   );
 }
@@ -463,7 +463,7 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
               ? <AudioAttachment key={`${message.threadId}:${message.messageId}:${item.key}`} file={item.file} message={message} />
               : item.kind === "file" && <AttachedFileChip key={item.key} file={item.file} linked={item.file.linked} message={message} compact />)}
             {items.length > limit && (
-              <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="inline-flex h-7 items-center rounded-full px-2.5 text-[13px] leading-none text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+              <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="inline-flex h-7 items-center rounded-full px-2.5 text-small leading-none text-ink-secondary transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
                 {expanded ? t("attach.showLess") : t("attach.moreCount", { count: items.length - limit })}
               </button>
             )}
@@ -495,7 +495,7 @@ export function AttachmentGallery({ images = [], files = [], message, eager = fa
         </div>
       )}
       {items.length > limit && (
-        <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="flex min-h-8 items-center gap-1 rounded-lg px-1 py-1 text-[11px] text-ink-secondary transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
+        <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="flex min-h-8 items-center gap-1 rounded-lg px-1 py-1 text-micro text-ink-secondary transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
           {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           {expanded ? t("attach.showLess") : t("attach.showMore", { count: items.length - limit })}
         </button>

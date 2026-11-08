@@ -264,8 +264,8 @@ export function VoiceSettings({
 
   return (
     <div className="rounded-xl bg-card p-4">
-      <div className="text-[15px] font-medium text-ink">{t("voice.title")}</div>
-      <div className="mt-0.5 text-[13px] text-ink-secondary">
+      <div className="text-body font-medium text-ink">{t("voice.title")}</div>
+      <div className="mt-0.5 text-small text-ink-secondary">
         {localMacClient
           ? t("voice.macChoice")
           : workspaceConfigurationLocked
@@ -284,7 +284,7 @@ export function VoiceSettings({
 
       {localMacClient && (
         <div className="mt-4">
-          <div className="mb-2 text-[13px] text-ink-secondary">{t("voice.macOutput")}</div>
+          <div className="mb-2 text-small text-ink-secondary">{t("voice.macOutput")}</div>
           <div className="inline-flex rounded-xl bg-inset p-1" role="radiogroup" aria-label={t("voice.macOutput")}>
             {([
               { value: "system", label: t("voice.macBuiltIn"), available: true },
@@ -299,7 +299,7 @@ export function VoiceSettings({
                 title={!option.available ? t("voice.hostNotConfigured") : undefined}
                 onClick={() => chooseDeviceProvider(option.value)}
                 className={cn(
-                  "rounded-lg px-3.5 py-1.5 text-[13px] transition-colors disabled:opacity-50",
+                  "rounded-lg px-3.5 py-1.5 text-small transition-colors disabled:opacity-50",
                   deviceProvider === option.value ? "bg-raised text-ink shadow" : "text-ink-secondary hover:text-ink",
                 )}
               >
@@ -312,7 +312,7 @@ export function VoiceSettings({
 
       {!workspaceConfigurationLocked && (
         <div className="mt-4">
-          <div className="mb-2 text-[13px] text-ink-secondary">{t("voice.engine")}</div>
+          <div className="mb-2 text-small text-ink-secondary">{t("voice.engine")}</div>
           <div className="grid grid-cols-6 gap-1 rounded-xl bg-inset p-1" role="radiogroup" aria-label={t("voice.engine")}>
             {([
               { value: "elevenlabs", label: t("voice.elevenlabs.label"), available: true, span: "col-span-2" },
@@ -331,7 +331,7 @@ export function VoiceSettings({
                 title={!option.available ? t("voice.macOnly") : undefined}
                 onClick={() => setProvider(option.value)}
                 className={cn(
-                  "min-w-0 rounded-lg px-2 py-1.5 text-[13px] leading-tight transition-colors disabled:opacity-50",
+                  "min-w-0 rounded-lg px-2 py-1.5 text-small leading-tight transition-colors disabled:opacity-50",
                   option.span,
                   provider === option.value ? "bg-raised text-ink shadow" : "text-ink-secondary hover:text-ink",
                 )}
@@ -345,10 +345,10 @@ export function VoiceSettings({
 
       {!workspaceConfigurationLocked && cloudProvider && (
         <div className="mt-4">
-        <div className="mb-1.5 flex items-center gap-2 text-[13px] text-ink-secondary">
+        <div className="mb-1.5 flex items-center gap-2 text-small text-ink-secondary">
           <span className={cn("size-1.5 rounded-full", configured ? "bg-success" : "bg-raised-hover")} />
           <span>{t("voice.providerKey", { provider: cloudProvider.name })}</span>
-          {configured && <span className="text-[11px] text-success">{t("voice.connected")}</span>}
+          {configured && <span className="text-micro text-success">{t("voice.connected")}</span>}
         </div>
         <div className="flex gap-2">
           <input
@@ -359,12 +359,12 @@ export function VoiceSettings({
             placeholder={configured ? "••••••••  (paste to replace)" : cloudProvider.placeholder}
             aria-label={`${cloudProvider.name} key`}
             autoComplete="off"
-            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
+            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small text-ink placeholder:text-ink-secondary focus:outline-none"
           />
           <button
             onClick={() => void saveKey()}
             disabled={saving || !key.trim()}
-            className="flex w-[72px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-control py-2 text-[13px] text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-[72px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-control py-2 text-small text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? <Loader2 size={13} className="animate-spin" /> : <><Check size={13} />{t("common.save")}</>}
           </button>
@@ -374,7 +374,7 @@ export function VoiceSettings({
             href={cloudProvider.keyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1.5 inline-block text-[12px] font-medium text-accent hover:underline"
+            className="mt-1.5 inline-block text-caption font-medium text-accent hover:underline"
           >
             {t("voice.getKey", { provider: cloudProvider.name })}
           </a>
@@ -384,7 +384,7 @@ export function VoiceSettings({
 
       {!workspaceConfigurationLocked && provider === "fish" && (
         <div className="mt-4">
-          <div className="mb-1.5 text-[13px] text-ink-secondary">{t("voice.fish.model")}</div>
+          <div className="mb-1.5 text-small text-ink-secondary">{t("voice.fish.model")}</div>
           <Select
             value={tts.fishModel ?? "s2.1-pro"}
             onChange={(e) => saveFishModel(e.target.value as FishModel)}
@@ -398,22 +398,22 @@ export function VoiceSettings({
               </option>
             ))}
           </Select>
-          <div className="mt-1.5 text-[12px] leading-relaxed text-ink-secondary">{t("voice.fish.modelHint")}</div>
+          <div className="mt-1.5 text-caption leading-relaxed text-ink-secondary">{t("voice.fish.modelHint")}</div>
         </div>
       )}
 
       {provider === "xai" && (
-        <p className="mt-4 text-[13px] text-ink-secondary">
+        <p className="mt-4 text-small text-ink-secondary">
           {hostConfigured ? t("voice.grok.ready") : <>{t("voice.grok.missingKey")} <KeysLink id="xai" /></>}
         </p>
       )}
 
       {!workspaceConfigurationLocked && provider === "chatterbox" && (
         <div className="mt-4">
-        <div className="mb-1.5 flex items-center gap-2 text-[13px] text-ink-secondary">
+        <div className="mb-1.5 flex items-center gap-2 text-small text-ink-secondary">
           <span className={cn("size-1.5 rounded-full", configured ? "bg-success" : "bg-raised-hover")} />
           <span>{t("voice.chatterboxServer")}</span>
-          {configured && <span className="text-[11px] text-success">{t("common.saved")}</span>}
+          {configured && <span className="text-micro text-success">{t("common.saved")}</span>}
         </div>
         <div className="flex gap-2">
           <input
@@ -425,12 +425,12 @@ export function VoiceSettings({
             aria-label={t("voice.chatterboxAddress")}
             autoComplete="off"
             spellCheck={false}
-            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
+            className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small text-ink placeholder:text-ink-secondary focus:outline-none"
           />
           <button
             onClick={() => void saveServer()}
             disabled={savingServer || !serverUrl.trim()}
-            className="flex w-[72px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-control py-2 text-[13px] text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-[72px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-control py-2 text-small text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {savingServer ? <Loader2 size={13} className="animate-spin" /> : <><Check size={13} />{t("common.save")}</>}
           </button>
@@ -444,9 +444,9 @@ export function VoiceSettings({
           aria-label={t("voice.chatterboxModel")}
           autoComplete="off"
           spellCheck={false}
-          className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
+          className="mt-2 w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small text-ink placeholder:text-ink-secondary focus:outline-none"
         />
-        <div className="mt-1.5 text-[12px] leading-relaxed text-ink-secondary">
+        <div className="mt-1.5 text-caption leading-relaxed text-ink-secondary">
           {t("voice.chatterboxHelp")}{" "}
           <a
             href="https://github.com/resemble-ai/chatterbox"
@@ -461,7 +461,7 @@ export function VoiceSettings({
       )}
 
       {!workspaceConfigurationLocked && provider === "gemini" && (
-        <label className="mt-4 block text-[13px] text-ink-secondary">
+        <label className="mt-4 block text-small text-ink-secondary">
           {t("voice.gemini.model")}
           <Select value={tts.model || "gemini-3.8-flash-lite-tts"} className="mt-2 w-full" onChange={(event) => {
             void api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { model: event.target.value } }) })
@@ -476,7 +476,7 @@ export function VoiceSettings({
 
       {configured && (
         <div className="mt-4">
-          <div className="mb-1.5 text-[13px] text-ink-secondary">{t("voice.title")}</div>
+          <div className="mb-1.5 text-small text-ink-secondary">{t("voice.title")}</div>
           <div className="flex gap-2">
             {searchable ? (
               <VoicePicker
@@ -524,22 +524,22 @@ export function VoiceSettings({
               aria-busy={preparingSample}
               title={ready ? t("voice.hear") : t("voice.pickFirst")}
               aria-label={t("voice.hear")}
-              className="flex w-[72px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-control py-2 text-[13px] text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-[72px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-control py-2 text-small text-ink hover:bg-raised-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {preparingSample ? <Loader2 size={14} className="animate-spin" /> : <Volume2 size={14} />} {t("voice.try")}
             </button>
           </div>
-          {addError && <div role="alert" className="mt-1.5 text-[12px] text-danger">{addError}</div>}
+          {addError && <div role="alert" className="mt-1.5 text-caption text-danger">{addError}</div>}
           {!searchable && selectedDescription && (
-            <div className="mt-1.5 text-[12px] leading-relaxed text-ink-secondary">{selectedDescription}</div>
+            <div className="mt-1.5 text-caption leading-relaxed text-ink-secondary">{selectedDescription}</div>
           )}
         </div>
       )}
 
       <div className="mt-4 flex items-center justify-between gap-4 border-t border-hairline/40 pt-4">
         <div>
-          <div className="text-[13px] font-medium text-ink">{t("voice.readReplies")}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">
+          <div className="text-small font-medium text-ink">{t("voice.readReplies")}</div>
+          <div className="mt-0.5 text-caption leading-relaxed text-ink-secondary">
             {t("voice.readRepliesHelp")}
           </div>
         </div>
@@ -552,8 +552,8 @@ export function VoiceSettings({
 
       <div className="mt-4 flex items-center justify-between gap-4">
         <div>
-          <div className="text-[13px] font-medium text-ink">{t("voice.notes")}</div>
-          <div className="mt-0.5 text-[12px] leading-relaxed text-ink-secondary">
+          <div className="text-small font-medium text-ink">{t("voice.notes")}</div>
+          <div className="mt-0.5 text-caption leading-relaxed text-ink-secondary">
             {t("voice.notesHelp")}
           </div>
         </div>
@@ -564,7 +564,7 @@ export function VoiceSettings({
         />
       </div>
 
-      {error && <div role="alert" className="mt-2 text-[12px] text-danger">{error}</div>}
+      {error && <div role="alert" className="mt-2 text-caption text-danger">{error}</div>}
     </div>
   );
 }

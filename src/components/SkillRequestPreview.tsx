@@ -8,7 +8,7 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
   const reviewedSha256 = reviewedSkillSha256(request);
   if (!reviewedSha256) {
     return (
-      <div className="mt-3 rounded-lg border border-danger/30 bg-danger/5 p-3 text-[12px] leading-relaxed text-danger">
+      <div className="mt-3 rounded-lg border border-danger/30 bg-danger/5 p-3 text-caption leading-relaxed text-danger">
         This proposal was created by an older build and cannot be safely applied. Deny it, then ask the bot to
         {request.action === "update" ? " propose the update again." : " create the skill again."}
       </div>
@@ -16,7 +16,7 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
   }
   return (
     <div className="mt-3 rounded-lg border border-hairline/40 bg-inset p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-secondary">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-micro text-ink-secondary">
         <span>
           Review the complete SKILL.md{request.references?.length ? " and its reference files" : ""} before {request.action === "update" ? "replacing the current version" : "enabling"}
         </span>
@@ -24,21 +24,21 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
           sha256 {reviewedSha256.slice(0, 8)}
         </span>
       </div>
-      <div className="mt-1 break-all text-[11px] text-ink-secondary">Source: {request.source || "Unknown"}</div>
+      <div className="mt-1 break-all text-micro text-ink-secondary">Source: {request.source || "Unknown"}</div>
       <pre
         tabIndex={0}
         aria-label={`Full SKILL.md for ${request.name}`}
-        className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink"
+        className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-caption leading-relaxed text-ink"
       >
         {request.preview}
       </pre>
       {request.references?.map((file) => (
         <div key={file.path} className="mt-3 border-t border-hairline/40 pt-2">
-          <div className="font-mono text-[11px] text-ink-secondary">{file.path}</div>
+          <div className="font-mono text-micro text-ink-secondary">{file.path}</div>
           <pre
             tabIndex={0}
             aria-label={`Full ${file.path} for ${request.name}`}
-            className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink"
+            className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-caption leading-relaxed text-ink"
           >
             {file.content}
           </pre>

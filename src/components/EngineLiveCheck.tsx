@@ -34,18 +34,18 @@ export function useEngineLiveCheck(engines: readonly InstanceInfo[]) {
 }
 
 export function EngineCheckLine({ name, check, onRetry }: { name: string; check: EngineLiveCheck; onRetry: () => void }) {
-  if (check.state === "checking") return <p role="status" data-engine-check="checking" className="mt-3 flex items-center gap-2 text-[13px] text-ink-secondary">
+  if (check.state === "checking") return <p role="status" data-engine-check="checking" className="mt-3 flex items-center gap-2 text-small text-ink-secondary">
     <LoaderCircle size={14} aria-hidden="true" className="shrink-0 animate-spin" />{t("engineCheck.checking", { name })}
   </p>;
-  if (check.state === "working") return <p role="status" data-engine-check="working" className="mt-3 flex items-center gap-2 text-[13px] font-medium text-success">
+  if (check.state === "working") return <p role="status" data-engine-check="working" className="mt-3 flex items-center gap-2 text-small font-medium text-success">
     <Check size={15} strokeWidth={2.5} aria-hidden="true" className="shrink-0" />{t("engineCheck.working", { name })}
   </p>;
-  return <div role="alert" data-engine-check="failed" className="mt-3 rounded-xl bg-warning/10 px-3.5 py-3 text-[13px] leading-relaxed text-ink">
+  return <div role="alert" data-engine-check="failed" className="mt-3 rounded-xl bg-warning/10 px-3.5 py-3 text-small leading-relaxed text-ink">
     <p className="flex items-start gap-2">
       <CircleAlert size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
       <span><span className="font-medium">{t("engineCheck.failed", { name })}</span> {check.error}</span>
     </p>
-    <button type="button" onClick={onRetry} className="mt-2 flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] font-medium text-ink transition-colors hover:bg-raised">
+    <button type="button" onClick={onRetry} className="mt-2 flex items-center gap-1.5 rounded-md px-2 py-1 text-small font-medium text-ink transition-colors hover:bg-raised">
       <RefreshCw size={12} aria-hidden="true" />{t("engineCheck.retry")}
     </button>
   </div>;

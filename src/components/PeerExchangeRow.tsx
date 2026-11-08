@@ -59,7 +59,7 @@ export function PeerExchangeRow({
           aria-expanded={open}
           title={buttonTitle}
           aria-label={buttonTitle}
-          className="flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-hairline/40 bg-panel/60 px-3 py-1 text-[12px] text-ink-secondary transition-colors hover:bg-control"
+          className="flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-hairline/40 bg-panel/60 px-3 py-1 text-caption text-ink-secondary transition-colors hover:bg-control"
           data-testid="peer-exchange-toggle"
         >
           <ChevronRight size={12} className={cn("shrink-0 text-ink-tertiary transition-transform", open && "rotate-90")} />

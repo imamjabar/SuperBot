@@ -130,7 +130,7 @@ export function ChiefIntro({ replay, onDone, onLeave }: { replay: boolean; onDon
     >
       {choosing ? (
         <div className="p-4">
-          <h2 id="chief-intro-title" className="text-[14px] font-medium leading-5 text-ink">{t("onboarding.chief.chooseTitle")}</h2>
+          <h2 id="chief-intro-title" className="text-body-sm font-medium leading-5 text-ink">{t("onboarding.chief.chooseTitle")}</h2>
           <div role="radiogroup" aria-labelledby="chief-intro-title" className="-mx-2 mt-2 max-h-[282px] overflow-y-auto px-2 [scrollbar-width:thin]">
             {choices.map((bot) => {
               const able = canLead(bot, state.instances);
@@ -155,7 +155,7 @@ export function ChiefIntro({ replay, onDone, onLeave }: { replay: boolean; onDon
                     able ? "cursor-pointer hover:bg-ink/[0.06]" : "opacity-40", checked && "bg-ink/[0.06]")}
                 >
                   <BotAvatar bot={bot} size={24} />
-                  <span className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-ink">{bot.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-small leading-[18px] text-ink">{bot.name}</span>
                   <span aria-hidden="true" className={cn("size-4 shrink-0 rounded-full border-[1.5px]",
                     checked ? "border-ink bg-ink shadow-[inset_0_0_0_3px_var(--color-menu)]" : "border-ink/30")} />
                 </div>
@@ -178,7 +178,7 @@ export function ChiefIntro({ replay, onDone, onLeave }: { replay: boolean; onDon
             </span>
             <div className="flex flex-col gap-2">
               <h2 id="chief-intro-title" className="text-[17px] font-medium leading-6 tracking-[-0.008em] text-ink">{t("onboarding.chief.title")}</h2>
-              <p className="text-[14px] leading-5 text-ink-secondary">{t("onboarding.chief.body")}</p>
+              <p className="text-body-sm leading-5 text-ink-secondary">{t("onboarding.chief.body")}</p>
             </div>
           </div>
           <div className={cn("p-4", choices.length > 0 && "grid grid-cols-2 gap-2")}>

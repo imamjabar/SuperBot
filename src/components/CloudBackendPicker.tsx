@@ -13,8 +13,8 @@ export function CloudBackendPicker({
 }) {
   return (
     <div className="mt-3 rounded-lg bg-inset p-3">
-      <div className="text-[12px] font-medium text-ink">{compact ? t("botAccess.cloud.provider") : t("botAccess.cloud.backend")}</div>
-      <div className="mt-0.5 text-[12px] text-ink-secondary">
+      <div className="text-caption font-medium text-ink">{compact ? t("botAccess.cloud.provider") : t("botAccess.cloud.backend")}</div>
+      <div className="mt-0.5 text-caption text-ink-secondary">
         {compact
           ? value === "vps" ? t("botAccess.cloud.vpsDescription") : t("botAccess.cloud.hostedDescription")
           : value === "vps"
@@ -27,7 +27,7 @@ export function CloudBackendPicker({
             key={backend}
             onClick={() => onChange(backend)}
             className={cn(
-              "flex-1 py-1.5 text-[12px]",
+              "flex-1 py-1.5 text-caption",
               i > 0 && "border-l border-hairline/40",
               value === backend ? "bg-raised text-ink" : "text-ink-secondary hover:bg-raised/60 hover:text-ink",
             )}

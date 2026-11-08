@@ -95,7 +95,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
         )}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-[calc(100%+4px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-md border border-hairline bg-menu px-[7px] py-0.5 text-[12px] text-ink opacity-0 transition-opacity group-hover:opacity-100"
+          className="pointer-events-none absolute left-1/2 top-[calc(100%+4px)] z-10 -translate-x-1/2 whitespace-nowrap rounded-md border border-hairline bg-menu px-[7px] py-0.5 text-caption text-ink opacity-0 transition-opacity group-hover:opacity-100"
         >
           {t("botPanel.avatar.edit")}
         </span>
@@ -142,7 +142,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
           onChange={(event) => label.setDraft(event.target.value)}
           onKeyDown={label.onKeyDown}
           onBlur={label.onBlur}
-          className={cn(inlineInputCls, "mt-[3px] w-[200px] max-w-full text-[13px]")}
+          className={cn(inlineInputCls, "mt-[3px] w-[200px] max-w-full text-small")}
         />
       ) : title && (
         <button
@@ -150,7 +150,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
           type="button"
           data-panel-label
           onClick={() => label.start(bot.title)}
-          className="mt-px max-w-full truncate rounded-md px-1.5 py-px text-[13px] text-ink-secondary hover:bg-ink/[0.04]"
+          className="mt-px max-w-full truncate rounded-md px-1.5 py-px text-small text-ink-secondary hover:bg-ink/[0.04]"
         >
           {title}
         </button>

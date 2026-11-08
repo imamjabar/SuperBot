@@ -44,15 +44,15 @@ export function withResultBudget<E extends { ok: false; error: McpMessage }>(
 export function McpResultBudgetField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="text-[12px] font-medium text-ink-secondary">{t("mcp.field.resultBudget")}</span>
+      <span className="text-caption font-medium text-ink-secondary">{t("mcp.field.resultBudget")}</span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         inputMode="numeric"
         placeholder="8000"
-        className="mt-1.5 w-full rounded-lg border border-hairline/60 bg-raised px-3 py-2.5 text-[13px] text-ink outline-none focus:border-accent"
+        className="mt-1.5 w-full rounded-lg border border-hairline/60 bg-raised px-3 py-2.5 text-small text-ink outline-none focus:border-accent"
       />
-      <span className="mt-1.5 block text-[11px] text-ink-secondary">{t("mcp.resultBudgetHint")}</span>
+      <span className="mt-1.5 block text-micro text-ink-secondary">{t("mcp.resultBudgetHint")}</span>
     </label>
   );
 }

@@ -240,7 +240,7 @@ export function WidgetTimePicker({ node, bare }: { node: WidgetNode; bare: boole
               onMouseMove={() => index !== active && setActive(index)}
               onClick={() => take(index)}
               className={cn(
-                "flex h-8 cursor-pointer items-center gap-2 px-3 text-[14px] leading-5 tabular-nums text-ink",
+                "flex h-8 cursor-pointer items-center gap-2 px-3 text-body-sm leading-5 tabular-nums text-ink",
                 index === active && "bg-raised", index === chosen && "font-medium",
               )}
             >

@@ -232,14 +232,14 @@ export function BackupAis({ bot, onChange }: { bot: Bot; onChange: (fallback: Ba
           <RowIcon icon={LifeBuoy} />
           <RowText title={t("botPanel.backups.title")} />
         </div>
-        <p className="-mt-1 pl-[38px] text-[13px] leading-[1.35] text-ink-secondary">{t("botPanel.backups.hint", { name: bot.name })}</p>
+        <p className="-mt-1 pl-[38px] text-small leading-[1.35] text-ink-secondary">{t("botPanel.backups.hint", { name: bot.name })}</p>
         {chain.length > 0 && (
           <ol aria-label={t("botPanel.backups.title")} className="flex flex-col gap-1 pl-[38px]">
             {chain.map((entry, index) => {
               const { instance, name, short } = describe(entry);
               return (
                 <li key={index} data-backup={entry.instanceId} className="flex min-w-0 items-center gap-1.5">
-                  <span className="w-3 shrink-0 text-[12px] tabular-nums text-ink-tertiary" aria-hidden="true">{index + 1}</span>
+                  <span className="w-3 shrink-0 text-caption tabular-nums text-ink-tertiary" aria-hidden="true">{index + 1}</span>
                   <BackupChooser
                     bot={bot}
                     current={entry}
@@ -248,13 +248,13 @@ export function BackupAis({ bot, onChange }: { bot: Bot; onChange: (fallback: Ba
                     label={t("botPanel.backups.row", { position: index + 1, model: name })}
                     title={instance ? `${instance.displayName} · ${name}` : name}
                     data-panel-action="backup-change"
-                    className="group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[9px] bg-ink/[0.04] pl-2.5 pr-2 text-left text-[13px] text-ink hover:bg-ink/[0.07] aria-expanded:bg-ink/[0.08]"
+                    className="group flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[9px] bg-ink/[0.04] pl-2.5 pr-2 text-left text-small text-ink hover:bg-ink/[0.07] aria-expanded:bg-ink/[0.08]"
                   >
                     {instance
                       ? <InstanceProviderMark instance={instance} size={14} subtle />
                       : <span className="size-3.5 shrink-0 rounded-full bg-ink/[0.08]" aria-hidden="true" />}
                     <span className="min-w-0 flex-1 truncate">{short}</span>
-                    {!instance && <span className="shrink-0 text-[12px] text-warning">{t("model.simple.unavailable")}</span>}
+                    {!instance && <span className="shrink-0 text-caption text-warning">{t("model.simple.unavailable")}</span>}
                     <ChevronDown size={12} strokeWidth={2} aria-hidden="true" className="shrink-0 text-ink-tertiary group-hover:text-ink-secondary" />
                   </BackupChooser>
                   <TrashButton

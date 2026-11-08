@@ -183,14 +183,14 @@ function Chips({ threadId, message, bots = [], align = "start" }: ChipProps) {
       {shown.map(({ emoji, people, fresh }) => {
         const label = t("chat.reaction.chip", { reaction: labelOf(emoji), people: people.join(", ") });
         const chip = cn(
-          "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[13px] leading-5",
+          "flex items-center gap-1 rounded-full border px-2 py-0.5 text-small leading-5",
           fresh && "animate-pop-in",
           mine === emoji ? "border-accent/50 bg-accent/15" : "border-hairline/40 bg-panel",
         );
         const face = (
           <>
             <span aria-hidden="true">{emoji}</span>
-            {people.length > 1 && <span aria-hidden="true" className="text-[12px] tabular-nums text-ink-secondary">{people.length}</span>}
+            {people.length > 1 && <span aria-hidden="true" className="text-caption tabular-nums text-ink-secondary">{people.length}</span>}
           </>
         );
         return Object.hasOwn(LABEL, emoji) ? (

@@ -79,7 +79,7 @@ export function LiveCallPill({ onOpen, currentBotId, iconOnly = false }: {
     );
   }
   return (
-    <div className="mx-2 mb-2 flex items-center gap-1 rounded-xl border border-success/40 bg-panel px-2 py-1.5 text-[13px] text-ink">
+    <div className="mx-2 mb-2 flex items-center gap-1 rounded-xl border border-success/40 bg-panel px-2 py-1.5 text-small text-ink">
       <button type="button" onClick={() => onOpen(bot.id, threadId)} title={t("call.live.back")} className="flex min-w-0 flex-1 items-center gap-2 text-left">
         <span className="size-2 shrink-0 animate-pulse rounded-full bg-success" aria-hidden />
         <span className="truncate">{title}</span>
@@ -98,7 +98,7 @@ export function LiveCallChip({ currentBotId, onOpen }: { currentBotId: string; o
       type="button"
       onClick={() => onOpen(bot.id, threadId)}
       title={t("call.live.pill", { name: bot.name })}
-      className="flex shrink-0 items-center gap-1.5 rounded-full border border-success/40 px-2.5 py-1 text-[12px] text-ink hover:bg-raised md:hidden"
+      className="flex shrink-0 items-center gap-1.5 rounded-full border border-success/40 px-2.5 py-1 text-caption text-ink hover:bg-raised md:hidden"
     >
       <span className="size-2 animate-pulse rounded-full bg-success" aria-hidden />
       {t("call.live.back")}

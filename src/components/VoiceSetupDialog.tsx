@@ -118,7 +118,7 @@ export function VoiceSetupDialog({
               <h2 id={titleId} className="truncate text-[20px] font-semibold tracking-[-0.01em] text-ink">
                 {t("call.voiceSetup.title", { name: bot.name })}
               </h2>
-              <p id={subtitleId} className="mt-0.5 text-[13px] text-ink-secondary">
+              <p id={subtitleId} className="mt-0.5 text-small text-ink-secondary">
                 {t("call.voiceSetup.subtitle")}
               </p>
             </div>
@@ -137,7 +137,7 @@ export function VoiceSetupDialog({
           {state.config?.tts ? (
             <VoiceSettings bot={bot} onPatch={patch} />
           ) : (
-            <div className="flex items-center justify-center gap-2 py-12 text-[13px] text-ink-secondary">
+            <div className="flex items-center justify-center gap-2 py-12 text-small text-ink-secondary">
               <Loader2 size={14} className="animate-spin" aria-hidden="true" />
               {t("call.voiceSetup.loading")}
             </div>
@@ -149,14 +149,14 @@ export function VoiceSetupDialog({
           {ready && (
             <div className="mx-6 mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-success/30 bg-success/10 px-4 py-3 sm:mx-7">
               <CheckCircle2 size={17} className="shrink-0 text-success" aria-hidden="true" />
-              <span className="min-w-0 flex-1 text-[13px] font-medium text-ink">
+              <span className="min-w-0 flex-1 text-small font-medium text-ink">
                 {t("call.voiceSetup.ready", { name: callName })}
               </span>
               <button
                 type="button"
                 data-voice-setup-start
                 onClick={onStartCall}
-                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-ink hover:brightness-110"
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-small font-medium text-accent-ink hover:brightness-110"
               >
                 <Phone size={14} aria-hidden="true" />
                 {t("call.voiceSetup.startCall")}
@@ -170,7 +170,7 @@ export function VoiceSetupDialog({
             type="button"
             data-voice-setup-all-settings
             onClick={openAllSettings}
-            className="inline-flex items-center gap-1 rounded-md text-[13px] font-medium text-accent-text underline-offset-2 hover:underline"
+            className="inline-flex items-center gap-1 rounded-md text-small font-medium text-accent-text underline-offset-2 hover:underline"
           >
             {t("call.voiceSetup.allSettings")}
             <ChevronRight size={14} aria-hidden="true" />

@@ -60,11 +60,11 @@ export function InboxReading({ view, row, now, position, onStep }: {
     <article data-inbox-reading={row.id} aria-label={`${senderLabel(row)} · ${headline}`} className="flex min-h-0 flex-1 flex-col">
       <header className="flex items-center gap-1 px-2 py-1.5">
         <button type="button" onClick={() => readInboxLine(null)} aria-label={t("inbox.action.back")} title={t("inbox.action.back")}
-          className="flex h-7 shrink-0 items-center gap-0.5 rounded-md pe-2 ps-1 text-[13px] font-medium text-ink hover:bg-raised pointer-coarse:h-9">
+          className="flex h-7 shrink-0 items-center gap-0.5 rounded-md pe-2 ps-1 text-small font-medium text-ink hover:bg-raised pointer-coarse:h-9">
           <ChevronLeft size={16} aria-hidden="true" className="rtl:rotate-180" />{t("inbox.panel.title")}
         </button>
         <span className="flex-1" />
-        {position && <span data-inbox-position className="px-1 text-[12px] tabular-nums text-ink-tertiary">{t("inbox.position", { index: position.index + 1, count: position.count })}</span>}
+        {position && <span data-inbox-position className="px-1 text-caption tabular-nums text-ink-tertiary">{t("inbox.position", { index: position.index + 1, count: position.count })}</span>}
         <button type="button" onClick={() => onStep(-1)} disabled={!position || position.index === 0} aria-label={t("inbox.action.previous")} title={t("inbox.action.previous")} className={NAV_BUTTON}>
           <ChevronUp size={16} aria-hidden="true" />
         </button>
@@ -76,7 +76,7 @@ export function InboxReading({ view, row, now, position, onStep }: {
             renderTrigger={() => <span className={NAV_BUTTON}><MoreHorizontal size={16} aria-hidden="true" /></span>} />
         )}
       </header>
-      <nav aria-label={t("inbox.breadcrumb")} className="flex min-w-0 items-center gap-1 border-b border-hairline/40 px-3.5 pb-2 text-[12px] text-ink-tertiary">
+      <nav aria-label={t("inbox.breadcrumb")} className="flex min-w-0 items-center gap-1 border-b border-hairline/40 px-3.5 pb-2 text-caption text-ink-tertiary">
         <button type="button" data-inbox-action="open" onClick={() => openInChat(row)} title={t("inbox.action.openInChat")}
           className="min-w-0 max-w-[45%] shrink truncate rounded hover:text-ink hover:underline">{place}</button>
         <ChevronRight size={12} aria-hidden="true" className="shrink-0 rtl:rotate-180" />
@@ -87,27 +87,27 @@ export function InboxReading({ view, row, now, position, onStep }: {
           <span className="mt-0.5 shrink-0" aria-hidden="true"><InboxSender from={row.from} size={22} /></span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
-              <span className="min-w-0 truncate text-[13px] font-semibold text-ink">{senderLabel(row)}</span>
-              <span className="shrink-0 text-[11px] tabular-nums text-ink-tertiary">{threadUpdatedLabel(row.at, now)}</span>
+              <span className="min-w-0 truncate text-small font-semibold text-ink">{senderLabel(row)}</span>
+              <span className="shrink-0 text-micro tabular-nums text-ink-tertiary">{threadUpdatedLabel(row.at, now)}</span>
             </div>
-            {row.via && <div className="truncate text-[12px] text-ink-tertiary">{t("inbox.via", { name: row.via.name })}</div>}
-            <div data-inbox-words className="mt-1 space-y-2 text-[14px] leading-6 text-ink">
+            {row.via && <div className="truncate text-caption text-ink-tertiary">{t("inbox.via", { name: row.via.name })}</div>}
+            <div data-inbox-words className="mt-1 space-y-2 text-body-sm leading-6 text-ink">
               {said.map((message) => <ChatMarkdown key={message.id} text={message.text!} />)}
               {words && <ChatMarkdown text={words} />}
             </div>
           </div>
         </section>
         {row.answers?.map((given) => (
-          <p key={given.at} className="rounded-xl bg-ink/[0.045] px-3 py-2 text-[13px] text-ink-secondary">
-            <span className="block text-[11px] font-medium text-ink-tertiary">{t(given.by === "assistant" ? "inbox.assistantAnswered" : "inbox.youReplied")}</span>
+          <p key={given.at} className="rounded-xl bg-ink/[0.045] px-3 py-2 text-small text-ink-secondary">
+            <span className="block text-micro font-medium text-ink-tertiary">{t(given.by === "assistant" ? "inbox.assistantAnswered" : "inbox.youReplied")}</span>
             <span className="whitespace-pre-wrap break-words">{given.text}</span>
           </p>
         ))}
         <section data-inbox-you aria-label={t("inbox.you")} className="flex gap-2.5">
           <span aria-hidden="true" className="mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ink/[0.08] text-ink-secondary"><UserRound size={13} /></span>
           <div className="min-w-0 flex-1 space-y-2">
-            <div className="text-[13px] font-semibold text-ink">{t("inbox.you")}</div>
-            {row.tab === "done" && <p className="flex items-center gap-1.5 text-[13px] text-ink-secondary"><Check size={14} aria-hidden="true" />{settledLabel(row)}</p>}
+            <div className="text-small font-semibold text-ink">{t("inbox.you")}</div>
+            {row.tab === "done" && <p className="flex items-center gap-1.5 text-small text-ink-secondary"><Check size={14} aria-hidden="true" />{settledLabel(row)}</p>}
             <InboxAnswer kind={kind} view={view} row={row} asker={asker} />
           </div>
         </section>

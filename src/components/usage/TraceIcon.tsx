@@ -74,7 +74,7 @@ export function TurnAvatar({ bot, name }: { bot: Bot | undefined; name: string }
     );
   }
   return (
-    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-semibold text-ink-secondary" aria-hidden>
+    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-raised text-micro font-semibold text-ink-secondary" aria-hidden>
       {(name || "?").slice(0, 1).toUpperCase()}
     </span>
   );

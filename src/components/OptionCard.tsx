@@ -82,7 +82,7 @@ export function OptionCard({
     <AskCard
       ariaLabel={card.title}
       title={card.title}
-      explanation={card.subtitle ? <ExpandableText text={card.subtitle} className="text-[14px] leading-5 text-ink-secondary" /> : undefined}
+      explanation={card.subtitle ? <ExpandableText text={card.subtitle} className="text-body-sm leading-5 text-ink-secondary" /> : undefined}
       onDismiss={dismiss}
       dismissLabel={t("onboarding.card.dismiss")}
     >

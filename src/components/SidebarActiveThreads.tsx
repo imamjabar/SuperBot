@@ -28,14 +28,14 @@ export function SidebarActiveThreads({ entries, icons, phone, dispatch }: { entr
       {motion.shown && (
         <div className={cn("absolute top-full z-40 mt-1 overflow-hidden", MENU_SHEET, icons ? "left-0 w-72" : "right-0 w-72 md:w-[min(288px,calc(var(--sidebar-width)_-_32px))]", motion.className)} {...motion.exitProps}>
           <div className="flex items-center gap-1 py-0.5 pl-2">
-            <span className="flex-1 text-[13px] font-medium text-ink">{t("attention.title")}</span>
+            <span className="flex-1 text-small font-medium text-ink">{t("attention.title")}</span>
             <button type="button" onClick={() => setAttentionPinned(!pinned)} aria-label={t(pinned ? "attention.unpin" : "attention.pin")} title={t(pinned ? "attention.unpin" : "attention.pin")}
               className="flex size-6 items-center justify-center rounded-md text-ink-secondary hover:bg-menu-hover hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
               {pinned ? <PinOff size={14} /> : <Pin size={14} />}
             </button>
           </div>
           {entries.length === 0
-            ? <div className="px-2 py-1.5 text-[13px] text-ink-secondary">{t("attention.empty")}</div>
+            ? <div className="px-2 py-1.5 text-small text-ink-secondary">{t("attention.empty")}</div>
             : <AttentionThreadRows inset entries={entries} onJump={(entry) => { setOpen(false); dispatch(attentionJumpAction(entry)); }} />}
         </div>
       )}

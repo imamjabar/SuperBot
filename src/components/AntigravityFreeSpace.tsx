@@ -61,54 +61,54 @@ export function AntigravityFreeSpace({ instance, initial = { kind: "idle" } }: {
     <section className="mt-3 rounded-xl border border-hairline/40 px-3 py-2.5" aria-label={t("engines.freeSpace.title")}>
       <div className="flex flex-wrap items-center gap-2">
         <HardDrive size={13} aria-hidden="true" className="shrink-0 text-ink-secondary" />
-        <span className="text-[12px] font-medium text-ink">{t("engines.freeSpace.title")}</span>
+        <span className="text-caption font-medium text-ink">{t("engines.freeSpace.title")}</span>
         <span className="flex-1" />
         {(phase.kind === "idle" || phase.kind === "none" || phase.kind === "done" || busy) && (
           <button
             type="button"
             onClick={() => void scan()}
             disabled={busy}
-            className="flex shrink-0 items-center gap-1 rounded-lg border border-hairline/40 px-3 py-1 text-[12px] text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-hairline/40 px-3 py-1 text-caption text-ink-secondary hover:bg-raised/50 hover:text-ink disabled:opacity-50"
           >
             {busy && <Loader2 size={12} className="animate-spin" />}
             {t("engines.freeSpace.action")}
           </button>
         )}
       </div>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-ink-secondary">{t("engines.freeSpace.intro")}</p>
-      {phase.kind === "scanning" && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("engines.freeSpace.scanning")}</p>}
-      {phase.kind === "deleting" && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("engines.freeSpace.deleting")}</p>}
-      {phase.kind === "none" && <p role="status" className="mt-2 text-[12px] text-ink-secondary">{t("engines.freeSpace.none")}</p>}
+      <p className="mt-1.5 text-caption leading-relaxed text-ink-secondary">{t("engines.freeSpace.intro")}</p>
+      {phase.kind === "scanning" && <p role="status" className="mt-2 text-caption text-ink-secondary">{t("engines.freeSpace.scanning")}</p>}
+      {phase.kind === "deleting" && <p role="status" className="mt-2 text-caption text-ink-secondary">{t("engines.freeSpace.deleting")}</p>}
+      {phase.kind === "none" && <p role="status" className="mt-2 text-caption text-ink-secondary">{t("engines.freeSpace.none")}</p>}
       {phase.kind === "found" && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <p role="status" className="flex-1 text-[12px] text-ink">
+          <p role="status" className="flex-1 text-caption text-ink">
             {t(phase.complete ? "engines.freeSpace.found" : "engines.freeSpace.foundAtLeast", { size: formatDiskSize(phase.bytes) })}
           </p>
           <button
             type="button"
             onClick={() => setPhase({ kind: "idle" })}
-            className="rounded-lg px-3 py-1 text-[12px] text-ink-secondary hover:bg-raised/50 hover:text-ink"
+            className="rounded-lg px-3 py-1 text-caption text-ink-secondary hover:bg-raised/50 hover:text-ink"
           >
             {t("common.cancel")}
           </button>
           <button
             type="button"
             onClick={() => void remove()}
-            className="rounded-lg bg-raised px-3 py-1 text-[12px] text-ink hover:bg-raised-hover"
+            className="rounded-lg bg-raised px-3 py-1 text-caption text-ink hover:bg-raised-hover"
           >
             {t("engines.freeSpace.delete")}
           </button>
         </div>
       )}
       {phase.kind === "done" && (
-        <p role="status" className="mt-2 text-[12px] text-ink-secondary">
+        <p role="status" className="mt-2 text-caption text-ink-secondary">
           {(phase.freedBytes > 0 || phase.remaining === 0) && (
             <span className="text-success">{t("engines.freeSpace.freed", { size: formatDiskSize(phase.freedBytes) })} </span>
           )}
           {phase.remaining > 0 && t("engines.freeSpace.someLeft")}
         </p>
       )}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-caption text-danger">{error}</p>}
     </section>
   );
 }

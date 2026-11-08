@@ -23,8 +23,8 @@ describe("AskCard", () => {
   it("puts the question in clear ink at reading size, under a header line in secondary ink that names the bot that asks", () => {
     const header = createElement(AskHeader, { asker: { name: "Ledger", color: "teal" }, line: "Ledger asks" });
     const html = renderToStaticMarkup(createElement(AskCard, { ariaLabel: "Q", header, title: "Should I apply the fix?" }));
-    expect(html).toMatch(/text-\[15px\] font-medium leading-\[22px\] text-ink"><bdi dir="auto">Should I apply the fix\?</);
-    expect(html).toMatch(/data-ask-header="" class="[^"]*text-\[13px\][^"]*text-ink-secondary[^"]*"/);
+    expect(html).toMatch(/text-body font-medium leading-\[22px\] text-ink"><bdi dir="auto">Should I apply the fix\?</);
+    expect(html).toMatch(/data-ask-header="" class="[^"]*text-small[^"]*text-ink-secondary[^"]*"/);
     expect(html.indexOf("Ledger asks")).toBeLessThan(html.indexOf("Should I apply the fix?"));
   });
 

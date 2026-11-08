@@ -84,7 +84,7 @@ export function chatgptPlanLink(value: string | null): string | null {
   } catch { return null; }
 }
 
-const chatgptButton = "flex w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-white px-3 py-2 text-[13px] font-semibold text-black hover:opacity-85 disabled:opacity-50";
+const chatgptButton = "flex w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-white px-3 py-2 text-small font-semibold text-black hover:opacity-85 disabled:opacity-50";
 
 export function DeviceSignInProgress({ auth, browserPkce = false, provider = "codex" }: { auth: DeviceSignInStatus; browserPkce?: boolean; provider?: DeviceSignInProvider }) {
   const { state: codeCopy, copy: copyCode } = useCopyFeedback(auth.userCode ?? "");
@@ -97,16 +97,16 @@ export function DeviceSignInProgress({ auth, browserPkce = false, provider = "co
       : auth.phase === "cancelled" ? t(browserPkce ? "engineSetup.chatgpt.cancelled" : "engineSetup.device.cancelled")
       : auth.phase === "expired" ? t(browserPkce ? "engineSetup.chatgpt.expired" : "engineSetup.device.expired")
       : auth.message || t(browserPkce ? "engineSetup.chatgpt.failed" : copy.failed);
-    return <p role="status" className={auth.phase === "succeeded" ? "text-[12px] text-success" : "text-[12px] text-ink-secondary"}>{label}</p>;
+    return <p role="status" className={auth.phase === "succeeded" ? "text-caption text-success" : "text-caption text-ink-secondary"}>{label}</p>;
   }
 
   if (!link || (!browserPkce && !isDeviceSignInCode(provider, auth.userCode))) {
-    return <p role="alert" className="text-[12px] text-danger">{t(browserPkce ? "engineSetup.chatgpt.invalidChallenge" : copy.invalidChallenge)}</p>;
+    return <p role="alert" className="text-caption text-danger">{t(browserPkce ? "engineSetup.chatgpt.invalidChallenge" : copy.invalidChallenge)}</p>;
   }
 
   return (
     <div className="space-y-2 rounded-lg border border-hairline/50 bg-app p-3">
-      {!browserPkce && <><p className="text-[12px] text-ink-secondary">{t(copy.enterCode)}</p>
+      {!browserPkce && <><p className="text-caption text-ink-secondary">{t(copy.enterCode)}</p>
       <div className="flex items-center justify-between gap-2 rounded-lg bg-inset px-3 py-2">
         <code className="select-all font-mono text-lg font-semibold tracking-widest text-ink">{auth.userCode}</code>
         <button
@@ -121,17 +121,17 @@ export function DeviceSignInProgress({ auth, browserPkce = false, provider = "co
       </div></>}
       <a href={link} target="_blank" rel="noopener noreferrer" onClick={(event) => {
         if (window.ogb?.openExternal) { event.preventDefault(); void openExternalLink(link); }
-      }} className={browserPkce ? chatgptButton : "flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-semibold text-white hover:brightness-110"}>
+      }} className={browserPkce ? chatgptButton : "flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-small font-semibold text-white hover:brightness-110"}>
         {browserPkce && <CodexMark size={16} className="fill-current" />}
         {t(browserPkce ? "engineSetup.chatgpt.start" : copy.open)} <ExternalLink size={13} />
       </a>
-      <p role="status" className="flex items-center gap-1.5 text-[12px] text-ink-secondary">
+      <p role="status" className="flex items-center gap-1.5 text-caption text-ink-secondary">
         <Loader2 size={12} className="animate-spin" /> {t("engineSetup.device.waiting")}
       </p>
       {auth.expiresAt && Number.isFinite(Date.parse(auth.expiresAt)) && (
-        <p className="text-[11px] text-ink-secondary">{t(browserPkce ? "engineSetup.chatgpt.expires" : "engineSetup.device.expires", { time: new Date(auth.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}</p>
+        <p className="text-micro text-ink-secondary">{t(browserPkce ? "engineSetup.chatgpt.expires" : "engineSetup.device.expires", { time: new Date(auth.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}</p>
       )}
-      <p className="text-[11px] leading-relaxed text-ink-secondary">{t(browserPkce ? "engineSetup.chatgpt.security" : copy.security)}</p>
+      <p className="text-micro leading-relaxed text-ink-secondary">{t(browserPkce ? "engineSetup.chatgpt.security" : copy.security)}</p>
     </div>
   );
 }
@@ -238,17 +238,17 @@ export function DeviceSignIn({ instanceId, browserPkce = false, provider = "code
     <div className="mt-3 space-y-2" data-device-sign-in={provider} data-chatgpt-plan-sign-in={browserPkce || undefined}>
       {auth && <DeviceSignInProgress auth={auth} browserPkce={browserPkce} provider={provider} />}
       {auth?.phase === "waiting" ? (
-        <button type="button" disabled={busy} onClick={() => void cancel()} className="w-full rounded-lg bg-control px-3 py-2 text-[12px] font-medium text-ink disabled:opacity-50">
+        <button type="button" disabled={busy} onClick={() => void cancel()} className="w-full rounded-lg bg-control px-3 py-2 text-caption font-medium text-ink disabled:opacity-50">
           {busy ? t("engineSetup.device.cancelling") : t("engineSetup.device.cancel")}
         </button>
       ) : auth?.phase !== "succeeded" && (
-        <button type="button" disabled={busy} onClick={() => void start()} className={browserPkce ? chatgptButton : "flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-semibold text-white hover:brightness-110 disabled:opacity-50"}>
+        <button type="button" disabled={busy} onClick={() => void start()} className={browserPkce ? chatgptButton : "flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-small font-semibold text-white hover:brightness-110 disabled:opacity-50"}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : browserPkce ? <CodexMark size={16} className="fill-current" /> : <LogIn size={14} />}
           {startLabel}
         </button>
       )}
-      {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
-      {!browserPkce && provider === "codex" && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("engineSetup.device.enableHint")}</p>}
+      {error && <p role="alert" className="text-caption text-danger">{error}</p>}
+      {!browserPkce && provider === "codex" && <p className="text-micro leading-relaxed text-ink-secondary">{t("engineSetup.device.enableHint")}</p>}
     </div>
   );
 }

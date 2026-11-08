@@ -34,7 +34,7 @@ function RoomHero({ group, members }: { group: Group; members: Bot[] }) {
         ))}
       </div>
       <h2 id="room-panel-title" className="mt-2.5 max-w-full truncate px-1.5 text-[18px] font-semibold text-ink">{group.name}</h2>
-      {group.description && <p className="mt-px line-clamp-2 max-w-full text-[13px] text-ink-secondary">{group.description}</p>}
+      {group.description && <p className="mt-px line-clamp-2 max-w-full text-small text-ink-secondary">{group.description}</p>}
     </div>
   );
 }
@@ -71,7 +71,7 @@ function InstructionsRow({ group }: { group: Group }) {
           onKeyDown={onKeyDown}
           placeholder={t("room.bulletin.placeholder")}
           rows={6}
-          className="w-full resize-y rounded-lg border border-hairline bg-inset px-2.5 py-2 text-[13px] leading-relaxed text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border"
+          className="w-full resize-y rounded-lg border border-hairline bg-inset px-2.5 py-2 text-small leading-relaxed text-ink outline-none placeholder:text-ink-tertiary focus:border-accent-border"
         />
         <div className="flex justify-end">
           <button

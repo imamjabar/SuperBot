@@ -173,7 +173,7 @@ describe("the update card", () => {
     await act(async () => button()!.click());
     const footer = [...card()!.querySelectorAll("button")].slice(-2);
     for (const node of footer) {
-      for (const token of ["h-7", "text-[13px]", "font-medium", "leading-4", "rounded-full", "gap-2"]) expect(node.className).toContain(token);
+      for (const token of ["h-7", "text-small", "font-medium", "leading-4", "rounded-full", "gap-2"]) expect(node.className).toContain(token);
     }
   });
 });

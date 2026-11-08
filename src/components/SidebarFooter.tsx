@@ -16,7 +16,7 @@ export function useSimplePlace(): WorkspacePlace {
 
 export function SidebarPlaceStatus({ place, className }: { place: WorkspacePlace; className?: string }) {
   if (!place.error) return null;
-  return <p role="alert" className={cn("text-[12px] text-danger", className)}>{place.error}</p>;
+  return <p role="alert" className={cn("text-caption text-danger", className)}>{place.error}</p>;
 }
 
 function SimpleSidebarFooter({ archived }: { archived?: ArchivedBots }) {

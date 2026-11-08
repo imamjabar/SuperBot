@@ -86,12 +86,12 @@ export const ChromeRow = forwardRef<HTMLInputElement, {
       <div className="flex min-h-10 items-center gap-1 px-2 pt-1">
         <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto" role="tablist" aria-label="Browser tabs">
           {tabs.length ? tabs.map((tab) => (
-            <div key={tab.tabId} className={`flex max-w-52 shrink-0 items-center gap-1 rounded-xl px-1 text-[12px] ${tab.active ? "bg-inset text-ink" : "text-ink-secondary"}`}>
+            <div key={tab.tabId} className={`flex max-w-52 shrink-0 items-center gap-1 rounded-xl px-1 text-caption ${tab.active ? "bg-inset text-ink" : "text-ink-secondary"}`}>
               <Globe size={13} className="ml-1.5 shrink-0 opacity-60" aria-hidden="true" />
               <button role="tab" aria-selected={tab.active} className="truncate px-1 py-1.5 text-left disabled:cursor-default" disabled={!commandsReady} onClick={() => props.onCommand({ type: "tabSelect", tabId: tab.tabId })} title={tab.title || tab.url}>{tab.title || "New tab"}</button>
               <button className={button} aria-label={`Close ${tab.title || "tab"}`} disabled={!commandsReady} onClick={() => props.onCommand({ type: "tabClose", tabId: tab.tabId })}><X size={13} /></button>
             </div>
-          )) : <div className="flex items-center gap-2 rounded-xl bg-inset px-3 py-1.5 text-[12px] text-ink-secondary"><Globe size={13} aria-hidden="true" />New tab</div>}
+          )) : <div className="flex items-center gap-2 rounded-xl bg-inset px-3 py-1.5 text-caption text-ink-secondary"><Globe size={13} aria-hidden="true" />New tab</div>}
           <button className={`${button} shrink-0`} disabled={!commandsReady} aria-label="New tab" title="New tab" onClick={() => props.onCommand({ type: "tabNew" })}><Plus size={16} /></button>
         </div>
         <button
@@ -102,7 +102,7 @@ export const ChromeRow = forwardRef<HTMLInputElement, {
           title={yours && props.hint ? props.hint : t(handsBack ? "browser.control.handBack" : "browser.control.take")}
           disabled={!connected || pill === "elsewhere" || pill === "connecting" || pill === "taking" || pill === "waiting"}
           onClick={handsBack ? props.onHandBack : props.onTake}
-          className={`flex max-w-56 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] disabled:cursor-default ${handsBack ? "border-accent-border bg-accent/15 text-accent-text" : "border-hairline text-ink-secondary hover:bg-inset hover:text-ink"}`}
+          className={`flex max-w-56 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-micro disabled:cursor-default ${handsBack ? "border-accent-border bg-accent/15 text-accent-text" : "border-hairline text-ink-secondary hover:bg-inset hover:text-ink"}`}
           data-pill={pill}
         >
           {pill === "taking" || pill === "waiting" || pill === "connecting" ? <Loader2 size={12} className="shrink-0 animate-spin" aria-hidden="true" /> : <Hand size={12} className="shrink-0" aria-hidden="true" />}
@@ -148,7 +148,7 @@ export const ChromeRow = forwardRef<HTMLInputElement, {
           }}
           placeholder={connected ? "Search or enter address" : "Connecting…"}
           spellCheck={false}
-          className="mx-1 min-w-0 flex-1 rounded-lg bg-transparent px-2 py-1.5 text-center text-[12px] outline-none placeholder:text-ink-secondary focus:bg-inset focus:text-left"
+          className="mx-1 min-w-0 flex-1 rounded-lg bg-transparent px-2 py-1.5 text-center text-caption outline-none placeholder:text-ink-secondary focus:bg-inset focus:text-left"
         />
         {props.menu}
         <div aria-hidden="true" data-loading={nav.loading} className={`pointer-events-none absolute bottom-0 left-0 h-0.5 bg-accent transition-[width,opacity] duration-500 ${nav.loading ? "w-2/3 opacity-100" : "w-full opacity-0"}`} />

@@ -52,6 +52,6 @@ describe("control scale", () => {
     expect(renderToStaticMarkup(createElement(DigestChip, { message }))).toMatch(/class="ui-chip /);
     const html = renderToStaticMarkup(createElement(ChatMarkdown, { text: "run `pnpm test` now" }));
     expect(html).toContain('class="ui-code-chip break-words [unicode-bidi:isolate]"');
-    expect(html).not.toContain("text-[13px]");
+    expect(html).not.toContain("text-small");
   });
 });

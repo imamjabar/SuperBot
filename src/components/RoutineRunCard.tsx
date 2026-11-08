@@ -61,7 +61,7 @@ export function RoutineRunCard({
   if (!run) {
     const fallback = compactDetail(message.text);
     return fallback ? (
-      <div className="w-fit max-w-[min(var(--chat-bubble-max),var(--chat-card-pct))] rounded-2xl bg-card px-4 py-2.5 text-[14px] leading-relaxed text-ink">
+      <div className="w-fit max-w-[min(var(--chat-bubble-max),var(--chat-card-pct))] rounded-2xl bg-card px-4 py-2.5 text-body-sm leading-relaxed text-ink">
         {fallback}
       </div>
     ) : null;
@@ -87,17 +87,17 @@ export function RoutineRunCard({
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h3 className="truncate text-[14px] font-semibold text-ink">{run.routineName}</h3>
-            <span aria-live="polite" className={cn("inline-flex items-center gap-1 text-[12px] font-semibold", copy.tone)}>
+            <h3 className="truncate text-body-sm font-semibold text-ink">{run.routineName}</h3>
+            <span aria-live="polite" className={cn("inline-flex items-center gap-1 text-caption font-semibold", copy.tone)}>
               {run.status === "running" && !run.goalStatus && <Loader2 aria-hidden="true" className="size-3 animate-spin" />}
               {copy.label}
             </span>
           </div>
-          <time dateTime={new Date(run.scheduledFor ?? message.at).toISOString()} className="mt-0.5 block text-[12px] text-ink-secondary">
+          <time dateTime={new Date(run.scheduledFor ?? message.at).toISOString()} className="mt-0.5 block text-caption text-ink-secondary">
             {routineDateTime(run.scheduledFor ?? message.at)}
           </time>
-          {detail && <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">{detail}</p>}
-          {run.status === "completed" && run.summary && run.summary.length > DETAIL_LIMIT && <details className="mt-2 text-[12px] text-ink-secondary">
+          {detail && <p className="mt-1.5 text-small leading-relaxed text-ink-secondary">{detail}</p>}
+          {run.status === "completed" && run.summary && run.summary.length > DETAIL_LIMIT && <details className="mt-2 text-caption text-ink-secondary">
             <summary className="cursor-pointer font-medium text-ink-secondary hover:text-ink">{t("routines.results.showReport")}</summary>
             <p className="mt-2 whitespace-pre-wrap leading-relaxed">{run.summary}</p>
           </details>}
@@ -108,7 +108,7 @@ export function RoutineRunCard({
             onClick={onOpen}
             aria-label={`${actionLabel} for ${run.routineName}`}
             className={cn(
-              "flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
+              "flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-caption font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
               run.goalStatus === "needs-input"
                 ? "bg-warning/15 text-warning hover:bg-warning/25"
                 : "text-ink-secondary hover:bg-inset hover:text-ink",
@@ -149,7 +149,7 @@ export function AutomationCaption({ message, line, botId }: { message: Message; 
     !state.bots.find((bot) => bot.id === botId)?.messages.some((later) => later.role === "user" && later.at > message.at));
   const tone = line.partial ? "text-warning" : line.failed ? "text-danger" : asking ? "text-warning" : "text-accent";
   return (
-    <div data-automation-caption={line.runId} className="-mb-2 flex min-w-0 items-center gap-1.5 pl-0.5 text-[11px] text-ink-tertiary">
+    <div data-automation-caption={line.runId} className="-mb-2 flex min-w-0 items-center gap-1.5 pl-0.5 text-micro text-ink-tertiary">
       <Zap aria-hidden="true" size={12} className={cn("shrink-0", tone)} />
       <span className="truncate font-medium text-ink-secondary">{line.name}</span>
       <time className="shrink-0" dateTime={new Date(line.scheduledFor).toISOString()}>· {formatTime(line.scheduledFor)}</time>

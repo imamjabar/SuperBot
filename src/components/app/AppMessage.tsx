@@ -56,7 +56,7 @@ export function AppMessage({ botId, botName, threadId, message, pool }: {
   const payload = message.app;
   if (!isAppPayload(payload) || !threadId) {
     return message.text
-      ? <div className="chat-text w-fit max-w-[min(42rem,78%)] rounded-2xl bg-card px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap text-ink">{message.text}</div>
+      ? <div className="chat-text w-fit max-w-[min(42rem,78%)] rounded-2xl bg-card px-4 py-2.5 text-body leading-relaxed whitespace-pre-wrap text-ink">{message.text}</div>
       : null;
   }
   return <AppRow botId={botId} botName={botName} threadId={threadId} message={message} payload={payload} pool={pool} />;
@@ -199,7 +199,7 @@ function AppRow({ botId, botName, threadId, message, payload, pool }: {
       <AppPlaceholder height={height} open={() => setFullScreen(false)} label={t("chat.preview.exitFullScreen")} />
     </div>
   ) : noPage ? (
-    message.text ? <div dir="auto" className={cn("line-clamp-6 whitespace-pre-wrap text-[13px] leading-[18px] text-ink-secondary", bordered ? "px-4 pb-3" : "pb-2")}>{message.text}</div> : null
+    message.text ? <div dir="auto" className={cn("line-clamp-6 whitespace-pre-wrap text-small leading-[18px] text-ink-secondary", bordered ? "px-4 pb-3" : "pb-2")}>{message.text}</div> : null
   ) : (
     <div data-app-box className={cn("relative w-full", bordered && "border-t border-ink/[0.08]", point.pointing && "ring-2 ring-inset ring-accent/60")} style={{ height }}>
       {current ? (

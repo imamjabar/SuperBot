@@ -48,7 +48,7 @@ export function bulkDeleteOutcome(outcome: BulkDeleteResult): string {
 
 const OLDER_DAYS = 30;
 
-const chip = "rounded-full border border-hairline/50 px-2.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40";
+const chip = "rounded-full border border-hairline/50 px-2.5 py-0.5 text-micro text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40";
 
 /** Each render hands `forRows` the rows the list shows, in display order, so ranges and filters touch only visible rows. */
 export function useBulkSelect() {
@@ -83,7 +83,7 @@ export function BulkSelectFilters({ rows, selected, now, onChange, onDone }: {
     <button type="button" className={chip} onClick={() => add(olderThanIds(rows, OLDER_DAYS, now))}>{t("task.bulk.older", { days: OLDER_DAYS })}</button>
     <button type="button" className={chip} onClick={() => add(archivedIds(rows))}>{t("task.bulk.archived")}</button>
     <button type="button" className={chip} disabled={selected.size === 0} onClick={() => onChange(clearSelection())}>{t("task.bulk.clear")}</button>
-    <button type="button" onClick={onDone} className="ml-auto rounded px-1.5 py-0.5 text-[11px] font-medium text-accent hover:underline">{t("task.bulk.done")}</button>
+    <button type="button" onClick={onDone} className="ml-auto rounded px-1.5 py-0.5 text-micro font-medium text-accent hover:underline">{t("task.bulk.done")}</button>
   </div>;
 }
 
@@ -116,15 +116,15 @@ export function BulkSelectBar({ rows, selected, maxDeletable, freshConversation,
     });
   };
   return <div className="sticky bottom-0 z-10 -mx-1 border-t border-hairline/40 bg-panel px-2 py-1.5">
-    <span role="status" className="block text-[11px] text-ink-secondary">
+    <span role="status" className="block text-micro text-ink-secondary">
       {result ?? (overLimit ? t("task.bulk.channelLimit") : "")}
     </span>
     <div className="flex items-center gap-2">
-      <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-ink">{t("task.bulk.selected", { count })}</span>
+      <span className="min-w-0 flex-1 truncate text-caption font-medium text-ink">{t("task.bulk.selected", { count })}</span>
       <button type="button" disabled={count === 0 || pending} onClick={() => onChange(clearSelection())}
-        className="rounded-md px-2.5 py-1 text-[12px] text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40">{t("task.bulk.cancel")}</button>
+        className="rounded-md px-2.5 py-1 text-caption text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40">{t("task.bulk.cancel")}</button>
       <button type="button" disabled={count === 0 || overLimit || pending} aria-busy={pending || undefined} onClick={() => setConfirming(true)}
-        className="rounded-md bg-danger px-2.5 py-1 text-[12px] font-medium text-white hover:brightness-110 disabled:opacity-40">
+        className="rounded-md bg-danger px-2.5 py-1 text-caption font-medium text-white hover:brightness-110 disabled:opacity-40">
         {pending ? t("task.bulk.deleting") : t("task.bulk.delete", { count })}
       </button>
     </div>
@@ -149,7 +149,7 @@ export function ThreadListFooter({ bulk, rows, selected, total, canShowAll, canS
     return <BulkSelectBar rows={rows} selected={selected} maxDeletable={maxDeletable} freshConversation={freshConversation} onChange={bulk.setSelected} onDelete={onDelete} />;
   }
   if (!canShowAll && !canSelect) return null;
-  const link = "inline-flex h-7 items-center text-[13px] font-medium leading-4 text-ink-secondary hover:text-ink";
+  const link = "inline-flex h-7 items-center text-small font-medium leading-4 text-ink-secondary hover:text-ink";
   return <div className="flex items-center justify-between pl-6 pr-2">
     {canShowAll ? <button type="button" onClick={onShowAll} className={link}>{t("task.showAll", { count: total })}</button> : <span />}
     {canSelect && <button type="button" onClick={bulk.start} className={link}>{t("task.bulk.select")}</button>}

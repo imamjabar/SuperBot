@@ -18,7 +18,7 @@ export function SidebarPinnedThreadsPanel({ entries, now, onJump, onUnpin, colla
       aria-label={t("sidebar.pinnedThreads.title")}
       className="mx-2 mb-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset/30"
     >
-      <div className="flex items-center gap-1.5 px-2.5 pb-1 pt-1.5 text-[12px] font-medium text-ink-secondary">
+      <div className="flex items-center gap-1.5 px-2.5 pb-1 pt-1.5 text-caption font-medium text-ink-secondary">
         <button
           type="button"
           onClick={onToggle}
@@ -31,7 +31,7 @@ export function SidebarPinnedThreadsPanel({ entries, now, onJump, onUnpin, colla
         </button>
         <Pin size={12} aria-hidden="true" className="shrink-0" />
         <span className="min-w-0 flex-1 truncate">{t("sidebar.pinnedThreads.title")}</span>
-        <span className="text-[11px] font-normal tabular-nums">{entries.length}</span>
+        <span className="text-micro font-normal tabular-nums">{entries.length}</span>
       </div>
       {!collapsed && (
         <div className="max-h-56 overflow-y-auto">

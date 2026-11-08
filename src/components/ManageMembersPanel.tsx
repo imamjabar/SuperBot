@@ -106,26 +106,26 @@ export function ManageMembersPanel({
         aria-label={`Manage members of ${group.name}`}
         className="w-[340px] rounded-2xl border border-hairline/50 bg-card p-4 shadow-2xl"
       >
-        <div className="mb-1 text-[15px] font-semibold text-ink">Manage Members</div>
-        <div className="mb-3 truncate text-[13px] text-ink-secondary">{group.name}</div>
+        <div className="mb-1 text-body font-semibold text-ink">Manage Members</div>
+        <div className="mb-3 truncate text-small text-ink-secondary">{group.name}</div>
         <BotPickerList bots={bots} picked={picked} onToggle={toggle} emptyHint="Create a bot first — groups are made of bots." />
-        {!memberIds.length && <div className="mt-2 text-[12px] text-ink-secondary">A group needs at least one bot.</div>}
+        {!memberIds.length && <div className="mt-2 text-caption text-ink-secondary">A group needs at least one bot.</div>}
         {saveError && (
-          <div role="alert" className="mt-2 text-[12px] text-danger">
+          <div role="alert" className="mt-2 text-caption text-danger">
             {saveError}
           </div>
         )}
         <div className="mt-3 flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-lg bg-raised py-2 text-[14px] font-medium text-ink hover:brightness-110"
+            className="flex-1 rounded-lg bg-raised py-2 text-body-sm font-medium text-ink hover:brightness-110"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={!memberIds.length}
-            className="flex-1 rounded-lg bg-accent py-2 text-[14px] font-medium text-white hover:brightness-110 disabled:opacity-40"
+            className="flex-1 rounded-lg bg-accent py-2 text-body-sm font-medium text-white hover:brightness-110 disabled:opacity-40"
           >
             Save{memberIds.length ? ` · ${memberIds.length} ${memberIds.length === 1 ? "bot" : "bots"}` : ""}
           </button>

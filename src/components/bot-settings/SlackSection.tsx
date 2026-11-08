@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n";
 
 export function SlackSection({ managementUrl }: { managementUrl: string }) {
   return (
-    <div className="flex flex-col gap-3 text-[13px] leading-relaxed text-ink-secondary">
+    <div className="flex flex-col gap-3 text-small leading-relaxed text-ink-secondary">
       <p>{t("botSlack.body")}</p>
       <a
         href={managementUrl}

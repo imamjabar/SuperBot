@@ -7,7 +7,7 @@ export function OpenSystemSettings({ pane }: { pane: "mic" | "speech" }) {
   if (typeof open !== "function") return null;
   return (
     <button type="button" data-open-system-settings={pane} onClick={() => void open(pane).catch(() => {})}
-      className="shrink-0 rounded text-[13px] text-ink-secondary transition-colors hover:text-ink">
+      className="shrink-0 rounded text-small text-ink-secondary transition-colors hover:text-ink">
       {t("permissions.openSystemSettings")}
     </button>
   );

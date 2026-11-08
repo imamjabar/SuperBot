@@ -27,7 +27,7 @@ export function WindowFrameRow() {
     <SettingRow title={t("settings.windowFrame.title")} subtitle={t("settings.windowFrame.subtitle")}>
       <Switch checked={state.on} aria-label={t("settings.windowFrame.title")} onClick={toggle} />
     </SettingRow>
-    {state.restart && <div role="status" data-window-frame-restart className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pb-3 text-[13px] text-ink-secondary">
+    {state.restart && <div role="status" data-window-frame-restart className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pb-3 text-small text-ink-secondary">
       <span>{t("settings.windowFrame.restart", { app: productName() })}</span>
       {relaunch && <button type="button" className="ui-button" onClick={() => void relaunch().catch(() => {})}>{t("settings.windowFrame.restartNow")}</button>}
     </div>}

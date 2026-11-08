@@ -6,7 +6,7 @@ import { productName } from "../lib/brand";
 import { NoticeToast } from "./NoticeCard";
 
 const primaryAction =
-  "flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent py-1.5 text-[13px] font-medium text-white transition-colors disabled:cursor-default disabled:bg-control disabled:text-ink-secondary";
+  "flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent py-1.5 text-small font-medium text-white transition-colors disabled:cursor-default disabled:bg-control disabled:text-ink-secondary";
 
 // electron-updater surfaces failures as a whole HTTP dump (status line, every header, stack trace).
 function friendlyError(message?: string): string {
@@ -100,8 +100,8 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
           <Sparkles size={14} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-semibold text-ink">{title}</div>
-          <div className="mt-0.5 text-[13px] text-ink-secondary" title={subtitle}>
+          <div className="text-body-sm font-semibold text-ink">{title}</div>
+          <div className="mt-0.5 text-small text-ink-secondary" title={subtitle}>
             {subtitle}
           </div>
         </div>
@@ -117,7 +117,7 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
       </div>
 
       {s.status === "handed-off" && s.command && (
-        <code className="mt-2.5 block overflow-x-auto rounded-lg bg-control px-2 py-1.5 font-mono text-[12px] whitespace-pre text-ink-secondary">
+        <code className="mt-2.5 block overflow-x-auto rounded-lg bg-control px-2 py-1.5 font-mono text-caption whitespace-pre text-ink-secondary">
           {s.command}
         </code>
       )}
@@ -126,7 +126,7 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
         <div className="mt-2.5 flex gap-2">
           <button
             disabled
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-control py-1.5 text-[13px] font-medium text-ink-secondary"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-control py-1.5 text-small font-medium text-ink-secondary"
           >
             <Loader2 size={13} className="animate-spin" /> {handoff ? "Opening…" : "Restarting…"}
           </button>
@@ -166,7 +166,7 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
                 void updater.check();
               }}
               disabled={pending !== null}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-control py-1.5 text-[13px] text-ink hover:bg-raised-hover disabled:text-ink-secondary disabled:hover:bg-control"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-control py-1.5 text-small text-ink hover:bg-raised-hover disabled:text-ink-secondary disabled:hover:bg-control"
             >
               {pending === "check" ? (
                 <>
@@ -180,7 +180,7 @@ export function UpdateBanner({ sidebarIndicator = false }: UpdateBannerProps) {
           <button
             onClick={() => setDismissed(key)}
             disabled={pending !== null}
-            className="rounded-lg px-3 py-1.5 text-[13px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50 disabled:hover:bg-transparent"
+            className="rounded-lg px-3 py-1.5 text-small text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50 disabled:hover:bg-transparent"
           >
             {s.status === "handed-off" || s.retryable === false ? "Dismiss" : "Later"}
           </button>

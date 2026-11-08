@@ -40,7 +40,7 @@ export function CalendarSidebar({ bots, anchor, onSelectDate }: CalendarSidebarP
 
       <section aria-labelledby="calendar-bots-heading" className="flex min-h-0 flex-1 flex-col px-3 pb-3 pt-3">
         <div className="mb-2 flex items-center justify-between px-1">
-          <div id="calendar-bots-heading" className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-ink-secondary">
+          <div id="calendar-bots-heading" className="flex items-center gap-2 text-micro font-semibold uppercase tracking-[0.11em] text-ink-secondary">
             <UsersRound size={13} aria-hidden="true" />
             {t("routines.sidebar.myBots")}
           </div>
@@ -61,7 +61,7 @@ export function CalendarSidebar({ bots, anchor, onSelectDate }: CalendarSidebarP
             onChange={(event) => setQuery(event.target.value)}
             type="search"
             placeholder={t("routines.sidebar.searchBots")}
-            className="h-8 w-full rounded-lg border border-hairline/45 bg-control/55 pl-8 pr-2.5 text-[12px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent/60 focus:bg-control"
+            className="h-8 w-full rounded-lg border border-hairline/45 bg-control/55 pl-8 pr-2.5 text-caption text-ink outline-none placeholder:text-ink-tertiary focus:border-accent/60 focus:bg-control"
           />
         </label>
 
@@ -83,7 +83,7 @@ export function CalendarSidebar({ bots, anchor, onSelectDate }: CalendarSidebarP
               />
               <BotAvatar bot={bot} size={27} animated={false} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[12px] font-medium text-ink">{bot.name}</div>
+                <div className="truncate text-caption font-medium text-ink">{bot.name}</div>
                 <div className="truncate text-[10px] text-ink-tertiary">
                   {bot.title || "BotAgent"}
                 </div>
@@ -95,7 +95,7 @@ export function CalendarSidebar({ bots, anchor, onSelectDate }: CalendarSidebarP
           ))}
 
           {filteredBots.length === 0 && (
-            <div className="px-3 py-8 text-center text-[11px] leading-relaxed text-ink-secondary">
+            <div className="px-3 py-8 text-center text-micro leading-relaxed text-ink-secondary">
               {bots.length === 0 ? t("routines.sidebar.noBots") : t("routines.sidebar.noMatch")}
             </div>
           )}

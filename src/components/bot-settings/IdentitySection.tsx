@@ -45,7 +45,7 @@ export function IdentitySection({
 
       {shows("name") && <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <label htmlFor={`bot-name-${bot.id}`} className="text-[13px] text-ink-secondary">{t("botSettings.identity.name")}</label>
+          <label htmlFor={`bot-name-${bot.id}`} className="text-small text-ink-secondary">{t("botSettings.identity.name")}</label>
           {draft && <div className="flex flex-wrap gap-1">
             {(["female", "male"] as const).map(kind => <button
               key={kind}
@@ -77,13 +77,13 @@ export function IdentitySection({
       </Field>}
       {shows("blurb") && <div className="block">
         <div className="mb-1.5 flex items-center justify-between gap-3">
-          <label htmlFor={`bot-instructions-${bot.id}`} className="text-[13px] text-ink-secondary">
+          <label htmlFor={`bot-instructions-${bot.id}`} className="text-small text-ink-secondary">
             {t("botSettings.identity.blurb")}
           </label>
           <button
             type="button"
             onClick={() => setInstructionsOpen(true)}
-            className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[12px] font-medium text-accent-text hover:bg-accent/10"
+            className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-caption font-medium text-accent-text hover:bg-accent/10"
           >
             <BookOpen size={12} /> {t("botSettings.identity.viewFull")}
           </button>
@@ -98,7 +98,7 @@ export function IdentitySection({
           value={bot.description}
           onChange={(e) => patch({ description: e.target.value })}
         />
-        <div className="mt-1.5 flex items-start justify-between gap-3 text-[11px] text-ink-secondary">
+        <div className="mt-1.5 flex items-start justify-between gap-3 text-micro text-ink-secondary">
           <span>{t("botSettings.identity.blurbHelp")}</span>
           {bot.description.length > 3_000 && (
             <span className="shrink-0 tabular-nums">

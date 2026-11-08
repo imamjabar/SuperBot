@@ -145,7 +145,7 @@ describe("remembering exact command approvals", () => {
       expect(name).toContain("focus-visible:ring-2");
       expect(name).toContain("min-h-9");
       expect(name).toContain("pointer-coarse:min-h-11");
-      expect(name).toContain("text-[14px] font-medium");
+      expect(name).toContain("text-body-sm font-medium");
     }
     const [always, deny, allow] = classes;
     expect(always).toContain("text-ink-secondary");

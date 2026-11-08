@@ -42,7 +42,7 @@ describe("VerifyCard", () => {
   });
 
   it("explains under Save that it fills the message instead of sending", () => {
-    expect(render()).toMatch(new RegExp(`${t("chat.verify.save")}</button><span class="text-\\[12px\\] text-ink-secondary">${t("chat.verify.saveHint")}</span>`));
+    expect(render()).toMatch(new RegExp(`${t("chat.verify.save")}</button><span class="text-caption text-ink-secondary">${t("chat.verify.saveHint")}</span>`));
   });
 
   it("announces the summary and makes the step list reachable by keyboard", () => {

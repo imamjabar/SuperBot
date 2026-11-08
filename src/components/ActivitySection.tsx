@@ -9,13 +9,13 @@ import type { LocaleKey } from "@/locales";
 import { Select } from "./Select";
 import { Card } from "./SettingsPrimitives";
 
-const inputClass = "rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none [color-scheme:dark]";
+const inputClass = "rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small text-ink placeholder:text-ink-secondary focus:outline-none [color-scheme:dark]";
 
 export function ActivityRow({ entry }: { entry: ActivityEntry }) {
   const [open, setOpen] = useState(false);
   const detail = entry.type === "admin" && (entry.changed?.length || entry.before || entry.after);
   return (
-    <li className="border-b border-hairline/20 py-2 text-[13px]" data-activity-entry={entry.type}>
+    <li className="border-b border-hairline/20 py-2 text-small" data-activity-entry={entry.type}>
       <div className="grid grid-cols-[auto_1fr] items-start gap-x-3">
         <time className="whitespace-nowrap tabular-nums text-ink-secondary" dateTime={entry.at}>{new Date(entry.at).toLocaleString()}</time>
         <div className="min-w-0">
@@ -23,15 +23,15 @@ export function ActivityRow({ entry }: { entry: ActivityEntry }) {
             <span className="font-medium text-ink">{whoLabel(entry.who)}</span>
             <span className="min-w-0 break-words text-ink">{describeEntry(entry)}</span>
           </div>
-          {entry.type === "approval" && entry.summary && <div className="mt-0.5 truncate text-[12px] text-ink-secondary">{entry.summary}</div>}
+          {entry.type === "approval" && entry.summary && <div className="mt-0.5 truncate text-caption text-ink-secondary">{entry.summary}</div>}
           {detail && (
-            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="cursor-pointer mt-0.5 flex items-center gap-1 text-[12px] text-ink-secondary hover:text-ink">
+            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="cursor-pointer mt-0.5 flex items-center gap-1 text-caption text-ink-secondary hover:text-ink">
               <ChevronRight size={12} className={cn("transition-transform", open && "rotate-90")} />
               {t("activity.changed", { paths: (entry.changed ?? []).join(", ") || "—" })}
             </button>
           )}
           {detail && open && entry.type === "admin" && (
-            <dl className="mt-1 grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-0.5 rounded-lg bg-inset p-2 text-[12px]">
+            <dl className="mt-1 grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-0.5 rounded-lg bg-inset p-2 text-caption">
               <dt />
               <dd className="text-ink-secondary">{t("activity.before")}</dd>
               <dd className="text-ink-secondary">{t("activity.after")}</dd>
@@ -83,21 +83,21 @@ export function ActivitySection() {
   return (
     <Card title={t("activity.title")} subtitle={t("activity.subtitle", { days: String(days ?? 180) })}>
       <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+        <label className="flex flex-col gap-1 text-caption text-ink-secondary">
           {t("activity.who")}
           <input value={filters.who} onChange={(e) => set({ who: e.target.value })} placeholder={t("activity.whoPlaceholder")} className={cn(inputClass, "w-44")} />
         </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+        <label className="flex flex-col gap-1 text-caption text-ink-secondary">
           {t("activity.what")}
           <Select value={filters.what} onChange={(e) => set({ what: e.target.value as ActivityWhat })}>
             {ACTIVITY_WHATS.map((what) => <option key={what} value={what}>{t(`activity.what.${what}` as LocaleKey)}</option>)}
           </Select>
         </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+        <label className="flex flex-col gap-1 text-caption text-ink-secondary">
           {t("activity.from")}
           <input type="date" value={filters.from} max={filters.to || undefined} onChange={(e) => set({ from: e.target.value })} className={inputClass} />
         </label>
-        <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+        <label className="flex flex-col gap-1 text-caption text-ink-secondary">
           {t("activity.to")}
           <input type="date" value={filters.to} min={filters.from || undefined} onChange={(e) => set({ to: e.target.value })} className={inputClass} />
         </label>
@@ -108,14 +108,14 @@ export function ActivitySection() {
           <Download size={13} aria-hidden="true" />{t("activity.export")}
         </a>
       </div>
-      {error && <p role="alert" className="mt-3 text-[13px] text-danger">{t("activity.error", { message: error })}</p>}
-      {!error && entries.length === 0 && !loading && <p className="mt-4 text-[13px] text-ink-secondary">{t("activity.empty")}</p>}
+      {error && <p role="alert" className="mt-3 text-small text-danger">{t("activity.error", { message: error })}</p>}
+      {!error && entries.length === 0 && !loading && <p className="mt-4 text-small text-ink-secondary">{t("activity.empty")}</p>}
       {entries.length > 0 && (
         <ul className="mt-3 flex flex-col">
           {entries.map((entry, index) => <ActivityRow key={`${entry.at}-${index}`} entry={entry} />)}
         </ul>
       )}
-      {total > entries.length && <p className="mt-3 text-[12px] text-ink-secondary">{t("activity.more", { shown: String(entries.length), total: String(total) })}</p>}
+      {total > entries.length && <p className="mt-3 text-caption text-ink-secondary">{t("activity.more", { shown: String(entries.length), total: String(total) })}</p>}
     </Card>
   );
 }

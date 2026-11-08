@@ -38,9 +38,9 @@ export function TeamSettingsRows({ rows }: { rows: ReadonlyArray<TeamPlanRow | T
             : row.status === "unchanged" ? [t("teamSettings.row.unchanged"), "text-ink-secondary"]
               : [t("teamSettings.row.skipped", { reason: row.reason }), "text-warning"];
         return (
-          <li key={row.bot.id} className="flex items-start justify-between gap-3 rounded-lg bg-inset px-3 py-1.5 text-[13px]">
+          <li key={row.bot.id} className="flex items-start justify-between gap-3 rounded-lg bg-inset px-3 py-1.5 text-small">
             <span className="min-w-0 truncate text-ink">{row.bot.name}</span>
-            <span className={cn("max-w-[65%] text-right text-[12px]", tone)}>{label}</span>
+            <span className={cn("max-w-[65%] text-right text-caption", tone)}>{label}</span>
           </li>
         );
       })}
@@ -97,7 +97,7 @@ export function TeamSettingsDialog({ team, onClose }: { team: string; onClose: (
   };
   const close = () => { if (!running) onClose(); };
   const counts = results ? teamResultCounts(results) : null;
-  const tabClass = (active: boolean) => cn("flex-1 rounded-md px-2.5 py-1.5 text-[13px] font-medium",
+  const tabClass = (active: boolean) => cn("flex-1 rounded-md px-2.5 py-1.5 text-small font-medium",
     active ? "bg-raised text-ink" : "text-ink-secondary hover:text-ink");
 
   return createPortal(
@@ -113,17 +113,17 @@ export function TeamSettingsDialog({ team, onClose }: { team: string; onClose: (
         </div>
         {results && counts ? (
           <>
-            <p role="status" className="mb-3 text-[13px] text-ink-secondary">
+            <p role="status" className="mb-3 text-small text-ink-secondary">
               {t("teamSettings.summary", { applied: counts.applied, unchanged: counts.unchanged, skipped: counts.skipped })}
             </p>
             <TeamSettingsRows rows={results} />
             <div className="mt-4 flex justify-end">
-              <button type="button" onClick={onClose} className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white">{t("teamSettings.done")}</button>
+              <button type="button" onClick={onClose} className="rounded-lg bg-accent px-4 py-2 text-small font-medium text-white">{t("teamSettings.done")}</button>
             </div>
           </>
         ) : (
           <>
-            <p className="mb-3 text-[13px] leading-relaxed text-ink-secondary">{t("teamSettings.intro", { count: bots.length })}</p>
+            <p className="mb-3 text-small leading-relaxed text-ink-secondary">{t("teamSettings.intro", { count: bots.length })}</p>
             <div className="mb-3 flex gap-1 rounded-lg bg-inset p-0.5" role="tablist">
               <button type="button" role="tab" aria-selected={tab === "approval"} disabled={running} className={tabClass(tab === "approval")} onClick={() => setTab("approval")}>{t("teamSettings.tab.approval")}</button>
               <button type="button" role="tab" aria-selected={tab === "model"} disabled={running} className={tabClass(tab === "model")} onClick={() => setTab("model")}>{t("teamSettings.tab.model")}</button>
@@ -136,42 +136,42 @@ export function TeamSettingsDialog({ team, onClose }: { team: string; onClose: (
                     <input type="radio" name="team-approval" className="mt-1" checked={mode === option.mode}
                       onChange={() => setMode(option.mode as TeamApprovalMode)} />
                     <span>
-                      <span className="block text-[14px] text-ink">{option.label}</span>
-                      <span className="block text-[12px] text-ink-secondary">{option.description}</span>
+                      <span className="block text-body-sm text-ink">{option.label}</span>
+                      <span className="block text-caption text-ink-secondary">{option.description}</span>
                     </span>
                   </label>
                 ))}
-                <p className="mt-1 text-[12px] text-ink-secondary">{t("teamSettings.allThreads")} {t("teamSettings.customPerBot")}</p>
+                <p className="mt-1 text-caption text-ink-secondary">{t("teamSettings.allThreads")} {t("teamSettings.customPerBot")}</p>
               </fieldset>
             ) : (
               <fieldset disabled={running} className="flex flex-col gap-3">
-                <label className="text-[13px] text-ink-secondary">{t("teamSettings.model")}
+                <label className="text-small text-ink-secondary">{t("teamSettings.model")}
                   <Select className="mt-1 w-full" aria-label={t("teamSettings.model")} value={model} onChange={(event) => setModel(event.target.value)}>
                     <option value={KEEP}>{t("teamSettings.keepModel")}</option>
                     {models.map((choice) => <option key={choice.id} value={choice.id}>{`${choice.label} · ${choice.engines.join(", ")}`}</option>)}
                   </Select>
                 </label>
-                <label className="text-[13px] text-ink-secondary">{t("teamSettings.effort")}
+                <label className="text-small text-ink-secondary">{t("teamSettings.effort")}
                   <Select className="mt-1 w-full" aria-label={t("teamSettings.effort")} value={effort} onChange={(event) => setEffort(event.target.value)}>
                     <option value={KEEP}>{t("teamSettings.keepEffort")}</option>
                     <option value={ENGINE_DEFAULT}>{t("teamSettings.engineDefaultEffort")}</option>
                     {efforts.map((level) => <option key={level} value={level}>{effortLabel(level)}</option>)}
                   </Select>
                 </label>
-                <p className="text-[12px] text-ink-secondary">{t("teamSettings.threadModels")}</p>
+                <p className="text-caption text-ink-secondary">{t("teamSettings.threadModels")}</p>
               </fieldset>
             )}
             {change && (
               <div className="mt-4">
-                <div className="mb-1 text-[12px] font-medium text-ink-secondary">{t("teamSettings.preview")}</div>
+                <div className="mb-1 text-caption font-medium text-ink-secondary">{t("teamSettings.preview")}</div>
                 <TeamSettingsRows rows={plan} />
               </div>
             )}
             <div className="mt-4 flex items-center justify-end gap-2">
-              {running && <span role="status" className="mr-auto text-[12px] text-ink-secondary">{t("teamSettings.progress", { done: progress, count: plan.length })}</span>}
-              <button type="button" disabled={running} onClick={close} className="rounded-lg px-3 py-2 text-[13px] text-ink-secondary hover:bg-raised">{t("common.cancel")}</button>
+              {running && <span role="status" className="mr-auto text-caption text-ink-secondary">{t("teamSettings.progress", { done: progress, count: plan.length })}</span>}
+              <button type="button" disabled={running} onClick={close} className="rounded-lg px-3 py-2 text-small text-ink-secondary hover:bg-raised">{t("common.cancel")}</button>
               <button type="button" disabled={running || !applying} onClick={apply}
-                className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40">
+                className="rounded-lg bg-accent px-4 py-2 text-small font-medium text-white disabled:opacity-40">
                 {t(applying === 1 ? "teamSettings.applyOne" : "teamSettings.applyMany", { count: applying })}
               </button>
             </div>

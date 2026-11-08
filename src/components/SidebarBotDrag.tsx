@@ -182,7 +182,7 @@ export function useSidebarBotDrag({ dispatch, announce, onNamed, onRenamed, onEr
           },
         }),
         slot: active !== null && mainIds.length === 0 && botListOf(lists, active) !== ""
-          ? <div data-bot-drop-slot="" className={cn("mx-2 flex h-10 items-center justify-center rounded-[10px] border border-dashed text-[13px] leading-[18px]",
+          ? <div data-bot-drop-slot="" className={cn("mx-2 flex h-10 items-center justify-center rounded-[10px] border border-dashed text-small leading-[18px]",
             shown?.kind === "end" && shown.list === "" ? "border-accent bg-accent/10 text-ink" : "border-ink/20 text-ink-secondary")}>{t("sidebar.section.removeFromDepartment")}</div>
           : null,
         naming: (name: string | null): SectionNaming | undefined => {

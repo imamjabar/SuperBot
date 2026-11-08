@@ -30,7 +30,7 @@ function ItemRow({ item }: { item: SidebarMenuItem }) {
       <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-ink/[0.05] text-ink-secondary [&_svg]:size-[15px]" aria-hidden="true">
         {item.icon}
       </span>
-      <span className={cn("min-w-0 flex-1 truncate text-[14px] font-medium", item.active ? "text-accent-text" : "text-ink")}>{item.label}</span>
+      <span className={cn("min-w-0 flex-1 truncate text-body-sm font-medium", item.active ? "text-accent-text" : "text-ink")}>{item.label}</span>
       {item.trailing && <span className="flex shrink-0 items-center">{item.trailing}</span>}
     </button>
   );
@@ -61,13 +61,13 @@ export function DetailsTab({ bot, derived, onOpen }: {
       <BotConversations bot={bot} />
 
       {derived.botRoutines.length === 0 ? (
-        <div data-panel-empty="routines" className="px-3 py-7 text-center text-[13px] leading-[18px] text-ink-tertiary">
+        <div data-panel-empty="routines" className="px-3 py-7 text-center text-small leading-[18px] text-ink-tertiary">
           <p>{t("botPanel.routines.empty")}</p>
           <button
             type="button"
             data-panel-page="routines"
             onClick={() => onOpen("routines")}
-            className="mt-1.5 rounded-md px-1.5 py-0.5 text-[13px] font-medium text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
+            className="mt-1.5 rounded-md px-1.5 py-0.5 text-small font-medium text-ink-secondary hover:bg-ink/[0.04] hover:text-ink"
           >
             {t("botPanel.routines.add")}
           </button>

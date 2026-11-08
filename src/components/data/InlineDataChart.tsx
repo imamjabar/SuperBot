@@ -42,7 +42,7 @@ export function InlineDataChart({ botId, cardId, title }: { botId: string; cardI
     <div role="img" aria-label={title} data-testid="inline-data-chart" className="flex h-[280px] flex-col border-t border-hairline/40 px-2 pt-1 pb-2">
       {card?.status === "ready" && card.vegaLite
         ? <DataChart botId={botId} cardId={card.id} spec={card.vegaLite} rowCount={card.rowCount} theme={theme} revision={card.result ?? card.updatedAt} inline />
-        : <div className="flex flex-1 items-center justify-center gap-2 text-[12px] text-ink-secondary" role="status">
+        : <div className="flex flex-1 items-center justify-center gap-2 text-caption text-ink-secondary" role="status">
             <Loader2 size={14} className="animate-spin" aria-hidden="true" />{t("data.chart.loading")}
           </div>}
     </div>

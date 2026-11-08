@@ -17,7 +17,7 @@ export const bugReportFixedText = (report: BugReportStatus): string | null =>
 export function BugReportNote({ report }: { report: BugReportStatus }) {
   const label = bugReportStatusText(report);
   return (
-    <span data-bug-report={report.status} className="mt-1 flex min-w-0 items-center gap-1 text-[11px] text-ink-tertiary" title={label}>
+    <span data-bug-report={report.status} className="mt-1 flex min-w-0 items-center gap-1 text-micro text-ink-tertiary" title={label}>
       <Bug aria-hidden="true" size={11} className="shrink-0" />
       <bdi dir="auto" className="min-w-0 truncate">{label}</bdi>
     </span>

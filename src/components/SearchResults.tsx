@@ -50,11 +50,11 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
 
   return (
     <div className="mt-2 border-t border-hairline/40 pt-2">
-      <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-ink-secondary">
+      <div className="px-3 pb-1 text-micro font-medium uppercase tracking-wide text-ink-secondary">
         Messages{hits ? ` · ${hits.length}${hits.length === 40 ? "+" : ""}` : ""}
       </div>
-      {error && <div className="px-3 py-2 text-[13px] text-danger">couldn't search: {error}</div>}
-      {hits && hits.length === 0 && !error && <div className="px-3 py-3 text-[13px] text-ink-secondary">No messages match “{q}”</div>}
+      {error && <div className="px-3 py-2 text-small text-danger">couldn't search: {error}</div>}
+      {hits && hits.length === 0 && !error && <div className="px-3 py-3 text-small text-ink-secondary">No messages match “{q}”</div>}
       {hits?.map((hit) => {
         const bot = hit.botId ? state.bots.find((b) => b.id === hit.botId) : undefined;
         const before = hit.snippet.slice(0, hit.matchStart);
@@ -69,22 +69,22 @@ export function SearchResults({ query, onLanded }: { query: string; onLanded: ()
             {bot ? (
               <BotAvatar bot={bot} state="idle" size={26} animated={false} />
             ) : (
-              <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-raised text-[11px] text-ink-secondary">#</span>
+              <span className="flex size-[26px] shrink-0 items-center justify-center rounded-full bg-raised text-micro text-ink-secondary">#</span>
             )}
             <span className="min-w-0 flex-1">
-              <span className="flex items-baseline gap-1.5 text-[12px] text-ink-secondary">
+              <span className="flex items-baseline gap-1.5 text-caption text-ink-secondary">
                 <span className="truncate font-medium text-ink">{hit.from ?? hit.name}</span>
                 {hit.task ? <span className="truncate">· {hit.task}</span> : null}
                 <span className="ml-auto shrink-0 tabular-nums">{formatTime(hit.at)}</span>
               </span>
-              <span dir="auto" className={cn("mt-0.5 line-clamp-2 text-[13px] leading-snug", hit.role === "user" ? "text-ink" : "text-ink-secondary")}>
+              <span dir="auto" className={cn("mt-0.5 line-clamp-2 text-small leading-snug", hit.role === "user" ? "text-ink" : "text-ink-secondary")}>
                 {hit.kind === "activity" && <Wrench size={11} className="mr-1 inline text-ink-secondary" />}
                 {before}
                 <mark className="rounded-sm bg-accent/25 px-0.5 text-ink">{match}</mark>
                 {after}
               </span>
               {!hit.onActivePath && (
-                <span className="mt-0.5 flex items-center gap-1 text-[11px] text-ink-secondary">
+                <span className="mt-0.5 flex items-center gap-1 text-micro text-ink-secondary">
                   <GitBranch size={10} /> other version
                 </span>
               )}

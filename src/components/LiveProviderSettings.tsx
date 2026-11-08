@@ -7,7 +7,7 @@ import { Select } from "./Select";
 
 type ProviderPatch = Partial<Pick<LiveSettings, "provider" | "azureEndpoint" | "azureDeployment">>;
 
-const FIELD = "w-full rounded-lg border border-hairline bg-inset px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-accent/60";
+const FIELD = "w-full rounded-lg border border-hairline bg-inset px-2.5 py-1.5 text-small text-ink outline-none focus:border-accent/60";
 
 export function LiveProviderSettings() {
   const { state, dispatch } = useStore();
@@ -35,7 +35,7 @@ export function LiveProviderSettings() {
   return (
     <div className="flex flex-col gap-2">
       <label className="flex items-center justify-between gap-2">
-        <span className="text-[13px] text-ink-secondary">{t("call.live.provider")}</span>
+        <span className="text-small text-ink-secondary">{t("call.live.provider")}</span>
         <Select
           size="sm"
           value={provider}
@@ -55,7 +55,7 @@ export function LiveProviderSettings() {
           }}
         >
           <label className="flex flex-col gap-1">
-            <span className="text-[12px] text-ink-secondary">{t("call.live.azureEndpoint")}</span>
+            <span className="text-caption text-ink-secondary">{t("call.live.azureEndpoint")}</span>
             <input
               type="url"
               inputMode="url"
@@ -68,7 +68,7 @@ export function LiveProviderSettings() {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[12px] text-ink-secondary">{t("call.live.azureDeployment")}</span>
+            <span className="text-caption text-ink-secondary">{t("call.live.azureDeployment")}</span>
             <input
               type="text"
               autoComplete="off"
@@ -79,19 +79,19 @@ export function LiveProviderSettings() {
               className={FIELD}
             />
           </label>
-          <div className="text-[12px] text-ink-tertiary">{t("call.live.azureHint")}</div>
+          <div className="text-caption text-ink-tertiary">{t("call.live.azureHint")}</div>
           {azureChanged && (
             <button
               type="submit"
               disabled={saving}
-              className="self-start rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-50"
+              className="self-start rounded-lg bg-accent px-3 py-1.5 text-small font-medium text-white hover:brightness-110 disabled:opacity-50"
             >
               {t("common.save")}
             </button>
           )}
         </form>
       )}
-      {error && <div className="text-[12px] text-danger">{error}</div>}
+      {error && <div className="text-caption text-danger">{error}</div>}
     </div>
   );
 }

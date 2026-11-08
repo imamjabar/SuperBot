@@ -29,7 +29,7 @@ export function PromptPreview({
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-3 text-left"
       >
-        <span className="text-[15px] font-medium text-ink">
+        <span className="text-body font-medium text-ink">
           {data
             ? t("botOverview.promptPreviewCount", { bytes: data.totalBytes.toLocaleString(), tokens: data.approxTokens.toLocaleString() })
             : t("botOverview.promptPreview")}
@@ -38,25 +38,25 @@ export function PromptPreview({
       </button>
 
       {open && !data && error && (
-        <div className="mt-3 text-[13px] text-ink-secondary">{t("botOverview.promptError")}</div>
+        <div className="mt-3 text-small text-ink-secondary">{t("botOverview.promptError")}</div>
       )}
 
-      {open && !data && !error && <div className="mt-3 text-[13px] text-ink-secondary">{t("botOverview.loading")}</div>}
+      {open && !data && !error && <div className="mt-3 text-small text-ink-secondary">{t("botOverview.loading")}</div>}
 
       {open && data && (
         <div className="mt-3 flex flex-col gap-2">
           {data.sections.map((section) => (
             <details key={section.id} className="rounded-lg border border-hairline/40 bg-inset px-3 py-2">
-              <summary className="flex cursor-pointer items-center justify-between gap-3 text-[13px] text-ink">
+              <summary className="flex cursor-pointer items-center justify-between gap-3 text-small text-ink">
                 <span>{section.label}</span>
                 <span className="shrink-0 tabular-nums text-ink-secondary">{t("botOverview.bytes", { count: section.bytes.toLocaleString() })}</span>
               </summary>
-              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink">
+              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-caption leading-relaxed text-ink">
                 {section.text}
               </pre>
             </details>
           ))}
-          {data.note && <div className="text-[11px] text-ink-secondary">{data.note}</div>}
+          {data.note && <div className="text-micro text-ink-secondary">{data.note}</div>}
         </div>
       )}
     </div>

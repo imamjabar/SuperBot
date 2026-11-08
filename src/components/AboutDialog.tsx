@@ -63,12 +63,12 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         <h2 id="about-dialog-title" className="mt-3 text-[17px] font-semibold text-ink">
           {productName()}
         </h2>
-        <p className="mt-1 text-[13px] text-ink-secondary">{version}</p>
-        {connected && <p className="mt-0.5 text-[13px] text-ink-secondary">{connected}</p>}
-        <p className="mt-3 text-[13px] leading-relaxed text-ink-secondary">
+        <p className="mt-1 text-small text-ink-secondary">{version}</p>
+        {connected && <p className="mt-0.5 text-small text-ink-secondary">{connected}</p>}
+        <p className="mt-3 text-small leading-relaxed text-ink-secondary">
           A desktop home for your agents, built on {APP_NAME}: open source, Apache 2.0 licensed.
         </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-[13px]">
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-small">
           <AboutLink href={APP_REPOSITORY} label="GitHub" />
           <AboutLink href={DOCS_URL} label="Docs" />
           <AboutLink href={RELEASES_URL} label="Releases" />
@@ -78,7 +78,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           ref={closeRef}
           type="button"
           onClick={onClose}
-          className="mt-5 w-full rounded-xl bg-raised px-4 py-2 text-[13px] font-medium text-ink hover:brightness-110"
+          className="mt-5 w-full rounded-xl bg-raised px-4 py-2 text-small font-medium text-ink hover:brightness-110"
         >
           Close
         </button>

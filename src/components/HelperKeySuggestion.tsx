@@ -28,10 +28,10 @@ export function HelperKeySuggestion({ threadId, message }: { threadId?: string; 
   };
 
   return (
-    <div data-setup-suggestion="helperKey" className="max-w-[600px] text-[15px] leading-relaxed text-ink">
+    <div data-setup-suggestion="helperKey" className="max-w-[600px] text-body leading-relaxed text-ink">
       <p dir="auto">{t("chat.helperSuggestion.text")}</p>
       {declined ? (
-        <p dir="auto" className="mt-1 text-[13px] text-ink-secondary">{t("chat.helperSuggestion.declined")}</p>
+        <p dir="auto" className="mt-1 text-small text-ink-secondary">{t("chat.helperSuggestion.declined")}</p>
       ) : (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
@@ -47,7 +47,7 @@ export function HelperKeySuggestion({ threadId, message }: { threadId?: string; 
           </button>
         </div>
       )}
-      {error && <p role="alert" className="mt-1 text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-caption text-danger">{error}</p>}
     </div>
   );
 }

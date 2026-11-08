@@ -96,10 +96,10 @@ export function QueuedComposerMessages({
       aria-live="polite"
     >
       {items.some((item) => item.reason === "group-turn") && (
-        <p className="px-3 pt-2 text-[12px] text-ink-secondary">{t("composer.queued.groupTurn")}</p>
+        <p className="px-3 pt-2 text-caption text-ink-secondary">{t("composer.queued.groupTurn")}</p>
       )}
       {items.some((item) => item.reason === "capacity") && (
-        <p className="px-3 pt-2 text-[12px] text-ink-secondary">
+        <p className="px-3 pt-2 text-caption text-ink-secondary">
           {t(oneThreadPerBot ? "composer.queued.capacityStarter" : "composer.queued.capacity")}
           {oneThreadPerBot && onSeePlans && <>{" "}<button type="button" className="underline" onClick={onSeePlans}>{t("composer.queued.seePlans")}</button></>}
         </p>
@@ -114,7 +114,7 @@ export function QueuedComposerMessages({
               className="shrink-0 text-ink-secondary"
               aria-hidden="true"
             />
-            <span dir="auto" className="min-w-0 flex-1 truncate text-[14px] text-ink" title={label}>
+            <span dir="auto" className="min-w-0 flex-1 truncate text-body-sm text-ink" title={label}>
               {label}
             </span>
             {index === 0 && onSteer && (
@@ -124,7 +124,7 @@ export function QueuedComposerMessages({
                 disabled={steering}
                 aria-label={steering ? t("composer.queued.steeringAria") : steerDescription}
                 title={steerDescription}
-                className="flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-ink-secondary outline-none hover:bg-raised-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/60 disabled:cursor-wait disabled:opacity-60"
+                className="flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-small font-medium text-ink-secondary outline-none hover:bg-raised-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/60 disabled:cursor-wait disabled:opacity-60"
               >
                 <CornerDownRight
                   size={13}

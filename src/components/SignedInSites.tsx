@@ -39,17 +39,17 @@ export function SignedInSites({ target, scope = {}, sharedBy, disabled = false, 
   }, [bare, key]);
 
   const locked = disabled || busy;
-  const buttonClass = "flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50";
+  const buttonClass = "flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-caption text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50";
   const list = (
       <div className={bare ? "flex min-w-0 flex-col gap-2" : "mt-2 flex flex-col gap-2"} aria-busy={busy}>
-        {sharedBy.length > 1 && <p className="text-[11px] leading-relaxed text-ink-secondary">{t("settings.sites.shared", { names: sharedBy.join(", ") })}</p>}
-        {sites === null && !error && <p className="text-[12px] text-ink-secondary">{t("settings.sites.loading")}</p>}
-        {sites?.length === 0 && <p className="text-[12px] text-ink-secondary">{t("settings.sites.none")}</p>}
+        {sharedBy.length > 1 && <p className="text-micro leading-relaxed text-ink-secondary">{t("settings.sites.shared", { names: sharedBy.join(", ") })}</p>}
+        {sites === null && !error && <p className="text-caption text-ink-secondary">{t("settings.sites.loading")}</p>}
+        {sites?.length === 0 && <p className="text-caption text-ink-secondary">{t("settings.sites.none")}</p>}
         {!!sites?.length && (
           <ul className="divide-y divide-hairline/30">
             {sites.map((entry) => (
               <li key={entry.site} className="flex min-w-0 items-center gap-2 py-1.5">
-                <span className="min-w-0 flex-1 truncate text-[13px] text-ink" title={entry.site}>{entry.site}</span>
+                <span className="min-w-0 flex-1 truncate text-small text-ink" title={entry.site}>{entry.site}</span>
                 <button type="button" disabled={locked} onClick={() => void signOut(entry.site)} aria-label={t("settings.sites.signOutOf", { site: entry.site })} className={buttonClass}>
                   <LogOut size={13} />{t("settings.sites.signOut")}
                 </button>
@@ -62,13 +62,13 @@ export function SignedInSites({ target, scope = {}, sharedBy, disabled = false, 
             <LogOut size={13} />{t("settings.sites.signOutAll")}
           </button>
         )}
-        {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}
+        {error && <p role="alert" className="text-caption text-danger">{error}</p>}
       </div>
   );
   if (bare) return list;
   return (
     <details className="min-w-0" onToggle={(event) => { if (event.currentTarget.open && !busy) void load(); }}>
-      <summary className="cursor-pointer text-[12px] font-medium text-ink-secondary hover:text-ink">{t("settings.sites.title")}</summary>
+      <summary className="cursor-pointer text-caption font-medium text-ink-secondary hover:text-ink">{t("settings.sites.title")}</summary>
       {list}
     </details>
   );

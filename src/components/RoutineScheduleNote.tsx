@@ -12,7 +12,7 @@ export function RoutineScheduleNote() {
   const local = localDesktopPage() && window.ogb?.remoteClient?.active !== true;
   const place = schedulePlace({ local });
   return (
-    <p data-routine-schedule-note={place.kind} className="text-[11px] leading-relaxed text-ink-secondary">
+    <p data-routine-schedule-note={place.kind} className="text-micro leading-relaxed text-ink-secondary">
       {place.kind === "server" ? t("routines.scheduleNote.server") : t("routines.scheduleNote.local")}
     </p>
   );

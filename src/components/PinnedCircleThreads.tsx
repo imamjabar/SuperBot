@@ -63,11 +63,11 @@ export function PinnedCircleThreadPanel(props: BotRowProps) {
       <BotThreadList {...props} activityLabel={liveActivityLabel(last)} query={threadListQuery(bot, query)} />
       <div className="flex items-center gap-1 pl-6">
         <button type="button" aria-label={t("task.newShort")} title={t("task.newShort")} onClick={() => dispatch({ type: "newTask", botId: bot.id })}
-          className="inline-flex h-7 items-center gap-1 rounded px-1 text-[13px] font-medium text-ink-secondary outline-none hover:text-ink focus-visible:ring-1 focus-visible:ring-accent/60">
+          className="inline-flex h-7 items-center gap-1 rounded px-1 text-small font-medium text-ink-secondary outline-none hover:text-ink focus-visible:ring-1 focus-visible:ring-accent/60">
           <Plus aria-hidden="true" size={13} />{t("task.newShort")}
         </button>
         <button type="button" aria-label={t("folder.newNamed", { name: bot.name })} title={t("folder.new")} onClick={() => setCreatingProject(true)}
-          className="inline-flex h-7 items-center gap-1 rounded px-1 text-[13px] font-medium text-ink-secondary outline-none hover:text-ink focus-visible:ring-1 focus-visible:ring-accent/60">
+          className="inline-flex h-7 items-center gap-1 rounded px-1 text-small font-medium text-ink-secondary outline-none hover:text-ink focus-visible:ring-1 focus-visible:ring-accent/60">
           <FolderPlus aria-hidden="true" size={13} />{t("folder.new")}
         </button>
       </div>
@@ -250,7 +250,7 @@ export const PinnedBotCircle = memo(function PinnedBotCircle({
             />
           )}
         </span>
-        <span className="w-full truncate text-center text-[11px] leading-4 text-ink">{bot.name}</span>
+        <span className="w-full truncate text-center text-micro leading-4 text-ink">{bot.name}</span>
       </button>
       {/* Same short slot on every circle, so a chevron on only some bots does not shift the row. */}
       {showThreads && density !== "icons" && <div className="flex h-4 w-full items-center justify-center">

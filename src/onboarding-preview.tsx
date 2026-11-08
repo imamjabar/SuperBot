@@ -84,7 +84,7 @@ function Preview() {
   const { width, height } = initial.size;
   return (
     <div className="min-h-screen bg-app p-6 text-ink">
-      <header className="mb-5 flex flex-wrap items-center gap-3 text-[13px] text-ink-secondary">
+      <header className="mb-5 flex flex-wrap items-center gap-3 text-small text-ink-secondary">
         <h1 className="mr-2 text-[18px] font-semibold text-ink">First run</h1>
         <label className="flex items-center gap-1.5">Screen
           <Select size="sm" value={screen} onChange={(e) => { setScreen(e.target.value as BeatId); setRun((r) => r + 1); }}>
@@ -113,7 +113,7 @@ class Crash extends Component<{ children: ReactNode }, { error: Error | null }> 
     return { error };
   }
   render() {
-    return this.state.error ? <pre className="whitespace-pre-wrap p-6 text-[12px] text-danger">{this.state.error.stack}</pre> : this.props.children;
+    return this.state.error ? <pre className="whitespace-pre-wrap p-6 text-caption text-danger">{this.state.error.stack}</pre> : this.props.children;
   }
 }
 

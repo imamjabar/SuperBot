@@ -63,7 +63,7 @@ describe("NewMessagesDivider", () => {
     expect(html).toContain('aria-label="New messages"');
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain(">New<");
-    expect(html).toContain("text-[11px]");
+    expect(html).toContain("text-micro");
     expect(html).toContain("text-accent-text");
     expect(html.match(/h-px flex-1/g)).toHaveLength(2);
     expect(html).toContain("rtl:bg-linear-to-l");

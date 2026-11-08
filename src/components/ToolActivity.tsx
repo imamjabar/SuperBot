@@ -22,7 +22,7 @@ export function ToolActivity({ tool, place = null, live = false, source }: { too
   const label = advanced ? tool.label ?? tool.name : toolStepLabel(tool);
   const status = tool.ok === undefined ? (live ? t("toolDetail.running") : t("toolDetail.unverified")) : failed ? t("toolDetail.failed") : t("toolDetail.completed");
   return (
-    <details onToggle={(event) => setExpanded(event.currentTarget.open)} className="group/tool w-fit max-w-full rounded-xl border border-hairline/40 bg-panel text-[13px] open:w-[min(38rem,100%)]" data-testid="tool-activity">
+    <details onToggle={(event) => setExpanded(event.currentTarget.open)} className="group/tool w-fit max-w-full rounded-xl border border-hairline/40 bg-panel text-small open:w-[min(38rem,100%)]" data-testid="tool-activity">
       <summary
         role="button"
         aria-expanded={expanded}
@@ -36,21 +36,21 @@ export function ToolActivity({ tool, place = null, live = false, source }: { too
         <ChevronRight size={13} className="ml-auto shrink-0 group-open/tool:rotate-90" aria-hidden="true" />
       </summary>
       <div className="space-y-3 border-t border-hairline/40 p-3 text-ink-secondary">
-        <div className={cn("text-[11px] font-medium", failed && "text-danger")}>{status}</div>
+        <div className={cn("text-micro font-medium", failed && "text-danger")}>{status}</div>
         {label !== tool.name && <div>
-          <div className="mb-1 text-[11px] font-medium">{t("toolDetail.tool")}</div>
+          <div className="mb-1 text-micro font-medium">{t("toolDetail.tool")}</div>
           <p dir="ltr" className="break-words font-mono text-xs text-ink" data-testid="tool-name">{tool.name}</p>
         </div>}
         <div>
-          <div className="mb-1 text-[11px] font-medium">{t("toolDetail.input")}</div>
+          <div className="mb-1 text-micro font-medium">{t("toolDetail.input")}</div>
           <pre dir="ltr" className="max-h-52 overflow-auto rounded-lg bg-inset p-2.5 font-mono text-xs whitespace-pre-wrap break-words text-ink">{tool.input ?? tool.summary ?? tool.name}</pre>
         </div>
         <div>
-          <div className="mb-1 text-[11px] font-medium">{t("toolDetail.output")}</div>
+          <div className="mb-1 text-micro font-medium">{t("toolDetail.output")}</div>
           {output ? <pre dir="ltr" className="max-h-64 overflow-auto rounded-lg bg-inset p-2.5 font-mono text-xs whitespace-pre-wrap break-words text-ink">{output}</pre> : <p className="text-xs">{tool.ok === undefined ? (live ? t("toolDetail.waiting") : t("toolDetail.unverified")) : t("toolDetail.noOutput")}</p>}
         </div>
-        {(full.state === "loading" || full.state === "failed") && <p className="text-[11px] text-ink-secondary" role="status">{t(full.state === "loading" ? "toolDetail.loadingFull" : "toolDetail.partial")}</p>}
-        <p className="text-[11px] text-ink-secondary">{t("toolDetail.previewHint")}</p>
+        {(full.state === "loading" || full.state === "failed") && <p className="text-micro text-ink-secondary" role="status">{t(full.state === "loading" ? "toolDetail.loadingFull" : "toolDetail.partial")}</p>}
+        <p className="text-micro text-ink-secondary">{t("toolDetail.previewHint")}</p>
       </div>
     </details>
   );

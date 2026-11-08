@@ -10,7 +10,7 @@ import { InstanceProviderMark } from "../ProviderIcons";
 import { keyEntry, keyForInstance, looksLikeOtherKey, savedState, shownKeyEntry, type KeyEntry, type KeyId, type SavedState } from "./key-catalog";
 import { checkKey, cleanKey, looksLikeKey, saveKey } from "./key-save";
 
-export const KEY_FIELD = "h-8 w-full min-w-0 rounded-lg border border-hairline/60 bg-inset px-3 font-mono text-[13px] leading-8 text-ink placeholder:text-ink-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 disabled:opacity-60";
+export const KEY_FIELD = "h-8 w-full min-w-0 rounded-lg border border-hairline/60 bg-inset px-3 font-mono text-small leading-8 text-ink placeholder:text-ink-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 disabled:opacity-60";
 export const KEY_ROW = "group flex scroll-mt-24 flex-col gap-2 rounded-[10px] px-4 py-2.5 transition-[background-color,box-shadow] duration-500 data-[key-highlight]:bg-accent/10 data-[key-highlight]:ring-1 data-[key-highlight]:ring-accent/40 motion-reduce:transition-none";
 const MASK = "••••••••";
 
@@ -27,7 +27,7 @@ export type KeyStatus = { tone: "busy" | "ok" | "bad"; text: string } | null;
 
 export function KeyStatusChip({ status }: { status: KeyStatus }) {
   return (
-    <span aria-live="polite" className="flex min-h-5 shrink-0 items-center gap-1 text-[12px] leading-5 text-ink-secondary">
+    <span aria-live="polite" className="flex min-h-5 shrink-0 items-center gap-1 text-caption leading-5 text-ink-secondary">
       {status?.tone === "busy" && <Loader2 size={12} aria-hidden="true" className="animate-spin" />}
       {status?.tone === "ok" && <Check size={13} aria-hidden="true" className="text-success" />}
       {status?.tone === "bad" && <CircleAlert size={13} aria-hidden="true" className="text-danger" />}
@@ -52,7 +52,7 @@ export function SavedKeyLine({ id }: { id: KeyId }) {
   if (!saved.configured) return null;
   const label = t(entry.labelKey);
   return (
-    <div data-key-summary={id} className="mt-1 flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-ink-secondary">
+    <div data-key-summary={id} className="mt-1 flex min-w-0 items-center gap-1.5 text-caption leading-4 text-ink-secondary">
       <Check size={13} aria-hidden="true" className="shrink-0 text-success" />
       <span className="shrink-0">{entry.target?.test || entry.target?.verifiedOnSave ? t("keys.connected") : t("common.saved")}</span>
       <span aria-hidden="true" className="truncate font-mono">{MASK}{saved.last4 ?? ""}</span>
@@ -66,8 +66,8 @@ export function RowHeading({ entry, status, titleId }: { entry: KeyEntry; status
     <div className="flex items-start gap-3">
       <span className="flex size-5 shrink-0 items-center justify-center"><KeyMarkIcon entry={entry} /></span>
       <div className="min-w-0 flex-1">
-        <div id={titleId} className="text-[14px] leading-5 text-ink">{t(entry.labelKey)}</div>
-        <div className="text-[13px] leading-[18px] text-ink-secondary">{t(entry.purposeKey)}</div>
+        <div id={titleId} className="text-body-sm leading-5 text-ink">{t(entry.labelKey)}</div>
+        <div className="text-small leading-[18px] text-ink-secondary">{t(entry.purposeKey)}</div>
       </div>
       <KeyStatusChip status={status} />
     </div>
@@ -347,7 +347,7 @@ export function KeyRow({
       <div className={cn("flex flex-col gap-2", !bare && "pl-8")}>
         {editing ? field : masked}
         {(notice || failure || other || warning || installCommand || note || verdict || (editing && target.href) || (!editing && target.test)) && (
-          <div className="flex flex-col gap-1.5 text-[12px] leading-4">
+          <div className="flex flex-col gap-1.5 text-caption leading-4">
             {notice && <p role="alert" className="text-danger">{notice}</p>}
             {failure && (
               <p role="alert" className="flex gap-1.5 text-danger">
@@ -373,7 +373,7 @@ export function KeyRow({
                   <TriangleAlert size={13} aria-hidden="true" className="mt-px shrink-0" />
                   <span>{t("keys.row.engineMissing", { engine: missingEngine.displayName })}</span>
                 </p>
-                <code className="select-all break-all rounded-md bg-inset px-2 py-1 font-mono text-[12px] text-ink">{installCommand}</code>
+                <code className="select-all break-all rounded-md bg-inset px-2 py-1 font-mono text-caption text-ink">{installCommand}</code>
                 <button type="button" data-key-engine-check className="cursor-pointer self-start text-ink-secondary hover:text-ink hover:underline disabled:opacity-50" disabled={enginesChecking}
                   onClick={() => void checkEngines()}>
                   {enginesChecking ? t("common.checking") : t("common.checkAgain")}

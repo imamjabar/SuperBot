@@ -227,7 +227,7 @@ function ConversationTaskPicker({
         title={switchTitle}
         aria-label={t("task.switch")}
         className={cn(
-          "flex max-w-[220px] items-center gap-1.5 rounded-full border border-hairline/40 px-2.5 py-1 text-[13px] text-ink-secondary hover:bg-raised hover:text-ink",
+          "flex max-w-[220px] items-center gap-1.5 rounded-full border border-hairline/40 px-2.5 py-1 text-small text-ink-secondary hover:bg-raised hover:text-ink",
           COMPACT_BUBBLE,
         )}
       >
@@ -275,17 +275,17 @@ function ConversationTaskPicker({
                 }}
                 placeholder={t("task.search")}
                 aria-label={t("task.search")}
-                className="w-full bg-transparent text-[13px] text-ink placeholder:text-ink-tertiary focus:outline-none"
+                className="w-full bg-transparent text-small text-ink placeholder:text-ink-tertiary focus:outline-none"
               />
             </div>
           </div>
           <div className="max-h-[320px] overflow-y-auto" role="group" aria-label={looking ? t("task.matching", { count: results.length }) : t("task.list")}>
             {attentionRows.length > 0 && <div className="pb-1">
-              <div className="flex items-center gap-1.5 px-2 pb-1 pt-1.5 text-[12px] font-medium text-ink-secondary"><Activity size={14} />{t("attention.title")}</div>
+              <div className="flex items-center gap-1.5 px-2 pb-1 pt-1.5 text-caption font-medium text-ink-secondary"><Activity size={14} />{t("attention.title")}</div>
               <AttentionThreadRows inset entries={attentionRows} onJump={(entry) => { onAttentionJump?.(entry); closeMenu(); }} />
             </div>}
             {results.length === 0 ? (
-              <div className="px-2 py-6 text-center text-[13px] text-ink-secondary">
+              <div className="px-2 py-6 text-center text-small text-ink-secondary">
                 {t("task.noMatch", { query: looking })}
               </div>
             ) : visible.map((task, index) => {
@@ -294,7 +294,7 @@ function ConversationTaskPicker({
               const heading = grouped?.find((group) => group.tasks[0]?.threadId === task.threadId)?.project;
               return (
                 <Fragment key={task.threadId}>
-                {bot?.projects?.length && heading ? <div className={cn("flex items-center gap-1.5 px-2 pb-1 pt-2 text-[12px] font-medium text-ink-secondary", index > 0 && "border-t border-hairline/30")}>{heading.id && <FolderIcon emoji={heading.emoji} size={12} />}{heading.name}</div> : null}
+                {bot?.projects?.length && heading ? <div className={cn("flex items-center gap-1.5 px-2 pb-1 pt-2 text-caption font-medium text-ink-secondary", index > 0 && "border-t border-hairline/30")}>{heading.id && <FolderIcon emoji={heading.emoji} size={12} />}{heading.name}</div> : null}
                 <div
                   className={cn("group flex items-center gap-2 rounded-md px-2 py-1.5", active ? "bg-menu-active" : "hover:bg-menu-hover")}
                 >
@@ -322,7 +322,7 @@ function ConversationTaskPicker({
                           commitRename(task.threadId, false);
                         }
                       }}
-                      className="min-w-0 flex-1 rounded bg-inset px-1.5 py-0.5 text-[13px] text-ink focus:outline-none"
+                      className="min-w-0 flex-1 rounded bg-inset px-1.5 py-0.5 text-small text-ink focus:outline-none"
                     />
                   ) : (
                     <button
@@ -345,8 +345,8 @@ function ConversationTaskPicker({
                       className="min-w-0 flex-1 text-left"
                       title={t("task.renameHint")}
                     >
-                      <div dir="auto" className="truncate text-[14px] leading-[18px] text-ink">{localizedTaskTitle(task.title)}</div>
-                      <div className="text-[11px] text-ink-secondary">
+                      <div dir="auto" className="truncate text-body-sm leading-[18px] text-ink">{localizedTaskTitle(task.title)}</div>
+                      <div className="text-micro text-ink-secondary">
                         {task.activity === "waiting-on-you" ? `${t("task.waiting")} · ` : task.waitingForTeammates ? `${t("task.waitingOnTeammate")} · ` : task.busy ? `${t("chat.activity.working")} · ` : task.unread ? `${t("task.unread")} · ` : ""}
                         <TaskUpdatedTime task={task} now={now} />
                         <TaskUsage usage={task.usage} />
@@ -401,14 +401,14 @@ function ConversationTaskPicker({
             })}
           </div>
           <div role="separator" className={MENU_ITEM_SEPARATOR} />
-          {bot ? <NewThreadButton bot={bot} onCreated={closeMenu} className="min-h-[30px] w-full rounded-md px-2 text-[14px] text-ink hover:bg-menu-hover" /> : <button
+          {bot ? <NewThreadButton bot={bot} onCreated={closeMenu} className="min-h-[30px] w-full rounded-md px-2 text-body-sm text-ink hover:bg-menu-hover" /> : <button
             type="button"
             onClick={() => {
               onNew();
               closeMenu();
             }}
             disabled={busy}
-            className="flex min-h-[30px] w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[14px] text-ink hover:bg-menu-hover disabled:opacity-40"
+            className="flex min-h-[30px] w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body-sm text-ink hover:bg-menu-hover disabled:opacity-40"
           >
             <SquarePen size={16} className="text-ink-secondary" /> {t("task.newShort")}
           </button>}
@@ -436,7 +436,7 @@ export function BotActivityPicker({ bot }: { bot: Bot }) {
           {task.title} · {task.activity === "waiting-on-you" ? t("task.waiting") : task.waitingForTeammates ? t("task.waitingOnTeammate") : task.busy || task.activity === "working" ? t("chat.activity.working") : task.queued ? t("task.queued") : t("task.unread")}
         </option>)}
       </Select>
-      <span dir="auto" className="truncate text-[12px] text-ink-secondary">{bot.tasks?.find((task) => task.threadId === bot.threadId)?.title}</span>
+      <span dir="auto" className="truncate text-caption text-ink-secondary">{bot.tasks?.find((task) => task.threadId === bot.threadId)?.title}</span>
     </div>
   );
 }

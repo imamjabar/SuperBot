@@ -99,7 +99,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 rounded-xl focus:outline-none">
         <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.subtitle" : "remote.serverPairing.portalSubtitle")}>
-          <p data-server-pairing-chat-only className="mt-3 text-[13px] text-ink-secondary">{t(pairingCodes ? "remote.serverPairing.chatOnly" : "remote.serverPairing.portalChatOnly")}</p>
+          <p data-server-pairing-chat-only className="mt-3 text-small text-ink-secondary">{t(pairingCodes ? "remote.serverPairing.chatOnly" : "remote.serverPairing.portalChatOnly")}</p>
         </Card>
       </div>
     );
@@ -140,7 +140,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
   const offerPanel = pairingCodes && offer ? (
         <div className="mt-4 rounded-lg border border-hairline/40 bg-inset p-4">
           {expired ? (
-            <p className="text-[13px] text-ink-secondary">{t("remote.serverPairing.expired")}</p>
+            <p className="text-small text-ink-secondary">{t("remote.serverPairing.expired")}</p>
           ) : (
             <div className="flex flex-wrap items-start gap-5">
               {offer.url ? (
@@ -150,16 +150,16 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
               ) : null}
               <div className="min-w-[200px] flex-1">
                 <div className="font-mono text-[18px] tracking-[0.14em] text-ink">{offer.code}</div>
-                <div className="mt-1 text-[13px] text-ink-secondary">{t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) })}</div>
+                <div className="mt-1 text-small text-ink-secondary">{t("remote.serverPairing.expires", { minutes: minutesLeft(offer.expiresAt, now) })}</div>
                 {offer.url ? (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <code className="break-all text-[12px] text-ink-secondary">{offer.url}</code>
+                    <code className="break-all text-caption text-ink-secondary">{offer.url}</code>
                     <button type="button" onClick={() => void copyLink()} className={quiet}>
                       {t(copied === "copied" ? "remote.serverPairing.copied" : copied === "failed" ? "common.copyFailed" : "remote.serverPairing.copyLink")}
                     </button>
                   </div>
                 ) : (
-                  <p className="mt-3 text-[13px] text-ink-secondary">{offer.hint ?? t("remote.serverPairing.noLink")}</p>
+                  <p className="mt-3 text-small text-ink-secondary">{offer.hint ?? t("remote.serverPairing.noLink")}</p>
                 )}
               </div>
             </div>
@@ -191,10 +191,10 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
           </SettingRow>
           {offerPanel ? <div className="px-4 pb-2.5 [&>div]:mt-0">{offerPanel}</div> : null}
           {devices.length === 0 ? (
-            <p className="px-4 py-2.5 text-[13px] leading-[18px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
+            <p className="px-4 py-2.5 text-small leading-[18px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
           ) : devices.map((device) => (
             <div key={device.id} className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
-              <span className="min-w-[min(100%,15rem)] flex-1 text-[14px] leading-5 text-ink">
+              <span className="min-w-[min(100%,15rem)] flex-1 text-body-sm leading-5 text-ink">
                 {device.label}
                 <span className="text-ink-secondary">
                   {" · "}{scopeName(device)}{" · "}{t("remote.serverPairing.seen", { when: lastSeen(device.lastSeenAt, now) })}
@@ -207,7 +207,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
             </div>
           ))}
         </div>
-        {error ? <p className="pl-4 text-[12px] leading-4 text-danger">{error}</p> : null}
+        {error ? <p className="pl-4 text-caption leading-4 text-danger">{error}</p> : null}
       </div>
     );
   }
@@ -217,26 +217,26 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
     <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.subtitle" : "remote.serverPairing.portalSubtitle")}>
       {nameRow("mt-3")}
       {pairingCodes ? <div className="mt-3 flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-1.5 text-[13px] text-ink">
+        <label className="flex items-center gap-1.5 text-small text-ink">
           <input type="radio" name="server-pairing-scope" checked={scope === "admin"} onChange={() => setScope("admin")} />
           {t("remote.serverPairing.scope.admin")}
         </label>
-        <label className="flex items-center gap-1.5 text-[13px] text-ink">
+        <label className="flex items-center gap-1.5 text-small text-ink">
           <input type="radio" name="server-pairing-scope" checked={scope === "client"} onChange={() => setScope("client")} />
           {t("remote.serverPairing.scope.client")}
         </label>
         <button type="button" data-phone-pairing-action onClick={() => void create()} disabled={busy} className={button}>
           {busy ? t("remote.serverPairing.creating") : t("remote.serverPairing.create")}
         </button>
-      </div> : <p data-server-pairing-portal className="mt-3 text-[13px] text-ink-secondary">{t("remote.serverPairing.portal")}</p>}
+      </div> : <p data-server-pairing-portal className="mt-3 text-small text-ink-secondary">{t("remote.serverPairing.portal")}</p>}
       {offerPanel}
-      <div className="mt-5 text-[13px] font-medium text-ink">{t(pairingCodes ? "remote.serverPairing.devices" : "remote.serverPairing.portalDevices")}</div>
+      <div className="mt-5 text-small font-medium text-ink">{t(pairingCodes ? "remote.serverPairing.devices" : "remote.serverPairing.portalDevices")}</div>
       {devices.length === 0 ? (
-        <p className="mt-1 text-[13px] text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
+        <p className="mt-1 text-small text-ink-secondary">{t("remote.serverPairing.noDevices")}</p>
       ) : (
         <ul className="mt-1 divide-y divide-hairline/40">
           {devices.map((device) => (
-            <li key={device.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-[13px]">
+            <li key={device.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-small">
               <span className="text-ink">
                 {device.label}
                 {device.email ? <span className="text-ink-secondary"> · {device.email}</span> : null}
@@ -257,7 +257,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
           ))}
         </ul>
       )}
-      {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
+      {error ? <p className="mt-3 text-small text-danger">{error}</p> : null}
     </Card>
     </div>
   );

@@ -98,11 +98,11 @@ export function PeopleTable({ people, busy, onRole, onRemove, onLink, readOnly =
   onLink: (person: Person) => void;
   readOnly?: boolean;
 }) {
-  if (people.length === 0) return <p className="text-[13px] text-ink-secondary">{t(readOnly ? "people.portal.empty" : "people.empty")}</p>;
+  if (people.length === 0) return <p className="text-small text-ink-secondary">{t(readOnly ? "people.portal.empty" : "people.empty")}</p>;
   const columns = "grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-4";
   return (
     <div className="flex flex-col">
-      <div className={cn(columns, "border-b border-hairline/40 pb-2 text-[12px] font-medium uppercase tracking-wide text-ink-secondary")}>
+      <div className={cn(columns, "border-b border-hairline/40 pb-2 text-caption font-medium uppercase tracking-wide text-ink-secondary")}>
         <span>{t("people.colPerson")}</span>
         <span>{t("people.colRole")}</span>
         <span className="text-right">{t("people.colLastSeen")}</span>
@@ -110,19 +110,19 @@ export function PeopleTable({ people, busy, onRole, onRemove, onLink, readOnly =
         <span />
       </div>
       {people.map((person) => (
-        <div key={person.entry} className={cn(columns, "border-b border-hairline/20 py-2 text-[13px]")}>
+        <div key={person.entry} className={cn(columns, "border-b border-hairline/20 py-2 text-small")}>
           <span className="min-w-0">
             <span className="block truncate text-ink">{person.isDomain ? t("people.everyoneAt", { domain: person.entry.slice(1) }) : person.entry}</span>
-            {person.devices > 0 && <span className="block text-[12px] text-ink-secondary">{t("people.devices", { count: String(person.devices) })}</span>}
+            {person.devices > 0 && <span className="block text-caption text-ink-secondary">{t("people.devices", { count: String(person.devices) })}</span>}
           </span>
-          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", person.role === "admin" ? "bg-accent/15 text-accent" : "bg-control text-ink-secondary")}>
+          <span className={cn("rounded-full px-2 py-0.5 text-micro font-medium", person.role === "admin" ? "bg-accent/15 text-accent" : "bg-control text-ink-secondary")}>
             {person.role === "admin" ? t("people.roleAdmin") : t("people.roleMember")}
           </span>
           <span className="text-right tabular-nums text-ink-secondary">{person.isDomain ? "—" : lastSeenLabel(person.lastSeenAt)}</span>
           <span className="text-right tabular-nums text-ink" title={t("people.turns", { turns: String(person.turns) })}>
             {hasFiniteCost(person.costUsd) ? `${person.estimated ? "~" : ""}${formatUsd(person.costUsd)}` : "—"}
           </span>
-          {readOnly ? <span /> : <span className="flex items-center justify-end gap-2 text-[12px]">
+          {readOnly ? <span /> : <span className="flex items-center justify-end gap-2 text-caption">
             <button type="button" disabled={busy} onClick={() => onLink(person)} aria-label={t("people.link")} title={t("people.link")} className="rounded-md p-1 text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50"><Link2 size={13} /></button>
             <button type="button" disabled={busy} onClick={() => onRole(person, person.role === "admin" ? "member" : "admin")} className="text-ink-secondary hover:text-ink disabled:opacity-50">
               {person.role === "admin" ? t("people.makeMember") : t("people.makeAdmin")}
@@ -138,16 +138,16 @@ export function PeopleTable({ people, busy, onRole, onRemove, onLink, readOnly =
 export function CopyLink({ link }: { link: string }) {
   const { state, copy } = useCopyFeedback(link);
   return (
-    <div className="mt-3 rounded-lg border border-hairline/40 bg-inset p-3 text-[13px]">
+    <div className="mt-3 rounded-lg border border-hairline/40 bg-inset p-3 text-small">
       <div className="mb-1 text-ink-secondary">{t("people.link")}</div>
       <div className="flex items-center gap-2">
         <code className="min-w-0 flex-1 select-all break-all text-ink">{link}</code>
-        <button type="button" onClick={copy} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] text-ink-secondary hover:bg-control hover:text-ink">
+        <button type="button" onClick={copy} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-caption text-ink-secondary hover:bg-control hover:text-ink">
           {state === "copied" ? <Check size={13} className="text-success" /> : state === "failed" ? <X size={13} className="text-danger" /> : <Copy size={13} />}
           {t(state === "copied" ? "people.copied" : state === "failed" ? "common.copyFailed" : "people.copy")}
         </button>
       </div>
-      <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("people.linkHint")}</p>
+      <p className="mt-2 text-caption leading-relaxed text-ink-secondary">{t("people.linkHint")}</p>
     </div>
   );
 }
@@ -156,7 +156,7 @@ export function PortalPeople({ peopleUrl, people }: { peopleUrl: string | null; 
   const noop = () => {};
   return (
     <Card title={t("people.title")} subtitle={t("people.portal.subtitle")}>
-      <div data-people-portal className="flex flex-col gap-3 text-[13px] leading-relaxed text-ink-secondary">
+      <div data-people-portal className="flex flex-col gap-3 text-small leading-relaxed text-ink-secondary">
         <p>{t("people.portal.managed")}</p>
         {peopleUrl && (
           <a
@@ -172,7 +172,7 @@ export function PortalPeople({ peopleUrl, people }: { peopleUrl: string | null; 
       <div className="mt-4">
         <PeopleTable people={people} busy={false} readOnly onRole={noop} onRemove={noop} onLink={noop} />
       </div>
-      <p className="mt-3 text-[12px] leading-relaxed text-ink-secondary">{t("people.portal.note")}</p>
+      <p className="mt-3 text-caption leading-relaxed text-ink-secondary">{t("people.portal.note")}</p>
     </Card>
   );
 }
@@ -260,7 +260,7 @@ export function PeopleSection({ simple = false, startOpen = false }: { simple?: 
   const portal = membership?.authority === "portal" ? <PortalPeople peopleUrl={membership.peopleUrl} people={people} /> : null;
   const content = (
     <>
-      {emailOffered === false && (!simple || tried) && <p className="mb-3 rounded-lg border border-warning/25 bg-warning/5 px-3 py-2 text-[13px] text-ink-secondary">{t(membership?.pairingCodes === false ? "people.portalSignIn" : "people.notHosted")}</p>}
+      {emailOffered === false && (!simple || tried) && <p className="mb-3 rounded-lg border border-warning/25 bg-warning/5 px-3 py-2 text-small text-ink-secondary">{t(membership?.pairingCodes === false ? "people.portalSignIn" : "people.notHosted")}</p>}
       <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); void invite(); }}>
         <input
           value={draft}
@@ -268,7 +268,7 @@ export function PeopleSection({ simple = false, startOpen = false }: { simple?: 
           placeholder={t("remote.signInAccess.placeholder")}
           aria-label={t("people.inviteEmail")}
           disabled={busy}
-          className="min-w-[16rem] flex-1 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none disabled:opacity-50"
+          className="min-w-[16rem] flex-1 rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-small text-ink placeholder:text-ink-secondary focus:outline-none disabled:opacity-50"
         />
         <Select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label={t("people.colRole")} disabled={busy}>
           <option value="member">{t("people.roleMember")}</option>
@@ -279,9 +279,9 @@ export function PeopleSection({ simple = false, startOpen = false }: { simple?: 
         </button>
         <button type="button" onClick={() => void load()} disabled={loading || busy} aria-label={t("people.refresh")} title={t("people.refresh")} className="rounded-md p-1.5 text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-50"><RefreshCw size={13} className={cn(loading && "animate-spin")} /></button>
       </form>
-      <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t("people.inviteHint")}</p>
+      <p className="mt-2 text-caption leading-relaxed text-ink-secondary">{t("people.inviteHint")}</p>
       {link && <CopyLink link={link} />}
-      {error && <p role="alert" className="mt-2 text-[12px] text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-caption text-danger">{error}</p>}
       <div className="mt-4">
         <PeopleTable
           people={people}
@@ -291,7 +291,7 @@ export function PeopleSection({ simple = false, startOpen = false }: { simple?: 
           onLink={(person) => setLink(inviteLink(base, person.entry))}
         />
       </div>
-      {!simple && <p className="mt-3 text-[12px] leading-relaxed text-ink-secondary">{t("people.note")}</p>}
+      {!simple && <p className="mt-3 text-caption leading-relaxed text-ink-secondary">{t("people.note")}</p>}
     </>
   );
   if (simple) {

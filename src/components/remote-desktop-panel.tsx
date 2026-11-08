@@ -213,8 +213,8 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
     <aside className="relative z-20 flex h-full w-[400px] shrink-0 flex-col border-l border-hairline bg-panel" ref={panelRef} data-computer-panel>
       <div {...dragProps} className="flex items-center justify-between border-b border-hairline px-5 py-4">
         <div>
-          <div className="text-[14px] font-medium text-ink">{bot.name}&apos;s computer</div>
-          <div className="mt-0.5 text-[11px] text-ink-secondary">
+          <div className="text-body-sm font-medium text-ink">{bot.name}&apos;s computer</div>
+          <div className="mt-0.5 text-micro text-ink-secondary">
             {bot.cloudBackend === "vps" ? "Self-hosted VPS" : "Cloud desktop"}
           </div>
         </div>
@@ -226,7 +226,7 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
                 type="button"
                 onClick={() => setView(option)}
                 aria-pressed={view === option}
-                className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px]", view === option ? "bg-card text-ink shadow-sm" : "text-ink-secondary hover:text-ink")}
+                className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-caption", view === option ? "bg-card text-ink shadow-sm" : "text-ink-secondary hover:text-ink")}
               >
                 {option === "desktop" ? <Monitor size={12} /> : <Globe size={12} />}
                 {option === "desktop" ? "Desktop" : "Browser"}
@@ -252,8 +252,8 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
         <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-1">
           {help?.place === "browser" && <div className="-mt-2 mb-3"><SignInBanner help={help} askerName={asker} onError={setError} /></div>}
           <BrowserPanel bot={bot} signIn={signIn} />
-          {error && <div role="alert" className="mt-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
-          <p className="mt-2 text-[11px] leading-relaxed text-ink-secondary">
+          {error && <div role="alert" className="mt-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-caption text-danger">{error}</div>}
+          <p className="mt-2 text-micro leading-relaxed text-ink-secondary">
             Watching and driving this browser needs browser control for this paired device, in Settings → Remote access on the host computer.
           </p>
         </div>
@@ -274,18 +274,18 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
           ) : (
             <div className="flex flex-col items-center gap-2 text-ink-secondary">
               <ImageOff size={24} />
-              <span className="text-[11px]">{previewUnavailable ? "Preview unavailable" : "Waiting for preview"}</span>
+              <span className="text-micro">{previewUnavailable ? "Preview unavailable" : "Waiting for preview"}</span>
             </div>
           )}
           {frame && (
-            <span className="absolute inset-x-0 bottom-0 bg-black/65 py-2 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="absolute inset-x-0 bottom-0 bg-black/65 py-2 text-micro font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
               Open live desktop
             </span>
           )}
         </button>
         <div>
-          <div className="text-[14px] font-medium text-ink">Open the live desktop</div>
-          <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">
+          <div className="text-body-sm font-medium text-ink">Open the live desktop</div>
+          <p className="mt-2 text-caption leading-relaxed text-ink-secondary">
             The host creates a temporary, encrypted viewer relay. VPS SSH and VNC credentials stay on the host computer.
           </p>
         </div>
@@ -293,23 +293,23 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
           type="button"
           onClick={() => void open()}
           disabled={pending}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-small font-medium text-white hover:brightness-110 disabled:opacity-50"
         >
           {pending ? <Loader2 size={15} className="animate-spin" /> : <Monitor size={15} />}
           {pending ? "Opening…" : "Take control"}
         </button>
         {error && (
-          <div role="alert" className="w-full rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-left text-[12px] text-danger">
+          <div role="alert" className="w-full rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-left text-caption text-danger">
             {error}
           </div>
         )}
-        <p className="text-[11px] leading-relaxed text-ink-secondary">
+        <p className="text-micro leading-relaxed text-ink-secondary">
           The host must enable cloud desktop access for this paired device in Settings → Remote access.
         </p>
 
         <div className="w-full rounded-xl bg-card p-4 text-left">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-[15px] font-medium text-ink">
+            <div className="flex items-center gap-2 text-body font-medium text-ink">
               <CalendarClock size={16} className="text-accent" />
               Scheduled tasks
             </div>
@@ -323,7 +323,7 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
             <button
               type="button"
               onClick={() => dispatch({ type: "showRoutines" })}
-              className="mt-3 flex w-full items-center gap-2 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-left text-[12px] text-accent hover:bg-accent/15"
+              className="mt-3 flex w-full items-center gap-2 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-left text-caption text-accent hover:bg-accent/15"
             >
               <Loader2 size={13} className={activeRoutineRun.status === "queued" ? "" : "animate-spin"} />
               <span className="min-w-0 flex-1 truncate">
@@ -342,8 +342,8 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
                 >
                   <span className={cn("size-1.5 shrink-0 rounded-full", routine.enabled ? "bg-success" : "bg-ink-secondary/40")} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-ink">{routine.name}</span>
-                    <span className="block truncate text-[11px] text-ink-secondary">
+                    <span className="block truncate text-small font-medium text-ink">{routine.name}</span>
+                    <span className="block truncate text-micro text-ink-secondary">
                       {routineScheduleLabel(routine)}{routine.runOn === "cloud" ? " · runs on VM" : ""}
                     </span>
                   </span>
@@ -356,7 +356,7 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
             <button
               type="button"
               onClick={() => setCreatingRoutine(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent py-2 text-[13px] font-medium text-white hover:brightness-110"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent py-2 text-small font-medium text-white hover:brightness-110"
             >
               <Plus size={14} />
               Create schedule
@@ -364,7 +364,7 @@ export function RemoteDesktopPanel({ bot }: { bot: Bot }) {
             <button
               type="button"
               onClick={() => dispatch({ type: "showRoutines" })}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-control px-3 py-2 text-[13px] text-ink hover:bg-raised-hover"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-control px-3 py-2 text-small text-ink hover:bg-raised-hover"
               title="Open schedules"
             >
               <CalendarDays size={14} />

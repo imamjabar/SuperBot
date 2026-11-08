@@ -16,7 +16,7 @@ export function BotPickerList({
 }) {
   return (
     <div className="flex max-h-64 flex-col gap-0.5 overflow-y-auto">
-      {bots.length === 0 && <div className="px-2 py-4 text-center text-[13px] text-ink-secondary">{emptyHint}</div>}
+      {bots.length === 0 && <div className="px-2 py-4 text-center text-small text-ink-secondary">{emptyHint}</div>}
       {bots.map((b) => (
         <button
           key={b.id}
@@ -27,7 +27,7 @@ export function BotPickerList({
           className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-raised/50"
         >
           <BotAvatar bot={b} state="happy" size={28} animated={false} />
-          <span className="min-w-0 flex-1 truncate text-[14px] text-ink">{b.name}</span>
+          <span className="min-w-0 flex-1 truncate text-body-sm text-ink">{b.name}</span>
           <span
             className={cn(
               "flex size-[18px] shrink-0 items-center justify-center rounded-full border",

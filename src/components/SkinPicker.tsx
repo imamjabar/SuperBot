@@ -71,8 +71,8 @@ export function DressUpRow() {
         ))}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[14px] font-medium text-ink">{title}</div>
-        <div className="mt-1 text-[12px] leading-relaxed text-ink-secondary">{t("settings.skin.dressUp.subtitle")}</div>
+        <div className="text-body-sm font-medium text-ink">{title}</div>
+        <div className="mt-1 text-caption leading-relaxed text-ink-secondary">{t("settings.skin.dressUp.subtitle")}</div>
       </div>
       <Switch checked={dressed} aria-label={title} onClick={() => setDressUp(!dressed)} />
     </div>
@@ -105,8 +105,8 @@ export function SkinPicker() {
               <Miniature skin={skin.id} />
               <div className="flex items-start gap-1.5 px-0.5 pb-0.5">
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium text-ink">{skin.name}</div>
-                  <div className="mt-0.5 text-[11px] leading-snug text-ink-secondary">
+                  <div className="text-small font-medium text-ink">{skin.name}</div>
+                  <div className="mt-0.5 text-micro leading-snug text-ink-secondary">
                     {skin.tagline}
                   </div>
                 </div>
