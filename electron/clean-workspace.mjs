@@ -101,7 +101,7 @@ export function createCleanWorkspace({ dataDir, running, swap, allowed = () => t
     async holding(work) {
       held++;
       try {
-        if (!(await leave())) throw new Error("OpenMausBot on this computer could not go back to its own copy yet.");
+        if (!(await leave())) throw new Error("SuperBot on this computer could not go back to its own copy yet.");
         return await work();
       } finally { held--; }
     },
@@ -112,7 +112,7 @@ export function createCleanWorkspace({ dataDir, running, swap, allowed = () => t
         if (ownCopy()) return request(route, init);
         if ((init?.method ?? "GET").toUpperCase() === "GET") {
           if (route === "/api/move/freeze") return Response.json(marker());
-          if (route === "/.well-known/openmausbot/environment") {
+          if (route === "/.well-known/superbot/environment") {
             const id = readOwn("environment-id")?.trim();
             return Response.json(id ? { environmentId: id } : {});
           }

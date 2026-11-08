@@ -55,7 +55,7 @@ export async function launchRestartableServer(options: { scripted?: boolean; dat
       if (child.exitCode !== null) throw new Error(`the server exited before it was ready; see ${logPath}`);
       try {
         const body = await (await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(1_000) })).json() as { app?: string };
-        if (body.app === "openmausbot") return;
+        if (body.app === "superbot") return;
       } catch { /* not listening yet */ }
       if (Date.now() > deadline) throw new Error(`the server did not become ready; see ${logPath}`);
       await new Promise((resolve) => setTimeout(resolve, 150));

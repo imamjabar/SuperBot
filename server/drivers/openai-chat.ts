@@ -192,7 +192,7 @@ function replayDelivered(
   return { content, matched: found.map(({ record }) => record), volatile };
 }
 
-const CORRECTIVE_ROUND = "[OpenMausBot: a tool call in this turn failed (its result is marked ok:false). Re-run the failed operations with corrected inputs where possible, check the results, then give your final answer. Do not report results you did not get.]";
+const CORRECTIVE_ROUND = "[SuperBot: a tool call in this turn failed (its result is marked ok:false). Re-run the failed operations with corrected inputs where possible, check the results, then give your final answer. Do not report results you did not get.]";
 const NUDGE_ANNOUNCED_ACTION = "You said what you would do next but called no tool. Use your tools for only the remaining work, or reply with verified results if nothing is left to do. Never repeat an operation that succeeded, was denied, or may already have taken effect; inspect its state instead. Do not retry a destructive operation.";
 
 export function announcesAction(text: string): boolean {
@@ -207,7 +207,7 @@ export function announcesAction(text: string): boolean {
     /^i(?:['\u2019]m| am)\b[^.!?\n]*\band (?:i )?will\s+(?:launch|open|check|pull|look|search|navigate|read|fetch|load|run|inspect)\b/i.test(reply);
 }
 
-const UNREADABLE_CALL = "[OpenMausBot: your last tool call could not be read, so nothing ran. Call the tool again using only the tools you were given, with valid JSON arguments.]";
+const UNREADABLE_CALL = "[SuperBot: your last tool call could not be read, so nothing ran. Call the tool again using only the tools you were given, with valid JSON arguments.]";
 const LOCAL_CORRECTIVE_ROUNDS = 2;
 
 const TEXT_ONLY_ATTACHMENT_NOTE = "[The person attached image(s), but this model cannot see images. Say so if the request depends on them.]";
@@ -841,7 +841,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
               } else if (toolCallBudget !== undefined && dispatchedToolCalls >= toolCallBudget) {
                 skipRepeatCount = true;
                 notRun = true;
-                result = { ok: false, text: `[OpenMausBot: this job has used its ${toolCallBudget} tool calls. This call was not run.]` };
+                result = { ok: false, text: `[SuperBot: this job has used its ${toolCallBudget} tool calls. This call was not run.]` };
               } else if (connectorFirst !== undefined) {
                 skipRepeatCount = true;
                 notRun = true;
@@ -908,7 +908,7 @@ export function createOpenAIChatRuntime<Config>(options: RuntimeOptions<Config>)
             }
             if (!budgetPrompted) {
               budgetPrompted = true;
-              messages.push({ role: "user", content: `[OpenMausBot: this job has used its ${toolCallBudget} tool calls. Write your final answer now from what you have gathered; say plainly what is still missing. No more tools.]` });
+              messages.push({ role: "user", content: `[SuperBot: this job has used its ${toolCallBudget} tool calls. Write your final answer now from what you have gathered; say plainly what is still missing. No more tools.]` });
             }
             toolFailed = false;
             failedCalls.length = 0;

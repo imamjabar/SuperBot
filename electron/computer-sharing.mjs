@@ -170,12 +170,12 @@ export function createComputerSharing({ file, fetch: fetchImpl, environments, cu
       bytes += chunk.length; if (bytes > 4_000_000) throw new Error("Server response exceeded limit");
       chunks.push(Buffer.from(chunk));
     }
-    let json; try { json = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw new Error("This server does not support computer sharing. Update its OpenMausBot installation."); }
+    let json; try { json = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw new Error("This server does not support computer sharing. Update its SuperBot installation."); }
     if (!response.ok) throw Object.assign(new Error(response.status === 401 || response.status === 403 ? "Pair this desktop again before sharing computer access." : `Server request failed (${response.status}). Update the server if needed.`), { status: response.status });
     return json;
   };
   const describe = async env => {
-    const [auth, descriptor] = await Promise.all([request(env, "/api/auth/session"), request(env, "/.well-known/openmausbot/environment")]);
+    const [auth, descriptor] = await Promise.all([request(env, "/api/auth/session"), request(env, "/.well-known/superbot/environment")]);
     if (auth.kind !== "session" || !uuid(auth.id) || !uuid(descriptor.environmentId)) throw new Error("Complete server pairing or sign-in first");
     if (descriptor.capabilities?.sharedComputers !== true) throw new Error("Update this server to enable computer sharing");
     return { info: { sessionId: auth.id, environmentId: descriptor.environmentId }, edits: descriptor.capabilities?.fileEdits === true };

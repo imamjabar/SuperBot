@@ -240,7 +240,7 @@ describe("container images", () => {
   });
 
   // An init collects browser processes whose parents exit, and Chrome gets the
-  // shared memory OpenMausBot's desktop containers give it.
+  // shared memory SuperBot's desktop containers give it.
   it("runs every compose service of the server image with an init and Chrome's shared memory", () => {
     for (const file of ["../compose.yaml", "../deploy/docker-compose.yml", "../deploy/podman/compose.yaml"]) {
       const service = parse(readFileSync(new URL(file, import.meta.url), "utf8")).services.omb;
@@ -264,7 +264,7 @@ describe.skipIf(process.platform === "win32")("superbot-web-pull.sh", () => {
   const OLD = "a".repeat(64);
   const NEW = "b".repeat(64);
   /** Runs the updater against stub git, docker and curl; `replaces` makes `up omb` start a new container. */
-  function update({ serverChanged = true, replaces = true, health = '{"app":"openmausbot"}' }: { serverChanged?: boolean; replaces?: boolean; health?: string } = {}) {
+  function update({ serverChanged = true, replaces = true, health = '{"app":"superbot"}' }: { serverChanged?: boolean; replaces?: boolean; health?: string } = {}) {
     const home = mkdtempSync(join(tmpdir(), "omb-web-pull-"));
     temporaryDirectories.push(home);
     const bin = join(home, "bin");

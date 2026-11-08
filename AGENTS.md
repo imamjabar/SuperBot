@@ -1,4 +1,4 @@
-# OpenMausBot agent notes
+# SuperBot agent notes
 
 For SuperBot development with Claude Code, also read [`CLAUDE.md`](CLAUDE.md) and the current [`docs/HANDOFF.md`](docs/HANDOFF.md). These notes add to, rather than replace, the repository instructions below.
 

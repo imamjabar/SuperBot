@@ -344,7 +344,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
     return Promise.resolve(true);
   }
   /**
-   * The agent-browser whose saved sessions a deletion erases: the one OpenMausBot installed, or on a Cloud home the
+   * The agent-browser whose saved sessions a deletion erases: the one SuperBot installed, or on a Cloud home the
    * image's own. Another one on PATH may be a wrapper whose failing close would hold the cleanup journal forever, so
    * it only closes the running browser.
    */
@@ -373,7 +373,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
         return true;
       }
       const ok = await clearBrowserSessionState(engine.binaryPath, name, { encryptionKey: browserEngineEncryptionKey() });
-      if (!ok) console.warn(`browser cleanup: could not clear saved state for session ${name}; restart OpenMausBot to retry this profile's cleanup. Do not use state clear --all: it erases other profiles too.`);
+      if (!ok) console.warn(`browser cleanup: could not clear saved state for session ${name}; restart SuperBot to retry this profile's cleanup. Do not use state clear --all: it erases other profiles too.`);
       return ok;
     };
     const results = await Promise.all([eraseChromeBrowser(request), ...session ? [erased(session)] : []]);

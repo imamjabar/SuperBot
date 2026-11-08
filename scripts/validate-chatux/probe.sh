@@ -5,7 +5,7 @@ set -euo pipefail
 
 NAME=omb-chatux-probe
 PORT=8797
-IMAGE=openmausbot-local:latest
+IMAGE=$(docker inspect superbot-omb-1 --format '{{.Config.Image}}')
 DIST=/tmp/omb-chatux-probe-dist.tgz
 CLIENT=/tmp/omb-chatux-probe.mjs
 LOG=/tmp/omb-chatux-probe.log

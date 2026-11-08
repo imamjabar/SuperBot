@@ -52,7 +52,7 @@ async function serveStub() {
 
 beforeAll(async () => {
   stub = await serveStub();
-  globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-openmausbot-desktop-owner": owner } });
+  globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-superbot-desktop-owner": owner } });
   fixture = await launchVerificationServer({ ...process.env, OMB_TEST_DESKTOP_OWNER_TOKEN: owner,
     OMB_TEST_DESKTOP_PAGES_ACCESS: JSON.stringify({ url: `${stub.url}/api/cloud/pages/token`, token: FAKE_DESKTOP_TOKEN }) }, undefined, undefined, undefined, undefined, { scripted: true });
 }, 90_000);
@@ -63,7 +63,7 @@ afterAll(async () => {
 });
 
 it("shows a jsx page, takes what the person pointed at to the bot as records, replaces the page, and publishes it as static HTML", async () => {
-  const cli = (...args: string[]) => runControlOmb(args, { env: { OPENMAUSBOT_URL: fixture.info.url } }) as Promise<any>;
+  const cli = (...args: string[]) => runControlOmb(args, { env: { SUPERBOT_URL: fixture.info.url } }) as Promise<any>;
   const api = async (path: string, init: RequestInit = {}) => {
     const response = await fetch(`${fixture.info.url}${path}`, { ...init, headers: { "content-type": "application/json" } });
     return { status: response.status, body: await response.json() as any };

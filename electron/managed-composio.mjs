@@ -1,7 +1,7 @@
 const TOKEN = /^[0-9a-f]{64}$/;
 
 /** A connected-apps service (cloudflare/composio-broker) is used only when OMB_COMPOSIO_BROKER_URL names one: SuperBot
- *  never registers with OpenMausBot's hosted service, so app logins stay in the owner's own Composio project. */
+ *  never registers with SuperBot's hosted service, so app logins stay in the owner's own Composio project. */
 export function managedComposioBrokerUrl(configured) {
   return normalizeManagedComposioBrokerUrl(typeof configured === "string" ? configured.trim() : "");
 }

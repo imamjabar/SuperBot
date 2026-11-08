@@ -189,7 +189,7 @@ process.stdout.write(typeof result === 'string' ? result : JSON.stringify(result
   const companionPort = await freePort();
   const controlPort = await freePort();
   const controlToken = randomBytes(32).toString("base64url");
-  const controlHeaders = { "x-openmausbot-control-token": controlToken };
+  const controlHeaders = { "x-superbot-control-token": controlToken };
   const companionHome = join(scratch, "companion-home");
   mkdirSync(companionHome);
   sidecar = spawn(process.execPath, ["--experimental-strip-types", join(root, "companion", "src", "index.ts")], {
@@ -217,7 +217,7 @@ process.stdout.write(typeof result === 'string' ? result : JSON.stringify(result
     log: fixture.info.logPath,
   }, null, 2));
   console.log("Pair the Simulator with the address and code above. Allow computer view with:");
-  console.log(`  curl -X POST -H "x-openmausbot-control-token: ${controlToken}" http://127.0.0.1:${controlPort}/devices/<device-id>/cloud-desktop`);
+  console.log(`  curl -X POST -H "x-superbot-control-token: ${controlToken}" http://127.0.0.1:${controlPort}/devices/<device-id>/cloud-desktop`);
   // What the phone has done to the desktop, and who holds the computer.
   const eventsPort = await freePort();
   createHttpServer(async (_req, res) => {

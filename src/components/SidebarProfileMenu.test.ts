@@ -219,7 +219,7 @@ describe("the phone entries", () => {
 
   it("never offers the iOS-only entry it replaced", () => {
     for (const target of ["computer", "server"] as const) {
-      expect(items(target, null).list.map((item) => item.label)).not.toContain("Get OpenMausBot for iOS");
+      expect(items(target, null).list.map((item) => item.label)).not.toContain("Get SuperBot for iOS");
     }
   });
 
@@ -243,7 +243,7 @@ describe("Get the phone app", () => {
   it("offers iPhone and Android with the links the website uses", () => {
     expect(PHONE_APPS.map((app) => [app.id, app.url])).toEqual([["ios", IOS_APP_STORE_URL], ["android", ANDROID_APK_URL]]);
     expect(IOS_APP_STORE_URL).toBe("https://apps.apple.com/in/app/mausbot/id6803387923");
-    expect(ANDROID_APK_URL).toBe("https://github.com/imamjabar/SuperBot/releases/download/android-v1.5.0/OpenMausBot.apk");
+    expect(ANDROID_APK_URL).toBe("https://github.com/imamjabar/SuperBot/releases/download/android-v1.5.0/SuperBot.apk");
   });
 
   const render = (connect?: PhoneAppConnect[]) => {

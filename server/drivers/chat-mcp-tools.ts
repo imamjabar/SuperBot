@@ -45,7 +45,7 @@ export interface ChatToolSession {
   trimmed: TrimmedChatMcpServer[];
   budget: ToolBudget;
   validate(name: string, args: unknown): void;
-  /** Directory reads and OpenMausBot's own agents server need no card; call_tool shows the tool it runs. */
+  /** Directory reads and SuperBot's own agents server need no card; call_tool shows the tool it runs. */
   view(name: string, args: Record<string, unknown>): ChatToolCallView;
   execute(name: string, args: Record<string, unknown>, signal: AbortSignal): Promise<ChatToolResult>;
   /** Once a connected app answered in this turn, the built-in browser calls of the next model round are not run: the note
@@ -74,7 +74,7 @@ const DIRECTORY_SERVER = "mcp";
 const CONNECTOR_SERVERS: ReadonlySet<string> = new Set(["composio", OWN_APPS_SERVER, "highlevel", "email"]);
 
 export function connectorAnsweredNote(tool: string): string {
-  return `[OpenMausBot: this browser call was not run. ${tool}, a connected app, already answered in this turn: use its result. If it lacks the data or the action this task needs, call the browser again and it will run.]`;
+  return `[SuperBot: this browser call was not run. ${tool}, a connected app, already answered in this turn: use its result. If it lacks the data or the action this task needs, call the browser again and it will run.]`;
 }
 const DIRECTORY_TOOL_COUNT = 3;
 const MAX_PAGES = 100;

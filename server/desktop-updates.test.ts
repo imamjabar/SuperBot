@@ -15,7 +15,7 @@ describe("localVmUpdateNeed", () => {
     expect(localVmUpdateNeed(status({ imageMatches: false, target_key: "shared" }), true)).toBe("recreate");
     expect(localVmUpdateNeed(status({ imageMatches: false, target_key: "bot:abc" }), true)).toBeNull();
     expect(localVmUpdateNeed(status({ container: "missing", image: false, imageMatches: false }), true)).toBe("image");
-    // Nothing to update: a current desktop, a person who never used the VM, a container OpenMausBot did not make, no runtime.
+    // Nothing to update: a current desktop, a person who never used the VM, a container SuperBot did not make, no runtime.
     expect(localVmUpdateNeed(status({}), true)).toBeNull();
     expect(localVmUpdateNeed(status({ container: "missing", image: false, imageMatches: false }), false)).toBeNull();
     expect(localVmUpdateNeed(status({ managed: false, imageMatches: false }), true)).toBeNull();

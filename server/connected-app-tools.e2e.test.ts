@@ -92,3 +92,67 @@ it("a bot given Gmail by its app switch reaches gmail.search_emails by name on C
     rmSync(scratch, { recursive: true, force: true });
   }
 }, 120_000);
+
+it("an email is drafted directly but sending waits for approval before delivery", async () => {
+  const apps = await startFakeConnectedApps();
+  const scratch = mkdtempSync(join(tmpdir(), "omb-app-draft-send-"));
+  const gate = join(scratch, "finish");
+  const fixture = await launchVerificationServer({
+    ...process.env, ...apps.env,
+    FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_SLOW_FINISH_GATE: gate,
+  });
+  const api = async (method: string, path: string, body?: unknown, expected = 200) => {
+    const response = await fetch(fixture.info.url + path, {
+      method, headers: { "content-type": "application/json", origin: fixture.info.url },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    const result = await response.json() as Record<string, unknown>;
+    expect(response.status, `${method} ${path}: ${JSON.stringify(result).slice(0, 400)}`).toBe(expected);
+    return result;
+  };
+  try {
+    const bot = (await api("POST", "/api/bots", { name: "Sender" }, 201)).bot as { id: string; threadId: string };
+    await api("PATCH", `/api/bots/${bot.id}`, { approvalMode: "ask", composio: true, connectorTools: { gmail: { tools: "*" } }, connectorScopes: { apps: { gmail: "write" } } });
+
+    const send = async (text: string, sendId: string) => api("POST", `/api/bots/${bot.id}/messages`, { threadId: bot.threadId, text, sendId }, 202);
+    await send("Draft and send", "app-tools-e2e-send-draft-001");
+    let claudeDump: { mcpConfig?: { mcpServers?: { composio?: Bridge } } } | undefined;
+    await expect.poll(() => {
+      try { claudeDump = JSON.parse(readFileSync(fixture.fixtureDumpPath, "utf8")); } catch { return false; }
+      return Boolean(claudeDump?.mcpConfig?.mcpServers?.composio);
+    }, { timeout: 20_000 }).toBe(true);
+
+    const composio = claudeDump!.mcpConfig!.mcpServers!.composio!;
+    const drafted = await ask(composio, { name: "gmail.create_draft", arguments: { to: "recipient@example.test", subject: "Draft Subject", body: "Draft Body" } });
+    expect(drafted.answer.result?.isError).not.toBe(true);
+    expect(apps.calls.some((c) => c.tool === "GMAIL_CREATE_EMAIL_DRAFT")).toBe(true);
+
+    const afterDraft = (await api("GET", `/api/threads/${bot.threadId}/messages`)).messages as Array<{ card?: { title?: string } }>;
+    expect(afterDraft.some((m) => m.card?.title === "Send on your behalf?")).toBe(false);
+
+    const sending = ask(composio, { name: "gmail.send_email", arguments: { to: "recipient@example.test", subject: "Send Subject", body: "Send Body" } });
+
+    let cardMsg: { card?: { title?: string; requestId?: string; answered?: string } } | undefined;
+    await expect.poll(async () => {
+      const messages = (await api("GET", `/api/threads/${bot.threadId}/messages`)).messages as Array<{ card?: { title?: string; requestId?: string; answered?: string } }>;
+      cardMsg = messages.find((m) => m.card?.title === "Send on your behalf?" && !m.card.answered);
+      return Boolean(cardMsg);
+    }, { timeout: 15_000 }).toBe(true);
+
+    expect(apps.calls.some((c) => c.tool === "GMAIL_SEND_EMAIL")).toBe(false);
+
+    await api("POST", `/api/threads/${bot.threadId}/respond`, { requestId: cardMsg!.card!.requestId, behavior: "allow" });
+
+    const sendAnswer = await sending;
+    expect(sendAnswer.answer.result?.isError).not.toBe(true);
+    expect(apps.calls.some((c) => c.tool === "GMAIL_SEND_EMAIL")).toBe(true);
+
+    writeFileSync(gate, "");
+    await expect.poll(async () => ((await api("GET", `/api/threads/${bot.threadId}/messages`)).messages as Array<{ role: string; text?: string }>)
+      .some((message) => message.role === "bot" && String(message.text).startsWith("reply to:")), { timeout: 20_000 }).toBe(true);
+  } finally {
+    await fixture.close();
+    await apps.close();
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}, 120_000);

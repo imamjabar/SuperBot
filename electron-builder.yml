@@ -37,13 +37,13 @@ files:
   - "!electron/resources/speech-helper"
   - "!electron/resources/speech-helper.swift"
   - "!electron/resources/speech-helper-Info.plist"
-  - "!electron/resources/OpenMausBot Speech.app/**"
+  - "!electron/resources/SuperBot Speech.app/**"
   # The Teach a skill recorder is gone, but a machine that once ran
   # `pnpm build:recorder` may still hold its helper build; never ship it.
   - "!electron/resources/recorder-helper"
   - "!electron/resources/recorder-helper.swift"
   - "!electron/resources/recorder-helper-Info.plist"
-  - "!electron/resources/OpenMausBot Recorder.app/**"
+  - "!electron/resources/SuperBot Recorder.app/**"
   - "!**/node_modules/**"
   - package.json
 
@@ -52,11 +52,11 @@ asar: true
 extraResources:
   # Ship the app's own license terms in every desktop distribution.
   - from: LICENSE
-    to: licenses/OpenMausBot-LICENSE.txt
+    to: licenses/SuperBot-LICENSE.txt
   - from: NOTICE
-    to: licenses/OpenMausBot-NOTICE.txt
+    to: licenses/SuperBot-NOTICE.txt
   # cloudflared is distributed under Apache-2.0 as a separate executable.
-  # OpenMausBot itself uses the same full license text; ship another named
+  # SuperBot itself uses the same full license text; ship another named
   # copy so the third-party executable's terms remain unambiguous.
   - from: LICENSE
     to: licenses/cloudflared-LICENSE.txt
@@ -110,8 +110,8 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   # the dictation helper is a signed background app — Windows and Linux never see it
   extraResources:
-    - from: electron/resources/OpenMausBot Speech.app
-      to: OpenMausBot Speech.app
+    - from: electron/resources/SuperBot Speech.app
+      to: SuperBot Speech.app
     # CUA must live outside ASAR. prepare-cua stages the signed executable and
     # a self-contained JS/native SDK bundle selected for macOS arm64.
     # ${arch} resolves per built arch — each bundle carries its own natives
@@ -194,8 +194,8 @@ nsis:
   perMachine: false
   shortcutName: SuperBot
   # Versioned, like the .dmg. The README's /latest/download/ button needs a
-  # STABLE filename, so ship a second copy named OpenMausBot-setup.exe on the
-  # release — the same trick as OpenMausBot.dmg beside OpenMausBot-${version}.dmg.
+  # STABLE filename, so ship a second copy named SuperBot-setup.exe on the
+  # release — the same trick as SuperBot.dmg beside SuperBot-${version}.dmg.
   artifactName: SuperBot-${version}-setup.${ext}
 
 linux:
@@ -212,7 +212,7 @@ linux:
   synopsis: Your own team of AI bots, in a chat app
   description: A local-first chat app for running a team of AI agents.
   maintainer: Milind Soni <46266943+milind-soni@users.noreply.github.com>
-  vendor: OpenMausBot
+  vendor: SuperBot
   syncDesktopName: true
   # The reviewed x64 CLI runtime is staged before packaging and remains
   # outside ASAR so executable modes and adjacent sidecars are preserved.

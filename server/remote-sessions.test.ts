@@ -174,12 +174,12 @@ describe("before pairing", () => {
     expect(response.body).toEqual({ error: "invalid request URL" });
     const health = await call("/api/health");
     expect(health.status).toBe(200);
-    expect(health.body).toMatchObject({ app: "openmausbot", pid: child.pid });
+    expect(health.body).toMatchObject({ app: "superbot", pid: child.pid });
     expect(child.exitCode).toBeNull();
   });
 
   it("describes itself to anyone, but serves nothing else off-machine", async () => {
-    const descriptor = await call("/.well-known/openmausbot/environment", { headers: remote("10.0.0.1") });
+    const descriptor = await call("/.well-known/superbot/environment", { headers: remote("10.0.0.1") });
     expect(descriptor.status).toBe(200);
     expect(descriptor.body.environmentId).toMatch(/^[0-9a-f-]{36}$/);
     expect(descriptor.body.label).toBe("cab mini");

@@ -1,4 +1,4 @@
-# OpenMausBot harness server — self-hosted tenant image.
+# SuperBot harness server — self-hosted tenant image.
 #
 # Build the renderer + the self-contained server bundle, then ship only those
 # artifacts on a slim Node runtime. The runtime stage holds what changes
@@ -10,12 +10,12 @@
 # Caddy in the same network namespace to terminate TLS and authentication at
 # the edge.
 #
-#   docker build -t openmausbot .
-#   docker build --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t openmausbot .
-#   docker buildx build --platform linux/arm64 -t openmausbot .   # Raspberry Pi 4/5, ARM servers
+#   docker build -t superbot .
+#   docker build --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t superbot .
+#   docker buildx build --platform linux/arm64 -t superbot .   # Raspberry Pi 4/5, ARM servers
 #
 # HOME is the /data volume, so engine CLI logins (~/.claude, ~/.codex, ~/.grok,
-# ...) and OpenMausBot's own state (~/.openmausbot) persist across container
+# ...) and SuperBot's own state (~/.openmausbot) persist across container
 # restarts.
 #
 # A plain `docker run` wants `--init --shm-size=512m`, as the compose files
@@ -119,7 +119,7 @@ ENV HOME=/data
 VOLUME ["/data"]
 USER maus
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -sf http://127.0.0.1:8799/api/health | grep -q openmausbot || exit 1
+  CMD curl -sf http://127.0.0.1:8799/api/health | grep -q superbot || exit 1
 # The launcher runs dist-server/index.js and starts it again when it asks to
 # (a copied workspace committing, server/restart.ts), so the container, and a
 # Caddy sharing its network, stays up through that restart.

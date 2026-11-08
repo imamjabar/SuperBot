@@ -3,13 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 /** Windows keeps one Run entry per name, so this app's login item has a name of its own. */
-const CHOSEN_NAME = "OpenMausBot at login";
+const CHOSEN_NAME = "SuperBot at login";
 
 /** Desktop Entry Exec quoting: the path in double quotes, with ", `, $ and \ escaped. */
 const quoted = (value) => `"${value.replace(/["`$\\]/g, (match) => `\\${match}`)}"`;
 
 export function autostartEntry(exec) {
-  return ["[Desktop Entry]", "Type=Application", "Name=OpenMausBot", `Exec=${quoted(exec)}`, "NoDisplay=true", "X-GNOME-Autostart-enabled=true", ""].join("\n");
+  return ["[Desktop Entry]", "Type=Application", "Name=SuperBot", `Exec=${quoted(exec)}`, "NoDisplay=true", "X-GNOME-Autostart-enabled=true", ""].join("\n");
 }
 
 /**

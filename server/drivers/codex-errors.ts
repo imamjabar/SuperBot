@@ -2,7 +2,7 @@ import { hostTimeZone } from "../turn-clock.ts";
 import { USAGE_LIMIT } from "./retry.ts";
 import { CODEX_USAGE_LIMIT_REACHED } from "../../shared/codex-usage-limit.ts";
 
-/** How a Codex turn reaches OpenAI: OpenMausBot's ChatGPT plan, Codex's own sign-in, or any other provider. */
+/** How a Codex turn reaches OpenAI: SuperBot's ChatGPT plan, Codex's own sign-in, or any other provider. */
 export type CodexRoute = "plan" | "own" | "other";
 
 // codex-cli 0.160.1 holding no login sends no Authorization header and gets this 401.

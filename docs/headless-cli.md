@@ -1,4 +1,4 @@
-# Run OpenMausBot from scripts and CI
+# Run SuperBot from scripts and CI
 
 The `openmausbot` command can drive a running workspace without a screen: set
 up a team from a file, give a bot a job, wait until it and every teammate it
@@ -20,7 +20,7 @@ files it links, and writes everything to `./rehearsal`.
 
 ## Which workspace, and as whom
 
-- `--url URL` or `OPENMAUSBOT_URL`: a workspace somewhere else. Use `https://`
+- `--url URL` or `SUPERBOT_URL`: a workspace somewhere else. Use `https://`
   unless it is this computer (`ALLOW_INSECURE_HTTP=true` allows plain `http://`).
 - `--port N` or `OMB_PORT`: this computer, on that port.
 - Otherwise the command looks on this computer's usual ports (8799, 18799,
@@ -38,7 +38,7 @@ Get the code in the app under **Settings → Phone → Set up a phone**. On this
 computer's own server, `connect` makes the code itself (`--client` gives a
 token that can chat but not change settings). The token goes to a file only
 you can read, and is never printed. Pass it with `--token-file FILE` or
-`OPENMAUSBOT_TOKEN`; there is no `--token` flag, because a command line can be
+`SUPERBOT_TOKEN`; there is no `--token` flag, because a command line can be
 read by other programs. A token is never sent while the command is still
 looking for a server: with a token, name the server.
 
@@ -82,7 +82,7 @@ one of its conversations.
 | `engine set KIND`, `engine list` | Gives the workspace an engine key without a screen (below). |
 | `connect [URL]` | Gets a token for a workspace elsewhere. |
 | `new-bot`, `new-channel`, `set-model`, `edit` | Make a bot or a room, change a bot's model, rewrite an earlier message. |
-| `mcp` | The OpenMausBot MCP server on stdin and stdout ([docs/mcp-server.md](mcp-server.md)). |
+| `mcp` | The SuperBot MCP server on stdin and stdout ([docs/mcp-server.md](mcp-server.md)). |
 
 The message for `send` and `run` can be the next word, `--text TEXT`,
 `--message-file FILE`, or `-` to read it from stdin.
@@ -420,7 +420,7 @@ section, or `openmausbot engine set`, can set it later instead).
 
 The step fails when the job fails (exit 1), needs someone (exit 3) or runs out
 of time (exit 4). To drive a workspace that is already running elsewhere, set
-`OPENMAUSBOT_URL` and pass a token made with `openmausbot connect` as a secret
+`SUPERBOT_URL` and pass a token made with `openmausbot connect` as a secret
 file (`--token-file`).
 
 ## For other agents

@@ -98,7 +98,7 @@ test("the move's server, while the clean workspace runs: the copy's own marker a
   w.requests.length = 0;
   await w.clean.enter();
   assert.deepEqual(await (await request("/api/move/freeze")).json(), { frozen: true });
-  assert.deepEqual(await (await request("/.well-known/openmausbot/environment")).json(), { environmentId: "own-copy-id" });
+  assert.deepEqual(await (await request("/.well-known/superbot/environment")).json(), { environmentId: "own-copy-id" });
   for (const [route, init] of [["/api/bots?messages=0"], ["/api/config"], ["/api/move/freeze", { method: "POST" }], ["/api/move/freeze", { method: "DELETE" }], ["/api/move/forget", { method: "POST" }], ["/api/workspace-backup/upload", { method: "POST" }]]) {
     await assert.rejects(request(route, init), { code: "clean-workspace" }, `${init?.method ?? "GET"} ${route}`);
   }
