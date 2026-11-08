@@ -30,6 +30,9 @@ export interface TaskRouteDeps {
     | "messagesFor" | "deleteTasks" | "deleteProject" | "createTask" | "createProject">;
   /** The desktop app owns this server, so a loopback caller is its owner. */
   desktopManaged: boolean;
+  /** A shared company workspace: Full access comes only from its operator. */
+  hostedWorkspace: boolean;
+  hostedFullAccessRefusal: string;
   hostedModels: Pick<HostedModels, "resetTask"> | null;
   routines(): Pick<RoutineManager, "isActiveThread"> | null;
   coordinator: Pick<Coordinator, "cancelDirect">;
@@ -42,6 +45,7 @@ export interface TaskRouteDeps {
   actorKey(auth: RequestAuth & { kind: "session" }): string;
   /** The bot's one chat with the person, who never opens another. */
   mainChat(botId: string): MainChat | undefined;
+  sharedWorkspaceFullAccessEnabled(): boolean;
   supportsApprovalMode(selection: ModelSelection, mode: ApprovalMode): boolean;
   threadBusy(botId: string, threadId: string): boolean;
   broadcast(payload: Record<string, unknown>): void;
@@ -71,12 +75,14 @@ export interface TaskRouteDeps {
 export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTasks(botId: string, threadIds: string[]): ReturnType<TaskRouteDeps["store"]["deleteTasks"]> } {
   const {
     store, hostedModels, coordinator, handoffs, skillReview, threadStarters, phoneSecretSubmissions, titleRegenerations,
-    directTurnGenerationByThread, actorKey,
+    directTurnGenerationByThread, actorKey, sharedWorkspaceFullAccessEnabled,
     supportsApprovalMode, threadBusy, broadcast, publicBot, wireBot, wireTask, pageSize, messagePage, checkedModelSelection,
     checkedTaskModelSwitch, threadTitleGate, generateThreadTitle, settleDirectFollowup, clearTurnDigestState,
     revokeInternalCapabilitiesForThread, stagedSkillCleanupsForThread, rejectDeletedThreadSkillStages,
   } = deps;
   const DESKTOP_MANAGED = deps.desktopManaged;
+  const HOSTED_WORKSPACE = deps.hostedWorkspace;
+  const HOSTED_FULL_ACCESS_REFUSAL = deps.hostedFullAccessRefusal;
   const deleteRefusal = (botId: string, threadId: string): { status: 404 | 409; error: string } | null => {
     if (!store.taskByThread(botId, threadId)) return { status: 404, error: "no such task" };
     if (phoneSecretSubmissions.hasThread(threadId)) {
@@ -170,7 +176,12 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
       if (body.approvalMode !== undefined && body.approvalMode !== "ask" && body.approvalMode !== "full") {
         return json(res, 400, { error: "new task approvalMode must be ask or full" });
       }
-      if (body.approvalMode === "full") return json(res, 403, { error: "New Full tasks require the operator's dedicated shared-workspace policy" });
+      if (body.approvalMode === "full") {
+        if (auth.kind !== "loopback" || !sharedWorkspaceFullAccessEnabled()) {
+          return json(res, 403, { error: "New Full tasks require the operator's dedicated shared-workspace policy" });
+        }
+        if (bot.approvalGrant) return json(res, 409, { error: "the bot's approval mode is still being confirmed" });
+      }
       const main = (auth.kind === "session" || DESKTOP_MANAGED) ? deps.mainChat(bot.id) : undefined;
       if (main) return json(res, 409, newChatRefused(main));
       if (phoneSecretSubmissions.hasBot(bot.id)) {
@@ -260,6 +271,9 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
         if (nextMode === "custom") {
           return json(res, 403, { error: "Refresh Custom access from the packaged desktop app" });
         }
+        if (nextMode === "full" && HOSTED_WORKSPACE && approvalModeFor(current) !== "full") {
+          return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
+        }
         if (approvalModeFor(current) === "custom") {
           return json(res, 403, { error: "Leaving Custom approval requires the packaged desktop app" });
         }
@@ -338,6 +352,7 @@ export function createTaskRoutes(deps: TaskRouteDeps): RouteHandler & { deleteTa
         if (!isApprovalMode(mode)) return json(res, 400, { error: "approvalMode must be ask, edits, auto, full, or custom" });
         // A thread PATCH cannot manufacture Custom: it needs the trusted desktop transition.
         if (mode === "custom") return json(res, 403, { error: "Custom access requires trusted desktop confirmation" });
+        if (mode === "full" && HOSTED_WORKSPACE && approvalModeFor(current) !== "full") return json(res, 403, { error: HOSTED_FULL_ACCESS_REFUSAL });
         if (approvalModeFor(current) === "custom") return json(res, 403, { error: "Leaving Custom approval requires confirmation in the packaged desktop app" });
         if (!supportsApprovalMode(patch.modelSelection ?? current.modelSelection, mode)) {
           return json(res, 400, { error: "This provider does not support the selected approval level" });

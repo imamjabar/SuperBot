@@ -60,7 +60,6 @@ beforeEach(() => {
   fixture.dispatch.mockReset();
   fixture.bots = [bot()];
   fixture.instances = [{ instanceId: "claude", capabilities: { agentsMcp: true } }];
-  fixture.reactor = "user";
 });
 
 describe("the setup card under a new bot's greeting", () => {

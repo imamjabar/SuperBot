@@ -12413,7 +12413,7 @@ describe("harness HTTP API", () => {
   });
 
   it("refuses MULTI_EXECUTE shapes it cannot read and writes connector-scope denial rows", async () => {
-    expect((await api("PUT", "/api/config", { composio: { apiKey: "" } })).status).toBe(200);
+    expect((await api("PUT", "/api/config", { composio: { apiKey: "ak_good" } })).status).toBe(200);
     const bot = (await api("POST", "/api/bots")).body.bot;
     connectorRelayCalls.length = 0;
     try {

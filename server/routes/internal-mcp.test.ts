@@ -336,14 +336,6 @@ describe("internal mcp_server route, Full access", () => {
     expect(probe).not.toHaveBeenCalled();
   });
 
-  it("refuses a Team Cloud personal server for changes", async () => {
-    const { post, stored } = fixture({ servers: { linear }, personal: ["linear"] });
-    for (const action of ["update", "enable", "disable", "remove"]) {
-      const out = await post({ action, name: "linear", url: "https://elsewhere.example/mcp" });
-      expect(out, action).toEqual({ status: 403, body: { error: "This connection is each person's own. Change it in Settings." } });
-    }
-    expect(stored("linear")).toMatchObject({ url: linear.url, enabled: true });
-  });
 
   it("refuses a server that runs on another computer, test included", async () => {
     const probe = probeWith({ ok: true, tools: [] });
@@ -531,12 +523,12 @@ describe("internal mcp_server route, Full access", () => {
 
   it("list returns botListing rows for servers this bot can see and hides another bot's own", async () => {
     const servers = { linear, notes: { ...notes, bot: BOT }, scout: { ...notes, bot: "scout" }, docs: { type: "http", url: "https://docs.example/mcp?key=1", headers: { "X-Key": "k" }, enabled: false } };
-    const { call } = fixture({ servers, personal: ["docs"] });
+    const { call } = fixture({ servers });
     const { status, body } = await call("GET");
     expect(status).toBe(200);
     const parse = (name: string) => { const parsed = parseStoredMcpServer(name, servers[name as keyof typeof servers]); if (!parsed.ok) throw new Error(parsed.error); return parsed.server; };
     const row = (name: string, owner: ReturnType<typeof mcpOwner>) => botListing(name, parse(name), { owner, authState: "none", forThisBot: true });
-    expect(JSON.parse(body.text!.slice(body.text!.indexOf("\n") + 1))).toEqual([row("linear", "shared"), row("notes", "own"), row("docs", "person")]);
+    expect(JSON.parse(body.text!.slice(body.text!.indexOf("\n") + 1))).toEqual([row("linear", "shared"), row("notes", "own"), row("docs", "shared")]);
     expect(body.text).not.toContain("scout");
     expect(body.text).not.toContain("key=1");
   });
@@ -813,8 +805,6 @@ describe("internal mcp_server route, below Full access", () => {
     expect(signIns).toEqual([]);
     expect(lines).toEqual([]);
 
-    const member = fixture({ admin: false, servers: { linear } });
-    expect(await member.post({ action: "sign_in", name: "linear" })).toEqual({ status: 403, body: { error: "Ask a workspace admin to sign in to linear." } });
     const refused = fixture({ servers: { linear }, signInRefusal: { status: 409, error: "Nobody can sign in to linear from here." } });
     expect(await refused.post({ action: "sign_in", name: "linear" })).toEqual({ status: 409, body: { error: "Nobody can sign in to linear from here." } });
     expect(refused.lines).toEqual([]);
@@ -872,7 +862,7 @@ describe("a card answered after OpenMausBot restarts", () => {
     expect(stored("notes")).toMatchObject({ args: ["-y", "notes-mcp"], env: { NOTES_TOKEN: "saved-token" } });
     expect(probe).not.toHaveBeenCalled();
     expect(card()).toMatchObject({ expired: true, held: "SuperBot restarted, so this request expired.", mcpRequest: { result: { state: "expired" } } });
-    expect(answers[0]).toContain("SuperBot restarted, so this request expired. Ask again if you still need it.");
+    expect(answers[0]).toContain("OpenMausBot restarted, so this request expired. Ask again if you still need it.");
     for (const sent of [fresh, "sk-live-9", "fresh-token", "saved-token"]) expect(JSON.stringify(chat), sent).not.toContain(sent);
   });
 

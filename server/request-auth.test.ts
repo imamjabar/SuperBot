@@ -664,9 +664,10 @@ describe("loopback trust: owner on one person's machine, service on a shared wor
   });
 
   it("defaults to owner on self-hosted, and lets the operator choose", () => {
-    const pick = (env: NodeJS.ProcessEnv, flags: { desktopManaged?: boolean } = {}) =>
-      resolveLoopbackTrust({ env, desktopManaged: false, ...flags });
+    const pick = (env: NodeJS.ProcessEnv, flags: { desktopManaged?: boolean; hostedWorkspace?: boolean } = {}) =>
+      resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: false, ...flags });
     expect(pick({})).toEqual({ trust: "owner", reason: "self-hosted default", localBrowsers: false });
+    expect(pick({}, { hostedWorkspace: true })).toEqual({ trust: "service", reason: "hosted workspace", localBrowsers: false });
     expect(pick({ OMB_LOOPBACK_TRUST: "service" })).toEqual({ trust: "service", reason: "OMB_LOOPBACK_TRUST", localBrowsers: false });
     expect(pick({ OMB_LOOPBACK_TRUST: " Service " }).trust).toBe("service");
     const typo = pick({ OMB_LOOPBACK_TRUST: "own3r\n" });
@@ -795,8 +796,8 @@ describe("a browser on this machine is not the owner", () => {
     expect(check(page, "/api/bots", "GET", { localBrowsers: true }).auth).toEqual({ kind: "loopback", scopes: ["admin", "client"] });
     // The desktop owner header is still required for desktop mutations.
     expect(check(page, "/api/bots/bot-1", "PATCH", { localBrowsers: true, desktopToken: "owner-token-123" }).status).toBe(403);
-    const pick = (env: NodeJS.ProcessEnv, flags: { fromSource?: boolean; desktopManaged?: boolean } = {}) =>
-      resolveLoopbackTrust({ env, desktopManaged: false, ...flags });
+    const pick = (env: NodeJS.ProcessEnv, flags: { fromSource?: boolean; desktopManaged?: boolean; hostedWorkspace?: boolean } = {}) =>
+      resolveLoopbackTrust({ env, desktopManaged: false, hostedWorkspace: false, ...flags });
     const dev = { OMB_DEV_TRUST_LOCAL_BROWSER: "1" };
     expect(pick(dev, { fromSource: true })).toMatchObject({ trust: "owner", localBrowsers: true, warning: expect.stringMatching(/development only/) });
     expect(pick(dev, { fromSource: false })).toMatchObject({ localBrowsers: false, warning: expect.stringMatching(/ignored/) });

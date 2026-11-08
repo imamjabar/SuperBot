@@ -25,11 +25,12 @@ async function fixture() {
   if (!paired.ok) throw new Error(paired.error);
   const session = sessions.authenticate(paired.token)!;
   const bot = { id: "helper", name: "Helper", phoneApps: { calendar: "write" } } as BotRecord;
+  const userMessage = { id: "message-1", role: "user" as const, kind: "text" as const, text: "Add it to my calendar", at: 0 };
   const phones = createPhones({
     dataDir: dir, loopbackTrust: "owner", sharedMembership: () => false,
-    store: { bot: () => bot, groupByThread: () => undefined, messagesFor: () => [], appendMessage: (_thread, message) => ({ ...message, id: "message-1", at: message.at ?? Date.now() }) },
+    store: { bot: () => bot, groupByThread: () => undefined, messagesFor: () => [userMessage], appendMessage: (_thread, message) => ({ ...message, id: "message-1", at: message.at ?? Date.now() }) },
     sessions, routines: () => null, ownerOrAdmin: () => true,
-    originIsUser: () => true, request: () => undefined, nudge: () => {}, mint: () => "fixture-token", harnessUrl: "http://127.0.0.1:1", active: () => true,
+    originIsUser: () => true, request: () => ({ messageId: "message-1", origin: { kind: "user" } }), nudge: () => {}, mint: () => "fixture-token", harnessUrl: "http://127.0.0.1:1", active: () => true,
   });
   let pollStarted!: () => void;
   const polling = new Promise<void>(resolve => { pollStarted = resolve; });

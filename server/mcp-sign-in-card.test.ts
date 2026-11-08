@@ -65,10 +65,6 @@ async function setup(options: { origins?: string[]; lifetimeMs?: number } = {}) 
 
   const cards = createMcpSignInCards({
     store, cfg: () => cfg, mcpOAuth, followCard: () => {},
-    personal: () => [],
-    turnPerson: () => null,
-    oauthFor: () => mcpOAuth,
-    personName: () => "",
     publicOrigins: () => options.origins ?? [],
     language: () => undefined,
     answer: (_threadId, messageId, text) => {
@@ -86,6 +82,7 @@ async function setup(options: { origins?: string[]; lifetimeMs?: number } = {}) 
       readBody: async () => ({ action: "sign_in", name }),
       sender: { id: "kiwi" }, threadId,
       fullAccess: () => true,
+      canUse: () => true, cfg: () => cfg,
       authState: (server: string, at: string) => mcpOAuth.authState(server, at),
       activity: () => {}, language: () => undefined,
       requestSignIn: (server: string, stored: Parameters<InternalMcpDeps["requestSignIn"]>[1]) =>

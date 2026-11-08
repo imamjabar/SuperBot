@@ -35,7 +35,7 @@ import {
   approvalModeFor,
   modelSwitchNeedsAsk,
   isEmergencyApprovalDowngrade,
-  isApprovalMode,
+  isApprovalMode, setDefaultApprovalMode,
   type ApprovalMode,
 } from "../shared/approval-mode.ts";
 import { createApprovalModeSupport } from "./harness-capabilities.ts";
@@ -506,7 +506,7 @@ import {
 } from "./turn-dispatch-guard.ts";
 import { createGracefulShutdown } from "./graceful-shutdown.ts";
 import { acquireDataDirLeaseForProcess } from "./data-dir-lease.ts";
-import { createWorkspaceAccess, describeEdition, editionForSettings, editionStatus, entitled, hostedWorkspaceConfiguration, hostedWorkspaceConfigured, licenseWarning, loadEnterpriseLayer, workspaceMembership, type WorkspaceAccess } from "./enterprise.ts";
+import { createWorkspaceAccess, describeEdition, editionForSettings, editionStatus, entitled, hostedWorkspaceConfiguration, hostedWorkspaceConfigured, licenseWarning, sharedWorkspaceFullAccessConfigured, loadEnterpriseLayer, workspaceMembership, type WorkspaceAccess } from "./enterprise.ts";
 import { environmentDescriptor, loadEnvironmentId, serverVersion } from "./environment.ts";
 import { WorkspaceBackupMaintenance } from "./workspace-backup-maintenance.ts";
 import { createWorkspaceBackupRoutes, isWorkspaceBackupSessionControl } from "./workspace-backup-http.ts";
@@ -665,7 +665,7 @@ const sessions = new SessionRegistry({
     const membership = signInAllowList();
     return (email) => allowedScopes(email, membership);
   },
-  portalMembership: false, recheckMs: 1_000,
+  portalMembership: hostedWorkspaceConfiguration()?.portalMembership === true, recheckMs: 1_000,
 }); onConfigSaved(() => sessions.membershipChanged());
 const sharedComputers = new SharedComputers(id => sessions.isLive(id), new LentComputers(join(DATA_DIR, "lent-computers.json")));
 const webPush = createWebPush(DATA_DIR);
@@ -697,7 +697,7 @@ if (logins.onePasswordToken()) void onePassword.refresh();
 const botLogins = new BotLogins(logins, onePassword);
 const SESSION_COOKIE = sessionCookieName(PORT, ENVIRONMENT_ID);
 let workspaceAccess: WorkspaceAccess | null = null; const HOSTED_WORKSPACE = hostedWorkspaceConfigured();
-const DESKTOP_MANAGED = process.env.OMB_DESKTOP_PARENT === "1", HOSTED_FULL_ACCESS_REFUSAL = "On a shared company workspace Full access comes only from the operator's dedicated policy"; if (HOSTED_WORKSPACE) setDefaultApprovalMode("ask");
+const DESKTOP_MANAGED = process.env.OMB_DESKTOP_PARENT === "1", HOSTED_FULL_ACCESS_REFUSAL = "On a shared company workspace Full access comes only from the operator's dedicated policy"; if (HOSTED_WORKSPACE) setDefaultApprovalMode("ask"); const SHARED_WORKSPACE_FULL_ACCESS = sharedWorkspaceFullAccessConfigured(), sharedWorkspaceFullAccessEnabled = () => SHARED_WORKSPACE_FULL_ACCESS && Boolean(workspaceAccess) && entitled("admin");
 const LOOPBACK = resolveLoopbackTrust({ desktopManaged: DESKTOP_MANAGED, hostedWorkspace: HOSTED_WORKSPACE, fromSource: import.meta.url.endsWith(".ts") });
 // The CLI's per-launch secret comes on stdin, never an env var: every engine this server starts inherits its environment.
 let cliOwnerToken: string | undefined;
@@ -768,9 +768,7 @@ function messageSender(auth: RequestAuth): ResolvedSender | undefined {
 }
 
 
-/** What people's lines are called in this conversation's turns. Where one person uses the server, the profile's name; on
- * a Team Cloud each line its own speaker's, and a line with none the person whose conversation it is. The server's
- * profile names nobody on a team. */
+/** What the person's lines are called in this conversation's turns: the profile's name, or "User". */
 function userNameFor(): PersonName {
   return cfg.profile?.name?.trim() || "User";
 }
@@ -1041,7 +1039,7 @@ function memberFrameContext(visible: VisibleSet): FrameContext {
 
 function adminActivityRecording(): boolean {
   if (DESKTOP_MANAGED) return false;
-
+  if (HOSTED_WORKSPACE) return true;
   const chatOnly = (scopes: readonly string[]) => !scopes.includes("admin");
   return sharedSignIn(signInAllowList()) || sessions.list().some((session) => chatOnly(session.scopes)) ||
     sessions.openPairings().some((pairing) => chatOnly(pairing.scopes));
@@ -6828,7 +6826,7 @@ function latestCompaction(messages: readonly Message[]) {
 
 function directContext(bot: BotRecord, threadId: string, messages: Message[]): ContextMessage[] {
   const messagesById = new Map(store.messagesFor(threadId).map(message => [message.id, message]));
-  const userName = userNameFor(threadId), labels = lineLabels(threadId);
+  const userName = userNameFor(), labels = lineLabels(threadId);
   const newestReports = newestAutomationLines(messages);
   return messages.filter(isContextMessage).map(m => ({
     id: m.id, role: m.role === "user" ? "user" : "assistant",
@@ -7006,7 +7004,7 @@ async function startOrQueueDirectMessage(botId: string, threadId: string, text: 
       sendId,
       dataContext, fromApp: app?.fromApp, mentions,
       reason: decision.reason,
-      prompt: (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(text, dataContext), replyTo, userNameFor(threadId))),
+      prompt: (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(text, dataContext), replyTo, userNameFor())),
       sender,
       trigger,
       via,
@@ -7098,7 +7096,7 @@ async function acceptDirectSend(
       const typedStop = await stopOnTypedCommand({ botId, threadId, text, trigger, personPresent, fromApp: Boolean(app), busy: currentAtStart.busy === true, row: { replyToId: replyTo?.id, sendId, sender, ...spokenLineFields(via, callId) } });
       if (typedStop) return typedStop;
       if (currentAtStart.busy) {
-        const personAsks = !app && (trigger.kind === "user" || trigger.kind === "owner"), personsOwn = personPresent && personAsks, queuedPrompt = (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(text, dataContext), replyTo, userNameFor(threadId)));
+        const personAsks = !app && (trigger.kind === "user" || trigger.kind === "owner"), personsOwn = personPresent && personAsks, queuedPrompt = (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(text, dataContext), replyTo, userNameFor()));
         const instance = runningTurnInstance(currentAtStart, threadId);
         let steered: SteerOutcome = "refused";
         const steerInput = extractTurnImages(text);
@@ -7114,7 +7112,7 @@ async function acceptDirectSend(
         // A chosen wait (queue, or restart's Stop) is never cut short by person-first.
         const chose = busyAdmission.action === "queue" ? busyAdmission.chose : undefined;
         if (busyAdmission.action === "steer" && instance?.adapter.steer) {
-          const prompt = (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(steerInput.text, dataContext), replyTo, userNameFor(threadId)));
+          const prompt = (app?.context ?? "") + personPrompt(threadId, sender, promptWithReply(promptWithDataContext(steerInput.text, dataContext), replyTo, userNameFor()));
           steered = await (steerInput.images.length > 0
             ? instance.adapter.steer(threadId, prompt, steerInput.images)
             : instance.adapter.steer(threadId, prompt))
@@ -7682,8 +7680,8 @@ async function beginTurn(
       const userTurnText = (opts?.app?.context ?? "") + (opts?.cardContinuation ? "" : routineRunNote(threadId, opts?.automationSource)) + labelledLine(personLine && !opts?.excludeMessageIds ? userMessage : {}, withReactionNotes(promptWithReply(
         skillAuthoring ? expandLearnTurnText(setupText) : setupText,
         opts?.replyTo,
-        userNameFor(threadId),
-      ), personLine ? activeMessages : [], skipTranscript, userNameFor(threadId)), lineLabels(threadId)) + (personLine && frontDeskTurn(cfg, botMainThread(bot.id), threadId) ? FRONT_DESK_LANGUAGE_NOTE : "");
+        userNameFor(),
+      ), personLine ? activeMessages : [], skipTranscript, userNameFor()), lineLabels(threadId)) + (personLine && frontDeskTurn(cfg, botMainThread(bot.id), threadId) ? FRONT_DESK_LANGUAGE_NOTE : "");
       const replay = usesNativeImageInput
         ? extractReplayImages(selection.inline, turnImages)
         : { transcript: selection.inline, images: [] };
@@ -8265,7 +8263,7 @@ async function beginTurn(
       const recalled = autoRecallPrompt(bot, threadId, resolvedImages.text, {
         // A routine run starts fresh, and a webhook is untrusted: neither pulls earlier conversations in.
         conversations: commsDepth === 0 && !coordinationNode && !opts?.automationSource && !opts?.unattended && !apiFenced,
-        userName: userNameFor(threadId),
+        userName: userNameFor(),
       });
       if (!directTurnClaimIsCurrent(bot.id, dispatchClaimId, threadId)) {
         throw new DirectTurnSetupCancelled("turn stopped before dispatch");
@@ -9521,7 +9519,7 @@ async function runClaimedGroupMemberTurn(
   const preparedSelection = { ...bot.modelSelection };
   const preparedComposio = bot.composio;
   const instance = registry.get(bot.modelSelection.instanceId);
-  const userName = userNameFor(threadId);
+  const userName = userNameFor();
   if (providerInstancesChanging.has(bot.modelSelection.instanceId)) {
     onDispatchError?.(`${bot.name}'s provider account is being updated — try again shortly`);
     return true;
@@ -10741,7 +10739,7 @@ function startGroupTurn(
     operation.requestMessageId = message.id;
   }
   const routing = autoRoute
-    ? decideRoomResponder(decider, roomRoutingInput(group.name, text, routableMembers, historyBeforeSend, userNameFor(group.threadId), options.sender), {
+    ? decideRoomResponder(decider, roomRoutingInput(group.name, text, routableMembers, historyBeforeSend, userNameFor(), options.sender), {
         signal: operation.cancellation.signal,
       })
     : null;
@@ -11772,7 +11770,7 @@ ROUTES.push(createThreadRoutes({
   groupFor: personRooms.groupForAuth,
   store, userName: userNameFor, sessions, groupUsageReader, lendingEnabled,
   hostedWorkspace: HOSTED_WORKSPACE, sessionCookie: SESSION_COOKIE, loopback: LOOPBACK, defaultPage: DEFAULT_PAGE,
-
+  workspaceAccess: () => workspaceAccess,
   desktopMutationToken: () => desktopMutationToken,
   companionMutationToken: () => companionMutationToken,
   cliOwnerToken: () => cliOwnerToken,
@@ -11888,7 +11886,7 @@ ROUTES.push(createChannelRoutes({
   stagedSkillCleanupsForThread,
   rejectDeletedThreadSkillStages,
 }));
-const taskRoutes = createTaskRoutes({ desktopManaged: DESKTOP_MANAGED, hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, store, hostedModels, routines: () => routines,
+const taskRoutes = createTaskRoutes({ desktopManaged: DESKTOP_MANAGED, hostedWorkspace: HOSTED_WORKSPACE, hostedFullAccessRefusal: HOSTED_FULL_ACCESS_REFUSAL, sharedWorkspaceFullAccessEnabled, store, hostedModels, routines: () => routines,
   coordinator,
   handoffs,
   skillReview,
@@ -12028,7 +12026,7 @@ ROUTES.push(createComputerRoutes({
 ROUTES.push(createStatusRoutes({
   store, cfg, outboundCounts,
   staticDir: STATIC_DIR,
-  adminActivityRecording, configStatus, broadcast, threadShown,
+  sharedWorkspaceFullAccessEnabled, adminActivityRecording, configStatus, broadcast, threadShown,
   browserEngineInstall: { get: () => browserEngineInstall, set: (install) => { browserEngineInstall = install; } },
   browserEngineInstallError: { set: (error) => { browserEngineInstallError = error; } },
 }));
@@ -12354,7 +12352,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
               via: auth.via,
               environmentId: ENVIRONMENT_ID,
               ...(auth.session.email ? { email: auth.session.email } : {}),
-              ...(auth.session.owner ? { owner: auth.session.owner } : {}),
+              ...(auth.session.owner ? { owner: auth.session.owner } : {}), ...(HOSTED_WORKSPACE ? { hosted: true } : {}),
               ...(reactorFor(auth).by !== "user" ? { reactor: reactorFor(auth).by } : {}),
             },
       );

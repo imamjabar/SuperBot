@@ -70,6 +70,7 @@ export function ownerOrAdmin(auth: RequestAuth): boolean {
 export function resolveLoopbackTrust(input: {
   env?: NodeJS.ProcessEnv;
   desktopManaged: boolean;
+  hostedWorkspace?: boolean;
   /** This server runs from TypeScript source rather than a build. */
   fromSource?: boolean;
 }): { trust: LoopbackTrust; reason: string; warning?: string; localBrowsers: boolean } {
@@ -89,14 +90,17 @@ function loopbackTrust(input: Parameters<typeof resolveLoopbackTrust>[0]): { tru
     return {
       trust: requested,
       reason: "OMB_LOOPBACK_TRUST",
+      ...(requested === "owner" && input.hostedWorkspace
+        ? { warning: "OMB_LOOPBACK_TRUST=owner on a shared workspace: every bot's shell can change settings and approve cards as the owner" }
+        : {}),
     };
   }
   if (raw !== undefined && requested !== "") {
     return { trust: "service", reason: "OMB_LOOPBACK_TRUST", warning: `OMB_LOOPBACK_TRUST="${raw.replace(/[^\w.-]/g, "").slice(0, 40)}" is not owner or service; using service` };
   }
+  if (input.hostedWorkspace) return { trust: "service", reason: "hosted workspace" };
   return { trust: "owner", reason: "self-hosted default" };
 }
-
 export function isLoopbackHost(host: string | undefined): boolean {
   if (!host) return false;
   const value = host.trim().toLowerCase();

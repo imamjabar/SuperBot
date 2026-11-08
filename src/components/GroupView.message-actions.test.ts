@@ -53,7 +53,6 @@ let root: Root;
 beforeEach(() => {
   vi.stubGlobal("window", {});
   fixture.dispatch.mockClear();
-  fixture.canWrite = true;
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);

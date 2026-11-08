@@ -264,7 +264,7 @@ describe.skipIf(process.platform === "win32")("superbot-web-pull.sh", () => {
   const OLD = "a".repeat(64);
   const NEW = "b".repeat(64);
   /** Runs the updater against stub git, docker and curl; `replaces` makes `up omb` start a new container. */
-  function update({ serverChanged = true, replaces = false, caddyIn = OLD, health = '{"app":"openmausbot"}' }: { serverChanged?: boolean; replaces?: boolean; caddyIn?: string; health?: string } = {}) {
+  function update({ serverChanged = true, replaces = true, health = '{"app":"openmausbot"}' }: { serverChanged?: boolean; replaces?: boolean; health?: string } = {}) {
     const home = mkdtempSync(join(tmpdir(), "omb-web-pull-"));
     temporaryDirectories.push(home);
     const bin = join(home, "bin");
@@ -273,7 +273,6 @@ describe.skipIf(process.platform === "win32")("superbot-web-pull.sh", () => {
     mkdirSync(bin);
     mkdirSync(join(home, "SuperBot", "server-dist"), { recursive: true });
     writeFileSync(join(home, "SuperBot", "server-dist", "index.js"), "");
-    // cloud-home-start.js dropped with Cloud home removal
     writeFileSync(state, OLD);
     const stub = (name: string, body: string) => writeFileSync(join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\n${body}\n`, { mode: 0o755 });
     stub("git", [
@@ -284,14 +283,14 @@ describe.skipIf(process.platform === "win32")("superbot-web-pull.sh", () => {
     ].join("\n"));
     stub("docker", [
       'case "$*" in',
-      `  *"up -d --no-deps --no-build omb"*) ${replaces ? `echo ${NEW} > "${state}"` : ":"} ;;`,
+      `  *"--force-recreate omb"*) ${replaces ? `echo ${NEW} > "${state}"` : ":"} ;;`,
       `  *"ps -q omb"*) cut -c1-12 "${state}" ;;`,
       "  *\"ps -q caddy\"*) echo caddy0000000 ;;",
       `  *"{{.Id}}"*) cat "${state}" ;;`,
-      `  *"{{.HostConfig.NetworkMode}}"*) echo "container:${caddyIn}" ;;`,
       "esac",
     ].join("\n"));
     stub("curl", `echo '${health}'`);
+    stub("sleep", ":");
     stub("timeout", 'shift; exec "$@"');
     const run = spawnSync("sh", [new URL("../deploy/superbot-web-pull.sh", import.meta.url).pathname], {
       encoding: "utf8", env: { PATH: `${bin}:/usr/bin:/bin`, HOME: home },
@@ -300,34 +299,27 @@ describe.skipIf(process.platform === "win32")("superbot-web-pull.sh", () => {
     const calls = readFileSync(log, "utf8").trim().split("\n");
     return { status: run.status, stderr: run.stderr, calls, docker: calls.filter(call => call.startsWith("docker ")) };
   }
-  const recreated = (docker: string[]) => docker.filter(call => call.includes("--force-recreate caddy"));
-  const reloaded = (docker: string[]) => docker.filter(call => call.includes("caddy reload"));
-
   it("never touches omb or caddy when the server bundle did not change", () => {
     const { status, docker } = update({ serverChanged: false });
     expect(status).toBe(0);
     expect(docker).toEqual([]);
   });
 
-  it("keeps the same omb container's caddy and only reloads its config", () => {
+  it("force-recreates omb and then caddy when the server bundle changed", () => {
     const { status, stderr, docker } = update();
     expect(status, stderr).toBe(0);
-    expect(docker.filter(call => call.includes(" up "))).toEqual([expect.stringContaining("up -d --no-deps --no-build omb")]);
-    expect(reloaded(docker)).toHaveLength(1);
-    expect(recreated(docker)).toEqual([]);
+    expect(docker.filter(call => call.includes(" up "))).toEqual([
+      expect.stringContaining("up -d --no-deps --no-build --force-recreate omb"),
+      expect.stringContaining("up -d --no-deps --no-build --force-recreate caddy"),
+    ]);
+    expect(docker.filter(call => call.includes("--force-recreate caddy"))).toHaveLength(1);
   });
 
-  it("reattaches caddy exactly once when omb was replaced", () => {
-    const { status, stderr, docker } = update({ replaces: true });
-    expect(status, stderr).toBe(0);
-    expect(recreated(docker)).toEqual([expect.stringContaining("up -d --no-deps --no-build --force-recreate caddy")]);
-    expect(reloaded(docker)).toEqual([]);
-  });
-
-  it("reattaches a caddy left in another namespace even when omb kept its id", () => {
-    const { status, docker } = update({ caddyIn: "c".repeat(64) });
-    expect(status).toBe(0);
-    expect(recreated(docker)).toHaveLength(1);
+  it("fails when omb was not recreated", () => {
+    const { status, stderr, docker } = update({ replaces: false });
+    expect(status).toBe(1);
+    expect(stderr).toContain("omb was not recreated; it still runs the previous server");
+    expect(docker.filter(call => call.includes("--force-recreate caddy"))).toHaveLength(0);
   });
 
   it("fails when the health check does not answer as the app", () => {

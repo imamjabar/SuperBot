@@ -251,7 +251,7 @@ beforeEach(() => {
     skills: [], loading: false, working: "", error: "", reviewing: null, toggle: vi.fn(() => Promise.resolve()),
     setWorking: vi.fn(), setError: vi.fn(), refresh: vi.fn(() => Promise.resolve()), putAssignments: vi.fn(() => Promise.resolve()),
   };
-  fixture.memory = { docs: null, error: false, mine: false, setDoc: vi.fn(), reload: vi.fn(() => Promise.resolve()) };
+  fixture.memory = { docs: null, error: false, setDoc: vi.fn(), reload: vi.fn(() => Promise.resolve()) };
   patch.mockReset();
   onOpen.mockReset();
   onClose.mockReset();

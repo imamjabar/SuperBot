@@ -430,6 +430,7 @@ describe("hosted bridge in the full server", () => {
 
     expect((await call("/api/config", { method: "PUT", cookie: admin, body: { decisions: { retentionDays: 365 } } })).status).toBe(200);
     const config = (await call("/api/config", { cookie: admin })).body;
+    if (!config?.decisions) console.error("DEBUG CONFIG FAILURE:", JSON.stringify(config));
     expect(config.decisions).toEqual({ retentionDays: 365 });
     expect(config.budgets.monthlyUsd).toBeUndefined();
     expect(config.membership).toEqual({ authority: "portal", pairingCodes: false, peopleUrl: "https://admin.example.test/people?workspace=acme" });

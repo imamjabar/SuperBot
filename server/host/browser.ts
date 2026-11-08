@@ -60,7 +60,8 @@ export interface BrowserHostDeps {
   PORT: number;
   /** The engine memory guard, told which browsers each thread's turn starts or holds. */
   engineMemory?: { useBrowsers(browsers: EngineBrowsers): void };
-
+  /** A shared company workspace: the server's network is the operator's, so the stored local-sites switch and allow-list are ignored. */
+  HOSTED_WORKSPACE?: boolean;
 }
 
 
@@ -102,8 +103,9 @@ export function createBrowserHost(deps: BrowserHostDeps) {
   const usedBrowserSessions = new Map<string, Spec>();
   const audiences = new AudienceBrowsers(join(DATA_DIR, "browser", "audiences.json"));
   const egressHost = DESKTOP_MANAGED ? "desktop" : "server";
-  const sitesSwitch = egressHost === "server";
-  browserEgress.configure({ host: egressHost, config: () => cfg.browserEngine?.egress });
+  const hostedServer = egressHost === "server" && Boolean(deps.HOSTED_WORKSPACE);
+  const sitesSwitch = egressHost === "server" && !hostedServer;
+  browserEgress.configure({ host: egressHost, config: () => (hostedServer ? undefined : cfg.browserEngine?.egress) });
   /** A live bot's, profile's or temporary browser of this data dir, for any audience. */
   const belongs = (session: string) => isTemporaryBrowserSession(session) || audiences.variants().some((suffix) =>
     store.bots.some((bot) => browserSessionId(bot.id + suffix, "") === session)
@@ -224,7 +226,7 @@ export function createBrowserHost(deps: BrowserHostDeps) {
       },
     };
   }
-  async function browserIntegration(botId: string, profile: string | undefined, _turn?: { threadId: string; generation: string }, audience: Audience = "team") {
+  async function browserIntegration(botId: string, profile: string | undefined, turn?: { threadId: string; generation: string }, audience: Audience = "team") {
     const profileTarget = profile && profile !== "guest" ? browserProfilePartitionTarget(cfg, profile) : null;
     const partitionId = profile === "guest" ? "guest" : (profileTarget?.partitionId ?? "");
     const browserProfileId = profileTarget?.profileId ?? profile;

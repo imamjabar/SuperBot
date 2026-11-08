@@ -146,7 +146,7 @@ export function createMcpSignInCards(deps: McpSignInCardDeps) {
     // Paste-back needs the address bar of the browser that signed in, which only Settings asks for. A browser elsewhere
     // needs this home's https address, and a pre-registered app always comes back to a fixed loopback port.
     if (browser.remote && (!browser.origin || server.oauth)) return { status: 409, body: { error: serverLine(language, "server.mcp.signIn.inSettings") } };
-    const manager = signer(name, threadId)!;
+    const manager = signer();
     const owner = cardOwner(threadId, card.id);
     if (browser.remote && manager.waiting(name, owner)?.loopback) cancel(name, threadId, card.id);
     let started;
@@ -198,10 +198,10 @@ export function createMcpSignInCards(deps: McpSignInCardDeps) {
   function status(threadId: string, card: McpCard): Reply {
     const name = card.connector.slug;
     const server = current(name);
-    const connected = !("reason" in server) && signer(name, threadId)?.authState(name, server.url) === "signed-in";
+    const connected = !("reason" in server) && signer().authState(name, server.url) === "signed-in";
     if (connected) signedIn(threadId, card.id);
     // A card can say "authorizing" with no sign-in behind it: the server restarted while it waited.
-    if (!connected && card.connector.status === "authorizing" && !signer(name, threadId)?.waiting(name, cardOwner(threadId, card.id))) {
+    if (!connected && card.connector.status === "authorizing" && !signer().waiting(name, cardOwner(threadId, card.id))) {
       patch(threadId, card.id, { status: "required", error: serverLine(deps.language(threadId), "server.mcp.signIn.expired") });
     }
     const pending = !connected && find(threadId, card.id)?.connector.status === "authorizing";
@@ -220,9 +220,6 @@ export function createMcpSignInCards(deps: McpSignInCardDeps) {
     /** Shows the person a Sign in card for a server the bot can't use until they sign in. An earlier open card this bot
      * showed for the same server is set aside, so the chat shows one. */
     request(at: { bot: { name: string }; threadId: string; from?: Message["from"] }, name: string, server: StoredRemoteMcpServer): { posted: true } | Refusal {
-      if (!signer(name, at.threadId)) {
-        return { status: 409, error: `${name} is each person's own, and this chat isn't one person's alone, so nobody can sign in to it here. Each person signs in to their own on their team's page in MausBot Cloud.` };
-      }
       const replaced: string[] = [];
       for (const old of store.messagesFor(at.threadId)) {
         if (!isMcpSignInCard(old) || old.connector.slug !== name || old.from?.botId !== at.from?.botId) continue;

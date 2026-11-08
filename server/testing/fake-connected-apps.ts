@@ -33,7 +33,7 @@ const NOT_FOUND = "Requested entity was not found.";
 const field = (value: unknown, name: string): unknown => (value && typeof value === "object" ? (value as Record<string, unknown>)[name] : undefined);
 
 export async function startFakeConnectedApps(): Promise<FakeConnectedApps> {
-  const fake: Omit<FakeConnectedApps, "url" | "token" | "close"> = {
+  const fake: Omit<FakeConnectedApps, "url" | "token" | "apiKey" | "env" | "close"> = {
     connected: { gmail: true, googlecalendar: true }, address: "me@example.test", events: [], emails: [], calls: [], threads: {},
     calendars: [{ id: "me@example.test", primary: true, accessRole: "owner", selected: true }],
   };

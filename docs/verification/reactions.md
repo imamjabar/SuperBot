@@ -105,7 +105,7 @@ entries.
 The components themselves:
 
 ```sh
-pnpm exec vitest run src/components/Reactions.test.ts src/components/Reactions.shared.test.ts src/lib/activity-runs.test.ts
+pnpm exec vitest run src/components/Reactions.test.ts src/lib/activity-runs.test.ts
 ```
 
 These mount the real components: the **Add reaction** button opens a toolbar
