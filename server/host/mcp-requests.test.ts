@@ -121,7 +121,7 @@ describe("MCP approval cards", () => {
     expect(after.cards.decided(THREAD, messageId)).toBe(true);
     const parked: string[] = [];
     expect(after.cards.resume(THREAD, messageId, (text) => { parked.push(text); return true; })).toBe(true);
-    expect(parked[0]).toContain("OpenMausBot restarted, so this request expired. Ask again if you still need it.");
+    expect(parked[0]).toContain("SuperBot restarted, so this request expired. Ask again if you still need it.");
     expect(after.waiting()).toEqual([]);
 
     const turnOn = service();

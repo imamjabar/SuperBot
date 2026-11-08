@@ -297,7 +297,7 @@ describe("a searched MCP catalog", () => {
 });
 
 describe("approvals that follow the other engines", () => {
-  it("runs OpenMausBot's own agents tools without a card, while a configured server's tool still asks", async () => {
+  it("runs SuperBot's own agents tools without a card, while a configured server's tool still asks", async () => {
     const f = await fixture((_body, response, round) => {
       if (round === 1) sse(response, [chunk({ tool_calls: [toolCall("agents_write", '{"name":"peer","value":"sent"}', "call_agents")] }, "tool_calls")]);
       else if (round === 2) sse(response, [chunk({ tool_calls: [toolCall("audit_write", '{"name":"receipt","value":"done"}', "call_audit")] }, "tool_calls")]);
@@ -1345,9 +1345,9 @@ describe("structured tool execution boundaries", () => {
     const finalRequest = f.requests[1]!;
     const toolResults = finalRequest.messages.filter((m) => m.role === "tool");
     expect(toolResults).toHaveLength(3);
-    expect(toolResults[2]?.content).toContain("[OpenMausBot: this job has used its 2 tool calls. This call was not run.]");
+    expect(toolResults[2]?.content).toContain("[SuperBot: this job has used its 2 tool calls. This call was not run.]");
     const budgetPrompt = finalRequest.messages.find((m) => m.role === "user" && typeof m.content === "string" && m.content.includes("used its 2 tool calls"));
-    expect(budgetPrompt?.content).toBe("[OpenMausBot: this job has used its 2 tool calls. Write your final answer now from what you have gathered; say plainly what is still missing. No more tools.]");
+    expect(budgetPrompt?.content).toBe("[SuperBot: this job has used its 2 tool calls. Write your final answer now from what you have gathered; say plainly what is still missing. No more tools.]");
     expect(f.recorder.events).toContainEqual(expect.objectContaining({
       type: "runtime.notice",
       message: "Used this job's 2 tool calls; writing the answer from what it found.",
@@ -1368,7 +1368,7 @@ describe("structured tool execution boundaries", () => {
     const results = f.requests[1]!.messages.filter((m) => m.role === "tool");
     expect(results.map((m) => m.tool_call_id)).toEqual(["call_bad", "call_a", "call_b", "call_c"]);
     expect(results[0]?.content).not.toContain("tool calls");
-    expect(results[3]?.content).toContain("[OpenMausBot: this job has used its 2 tool calls. This call was not run.]");
+    expect(results[3]?.content).toContain("[SuperBot: this job has used its 2 tool calls. This call was not run.]");
   });
 
   it("stops with a protocol error if the model attempts tool calls after the budget is spent", async () => {

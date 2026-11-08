@@ -247,8 +247,8 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 let serveOwnerToken: string | undefined;
 
 async function api(port: number, path: string, init: { method?: string; body?: string } = {}): Promise<{ status: number; body: any }> {
-  // x-openmausbot-cli names the tool in the activity log; on loopback it grants nothing.
-  const headers: Record<string, string> = { "content-type": "application/json", "x-openmausbot-cli": "1", ...(serveOwnerToken ? { "x-openmausbot-cli-owner": serveOwnerToken } : {}) };
+  // x-superbot-cli names the tool in the activity log; on loopback it grants nothing.
+  const headers: Record<string, string> = { "content-type": "application/json", "x-superbot-cli": "1", ...(serveOwnerToken ? { "x-superbot-cli-owner": serveOwnerToken } : {}) };
   const res = await fetch(`http://127.0.0.1:${port}${path}`, { method: init.method, body: init.body, headers, signal: AbortSignal.timeout(3000) });
   const body: unknown = await res.json().catch(() => ({}));
   return { status: res.status, body };
@@ -263,7 +263,7 @@ function refusedAsService(status: number, body: any): boolean {
 async function serverUp(port: number, pid?: number): Promise<boolean> {
   try {
     const { status, body } = await api(port, "/api/health");
-    return status === 200 && body?.app === "openmausbot" && (pid === undefined || body.pid === pid);
+    return status === 200 && body?.app === "superbot" && (pid === undefined || body.pid === pid);
   } catch {
     return false;
   }
@@ -273,9 +273,9 @@ async function serverUp(port: number, pid?: number): Promise<boolean> {
 export async function isWorkspaceRunning(options: CliOptions): Promise<boolean> {
   try {
     const { status, body } = await api(options.port, "/api/health");
-    if (status !== 200 || body?.app !== "openmausbot") return false;
+    if (status !== 200 || body?.app !== "superbot") return false;
     const expected = readFileSync(join(options.dataDir, "environment-id"), "utf8").trim();
-    const descriptor = await api(options.port, "/.well-known/openmausbot/environment");
+    const descriptor = await api(options.port, "/.well-known/superbot/environment");
     return /^[0-9a-f-]{36}$/i.test(expected) && descriptor.status === 200 && descriptor.body?.environmentId === expected;
   } catch { return false; }
 }
@@ -298,8 +298,8 @@ export async function openDashboard(port: number, env = process.env): Promise<bo
 export async function verifyPhoneEndpoint(port: number, origin: string): Promise<boolean> {
   if (!normalizePhoneOrigin(origin)) return false;
   try {
-    const local = await api(port, "/.well-known/openmausbot/environment");
-    const remote = await fetch(`${origin}/.well-known/openmausbot/environment`, { signal: AbortSignal.timeout(5000), redirect: "error" });
+    const local = await api(port, "/.well-known/superbot/environment");
+    const remote = await fetch(`${origin}/.well-known/superbot/environment`, { signal: AbortSignal.timeout(5000), redirect: "error" });
     if (local.status !== 200 || !remote.ok) return false;
     const descriptor = await remote.json() as { environmentId?: unknown };
     return typeof local.body?.environmentId === "string" && local.body.environmentId.length > 0
@@ -335,7 +335,7 @@ function startupPreferences(options: CliOptions): NonNullable<AppConfig["cliStar
 async function showPhonePairing(options: CliOptions, origin: string | undefined, log: (line: string) => void): Promise<boolean> {
   const ready = !!origin && await verifyPhoneEndpoint(options.port, origin);
   if (!ready) {
-    log("Phone access is not reachable yet. OpenMausBot is ready on this computer; no phone pairing code was created.");
+    log("Phone access is not reachable yet. SuperBot is ready on this computer; no phone pairing code was created.");
     log("Check the HTTPS connection, then run openmausbot pair again with the same --data-dir and --port.");
     return false;
   }
@@ -363,7 +363,7 @@ async function mintPairing(port: number, options: { label?: string; client?: boo
 
 export async function runPair(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
-    console.error(`no OpenMausBot server on http://127.0.0.1:${options.port}; start one with \`openmausbot serve\` or set OMB_PORT`);
+    console.error(`no SuperBot server on http://127.0.0.1:${options.port}; start one with \`openmausbot serve\` or set OMB_PORT`);
     return 1;
   }
   if (process.stdin.isTTY && process.stdout.isTTY && !options.label && !options.client) {
@@ -404,7 +404,7 @@ export async function runPair(options: CliOptions): Promise<number> {
 
 export async function runSessions(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
-    console.error(`no OpenMausBot server on http://127.0.0.1:${options.port}`);
+    console.error(`no SuperBot server on http://127.0.0.1:${options.port}`);
     return 1;
   }
   if (options.revoke) {
@@ -457,11 +457,11 @@ export function formatSessions(sessions: Array<{ id: string; label: string; scop
 export async function runStatus(options: CliOptions, io: CliIo = defaultIo()): Promise<number> {
   let code = 0;
   try {
-    const res = await fetch(`http://127.0.0.1:${options.port}/.well-known/openmausbot/environment`);
+    const res = await fetch(`http://127.0.0.1:${options.port}/.well-known/superbot/environment`);
     const body: any = await res.json();
-    io.log(options.json ? JSON.stringify(body, null, 2) : `${body.label} · OpenMausBot ${body.version} on ${body.platform} · id ${body.environmentId}`);
+    io.log(options.json ? JSON.stringify(body, null, 2) : `${body.label} · SuperBot ${body.version} on ${body.platform} · id ${body.environmentId}`);
   } catch {
-    io.error(`no OpenMausBot server on http://127.0.0.1:${options.port}`);
+    io.error(`no SuperBot server on http://127.0.0.1:${options.port}`);
     code = 1;
   }
   if (!options.json) {
@@ -550,7 +550,7 @@ export async function runLogin(options: CliOptions, io: CliIo = defaultIo()): Pr
   }
   const existing = describeTunnelAccount(account.credentials.read());
   if (existing.address) io.log(`already signed in as ${existing.email ?? "?"} (${existing.address}); signing in again refreshes it`);
-  const email = (options.email ?? (await io.ask("Email for your OpenMausBot account: "))).trim();
+  const email = (options.email ?? (await io.ask("Email for your SuperBot account: "))).trim();
   if (!email) {
     io.error("an email address is needed: openmausbot login --email you@example.com");
     return 1;
@@ -846,12 +846,12 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       await new Promise((r) => setTimeout(r, 250));
     }
     if (exited !== null) {
-      if (exited !== 0) log(`OpenMausBot could not start.${logPath ? ` Details: ${logPath}` : " See the output above."}`);
+      if (exited !== 0) log(`SuperBot could not start.${logPath ? ` Details: ${logPath}` : " See the output above."}`);
       return exited;
     }
     if (stopping) return await childExit;
     if (!(await serverUp(options.port, child.pid))) {
-      console.error(`OpenMausBot did not become ready within a minute.${logPath ? ` Details: ${logPath}` : " See its output above."}`);
+      console.error(`SuperBot did not become ready within a minute.${logPath ? ` Details: ${logPath}` : " See its output above."}`);
       await stop();
       return 1;
     }
@@ -883,7 +883,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       void plan.account?.service.restore().catch(() => undefined);
     }
     log("");
-    log(`OpenMausBot is running on http://127.0.0.1:${options.port}${publicUrl ? `, reachable at ${publicUrl}` : ""}`);
+    log(`SuperBot is running on http://127.0.0.1:${options.port}${publicUrl ? `, reachable at ${publicUrl}` : ""}`);
     if (options.guided) {
       log("Your bots and conversations are saved automatically.");
       log(`Details if you need help: ${logPath}`);
@@ -931,7 +931,7 @@ export async function serveUntilStopped(options: CliOptions, run: (options: CliO
   for (;;) {
     const code = await run(launch);
     if (!policy.again(code)) return code;
-    console.log("\nOpenMausBot is starting again to finish installing a copy from the desktop app…");
+    console.log("\nSuperBot is starting again to finish installing a copy from the desktop app…");
     launch = { ...options, pair: false, open: false };
   }
 }

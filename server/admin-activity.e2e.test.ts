@@ -133,7 +133,7 @@ posixOnly("admin activity log", () => {
     expect((await api("PUT", "/api/config", { anthropic: { key: SECRET } }, BOSS)).status).toBe(200);
     expect((await api("PUT", "/api/config", { budgets: { monthlyUsd: 75 } }, BOSS)).status).toBe(200);
     expect((await api("PUT", "/api/config", { decisions: { retentionDays: 400 } })).status).toBe(200); // the owner, on this machine
-    expect((await api("PUT", "/api/config", { profile: { name: "Ops desk" } }, undefined, { "x-openmausbot-cli": "1" })).status).toBe(200);
+    expect((await api("PUT", "/api/config", { profile: { name: "Ops desk" } }, undefined, { "x-superbot-cli": "1" })).status).toBe(200);
 
     const people = (await activity("?what=people"))[0];
     expect(people).toMatchObject({ type: "admin", who: BOSS, what: "people", action: "people.update", changed: ["signIn.members"],

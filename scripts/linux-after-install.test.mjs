@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hook = path.join(root, "build", "linux-after-install.sh");
 const removeHook = path.join(root, "build", "linux-after-remove.sh");
-const browserPolicy = path.join(root, "build", "linux-openmausbot-browser.apparmor");
+const browserPolicy = path.join(root, "build", "linux-superbot-browser.apparmor");
 const temporaryDirectories = [];
 
 function fixture() {
@@ -52,14 +52,14 @@ function fixture() {
 function runHook(appRoot) {
   return spawnSync("/bin/sh", [hook], {
     encoding: "utf8",
-    env: { ...process.env, OPENMAUSBOT_POSTINSTALL_TEST_ROOT: appRoot },
+    env: { ...process.env, SUPERBOT_POSTINSTALL_TEST_ROOT: appRoot },
   });
 }
 
 function runRemoveHook(appRoot, operation = "remove") {
   return spawnSync("/bin/sh", [removeHook, operation], {
     encoding: "utf8",
-    env: { ...process.env, OPENMAUSBOT_POSTINSTALL_TEST_ROOT: appRoot },
+    env: { ...process.env, SUPERBOT_POSTINSTALL_TEST_ROOT: appRoot },
   });
 }
 
@@ -72,7 +72,7 @@ afterEach(() => {
 describe("Linux DEB sandbox policy", () => {
   it("allows user namespaces only for the exact installed browser executable", () => {
     const policy = fs.readFileSync(browserPolicy, "utf8").replace(/^\s*#.*$/gm, "");
-    expect(policy).toContain("profile openmausbot-browser /opt/OpenMausBot/resources/browser-engine/chrome/chrome-headless-shell-linux64/chrome-headless-shell flags=(unconfined)");
+    expect(policy).toContain("profile openmausbot-browser /opt/SuperBot/resources/browser-engine/chrome/chrome-headless-shell-linux64/chrome-headless-shell flags=(unconfined)");
     expect(policy).toContain("userns,");
     expect(policy).not.toMatch(/\*|@\{HOME\}|\/home\/|\/tmp\//);
   });

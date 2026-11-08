@@ -1,4 +1,4 @@
-# Contributing to OpenMausBot
+# Contributing to SuperBot
 
 Thanks for wanting to help — community PRs have already shipped in this repo, and more are welcome.
 This file tells you how to get a working dev setup, what the codebase expects from a change, and what
@@ -60,7 +60,7 @@ fail-closed Wayland CUA smoke,
 and produces one release artifact containing:
 
 - the versioned `.deb` and AppImage;
-- stable `OpenMausBot-amd64.deb` and `OpenMausBot.AppImage` copies used by the latest-download links;
+- stable `SuperBot-amd64.deb` and `SuperBot.AppImage` copies used by the latest-download links;
 - `SHA256SUMS-ubuntu-x64.txt` covering both versioned and stable names.
 
 Before publishing, confirm that `package.json` has the release version and dispatch the workflow against the same

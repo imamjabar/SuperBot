@@ -156,7 +156,7 @@ export interface BrowserEngineSummary {
   /** Whether a browser profile can use "My Chrome", the person's own running
    * Chrome: only where the bots run on their computer (the desktop app). */
   myChrome?: boolean;
-  /** browserEngine.engine: "chrome" when the bots' browsers run on OpenMausBot's own Chrome driver. */
+  /** browserEngine.engine: "chrome" when the bots' browsers run on SuperBot's own Chrome driver. */
   engine?: "agent-browser" | "chrome";
   /** Self-hosted servers only: whether bots' browsers may open this server's own sites and its local network
    * (browserEngine.egress.localNetwork, off by default). Absent on the desktop. */

@@ -187,7 +187,7 @@ describe("computerPrompt", () => {
   it("distinguishes background window control from foreground desktop input", () => {
     const prompt = computerPrompt("local");
     expect(prompt).toContain("background delivery");
-    expect(prompt).toContain("do not bring OpenMausBot");
+    expect(prompt).toContain("do not bring SuperBot");
     expect(prompt).toContain("dedicated browser tools");
     expect(prompt).toContain("keeping the user's intended browser profile/account");
     expect(prompt).toContain("Do not silently retry a background refusal");
@@ -251,7 +251,7 @@ describe("computerPrompt", () => {
   });
 
   it("prefers a saved login through fill_login, which submits the form, before asking the person", () => {
-    expect(SIGN_IN_PROMPT).toContain("When you have a saved login for the site, open its login page in your browser and call fill_login: OpenMausBot types the password and any one-time code itself and submits the form");
+    expect(SIGN_IN_PROMPT).toContain("When you have a saved login for the site, open its login page in your browser and call fill_login: SuperBot types the password and any one-time code itself and submits the form");
     expect(SIGN_IN_PROMPT.indexOf("fill_login")).toBeLessThan(SIGN_IN_PROMPT.indexOf("call request_sign_in"));
   });
 

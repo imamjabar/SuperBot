@@ -74,7 +74,7 @@ it("a bot adds an OAuth server and asks the person to sign in; they sign in on t
   const { url: link } = await api("POST", `${cardPath}/authorize`, { threadId: iris.threadId });
   expect((await api("GET", `${cardPath}/status?threadId=${iris.threadId}`))).toEqual({ connected: false, pending: true, status: "authorizing" });
   const page = await fetch(link);
-  expect(await page.text()).toBe("Signed in. You can close this tab and return to OpenMausBot.");
+  expect(await page.text()).toBe("Signed in. You can close this tab and return to SuperBot.");
 
   let resumed: any;
   await expect.poll(() => { resumed = dump(); return JSON.stringify(resumed?.prompt ?? "").includes("the person signed in to postiz"); }, { timeout: 20_000 }).toBe(true);

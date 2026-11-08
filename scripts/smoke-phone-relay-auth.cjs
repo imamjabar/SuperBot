@@ -19,7 +19,7 @@ let logs = "";
 const owner = randomBytes(32).toString("base64url");
 const relay = randomBytes(32).toString("base64url");
 const control = randomBytes(32).toString("base64url");
-const controlHeaders = { "x-openmausbot-control-token": control };
+const controlHeaders = { "x-superbot-control-token": control };
 async function freePort() {
   const listener = createServer();
   listener.listen(0, "127.0.0.1");
@@ -86,13 +86,13 @@ app.whenReady().then(async () => {
   assert.equal((await phone("/api/bots", "POST", {})).status, 503, "bootstrap must fail closed");
   // Reproduce the old relay: marker/device alone cannot authorize a mutation.
   assert.equal((await api(harnessPort, "/api/bots", "POST", {}, {
-    "x-openmausbot-companion": "1", "x-openmausbot-companion-device": paired.body.device.id,
+    "x-superbot-companion": "1", "x-superbot-companion-device": paired.body.device.id,
   })).status, 403);
   sidecar.postMessage({ type: "openmausbot:companion-mutation-token", token: relay });
   await until(async () => (await phone("/api/bots")).status === 200);
   const created = await phone("/api/bots", "POST", { modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } }, {
-    "x-openmausbot-companion-auth": "forged", "x-openmausbot-desktop-owner": "forged",
-    "x-openmausbot-companion-device": "forged-device",
+    "x-superbot-companion-auth": "forged", "x-superbot-desktop-owner": "forged",
+    "x-superbot-companion-device": "forged-device",
   });
   assert.equal(created.status, 201);
   const id = created.body.bot.id;

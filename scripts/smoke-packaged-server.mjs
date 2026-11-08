@@ -127,7 +127,7 @@ while (Date.now() < deadline) {
 let versionReport = null;
 if (listening) {
   try {
-    versionReport = (await (await fetch(`http://127.0.0.1:${port}/.well-known/openmausbot/environment`, { signal: AbortSignal.timeout(5_000) })).json()).version;
+    versionReport = (await (await fetch(`http://127.0.0.1:${port}/.well-known/superbot/environment`, { signal: AbortSignal.timeout(5_000) })).json()).version;
   } catch (error) { versionReport = String(error); }
 }
 
@@ -242,7 +242,7 @@ let headlessReport = null;
 if (listening) {
   const runCli = (args) => new Promise((resolve) => {
     const cli = spawn(process.execPath, [join(staging, "server", "openmausbot.js"), ...args], {
-      cwd: staging, env: { ...fixtureEnv, OPENMAUSBOT_URL: `http://127.0.0.1:${port}` }, stdio: ["ignore", "pipe", "pipe"],
+      cwd: staging, env: { ...fixtureEnv, SUPERBOT_URL: `http://127.0.0.1:${port}` }, stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";
     let stderr = "";

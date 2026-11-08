@@ -135,7 +135,7 @@ afterAll(async () => {
 
 describe("sign in with your email on a hosted server", () => {
   it("advertises the option in the public descriptor", async () => {
-    const descriptor = await call("/.well-known/openmausbot/environment");
+    const descriptor = await call("/.well-known/superbot/environment");
     expect(descriptor.status).toBe(200);
     expect(descriptor.body.capabilities.emailSignIn).toBe(true);
   });

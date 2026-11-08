@@ -24,16 +24,16 @@ async function doctorOnce(ctx: VerbContext): Promise<VerbOutcome> {
   const availableEngines = instances.filter((instance) => instance.snapshot?.state === "available").map((instance) => instance.instanceId);
   const quietly = <T>(read: Promise<T>) => read.catch(() => null);
   const [server, session, config] = await Promise.all([
-    quietly(client.json<Rec>("/.well-known/openmausbot/environment")),
+    quietly(client.json<Rec>("/.well-known/superbot/environment")),
     quietly(client.json<Rec>("/api/auth/session")),
     quietly(client.json<Rec>("/api/config")),
   ]);
   const problems: string[] = [];
   const warnings: string[] = [];
-  const isOmb = health.app === "openmausbot";
-  if (!isOmb) problems.push(`${client.baseUrl} answered, but it is not OpenMausBot`);
+  const isOmb = health.app === "superbot";
+  if (!isOmb) problems.push(`${client.baseUrl} answered, but it is not SuperBot`);
   const tooOld = Boolean(server) && server!.capabilities?.jobs !== true;
-  if (tooOld) problems.push(`OpenMausBot ${server!.version ?? "(unknown version)"} is too old for the headless commands: it cannot report a conversation's job`);
+  if (tooOld) problems.push(`SuperBot ${server!.version ?? "(unknown version)"} is too old for the headless commands: it cannot report a conversation's job`);
   if (isOmb && !availableEngines.length) problems.push("no engine is available: set one up with `openmausbot engine set KIND --key-env VAR`");
   if (session?.kind === "session" && typeof session.expiresAt === "number" && session.expiresAt - Date.now() < 14 * DAY) {
     warnings.push(`this session expires in ${Math.max(0, Math.floor((session.expiresAt - Date.now()) / DAY))} days: get a new one with openmausbot connect`);
@@ -54,7 +54,7 @@ async function doctorOnce(ctx: VerbContext): Promise<VerbOutcome> {
     },
     exitCode: ok ? EXIT.done : isOmb && !tooOld ? EXIT.failed : EXIT.unreachable,
     human: [
-      `${server ? `OpenMausBot ${server.version} ("${server.label}")` : "OpenMausBot"} at ${client.baseUrl}: ${ok ? "ready" : "not ready"}`,
+      `${server ? `SuperBot ${server.version} ("${server.label}")` : "SuperBot"} at ${client.baseUrl}: ${ok ? "ready" : "not ready"}`,
       `You are: ${who}`,
       `Engines available: ${availableEngines.length ? availableEngines.join(", ") : "none"}`,
       ...(browser ? [`Bots' browser: ${browser.kind === "engine" ? `installed${browser.version ? ` (${browser.version})` : ""}` : "not available"}`] : []),

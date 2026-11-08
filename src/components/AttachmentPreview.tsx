@@ -297,7 +297,7 @@ export function useLocalFileSave(filePath: string, name?: string, message?: Mess
     request.current = controller;
     try {
       const response = await requestMessageFile(filePath, message, controller.signal, entry === undefined ? { list: true } : { entry });
-      if (response.headers.get("x-openmausbot-folder") === "1") {
+      if (response.headers.get("x-superbot-folder") === "1") {
         const listing = await response.json() as MessageFolderListing;
         if (!mounted.current || controller.signal.aborted) return;
         setFolder(listing);

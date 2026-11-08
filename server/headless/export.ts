@@ -181,7 +181,7 @@ export async function exportJob(client: HeadlessClient, options: ExportOptions, 
     if (files.length >= maxFiles) return void skipped.push({ ...about, reason: `more than --max-files ${maxFiles}` });
     const response = await fileRoute(threadId, messageId, { path: link, listFolder: true });
     if (!response?.ok) return void skipped.push({ ...about, reason: await refusal(response) });
-    if (response.headers.get("x-openmausbot-folder") !== "1") {
+    if (response.headers.get("x-superbot-folder") !== "1") {
       return keep(response, join(out, "files", folder), fileName(response.headers.get("content-disposition"), link), about, files);
     }
     const listing = await response.json() as Rec;

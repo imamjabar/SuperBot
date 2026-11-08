@@ -601,7 +601,7 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
       body: JSON.stringify({ fromBotId: BOT_ID, fromThreadId: THREAD_ID, site, ...(reason ? { reason } : {}) }),
     });
     return {
-      text: `The person was asked to sign in to ${r.site ?? site} on ${SIGN_IN_PLACES[String(r.place)] ?? "the place you work"}. Your turn ends now: say in one short line that you are waiting for them, then stop. OpenMausBot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
+      text: `The person was asked to sign in to ${r.site ?? site} on ${SIGN_IN_PLACES[String(r.place)] ?? "the place you work"}. Your turn ends now: say in one short line that you are waiting for them, then stop. SuperBot resumes you when they finish or decline. Never ask for the password or a code in chat.`,
     };
   }
   if (name === "fill_login") {
@@ -912,7 +912,7 @@ async function requestEmailCard(args: Json, context: ToolCallContext): Promise<T
   return { text: "A secure card for the mailbox is ready in SuperBot, on the computer and on a freshly QR-paired phone. End this turn now and say in one line that you are waiting for it; SuperBot resumes you when the person connects it or declines." };
 }
 
-/** A secret OpenMausBot does not keep: the person agrees to one use, and the bot gets a secretRef or a file path back. */
+/** A secret SuperBot does not keep: the person agrees to one use, and the bot gets a secretRef or a file path back. */
 async function requestCustomSecret(args: Json, context: ToolCallContext): Promise<ToolCallResult> {
   const r = await context.client.apiResponse("/api/internal/request-credential", {
     method: "POST",
@@ -925,6 +925,6 @@ async function requestCustomSecret(args: Json, context: ToolCallContext): Promis
     ? ` ${label} was saved earlier for SuperBot's tools only, not as a file for your commands (not a file request), so this card asks for it again.`
     : r.body.savedAs === "file" ? ` ${label} was saved earlier as a file for your commands, not as a secretRef, so this card asks for it again.` : "";
   return {
-    text: `A secure card for ${label} is now in this conversation, in the app and on a QR-paired phone, and the person was notified. If they can't find it, tell them it is in this conversation, and the notification opens it.${asked} End this turn now and say in one line that you are waiting for it; OpenMausBot resumes you when the person saves or declines, and tells you how to use it. Never ask for it in chat.`,
+    text: `A secure card for ${label} is now in this conversation, in the app and on a QR-paired phone, and the person was notified. If they can't find it, tell them it is in this conversation, and the notification opens it.${asked} End this turn now and say in one line that you are waiting for it; SuperBot resumes you when the person saves or declines, and tells you how to use it. Never ask for it in chat.`,
   };
 }

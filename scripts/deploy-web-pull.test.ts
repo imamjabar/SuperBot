@@ -27,7 +27,7 @@ exit 0
   curl: `#!/bin/sh
 echo "curl $*" >> "$STUB_STATE/calls"
 [ -z "\${STUB_HEALTH_FAIL:-}" ] || exit 7
-echo '{"app":"openmausbot"}'
+echo '{"app":"superbot"}'
 `,
   sleep: `#!/bin/sh
 echo "sleep $*" >> "$STUB_STATE/calls"

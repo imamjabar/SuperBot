@@ -57,7 +57,7 @@ async function mintTestCapability(
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-openmausbot-test-capability": TEST_CAPABILITY_KEY,
+      "x-superbot-test-capability": TEST_CAPABILITY_KEY,
     },
     body: JSON.stringify({
       botId,
@@ -229,7 +229,7 @@ const waitForIsolatedServer = async (
       if (response.status === 200) {
         const health = await response.json() as { app?: unknown; pid?: unknown; static?: unknown };
         lastObservedHealth = JSON.stringify(health);
-        if (health.app === "openmausbot" && health.pid === serverChild.pid && health.static === true) return;
+        if (health.app === "superbot" && health.pid === serverChild.pid && health.static === true) return;
       }
     } catch {
     }
@@ -338,7 +338,7 @@ const delayedJsonBody = async (
 
 const claudePrompts = (file = fakeClaudePrompts): string[] =>
   existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean) : [];
-const COMPUTER_FREE_NOTE = "OpenMausBot computer update: the computer this conversation waited for is free again. Continue the task that parked waiting for it.";
+const COMPUTER_FREE_NOTE = "SuperBot computer update: the computer this conversation waited for is free again. Continue the task that parked waiting for it.";
 
 /** The running turn's first screen call, which is what takes a cloud computer; the answer waits while another turn has it. */
 const reachForComputer = async () => {
@@ -466,7 +466,7 @@ beforeAll(async () => {
   // a fleet of exactly one unknown driver: no CLI probes, no network
   mkdirSync(join(home, ".openmausbot"), { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });
-  writeFileSync(join(staticDir, "index.html"), "<!doctype html><title>Packaged OpenMausBot</title>");
+  writeFileSync(join(staticDir, "index.html"), "<!doctype html><title>Packaged SuperBot</title>");
   writeFileSync(join(staticDir, "manifest.webmanifest"), '{"name":"Fixture web app","display":"standalone","start_url":"/"}');
   writeFileSync(join(staticDir, "assets", "smoke.css"), "body { color: white; }");
   writeFileSync(
@@ -1578,10 +1578,10 @@ describe("harness HTTP API", () => {
     expect(room.messages.find(
       (message: { id: string }) => message.id === "restarted-goal-card",
     )).toMatchObject({
-      text: "Goal failed: OpenMausBot restarted before this goal finished.",
+      text: "Goal failed: SuperBot restarted before this goal finished.",
       goalRun: {
         status: "failed",
-        detail: "OpenMausBot restarted before this goal finished.",
+        detail: "SuperBot restarted before this goal finished.",
         turnCount: 2,
         finishedAt: expect.any(Number),
       },
@@ -1667,7 +1667,7 @@ describe("harness HTTP API", () => {
       req.end();
     });
     expect(probe.status).toBe(200);
-    expect(probe.body).toEqual({ app: "openmausbot" });
+    expect(probe.body).toEqual({ app: "superbot" });
     const brand = await new Promise<{ status: number; body: unknown }>((resolve, reject) => {
       const req = request({ hostname: "127.0.0.1", port: PORT, path: "/api/brand", headers: { host: "example.com" } }, (res) => {
         let raw = "";
@@ -1742,7 +1742,7 @@ describe("harness HTTP API", () => {
     expect(root.status).toBe(200);
     expect(root.headers.get("content-type")).toBe("text/html");
     expect(root.headers.get("cache-control")).toBe("no-cache");
-    expect(await root.text()).toContain("Packaged OpenMausBot");
+    expect(await root.text()).toContain("Packaged SuperBot");
 
     const index = await fetch(`${BASE}/index.html`);
     expect(index.headers.get("cache-control")).toBe("no-cache");
@@ -1765,7 +1765,7 @@ describe("harness HTTP API", () => {
     expect(spa.status).toBe(200);
     expect(spa.headers.get("content-type")).toBe("text/html");
     expect(spa.headers.get("cache-control")).toBe("no-cache");
-    expect(await spa.text()).toContain("Packaged OpenMausBot");
+    expect(await spa.text()).toContain("Packaged SuperBot");
 
     const missingChunk = await fetch(`${BASE}/assets/missing-abc123.js`);
     expect(missingChunk.status).toBe(200);
@@ -5915,7 +5915,7 @@ describe("harness HTTP API", () => {
         tagline: "Find and explain the signal.",
         summary: "A complete two-bot signal workflow.",
         category: "Research",
-        author: { name: "OpenMausBot" },
+        author: { name: "SuperBot" },
         license: "MIT",
         outcomes: ["Produce a concise signal brief."],
         setupMinutes: 4,
@@ -6337,8 +6337,8 @@ describe("harness HTTP API", () => {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "x-openmausbot-companion": "1",
-            "x-openmausbot-companion-device": "phone-1",
+            "x-superbot-companion": "1",
+            "x-superbot-companion-device": "phone-1",
           },
           body: JSON.stringify(encryptedEnvelope),
         },
@@ -6994,8 +6994,8 @@ describe("harness HTTP API", () => {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "x-openmausbot-companion": "1",
-            "x-openmausbot-companion-device": deviceId,
+            "x-superbot-companion": "1",
+            "x-superbot-companion-device": deviceId,
           },
           body: JSON.stringify(Object.fromEntries(
             Object.entries(envelope).filter(([key]) => key !== "botId" && key !== "messageId"),
@@ -8995,7 +8995,7 @@ describe("harness HTTP API", () => {
 
       const page = await viaProxy("GET", callback.pathname + callback.search);
       expect(page.status).toBe(200);
-      expect(page.text).toBe("Signed in. You can close this tab and return to OpenMausBot.");
+      expect(page.text).toBe("Signed in. You can close this tab and return to SuperBot.");
       expect(page.headers).toMatchObject({ "cache-control": "no-store", "referrer-policy": "no-referrer", "content-type": "text/plain; charset=utf-8" });
       expect(page.text).not.toContain(callback.searchParams.get("code"));
       expect(JSON.parse((await viaProxy("GET", `${base}/${auth.flowId}`, signedIn)).text).auth.phase).toBe("succeeded");
@@ -9281,7 +9281,7 @@ describe("harness HTTP API", () => {
       expect((await api("POST", `/api/bots/${bot.id}/messages`, { text: "hello" })).status).toBe(202);
       const system = (await readJsonFileWhenReady<{ systemPrompt: string }>(fakeClaudeDump, 15_000)).systemPrompt;
       expect(system).toContain(roster);
-      expect(system).not.toContain("OPENMAUSBOT STATUS");
+      expect(system).not.toContain("SUPERBOT STATUS");
     } finally {
       await api("POST", `/api/bots/${bot.id}/interrupt`);
       await api("DELETE", `/api/bots/${bot.id}`);
@@ -10766,7 +10766,7 @@ describe("harness HTTP API", () => {
 
       const removed = await api("POST", `/api/bots/${bot.id}/local-computer/remove`, {});
       expect(removed.status).toBe(409);
-      expect(removed.body.error).toMatch(/not created by OpenMausBot.*remove it manually/i);
+      expect(removed.body.error).toMatch(/not created by SuperBot.*remove it manually/i);
       expect(readFileSync(fakeDockerLog, "utf8").split("\n")).not.toContain(
         `rm -f ${status.body.container_name}`,
       );
@@ -11014,8 +11014,8 @@ describe("harness HTTP API", () => {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "x-openmausbot-companion": "1",
-            "x-openmausbot-companion-device": "phone-1",
+            "x-superbot-companion": "1",
+            "x-superbot-companion-device": "phone-1",
           },
           body: JSON.stringify({
             version: 1,

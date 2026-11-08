@@ -11,7 +11,7 @@ const json = { "content-type": "application/json" };
 const mausBot = async () => (await (await request("/api/bots?messages=0")).json() as any).bots.find((b: any) => b.defaultBot);
 
 beforeAll(async () => {
-  globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-openmausbot-desktop-owner": owner } });
+  globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-superbot-desktop-owner": owner } });
   fixture = await launchVerificationServer({ ...process.env, OMB_TEST_DESKTOP_OWNER_TOKEN: owner });
 }, 90_000);
 afterAll(async () => {

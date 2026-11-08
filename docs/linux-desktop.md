@@ -1,12 +1,12 @@
 # Ubuntu Desktop
 
-OpenMausBot has an Ubuntu 24.04 LTS x86_64 desktop beta. The Electron package embeds the harness server, so
+SuperBot has an Ubuntu 24.04 LTS x86_64 desktop beta. The Electron package embeds the harness server, so
 installed builds do not require Node, pnpm, Swift, or a terminal at runtime. For giving a bot the same kind
 of Linux desktop on your own server instead of this machine, see [byo-vps.md](byo-vps.md).
 
 ## What works
 
-- The native Electron window and embedded OpenMausBot server on GNOME Xorg and GNOME Wayland.
+- The native Electron window and embedded SuperBot server on GNOME Xorg and GNOME Wayland.
 - Local Claude, Codex, Grok, Gemini, and other configured agent CLIs.
 - Chat, streaming turns, approvals, bot-to-bot communication, and local data storage.
 - Composio connected apps and Boat cloud computers.
@@ -49,7 +49,7 @@ Requirements for building from source:
 
 ```sh
 git clone https://github.com/milind-soni/OpenMausBot.git
-cd OpenMausBot
+cd SuperBot
 corepack enable
 pnpm install --frozen-lockfile
 pnpm package:linux
@@ -57,8 +57,8 @@ pnpm package:linux
 
 The build creates:
 
-- `release/OpenMausBot-<version>-amd64.deb`
-- `release/OpenMausBot-<version>-x86_64.AppImage`
+- `release/SuperBot-<version>-amd64.deb`
+- `release/SuperBot-<version>-x86_64.AppImage`
 
 The AppImage uses a static runtime and does not require the legacy `libfuse2` package.
 
@@ -67,10 +67,10 @@ The AppImage uses a static runtime and does not require the legacy `libfuse2` pa
 Install a downloaded Debian package with APT so its desktop dependencies are resolved:
 
 ```sh
-sudo apt install ./OpenMausBot-amd64.deb
+sudo apt install ./SuperBot-amd64.deb
 ```
 
-Then open **OpenMausBot** from the GNOME application launcher. To remove it:
+Then open **SuperBot** from the GNOME application launcher. To remove it:
 
 ```sh
 sudo apt remove openmausbot
@@ -79,11 +79,11 @@ sudo apt remove openmausbot
 The portable AppImage does not install system files:
 
 ```sh
-chmod +x release/OpenMausBot-*-x86_64.AppImage
-./release/OpenMausBot-*-x86_64.AppImage
+chmod +x release/SuperBot-*-x86_64.AppImage
+./release/SuperBot-*-x86_64.AppImage
 ```
 
-For a downloaded release AppImage, use `OpenMausBot.AppImage` in place of the versioned path above.
+For a downloaded release AppImage, use `SuperBot.AppImage` in place of the versioned path above.
 
 ### Arch Linux and EndeavourOS (AppImage)
 
@@ -92,8 +92,8 @@ install lacks the FUSE helper and some desktop libraries the AppImage needs, so 
 
 ```sh
 sudo pacman -S --needed fuse3 gtk3 nss alsa-lib libcups mesa
-chmod +x OpenMausBot.AppImage
-./OpenMausBot.AppImage
+chmod +x SuperBot.AppImage
+./SuperBot.AppImage
 ```
 
 A full desktop install (for example EndeavourOS with KDE or GNOME) usually has all of these already, and
@@ -106,7 +106,7 @@ The app checks for updates in the background and downloads them by itself. Nothi
 **Restart to update**.
 
 - **Debian package.** The click asks for your password once, in the system's own prompt, installs the update with
-  `apt-get` (so new dependencies are resolved) and reopens OpenMausBot. The downloaded file is copied to a
+  `apt-get` (so new dependencies are resolved) and reopens SuperBot. The downloaded file is copied to a
   root-only folder and checked against the checksum in the update feed first; a file that does not match is
   refused and nothing is installed. Closing the prompt leaves the update ready to try again. If the session cannot
   show a prompt (SSH, no desktop, no `pkexec`), the app falls back to copying the `sudo apt-get install` command
@@ -149,7 +149,7 @@ pnpm package:linux:dir
 
 ## Agent CLI discovery
 
-Applications launched from GNOME do not inherit the same interactive shell `PATH` as a terminal. OpenMausBot
+Applications launched from GNOME do not inherit the same interactive shell `PATH` as a terminal. SuperBot
 keeps the inherited path and adds existing common locations such as:
 
 - `~/.local/bin`
@@ -165,16 +165,16 @@ It also probes the login shell in the background. If a CLI still is not detected
 path before launching the app from a terminal and verify it there:
 
 ```sh
-OMB_EXTRA_PATH=/your/custom/bin ./release/OpenMausBot-*-x86_64.AppImage
+OMB_EXTRA_PATH=/your/custom/bin ./release/SuperBot-*-x86_64.AppImage
 ```
 
-Restart OpenMausBot after installing or signing in to a CLI.
+Restart SuperBot after installing or signing in to a CLI.
 
 ## Xorg and Wayland
 
 The shell, chat, cloud computers, connected apps, and preview-only capture work in both GNOME session types.
 The Wayland chooser/select/persistent-stream/cancel/end/retry lifecycle has been validated in a real Ubuntu
-24.04 GNOME Wayland session. OpenMausBot detects Wayland before XWayland when both `WAYLAND_DISPLAY` and
+24.04 GNOME Wayland session. SuperBot detects Wayland before XWayland when both `WAYLAND_DISPLAY` and
 `DISPLAY` exist, so capture cannot accidentally bypass portal-mediated behavior.
 
 Open the Computer panel and use the separate **Preview this computer** card. Capture never starts when the app
@@ -185,7 +185,7 @@ or panel opens.
   you press **Stop preview**, close the panel, end sharing from GNOME, or quit the app.
 
 Cancelling or ending Wayland sharing returns to a calm **Try again** state and never reopens the chooser
-automatically. OpenMausBot does not capture screen audio, remember the selected monitor after restart, or
+automatically. SuperBot does not capture screen audio, remember the selected monitor after restart, or
 offer an **Open Settings** action on Linux.
 
 Local computer control is independent from preview. It is available after explicit opt-in on Xorg and remains
@@ -196,7 +196,7 @@ fail-closed on Wayland. XWayland's `DISPLAY` never bypasses the Wayland safety g
 Installed `.deb` and AppImage builds include the certified **Cua Driver 0.19.3** CLI and cursor-theme sidecar.
 On GNOME Xorg, open Settings, choose **Enable local control (Beta)**, wait for **Ready**, then explicitly assign a bot
 to **This computer**. No driver download, terminal command, `chmod`, or daemon setup is required. The owned daemon
-starts with `--no-overlay`, so Cua's decorative full-screen X11 cursor surface is never created. OpenMausBot also
+starts with `--no-overlay`, so Cua's decorative full-screen X11 cursor surface is never created. SuperBot also
 uses Electron software rendering when the NVIDIA driver is loaded, to avoid the reproduced NVIDIA/libGLES
 GPU-process failure that could leave an invisible focused app window receiving input. Other GPUs keep hardware
 acceleration, because software rendering costs about a CPU core while the window animates. Set `OMB_LINUX_GPU=off`
@@ -235,7 +235,7 @@ package-owned path to `root:root 0755` automatically.
 The packaged runtime remains outside ASAR for deterministic provenance and validation. In packaged builds neither a
 `CUA_DRIVER_PATH` value nor an ambient PATH candidate can replace it; on Wayland neither can bypass the safety gate.
 
-The Xorg runtime uses private sockets, standard permission mode, per-action OpenMausBot approvals,
+The Xorg runtime uses private sockets, standard permission mode, per-action SuperBot approvals,
 telemetry/update-check suppression, strict driver identity, overlay-free startup, and lifecycle cleanup tests. Those
 defenses remain necessary, but none substitutes for the real-seat acceptance evidence required to enable Wayland. Linux
 **Auto** never routes to the user's desktop, and no Cloud or Local VM approval can authorize it.
@@ -256,7 +256,7 @@ pnpm smoke:linux-package
 The verifier checks `.deb` metadata, desktop identity, the exact dormant Cua resource tree and provenance,
 SquashFS/DEB directory modes, runtime path policy, and matching binary hashes across all artifacts. The local smoke
 launches the unpacked app and AppImage without `--no-sandbox`; CI first reproduces a `0.1.7` in-place DEB upgrade and
-then runs the same smoke against `/opt/OpenMausBot/openmausbot`. These lanes prove the embedded server and UI are
+then runs the same smoke against `/opt/SuperBot/openmausbot`. These lanes prove the embedded server and UI are
 usable while an optional Composio broker stalls, verify that an old local-control opt-in is cleared, and assert that
 no Cua executable starts on Xorg or simulated Wayland. Low-level runtime tests retain the future private-daemon
 contract without activating it in a packaged app. Only a real-seat acceptance matrix can authorize re-enablement.
@@ -265,7 +265,7 @@ contract without activating it in a packaged app. Only a real-seat acceptance ma
 
 ### An agent CLI is missing
 
-Run the CLI directly in a terminal, finish its sign-in flow, then restart OpenMausBot. If it lives outside the
+Run the CLI directly in a terminal, finish its sign-in flow, then restart SuperBot. If it lives outside the
 common directories above, use `OMB_EXTRA_PATH` while testing and report the install location so it can be
 considered for automatic discovery.
 
@@ -291,8 +291,8 @@ open a new chooser. Cancelling or stopping sharing never causes an automatic sec
 Confirm the executable bit and architecture:
 
 ```sh
-chmod +x OpenMausBot-*-x86_64.AppImage
-file OpenMausBot-*-x86_64.AppImage
+chmod +x SuperBot-*-x86_64.AppImage
+file SuperBot-*-x86_64.AppImage
 ```
 
 Run it from a terminal once to collect the startup output. Do not install `libfuse2` just for this AppImage; the

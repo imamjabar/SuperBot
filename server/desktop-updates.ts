@@ -15,7 +15,7 @@ import { keepFirefoxProfileBeforeRemove, keepInstalledAppsBeforeRemove } from ".
 
 export type LocalVmUpdateNeed = "image" | "recreate";
 
-/** A desktop OpenMausBot made, or a durable folder left by one, that this release cannot run without updating. Only the
+/** A desktop SuperBot made, or a durable folder left by one, that this release cannot run without updating. Only the
  * shared desktop is replaced automatically; another target's outdated container is never removed here. */
 export function localVmUpdateNeed(status: ContainerComputerStatus, workspaceExists: boolean): LocalVmUpdateNeed | null {
   if (!status.runtime || !status.daemonUp) return null;
@@ -25,7 +25,7 @@ export function localVmUpdateNeed(status: ContainerComputerStatus, workspaceExis
   return status.image ? "recreate" : "image";
 }
 
-/** A VPS desktop OpenMausBot made whose image this release no longer runs. Replacing it deletes its files, so a person does it. */
+/** A VPS desktop SuperBot made whose image this release no longer runs. Replacing it deletes its files, so a person does it. */
 export function vpsDesktopOutdated(status: {
   configured?: boolean; daemonUp?: boolean; container?: string; managed?: boolean; imageMatches?: boolean;
 } | null | undefined): boolean {

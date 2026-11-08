@@ -68,7 +68,7 @@ function fakeChild(pid = 4242) {
 function healthyResponse() {
   return {
     ok: true,
-    text: async () => JSON.stringify({ app: "openmausbot" }),
+    text: async () => JSON.stringify({ app: "superbot" }),
   };
 }
 
@@ -168,7 +168,7 @@ describe("cloudflared binary resolution", () => {
     const resourcesPath = path.join(
       path.parse(process.cwd()).root,
       "Applications",
-      "OpenMausBot",
+      "SuperBot",
       "Contents",
       "Resources",
     );

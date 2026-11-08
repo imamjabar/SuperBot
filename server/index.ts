@@ -884,7 +884,7 @@ function cloudOwnerDevice(person: string): boolean {
 function cardAnswerRefusal(auth: RequestAuth, threadId: string, requestId: string, behavior: string): string | null {
   if (auth.kind === "loopback") {
     return auth.trust === "service" && behavior !== "deny"
-      ? "A local service can only decline this request. Approve or answer it in OpenMausBot while signed in."
+      ? "A local service can only decline this request. Approve or answer it in SuperBot while signed in."
       : null;
   }
   const reviewed = auth.scopes.includes("admin") ? undefined : store.messagesFor(threadId).find(message => message.card?.requestId === requestId && (message.card.teamMemoryRequest || message.card.outsideWrite))?.card;
@@ -1047,7 +1047,7 @@ function adminActivityRecording(): boolean {
 
 function adminActorFor(auth: RequestAuth, req: IncomingMessage): AdminActor {
   if (auth.kind === "loopback" && auth.trust !== "service" &&
-    (req.headers["x-openmausbot-cli"] === "1" || req.headers["x-openmausbot-cli-owner"] !== undefined)) return { kind: "cli" };
+    (req.headers["x-superbot-cli"] === "1" || req.headers["x-superbot-cli-owner"] !== undefined)) return { kind: "cli" };
   return decisionActorFor(auth);
 }
 
@@ -1713,12 +1713,12 @@ const directFollowupSettlers = new Map<string, { threadId: string; settle?: () =
 const directCoordinationSettlers = new Map<string, { nodeId: string; settle: (outcome: DirectTurnOutcome) => void }>();
 const computerParks = new Map<string, string>();
 const parkedSeats = new Map<string, string>();
-const COMPUTER_FREE_NOTE = "OpenMausBot computer update: the computer this conversation waited for is free again. Continue the task that parked waiting for it.";
+const COMPUTER_FREE_NOTE = "SuperBot computer update: the computer this conversation waited for is free again. Continue the task that parked waiting for it.";
 const STEP_CAP_NOTE = "Your previous turn stopped at the step limit; continue from where it stopped.";
 const teamSetupDecisionText = (request: TeamSetupRequest): string =>
-  `OpenMausBot team setup decision ${request.requestId}: ${JSON.stringify(request.result)}. Report this exact result and continue the user's already requested work. Do not ask for confirmation again or repeat this setup/deletion. A denied or cancelled operation did not authorize any substitute action. Existing thread models were not changed.`;
+  `SuperBot team setup decision ${request.requestId}: ${JSON.stringify(request.result)}. Report this exact result and continue the user's already requested work. Do not ask for confirmation again or repeat this setup/deletion. A denied or cancelled operation did not authorize any substitute action. Existing thread models were not changed.`;
 const connectionUpdateText = (labels: readonly string[]): string =>
-  `OpenMausBot connection update: the user securely connected ${labels.join(", ")}. Continue the task that paused for this connection. Do not ask them to connect it again.`;
+  `SuperBot connection update: the user securely connected ${labels.join(", ")}. Continue the task that paused for this connection. Do not ask them to connect it again.`;
 
 function resumableCards(threadId: string, since: number, memberId?: string) { return cardsWaitedOn(store, threadId, since, memberId); }
 
@@ -3882,7 +3882,7 @@ const handoffTicks = createHandoffTicks(), coordinator: Coordinator = createCoor
     outward: node => {
       const followup = node.parentId || node.groupId ? undefined : followupAtBoot(node.threadId);
       if (followup) {
-        followupEndedRoots.set(node.id, followup === "pending" ? "turn interrupted — OpenMausBot restarted" : undefined);
+        followupEndedRoots.set(node.id, followup === "pending" ? "turn interrupted — SuperBot restarted" : undefined);
         return [followup === "pending" ? "queued follow-up waiting" : "queued follow-up dispatched"];
       }
       return outwardActions(turnRows(node));
@@ -8769,10 +8769,10 @@ store.reconcileInterruptedGroupGoals((runId, threadId) => {
   );
   const detail = run.output ?? run.error ?? (
     status === "completed"
-      ? "The scheduled team goal completed before OpenMausBot restarted."
+      ? "The scheduled team goal completed before SuperBot restarted."
       : status === "stopped"
         ? "The scheduled team goal was stopped."
-        : "OpenMausBot restarted before this scheduled team goal finished."
+        : "SuperBot restarted before this scheduled team goal finished."
   );
   return { status, detail, finishedAt: run.finishedAt ?? groupGoalRecoveryAt };
 });
@@ -8908,12 +8908,12 @@ async function deleteBotWithLifecycle(botId: string, revalidate: () => void = ()
           const vm = await containerComputerStatus(undefined, undefined, target);
           if (!vm.daemonUp && existsSync(target.workspaceDir)) {
             return deletionResponse( 409, {
-              error: "start the container runtime so OpenMausBot can remove this bot's Local VM while deleting it",
+              error: "start the container runtime so SuperBot can remove this bot's Local VM while deleting it",
             });
           }
           if (vm.container !== "missing" && !vm.managed) {
             return deletionResponse(409, {
-              error: `The container named ${vm.container_name} was not created by OpenMausBot. Remove it manually before deleting this bot`,
+              error: `The container named ${vm.container_name} was not created by SuperBot. Remove it manually before deleting this bot`,
             });
           }
           localVmCleanup = {
@@ -11193,7 +11193,7 @@ function claimPhoneSecretBotDeletion(botId: string): (() => void) | null {
 const secretCards = createSecretCards({ store, cfg, botLogins, phoneSecrets, phoneSecretSubmissions, connectorThread, answerCardNode, followCard: (threadId, from, to) => coordinator.followCard(threadId, from, to), threadLanguage, email: { connect: (request) => emailService.connect(request), refusal: () => emailService.status().reason, connected: (address) => { const one = emailService.store.get(address); return Boolean(one && !one.problem); }, profileAddress: () => cfg.profile?.email?.trim() || undefined }, dataDir: DATA_DIR, providerKeysRefused: Boolean(hostedModels), layerFolder: (botId) => workspaceDir(botId), turnVm: (threadId) => localVmThreadTargets.get(threadId)?.key });
 ROUTES.push(createSecretCardRoutes({ cards: secretCards, phoneSecretSubmissions, threadVisible: (auth, threadId) => visibleTo(viewerFor(auth)).thread(threadId), answerContext: (auth, _botId, threadId) => ({ shared: sharedMembership(), owner: threadStarters.get(threadId) ?? null, person: auth.kind === "session" ? personKey(auth.session) : null }) }));
 
-// By design OpenMausBot never receives a website password: the person signs in where the bot works, and the bot uses that session.
+// By design SuperBot never receives a website password: the person signs in where the bot works, and the bot uses that session.
 
 function recordTurnPlace(botId: string, threadId: string, place: Surface | null): void {
   if (place) turnPlaces.set(threadId, { botId, place });
@@ -12177,14 +12177,14 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     if (path === MCP_OAUTH_CALLBACK_PATH) {
       const answer = method === "GET"
         ? await mcpOAuth.publicCallback(req.headers.host, url.search)
-        : { status: 400, text: "Invalid sign-in callback. Return to OpenMausBot and try again." };
+        : { status: 400, text: "Invalid sign-in callback. Return to SuperBot and try again." };
       res.writeHead(answer.status, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer" });
       res.end(answer.text);
       return;
     }
     // Two public routes come first; everything else needs the loopback owner or a paired session with the right scope.
     if (method === "GET" && !path.startsWith("/api/") && !path.startsWith("/.well-known/") && (moveFreeze.screen(path) ? (res.writeHead(302, { location: moveFreeze.screen(path)!, "cache-control": "no-store" }).end(), true) : serveStatic(res, path, STATIC_DIR))) return;
-    if (method === "GET" && path === "/.well-known/openmausbot/environment") {
+    if (method === "GET" && path === "/.well-known/superbot/environment") {
       return json(res, 200, environmentDescriptor({ environmentId: ENVIRONMENT_ID, desktopManaged: DESKTOP_MANAGED, emailSignIn: !HOSTED_WORKSPACE && emailSignIn.enabled(), sharedComputers: lendingEnabled() }));
     }
     const domainCheck = /^\/\.well-known\/openmausbot\/domain-check\/([a-f0-9]{64})$/.exec(path);
@@ -12308,7 +12308,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     }
     // Public reachability probe: a stranger learns only the app name; pid and the static flag stay behind the gate.
     if (method === "GET" && path === "/api/health" && !gate.auth) {
-      return json(res, 200, { app: "openmausbot" });
+      return json(res, 200, { app: "superbot" });
     }
     // Public: the sign-in page needs the deployment's name and icon, and it holds nothing secret.
     if (method === "GET" && path === "/api/brand" && !gate.auth) {
@@ -12406,7 +12406,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       res.setHeader("cache-control", "no-store");
       if (method === "GET") return json(res, 200, customDomainStatus());
       if (method === "POST" || method === "DELETE") {
-        if (DESKTOP_MANAGED) return json(res, 409, { error: "Custom domains are configured on a self-hosted OpenMausBot server, not the desktop companion." });
+        if (DESKTOP_MANAGED) return json(res, 409, { error: "Custom domains are configured on a self-hosted SuperBot server, not the desktop companion." });
         if (!/^application\/json\b/i.test(String(req.headers["content-type"] ?? ""))) {
           return json(res, 415, { error: "content-type must be application/json" });
         }
@@ -12462,7 +12462,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     // Test-only routes exist only when the launcher sets a high-entropy test key, which production builds never set.
     if (method === "POST" && path === "/api/testing/org-library") {
       const expected = Buffer.from(process.env.OMB_TEST_ORG_LIBRARY_KEY ?? "");
-      const header = req.headers["x-openmausbot-test-org-library"];
+      const header = req.headers["x-superbot-test-org-library"];
       const actual = Buffer.from(Array.isArray(header) ? "" : String(header ?? ""));
       if (expected.length < 32 || actual.length !== expected.length || !timingSafeEqual(actual, expected) || !orgLibrary) {
         return json(res, 404, { error: "not found" });
@@ -12474,9 +12474,9 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     }
     if (method === "POST" && path === "/api/testing/internal-capability") {
       const expected = process.env.OMB_TEST_INTERNAL_CAPABILITY_KEY ?? "";
-      const actual = Array.isArray(req.headers["x-openmausbot-test-capability"])
+      const actual = Array.isArray(req.headers["x-superbot-test-capability"])
         ? ""
-        : String(req.headers["x-openmausbot-test-capability"] ?? "");
+        : String(req.headers["x-superbot-test-capability"] ?? "");
       const expectedBytes = Buffer.from(expected);
       const actualBytes = Buffer.from(actual);
       if (
@@ -12629,7 +12629,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         }
         if (!selectTurnPlace(internalCapability, option.surface)) return json(res, 409, { error: "A computer switch is already pending. End this turn to continue there." });
         return json(res, 200, { status: "pending", surface: option.surface,
-          message: `End this turn now without using the previous computer tools. OpenMausBot will continue the original request on ${option.label} with a fresh tool connection.` });
+          message: `End this turn now without using the previous computer tools. SuperBot will continue the original request on ${option.label} with a fresh tool connection.` });
       }
       if (method === "POST" && path === "/api/internal/hook") {
         const body = await readInternalBody();
@@ -12791,7 +12791,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       // Off: a 404 like a route that never existed. On: a turn sees only the computers of the person it provably acts for.
       if (method === "GET" && path === "/api/internal/shared-computers" && lendingEnabled()) {
         const principal = sharedComputerPrincipal(internalCapability);
-        // `say` too: the bot says why instead of asking the person to open OpenMausBot, which can't help while the computer is lent already.
+        // `say` too: the bot says why instead of asking the person to open SuperBot, which can't help while the computer is lent already.
         return json(res, 200, { computers: sharedComputers.list(principal), ...sharedComputers.away(principal), ...sharedComputers.screenNotLent(principal) });
       }
       if (method === "POST" && path === "/api/internal/shared-computers" && lendingEnabled()) {
@@ -14093,7 +14093,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
           return refuseOutbound(connectorScopeRefusalText(call, access.reason, currentSender.name, appName, described.label));
         }
         const opaque = connectorCalls.some(call => call.slug === "COMPOSIO_PROXY_EXECUTE");
-        if (opaque && currentSender.connectorTools !== undefined) return refuseOutbound("OpenMausBot cannot verify this code against this bot's tool grants. Use a direct app tool.");
+        if (opaque && currentSender.connectorTools !== undefined) return refuseOutbound("SuperBot cannot verify this code against this bot's tool grants. Use a direct app tool.");
         // At Full access a send asks nobody (outbound-hold.ts sets its daily cap). A room turn can run at a Chief's delegated level, which only the room handoff carries.
         const sendsFreely = () => roomTurnLevels.forRequest(internalCapability.threadId, internalCapability.botId,
           () => sourceApprovalMode(internalCapability.botId, internalCapability.threadId)) === "full";
@@ -15081,7 +15081,7 @@ function noteTurnsCutByShutdown(): void {
   for (const bot of store.bots) {
     for (const task of store.tasks(bot.id)) {
       if (threadBusy(bot.id, task.threadId) && cut(task.threadId)) {
-        store.appendMessage(task.threadId, { role: "bot", kind: "activity", tool: failedTurnTool("turn interrupted — OpenMausBot restarted") });
+        store.appendMessage(task.threadId, { role: "bot", kind: "activity", tool: failedTurnTool("turn interrupted — SuperBot restarted") });
       }
     }
   }
@@ -15089,7 +15089,7 @@ function noteTurnsCutByShutdown(): void {
     for (const threadId of group.dm ? [group.threadId] : store.groupTasks(group.id).map((task) => task.threadId)) {
       if (!groupThreadIsWorking(group.id, threadId) || !cut(threadId)) continue;
       const speaker = groupSpeakers.get(threadId);
-      store.appendMessage(threadId, { role: "bot", kind: "activity", ...(speaker ? { from: speaker } : {}), tool: failedTurnTool("turn interrupted — OpenMausBot restarted") });
+      store.appendMessage(threadId, { role: "bot", kind: "activity", ...(speaker ? { from: speaker } : {}), tool: failedTurnTool("turn interrupted — SuperBot restarted") });
     }
   }
 }
