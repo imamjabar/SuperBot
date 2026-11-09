@@ -641,6 +641,7 @@ describe("agents-proxy MCP surface", () => {
       "close_thread",
       "start_thread",
       "vm_exec",
+      "read_file",
       "attach_file",
       "show_widget",
       "show_html",

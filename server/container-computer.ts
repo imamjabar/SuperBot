@@ -8,8 +8,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 import { augmentedPath, resolveCliSpawn } from "./env-path.ts";
-import { workspacePreparationDockerfile } from "./container-workspace.ts";
-import { skillToolsDockerfile } from "./skill-vm-tools.ts";
+import { desktopWorkLayers } from "./desktop-work-layers.ts";
 import { DATA_DIR } from "./config.ts";
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
 import { seatIdentity } from "./local-vm-seats.ts";
@@ -132,13 +131,6 @@ const GOOGLE_LINUX_SIGNING_KEY = {
   sha256: "54dea5f6c2a26091578cf52a999cebc6b64df478d37ad4dce96376b711e3b27c",
 } as const;
 
-const PYTHON_PPTX = {
-  pin: "python-pptx==1.0.2",
-  sha256: "160838e0b8565a8b1f67947675886e9fea18aa5e795db7ae531606d68e785cba",
-} as const;
-
-const HYPERFRAMES_CLI = "hyperframes@0.9.26";
-
 /** Debian 13 desktop, one seat per X display `:N`: Xvfb, an XFCE session, x11vnc on 127.0.0.1:590N, noVNC on 690N and a
  * Cua Driver socket. The image starts seat 1; `openmausbot-seat-conf N > /etc/supervisor/conf.d/seat-N.conf` followed by
  * `supervisorctl update` starts seat N. Node, both Cua Driver wheels and the Google signing key are SHA-256 verified. */
@@ -220,28 +212,7 @@ RUN set -eux; \\
       echo "Google Chrome stable is published for linux/amd64 only; build this image with --platform linux/amd64" >&2; \\
       exit 1; \\
     fi
-# Work toolkit: documents, data, OCR (English and Indonesian), media. Debian 13 ships no python3-pptx, so its pinned wheel
-# goes to the system dist-packages, where python3 imports it beside the Debian libraries it needs.
-RUN set -eux; \\
-    export DEBIAN_FRONTEND=noninteractive; \\
-    apt-get update; \\
-    apt-get install -y --no-install-recommends \\
-      python3-pandas python3-numpy python3-scipy python3-matplotlib python3-seaborn python3-openpyxl python3-xlsxwriter \\
-      python3-docx python3-pypdf python3-pil python3-lxml python3-bs4 python3-requests python3-typing-extensions \\
-      poppler-utils qpdf tesseract-ocr tesseract-ocr-eng tesseract-ocr-ind pandoc ffmpeg imagemagick \\
-      libreoffice-impress-nogui libreoffice-writer-nogui libreoffice-calc-nogui \\
-      jq unzip zip ripgrep sqlite3; \\
-    rm -rf /var/lib/apt/lists/*; \\
-    site="$(python3 -c 'import sys; print(f"/usr/local/lib/python3.{sys.version_info.minor}/dist-packages")')"; \\
-    printf '%s\\n' '${PYTHON_PPTX.pin} --hash=sha256:${PYTHON_PPTX.sha256}' > /tmp/pptx.txt; \\
-    /opt/venv/bin/python -m pip install --no-cache-dir --no-deps --require-hashes --target "$site" -r /tmp/pptx.txt; \\
-    rm -f /tmp/pptx.txt; \\
-    python3 -c 'import pandas, numpy, matplotlib, seaborn, openpyxl, docx, pptx, pypdf, PIL'; \\
-    npm install -g --no-fund --no-audit ${HYPERFRAMES_CLI}; \\
-    su cua -c 'hyperframes telemetry disable && hyperframes browser ensure'; \\
-    su cua -c 'hyperframes doctor --json' | jq -e '[.checks[] | select(.name == "FFmpeg" or .name == "FFprobe")] | length == 2 and all(.ok)'; \\
-    ffmpeg -version >/dev/null; soffice --version; tesseract --list-langs
-${skillToolsDockerfile()}${workspacePreparationDockerfile(VM_WORKSPACE_GUEST)}
+${desktopWorkLayers(VM_WORKSPACE_GUEST)}
 # Driver: a 200 ms (not 800) watch for windows an action opens still sees browser popups; no cursor glide; plain logs.
 RUN printf '%s\\n' \\
       '#!/bin/sh' \\

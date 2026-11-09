@@ -1,6 +1,6 @@
 import { mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import zlib from "node:zlib";
 import { describe, expect, it } from "vitest";
 
@@ -222,7 +222,7 @@ describe("security and sandbox isolation", () => {
       expect(outsideRes.status).toBe(403);
       expect(outsideRes.body.error).toContain("outside this conversation's workspace");
 
-      const traversalRes = await handleReadFile(deps, { path: "../omb-test-outside/secret.txt" });
+      const traversalRes = await handleReadFile(deps, { path: relative(rootDir, outsideFile) });
       expect(traversalRes.status).toBe(403);
 
       const symlinkRes = await handleReadFile(deps, { path: symlinkOut });
