@@ -56,20 +56,18 @@ afterEach(() => {
 describe("sidebar header", () => {
   const collapse = /aria-label="(Collapse sidebar to avatars|Expand sidebar)"|data-sidebar-edge-toggle/;
 
-  it.each(["comfortable", "icons"] as const)("keeps the Inbox and add, and no button collapses or expands it, at %s density in Advanced mode", (density) => {
+  it.each(["comfortable", "icons"] as const)("keeps add, and no button collapses or expands it, at %s density in Advanced mode", (density) => {
     fixture.density = density;
     const html = render();
-    expect(html).toContain('aria-label="Inbox"');
     expect(html).not.toContain('aria-label="Active Threads"');
     expect(html).toContain('aria-label="New or share"');
     expect(html).not.toMatch(collapse);
   });
 
-  it.each(["comfortable", "icons"] as const)("keeps the Inbox and add, no activity menu and no collapse button in Simple mode at %s density: its edge is dragged instead", (density) => {
+  it.each(["comfortable", "icons"] as const)("keeps add, no activity menu and no collapse button in Simple mode at %s density: its edge is dragged instead", (density) => {
     fixture.advanced = false;
     fixture.density = density;
     const html = render();
-    expect(html).toContain('aria-label="Inbox"');
     expect(html).not.toContain('aria-label="Active Threads"');
     expect(html).toContain('aria-label="New or share"');
     expect(html).not.toMatch(collapse);

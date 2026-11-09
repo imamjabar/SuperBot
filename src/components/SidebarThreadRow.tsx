@@ -1,6 +1,6 @@
-import { memo, useEffect, useRef, useState, type Dispatch, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type Dispatch } from "react";
 import { createPortal } from "react-dom";
-import { Archive, ArchiveRestore, BellOff, Check, ChevronRight, Clock, Clock3, FolderInput, Link2, Link2Off, Loader2, MoreHorizontal, Pencil, Pin, PinOff, RefreshCw, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, BellOff, Check, Clock, Clock3, FolderInput, Link2, Link2Off, Loader2, MoreHorizontal, Pencil, Pin, PinOff, RefreshCw, Trash2 } from "lucide-react";
 import type { Action, AppState, BotProject, Task } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { MENU_SHEET } from "./menu-recipe";
@@ -93,33 +93,6 @@ const isWaitingOnTeammate = (task: Pick<Task, "waitingForTeammates">): boolean =
 const demandsAttention = (task: ThreadRowTask, activeId: string) =>
   task.threadId === activeId || task.activity === "waiting-on-you" || isWorking(task) || isWaitingOnTeammate(task) || Boolean(task.queued) || Boolean(task.unread);
 
-export function partitionHelperThreads<T extends ThreadRowTask>(tasks: T[], activeId: string, query = "", folders: BotProject[] = []): { own: T[]; helpers: T[] } {
-  if (query.trim()) return { own: tasks, helpers: [] };
-  const own: T[] = [];
-  const helpers: T[] = [];
-  for (const task of tasks) {
-    const filed = folders.some((folder) => folder.id === task.projectId);
-    const helper = Boolean(task.openedBy) && task.pinned !== true && !filed && !demandsAttention(task, activeId) &&
-      !task.closedBy && !isArchived(task) && !isSnoozed(task);
-    (helper ? helpers : own).push(task);
-  }
-  return { own, helpers };
-}
-
-export function HelperThreadGroup<T>({ tasks, renderThread }: { tasks: T[]; renderThread: (task: T) => ReactNode }) {
-  const [open, setOpen] = useState(false);
-  if (tasks.length === 0) return null;
-  const label = t("task.helperGroup");
-  return <div data-sidebar-helper-threads="">
-    <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} aria-label={t(open ? "task.collapseNamed" : "task.expandNamed", { name: label })}
-      className="flex min-h-8 w-full items-center gap-1.5 rounded-md py-1 pl-1.5 pr-3 text-left text-caption text-ink-secondary hover:bg-raised/30 hover:text-ink">
-      <ChevronRight aria-hidden="true" size={11} className={cn("shrink-0 transition-transform", open && "rotate-90")} />
-      <span className="truncate">{label}</span>
-      <span className="shrink-0 text-[10px] opacity-50">{tasks.length}</span>
-    </button>
-    {open && <div role="group" aria-label={label}>{tasks.map(renderThread)}</div>}
-  </div>;
-}
 
 export function visibleSidebarThreads<T extends ThreadRowTask>(tasks: T[], activeId: string, query = "", folders: BotProject[] = [], showAll = false): T[] {
   const needle = query.trim().toLowerCase();

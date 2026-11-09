@@ -3,7 +3,6 @@ import { ArrowRight, Loader2, Zap } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { routineDateTime } from "@/lib/routine-display";
 import { t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { liveCardKind } from "../../shared/live-approval";
 import type { AutomationLine, RoutineRunCardData } from "../../shared/routine-run";
 import { formatTime, openThread, useStore, type Message } from "@/state/store";
@@ -125,7 +124,6 @@ export function RoutineRunCard({
 
 export function RoutineRunRow({ message, botId }: { message: Message; botId: string }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const executionThreadId = message.routineRun?.executionThreadId;
   const canOpen = executionThreadId && state.bots.some((candidate) =>
     candidate.threadId === executionThreadId || hasRoutineExecutionTask(candidate.tasks, executionThreadId)
@@ -134,7 +132,7 @@ export function RoutineRunRow({ message, botId }: { message: Message; botId: str
     <RoutineRunCard
       message={message}
       onOpen={canOpen && executionThreadId
-        ? () => openThread(dispatch, { botId, threadId: executionThreadId }, state, showThreads)
+        ? () => openThread(dispatch, { botId, threadId: executionThreadId }, state)
         : undefined}
     />
   );
@@ -143,7 +141,6 @@ export function RoutineRunRow({ message, botId }: { message: Message; botId: str
 /** Above a line an automation run wrote in a chat: which automation, when, and the way to its full run. */
 export function AutomationCaption({ message, line, botId }: { message: Message; line: AutomationLine; botId: string }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const canOpen = state.bots.some((bot) => bot.threadId === line.executionThreadId || hasRoutineExecutionTask(bot.tasks, line.executionThreadId));
   const asking = line.needsYou === true && (message.card ? liveCardKind(message.card) !== null : line.copyOf !== undefined ||
     !state.bots.find((bot) => bot.id === botId)?.messages.some((later) => later.role === "user" && later.at > message.at));
@@ -157,7 +154,7 @@ export function AutomationCaption({ message, line, botId }: { message: Message; 
       {canOpen && (
         <button
           type="button"
-          onClick={() => openThread(dispatch, { botId, threadId: line.executionThreadId }, state, showThreads)}
+          onClick={() => openThread(dispatch, { botId, threadId: line.executionThreadId }, state)}
           aria-label={t("chat.automation.openRunFor", { name: line.name })}
           className="shrink-0 rounded px-1 hover:bg-inset hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >

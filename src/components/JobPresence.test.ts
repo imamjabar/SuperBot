@@ -13,9 +13,6 @@ vi.mock("@/state/store", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/thread-preferences", () => ({
-  useShowThreads: () => false,
-}));
 
 setLocale("en");
 

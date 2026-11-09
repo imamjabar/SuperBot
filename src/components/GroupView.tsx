@@ -1,7 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formattedReplyWidth, isFormattedReply, splitReplyBlocks } from "@/lib/formatted-reply";
 import { activeLocale, t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { otherSpeaker } from "@/lib/own-profile";
 import { Check, ChevronDown, FolderOpen, Loader2, Pin, Square, X } from "lucide-react";
 import {
@@ -322,7 +321,6 @@ export const Transcript = memo(function Transcript({
   onReply: (message: Message) => void;
 }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const showToolCalls = showToolCallsEnabled(state.config);
   const memberOf = (id?: string) => members.find((b) => b.id === id);
   const folds = useMemo(() => roomTurnFolds(messages), [messages, locale]);
@@ -444,7 +442,7 @@ export const Transcript = memo(function Transcript({
               <RoutineRunCard
                 message={m}
                 onOpen={routineTarget
-                  ? () => openThread(dispatch, routineTarget, state, showThreads)
+                  ? () => openThread(dispatch, routineTarget, state)
                   : undefined}
               />
             </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { outsideRoomNote, sentRow } from "./handoff-sent.ts";
+import { outsideRoomNote, receivedRow, sentRow } from "./handoff-sent.ts";
 
 const sender = { id: "chief", name: "Chief", color: "blue" };
 const recipient = { id: "buyer", name: "Buyer Research", color: "green" };
@@ -29,6 +29,32 @@ describe("sentRow", () => {
     expect([lane.tool?.name, lane.threadRef?.threadId, lane.sentDirectly]).toEqual(["Sent to Buyer Research", "lane", undefined]);
     const direct = sentRow({ sender, recipient, threadId: "buyer-work", via: "direct" });
     expect([direct.tool?.name, direct.threadRef?.title, direct.sentDirectly]).toEqual(["Sent to Buyer Research", "Teammate work", undefined]);
+  });
+});
+
+describe("receivedRow", () => {
+  it("links direct hand-off to recipient thread and sender in from", () => {
+    const row = receivedRow({ sender, recipient, threadId: "buyer-work", title: "@Chief · work", via: "direct" });
+    expect(row).toMatchObject({
+      role: "bot",
+      kind: "activity",
+      from: { botId: "chief", name: "Chief", color: "blue" },
+      tool: { name: "Message from Chief", ok: true },
+      threadRef: { botId: "buyer", threadId: "buyer-work", title: "@Chief · work" },
+    });
+    expect(row.comm).toBeUndefined();
+  });
+
+  it("links room hand-off with comm and withBotId set to sender", () => {
+    const row = receivedRow({ sender, recipient, threadId: "sales-thread", room: sales, via: "room" });
+    expect(row).toMatchObject({
+      role: "bot",
+      kind: "activity",
+      from: { botId: "chief", name: "Chief", color: "blue" },
+      tool: { name: "Message from Chief", ok: true },
+      comm: { groupId: "sales", threadId: "sales-thread", withBotId: "chief", withName: "Chief", withColor: "blue" },
+    });
+    expect(row.threadRef).toBeUndefined();
   });
 });
 

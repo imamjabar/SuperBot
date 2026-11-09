@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLanguageChoice } from "@/lib/language-preference";
 import { duePing, openTarget, presenceBody, shownLanguage } from "@/lib/presence-client";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { existingThreadTarget } from "@/lib/thread-target";
 import { openThread } from "@/state/thread-navigation";
 import { api, type Action, type AppState } from "@/state/store";
@@ -23,11 +22,10 @@ function openChat(state: AppState): string | undefined {
 /** Tells the server the person is here and which chat they have open, and opens the chat the answer names: the brief the
  * Chief posted for this arrival. */
 export function usePresence(state: AppState, dispatch: (action: Action) => void): void {
-  const showThreads = useShowThreads();
   const lastPing = useRef<number | null>(null);
   const language = shownLanguage(state.config?.language, useLanguageChoice());
-  const latest = useRef({ state, dispatch, showThreads, language });
-  latest.current = { state, dispatch, showThreads, language };
+  const latest = useRef({ state, dispatch, language });
+  latest.current = { state, dispatch, language };
   const sentLanguage = useRef(language);
   const pingNow = useRef<() => void>(() => {});
   useEffect(() => {
@@ -42,7 +40,7 @@ export function usePresence(state: AppState, dispatch: (action: Action) => void)
       void api("/api/presence/active", { method: "POST", body: JSON.stringify(body) }).then((answer) => {
         const live = latest.current;
         const target = existingThreadTarget(openTarget(answer), live.state);
-        if (target && selection(live.state) === sentFrom) openThread(live.dispatch, target, live.state, live.showThreads);
+        if (target && selection(live.state) === sentFrom) openThread(live.dispatch, target, live.state);
       }, () => {});
     };
     const onActivity = () => ping();

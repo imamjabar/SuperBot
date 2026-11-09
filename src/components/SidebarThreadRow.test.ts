@@ -2,7 +2,7 @@ import { createElement, type ComponentProps, type MemoExoticComponent, type Reac
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
-import { formatUpdatedAt, nextSnoozeExpiry, orderedSidebarThreads, orderedThreadList, partitionHelperThreads, SidebarThreadRow, stampClock, threadByline, threadOpenerLabel, threadUpdatedLabel, visibleSidebarThreads } from "./SidebarThreadRow";
+import { formatUpdatedAt, nextSnoozeExpiry, orderedSidebarThreads, orderedThreadList, SidebarThreadRow, stampClock, threadByline, threadOpenerLabel, threadUpdatedLabel, visibleSidebarThreads } from "./SidebarThreadRow";
 
 type ThreadRowProps = ComponentProps<typeof SidebarThreadRow>;
 
@@ -688,47 +688,3 @@ describe("Thread link", () => {
   });
 });
 
-describe("helper threads a bot opened", () => {
-  const opener = { botId: "pepper", name: "Pepper", at: 1 };
-  const thread = (threadId: string, patch: Record<string, unknown> = {}) =>
-    ({ threadId, title: threadId, createdAt: 1, updatedAt: 1, ...patch }) as any;
-
-  it("folds idle bot-opened threads into a group and keeps the person's own threads", () => {
-    const tasks = [thread("mine"), thread("email", { openedBy: opener }), thread("pricing", { openedBy: opener })];
-    const { own, helpers } = partitionHelperThreads(tasks, "mine");
-    expect(own.map((task) => task.threadId)).toEqual(["mine"]);
-    expect(helpers.map((task) => task.threadId)).toEqual(["email", "pricing"]);
-  });
-
-  it("keeps a helper thread in view while it needs the person or is doing something, as the phone lists it", () => {
-    const tasks = [
-      thread("open-now", { openedBy: opener }),
-      thread("approval", { openedBy: opener, activity: "waiting-on-you" }),
-      thread("reply", { openedBy: opener, unread: true }),
-      thread("pinned", { openedBy: opener, pinned: true }),
-      thread("working", { openedBy: opener, busy: true }),
-      thread("thinking", { openedBy: opener, activity: "working" }),
-      thread("waiting", { openedBy: opener, waitingForTeammates: true }),
-      thread("queued", { openedBy: opener, queued: true }),
-    ];
-    const { own, helpers } = partitionHelperThreads(tasks, "open-now");
-    expect(own.map((task) => task.threadId)).toEqual(["open-now", "approval", "reply", "pinned", "working", "thinking", "waiting", "queued"]);
-    expect(helpers).toEqual([]);
-  });
-
-  it("leaves filed, closed, archived and snoozed helper threads where they already go", () => {
-    const tasks = [
-      thread("filed", { openedBy: opener, projectId: "launch" }),
-      thread("closed", { openedBy: opener, closedBy: opener }),
-      thread("archived", { openedBy: opener, archivedAt: 1 }),
-      thread("snoozed", { openedBy: opener, snoozedUntil: Date.now() + 60_000 }),
-    ];
-    const { helpers } = partitionHelperThreads(tasks, "mine", "", [{ id: "launch", name: "Launch" } as any]);
-    expect(helpers).toEqual([]);
-  });
-
-  it("does not group search results", () => {
-    const tasks = [thread("email", { openedBy: opener })];
-    expect(partitionHelperThreads(tasks, "mine", "email")).toEqual({ own: tasks, helpers: [] });
-  });
-});

@@ -11,15 +11,14 @@
 pnpm exec vitest run server/host/place-inbox.test.ts
 ```
 
-## The panel
+## Inline cards and inbox derivations
 
-`src/components/inbox/InboxReading.dom.test.ts` drives the panel as a tab: its count and close, three-line rows with a
-question's choices and the recommended one marked, the search, a line read in full with "n of m" and its steps, the bot's
-words before it drawn as the chat's Markdown, and a question answered with its choice cards, a number key and a note through
-`/api/threads/<id>/respond`, after which the next line opens, or the list when none is left. A password or a sign-in is keyed
-by its own card kind and answered with the chat's own card for it.
+`src/components/inbox/inbox-view.test.ts` exercises inbox item derivations and quick actions for approvals, questions, and routine reports that appear as inline cards in chat conversations:
+
+1. Lists items waiting on the person and routine news as one list, newest first, leaving settled lines out.
+2. Directs quick actions: approval allow/deny/reply, question choice taps, reply and close, and routine report acknowledgement.
+3. Formats choices and response payloads for inline card actions.
 
 ```sh
-pnpm exec vitest run src/components/inbox/InboxReading.dom.test.ts src/components/inbox/InboxPanel.dom.test.ts src/components/inbox/InboxEverywhere.dom.test.ts
+pnpm exec vitest run src/components/inbox/inbox-view.test.ts
 ```
-

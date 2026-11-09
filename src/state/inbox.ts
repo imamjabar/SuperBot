@@ -1,6 +1,6 @@
-// The person's inbox as the sidebar's row, its panel and a team's card in the chat show it. One copy of the server's list,
-// read again whenever what it depends on changes, and the panel's own place (open, the line read). A server older than this
-// page has none off a team: it answers 404, and the sidebar falls back to what it showed before.
+// The person's inbox as a team's card in the chat shows it. One copy of the server's list,
+// read again whenever what it depends on changes. A server older than this
+// page has none off a team: it answers 404.
 import { useEffect, useSyncExternalStore } from "react";
 import type { InboxRow, InboxView } from "../../shared/inbox";
 import { api } from "./api";
@@ -30,8 +30,6 @@ function store<T>(initial: T) {
 const list = store<InboxView | null>(null);
 export const currentInbox = list.get;
 export const useInboxView = (): InboxView | null => useSyncExternalStore(list.subscribe, list.get, list.get);
-const hasList = () => list.get() !== null;
-export const useInboxReady = (): boolean => useSyncExternalStore(list.subscribe, hasList, hasList);
 
 export type InboxSupport = "unknown" | "yes" | "no";
 const support = store<InboxSupport>("unknown");
@@ -110,18 +108,3 @@ export async function replyToInboxRow(view: Pick<InboxView, "botId" | "threadId"
   await api(path, { method: "POST", body: JSON.stringify({ text, threadId: origin?.threadId ?? view.threadId, replyToId: row.id, sendId: randomUuid() }) });
   void refreshInbox();
 }
-
-export interface InboxPanelState { open: boolean; reading: string | null; wide?: boolean }
-const panel = store<InboxPanelState>({ open: false, reading: null });
-export const useInboxPanel = (): InboxPanelState => useSyncExternalStore(panel.subscribe, panel.get, panel.get);
-export const currentInboxPanel = panel.get;
-
-/** Opens the inbox in the right panel: its list, or straight on one line. */
-export function openInbox(at: { reading?: string } = {}): void {
-  panel.set({ ...panel.get(), open: true, reading: at.reading ?? null });
-  void refreshInbox();
-}
-export const closeInbox = (): void => panel.set({ ...panel.get(), open: false, reading: null });
-export const readInboxLine = (id: string | null): void => panel.set({ ...panel.get(), reading: id });
-/** The panel at its usual width or wider, for a long message. */
-export const widenInbox = (wide: boolean): void => panel.set({ ...panel.get(), wide });

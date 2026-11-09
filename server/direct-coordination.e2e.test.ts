@@ -192,8 +192,9 @@ it("coordinates a lead and its specialist from ordinary chat, returns to Clive, 
   expect(f.evidence().map((turn: any) => turn.botId)).toEqual([f.chief.id, f.lead.id, f.specialist.id, f.lead.id, f.chief.id]);
   expect(f.nodes().every((node: any) => !node.groupId && node.status === "completed")).toBe(true);
   expect((await f.api("/api/bots")).groups).toEqual([]);
-  expect(await f.messages(f.lead.activeTaskId)).toEqual(originalLead);
-  expect(await f.messages(f.specialist.activeTaskId)).toEqual(originalSpecialist);
+  const leadNode = f.nodes().find((node: any) => node.botId === f.lead.id), specialistNode = f.nodes().find((node: any) => node.botId === f.specialist.id);
+  expect(await f.messages(f.lead.activeTaskId)).toEqual([...originalLead, expect.objectContaining({ kind: "activity", tool: expect.objectContaining({ name: "Message from Clive" }), threadRef: expect.objectContaining({ botId: f.lead.id, threadId: leadNode.threadId }) })]);
+  expect(await f.messages(f.specialist.activeTaskId)).toEqual([...originalSpecialist, expect.objectContaining({ kind: "activity", tool: expect.objectContaining({ name: "Message from Engineering lead" }), threadRef: expect.objectContaining({ botId: f.specialist.id, threadId: specialistNode.threadId }) })]);
   const receipt = (await f.messages(f.chief.activeTaskId)).find((message: any) => message.tool?.name === "Sent to Engineering lead");
   expect(receipt.threadRef).toMatchObject({ botId: f.lead.id, threadId: f.nodes().find((node: any) => node.botId === f.lead.id).threadId });
   expect(receipt.threadRef.threadId).not.toBe(f.lead.activeTaskId);
@@ -369,7 +370,7 @@ it("opens a fresh thread on a teammate with coordinate_bots thread \"new\" and g
   const lead = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.lead.id);
   expect(lead.tasks.find((task: any) => task.threadId === child.threadId)).toMatchObject({ title: "NEW_THREAD_BRIEF verify the CSV export yourself", openedBy: { botId: f.chief.id, name: "Clive" } });
   expect(child.threadId).not.toBe(f.lead.activeTaskId);
-  expect(await f.messages(f.lead.activeTaskId)).toEqual(originalLead);
+  expect(await f.messages(f.lead.activeTaskId)).toEqual([...originalLead, expect.objectContaining({ kind: "activity", from: expect.objectContaining({ botId: f.chief.id }), threadRef: expect.objectContaining({ botId: f.lead.id, threadId: child.threadId }) })]);
   expect(f.evidence().map((turn: any) => turn.botId)).toEqual([f.chief.id, f.lead.id, f.chief.id]);
   expect((await f.messages(f.chief.activeTaskId)).some((message: any) => message.tool?.name === "Engineering lead replied" && message.tool.output === "NEW_THREAD_RESULT verified")).toBe(true);
 }), 45_000);

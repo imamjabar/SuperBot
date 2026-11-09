@@ -5,24 +5,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialState, type Bot } from "@/state/store";
 import type { BotAvatarCrop } from "../../shared/bot-avatar";
 
-// renderToStaticMarkup reads useShowThreads's server snapshot, which ignores
-// the stored choice, so the cases flip the hook itself.
-const threads = vi.hoisted(() => ({ show: true }));
 
 // Threads are an Advanced-mode surface (Simple keeps one conversation per bot), so these render as Advanced.
 vi.mock("@/lib/interface-mode", async (original) => ({
   ...await original<typeof import("@/lib/interface-mode")>(),
   useAdvancedMode: () => true,
 }));
-vi.mock("@/lib/thread-preferences", async (original) => ({
-  ...await original<typeof import("@/lib/thread-preferences")>(),
-  useShowThreads: () => threads.show,
-}));
 vi.mock("./DesktopCapabilities", () => ({
   useDesktopCapabilities: () => ({}),
 }));
 
-import { BotListItem, botRowProps, PinnedBotCircle, PinnedCircleThreadPanel, PinnedCircleThreadSection } from "./Sidebar";
+import { BotListItem, botRowProps, PinnedBotCircle, PinnedCircleThreadSection } from "./Sidebar";
 import { PinnedBotRoster } from "./PinnedCircleThreads";
 import { setPinnedCircleOrder } from "@/lib/sidebar-preferences";
 import { PINNED_CIRCLE_DRAG_TYPE } from "@/lib/pinned-circle-order";
@@ -122,36 +115,9 @@ describe("pinned circle thread list", () => {
     expect(markup).toContain("Collapse Pinned");
     expect(markup.indexOf("Atlas")).toBeLessThan(markup.indexOf("Beacon"));
     expect(markup).toContain('aria-label="Actions for Atlas"');
-    expect(markup).toContain("Expand Atlas threads");
+    expect(markup).not.toContain("Expand Atlas threads");
     expect(markup).not.toContain("data-sidebar-pinned-circles");
     expect(markup).not.toContain("Drag to reorder");
-  });
-
-  it("offers the thread list from the circle, closed until the chevron opens it", () => {
-    const markup = renderCircle(atlas);
-    const toggle = markup.match(/<button[^>]*aria-label="Expand Atlas threads"[^>]*>/)?.[0];
-    expect(toggle).toContain('aria-expanded="false"');
-    expect(toggle).toContain('aria-controls="pinned-circle-threads-atlas"');
-    const botButton = markup.slice(markup.indexOf('data-sidebar-bot-row="atlas"'), markup.indexOf("</button>"));
-    expect(botButton).not.toContain("Expand Atlas threads");
-    expect(markup).not.toContain("data-sidebar-thread-row");
-  });
-
-  it("lists that circle's threads, with a way to start another", () => {
-    const markup = renderToStaticMarkup(createElement(PinnedCircleThreadPanel, row(atlas)));
-    expect(markup).toContain('data-sidebar-pinned-circle-thread-list="atlas"');
-    expect(markup).toContain("Current");
-    expect(markup).toContain("Earlier");
-    expect(markup).toContain("data-sidebar-thread-row");
-    expect(markup).toContain("New thread");
-  });
-
-  it("hides the circle disclosure when threads are off", () => {
-    threads.show = false;
-    const markup = renderCircle(atlas);
-    expect(markup).not.toContain("Expand Atlas threads");
-    expect(markup).not.toContain("New thread");
-    expect(renderToStaticMarkup(createElement(PinnedCircleThreadPanel, row(atlas)))).not.toContain("New thread");
   });
 });
 
@@ -234,7 +200,6 @@ describe("pinned circle order", () => {
 });
 
 afterEach(() => {
-  threads.show = true;
   forgetSearchDisclosuresForTests();
   initialState.selectedId = "";
   initialState.activeView = "chat";

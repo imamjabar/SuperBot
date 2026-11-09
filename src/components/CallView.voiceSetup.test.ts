@@ -13,7 +13,6 @@ const fixture = vi.hoisted(() => ({
   dictation: { available: true } as Record<string, unknown>,
   config: { tts: { configured: false } } as Record<string, unknown> | null,
   bots: [] as unknown[],
-  showThreads: true,
   dispatch: vi.fn(),
   startCall: vi.fn(),
   endCall: vi.fn(),
@@ -35,7 +34,6 @@ vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({ state: { ...original.initialState, config: fixture.config, bots: fixture.bots, instances: [{ instanceId: "codex", driverKind: "codex" }, { instanceId: "claude-3f0c2b1e-9d1a-4c55-8a51-0a3a6f1e2b7c", driverKind: "claudeAgent" }] }, dispatch: fixture.dispatch }) };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   ...await importOriginal<typeof import("./DesktopCapabilities")>(),
   useDesktopCapabilities: () => ({ capabilities: { host: { platform: "darwin" }, dictation: fixture.dictation }, ready: true }),
@@ -116,7 +114,6 @@ beforeEach(() => {
   fixture.dictation = { available: true };
   fixture.config = { tts: { configured: false } };
   fixture.bots = [pepper, basil];
-  fixture.showThreads = true;
   fixture.dispatch.mockClear();
   fixture.startCall.mockClear();
   fixture.endCall.mockClear();
@@ -245,7 +242,6 @@ describe("setting up a voice from the call button", () => {
   it("opens the member's chat as its row does with threads hidden: at its main thread", () => {
     vi.stubGlobal("window", { ogb: { speechStart: () => {}, remoteClient: { active: true } } });
     fixture.config = { tts: { configured: true, ready: true } };
-    fixture.showThreads = false;
     fixture.bots = [{ ...pepper, mainThreadId: "main", tasks: [{ threadId: "t", title: "Report", createdAt: 1 }, { threadId: "main", title: "Chat", createdAt: 2 }] }, basil];
     const room: Props = {
       targetId: "room-1",

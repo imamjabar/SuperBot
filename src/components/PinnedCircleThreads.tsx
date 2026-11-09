@@ -1,23 +1,16 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type DragEvent, type KeyboardEvent } from "react";
-import { createPortal } from "react-dom";
-import { ChevronRight, FolderPlus, Plus } from "lucide-react";
+import { memo, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type DragEvent, type KeyboardEvent } from "react";
 import { openBotRow, visibleMessages, type Bot, type Message } from "@/state/store";
 import { avatarCropRadius, botAvatarProfile } from "../../shared/bot-avatar";
-import { liveActivityLabel } from "@/lib/live-activity";
 import { BotAvatar } from "./Avatar";
 import { stateForBot } from "@/lib/mascot";
 import { cn } from "@/lib/cn";
-import { searchMatchesThreads, useSearchDisclosure } from "@/lib/search-disclosure";
-import { lastNonReceipt } from "@/lib/receipts";
 import { t } from "@/lib/i18n";
-import { BotProjectDialog } from "./BotProjects";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { sidebarBotActivityTasks } from "./SidebarBotActivity";
 import { setPinnedCircleOrder, usePinnedCircleOrder, type SidebarDensity } from "@/lib/sidebar-preferences";
 import { PINNED_CIRCLE_DRAG_TYPE, pinnedCircleDropPlace, rankPinnedCircles, reorderPinnedCircles, type PinnedCircleDrop, type PinnedCircleDropPlace } from "@/lib/pinned-circle-order";
 import { sidebarSectionAttention } from "@/lib/sidebar-attention";
 import { SidebarSectionHeader } from "./SidebarSectionHeader";
-import { BotListItem, BotThreadList, type BotRowProps } from "./Sidebar";
+import { BotListItem, type BotRowProps } from "./Sidebar";
 import { useUnreadNotice } from "./unread-notice";
 
 function useVisibleMessages(bot: Bot): Message[] {
@@ -25,20 +18,6 @@ function useVisibleMessages(bot: Bot): Message[] {
   return useMemo(() => visibleMessages({ messages, activeLeafId }), [messages, activeLeafId]);
 }
 
-function botHasThreadList(bot: Pick<Bot, "tasks" | "projects">, query: string): boolean {
-  return (bot.tasks?.filter((task) => !task.routineRunId).length ?? 1) > 1
-    || (bot.projects?.length ?? 0) > 0
-    || Boolean(query);
-}
-
-function threadListQuery(bot: Pick<Bot, "name" | "title">, query: string): string {
-  const q = query.toLowerCase();
-  return bot.name.toLowerCase().includes(q) || bot.title.toLowerCase().includes(q) ? "" : query;
-}
-
-function pinnedCircleThreadPanelId(botId: string): string {
-  return `pinned-circle-threads-${botId}`;
-}
 
 /** Columns of `repeat(auto-fill, minmax(84px, 1fr))` with `gap-1` (4px). */
 function pinnedCircleColumns(width: number): number {
@@ -51,30 +30,6 @@ function chunkPinnedCircles<T>(items: readonly T[], columns: number): T[][] {
   return rows;
 }
 
-export function PinnedCircleThreadPanel(props: BotRowProps) {
-  const showThreads = useShowThreads();
-  const { bot, query, dispatch } = props;
-  const visible = useVisibleMessages(bot);
-  const last = lastNonReceipt(visible);
-  const [creatingProject, setCreatingProject] = useState(false);
-  if (!showThreads) return null;
-  return (
-    <div id={pinnedCircleThreadPanelId(bot.id)} data-sidebar-pinned-circle-thread-list={bot.id} className="mt-1">
-      <BotThreadList {...props} activityLabel={liveActivityLabel(last)} query={threadListQuery(bot, query)} />
-      <div className="flex items-center gap-1 pl-6">
-        <button type="button" aria-label={t("task.newShort")} title={t("task.newShort")} onClick={() => dispatch({ type: "newTask", botId: bot.id })}
-          className="inline-flex h-7 items-center gap-1 rounded px-1 text-small font-medium text-ink-secondary outline-none hover:text-ink focus-visible:ring-1 focus-visible:ring-accent/60">
-          <Plus aria-hidden="true" size={13} />{t("task.newShort")}
-        </button>
-        <button type="button" aria-label={t("folder.newNamed", { name: bot.name })} title={t("folder.new")} onClick={() => setCreatingProject(true)}
-          className="inline-flex h-7 items-center gap-1 rounded px-1 text-small font-medium text-ink-secondary outline-none hover:text-ink focus-visible:ring-1 focus-visible:ring-accent/60">
-          <FolderPlus aria-hidden="true" size={13} />{t("folder.new")}
-        </button>
-      </div>
-      {creatingProject && <BotProjectDialog bot={bot} onClose={() => setCreatingProject(false)} />}
-    </div>
-  );
-}
 
 type PinnedCircleDrag = {
   reorder: (movedId: string, targetId: string, place: PinnedCircleDropPlace) => void;
@@ -168,24 +123,15 @@ export function usePinnedCircleDrag(bots: Bot[]) {
 }
 
 export const PinnedBotCircle = memo(function PinnedBotCircle({
-  threadPanelHost,
   drag,
   dragging = false,
   drop = null,
   prevId,
   nextId,
   ...props
-}: BotRowProps & PinnedCircleDragProps & { threadPanelHost?: HTMLElement | null }) {
-  const { bot, selected, mascotMotion, pendingQueued, reveal, density, query, dispatch, onMenu } = props;
-  const showThreads = useShowThreads();
+}: BotRowProps & PinnedCircleDragProps) {
+  const { bot, selected, mascotMotion, pendingQueued, dispatch, onMenu } = props;
   const visible = useVisibleMessages(bot);
-  const [threadsOpen, setThreadsOpen] = useSearchDisclosure(`bot:${bot.id}`, showThreads ? query : "", searchMatchesThreads(query, bot.tasks, bot.projects));
-  // nonce, not the thread id: a second jump to the same thread opens it again
-  useEffect(() => {
-    if (reveal && showThreads) setThreadsOpen(true);
-  }, [reveal?.nonce, showThreads]);
-  const hasThreadList = botHasThreadList(bot, query);
-  const expanded = showThreads && density !== "icons" && threadsOpen && hasThreadList;
   const activityTasks = sidebarBotActivityTasks(bot, pendingQueued);
   const waiting = bot.activity === "waiting-on-you" || activityTasks.some((task) => task.activity === "waiting-on-you");
   const working = !waiting && (Boolean(bot.busy) || activityTasks.some((task) => task.busy || task.activity === "working"));
@@ -203,7 +149,7 @@ export const PinnedBotCircle = memo(function PinnedBotCircle({
         aria-keyshortcuts={drag ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
         aria-label={`${bot.name}${waiting ? ` · ${t("sidebar.preview.waiting")}` : working ? ` · ${t("chat.activity.working")}` : ""}${unread ? ` · ${t("task.unread")}` : ""}`}
         title={bot.name}
-        onClick={() => openBotRow(dispatch, bot, showThreads, selected)}
+        onClick={() => openBotRow(dispatch, bot)}
         {...pinnedCircleDragHandlers(bot.id, { drag, dragging, prevId, nextId })}
         onContextMenu={(event) => {
           event.preventDefault();
@@ -253,17 +199,6 @@ export const PinnedBotCircle = memo(function PinnedBotCircle({
         <span className="w-full truncate text-center text-micro leading-4 text-ink">{bot.name}</span>
       </button>
       {/* Same short slot on every circle, so a chevron on only some bots does not shift the row. */}
-      {showThreads && density !== "icons" && <div className="flex h-4 w-full items-center justify-center">
-        {hasThreadList && <button
-          type="button"
-          aria-label={t(threadsOpen ? "task.collapseNamed" : "task.expandNamed", { name: bot.name })}
-          aria-expanded={threadsOpen}
-          aria-controls={pinnedCircleThreadPanelId(bot.id)}
-          onClick={() => setThreadsOpen((open) => !open)}
-          className="flex size-4 items-center justify-center rounded text-ink-secondary outline-none hover:text-ink focus-visible:ring-1 focus-visible:ring-accent/60"
-        ><ChevronRight aria-hidden="true" size={13} className={cn("transition-transform", threadsOpen && "rotate-90")} /></button>}
-      </div>}
-      {expanded && threadPanelHost ? createPortal(<PinnedCircleThreadPanel {...props} />, threadPanelHost) : null}
     </div>
   );
 });
@@ -280,16 +215,12 @@ function PinnedCircleGridRow({
   row: (bot: Bot) => BotRowProps;
   circleDrag: (bot: Bot) => PinnedCircleDragProps;
 }) {
-  const [host, setHost] = useState<HTMLDivElement | null>(null);
   return (
-    <div>
-      <div
-        className="grid gap-1"
-        style={{ gridTemplateColumns: columns > 0 ? `repeat(${columns}, minmax(84px, 1fr))` : "repeat(auto-fill, minmax(84px, 1fr))" }}
-      >
-        {bots.map((bot) => <PinnedBotCircle key={bot.id} {...row(bot)} {...circleDrag(bot)} threadPanelHost={host} />)}
-      </div>
-      <div ref={setHost} />
+    <div
+      className="grid gap-1"
+      style={{ gridTemplateColumns: columns > 0 ? `repeat(${columns}, minmax(84px, 1fr))` : "repeat(auto-fill, minmax(84px, 1fr))" }}
+    >
+      {bots.map((bot) => <PinnedBotCircle key={bot.id} {...row(bot)} {...circleDrag(bot)} />)}
     </div>
   );
 }

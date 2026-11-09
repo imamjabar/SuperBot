@@ -11,7 +11,6 @@ import {
 } from "@/lib/export-transcript";
 import { t } from "@/lib/i18n";
 import { localizedTaskTitle } from "@/lib/task-title";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useStore, type Group } from "@/state/store";
 import { PRESET_TURN_LIMITS, useConversationTurnLimit } from "./ConversationTurnLimit";
 import { groupUsageSummary } from "./GroupUsageChip";
@@ -27,14 +26,13 @@ function turnLimitLabel(minutes: number): string {
 
 function useRoomMoreItems(group: Group): { items: SidebarMenuItem[]; on: boolean } {
   const { dispatch } = useStore();
-  const showThreads = useShowThreads();
   const findOpen = useChatFindOpen(group.threadId);
   const limit = useConversationTurnLimit(group);
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
   const messages = group.messages;
   const hasMessages = messages.length > 0;
   const transcript = () => formatTranscriptMarkdown({ title: group.name, messages, isGroup: true });
-  const threads = showThreads ? [] : orderedThreadList(group.tasks ?? []);
+  const threads = orderedThreadList(group.tasks ?? []);
   const usage = groupUsageSummary(group.usage);
   const items: SidebarMenuItem[] = [
     {
@@ -45,14 +43,14 @@ function useRoomMoreItems(group: Group): { items: SidebarMenuItem[]; on: boolean
       trailing: <ShortcutHint id="find-conversation" />,
       onSelect: () => requestChatFind(group.threadId),
     },
-    ...(showThreads ? [] : [{
+    {
       key: "new-thread",
       heading: t("task.list"),
       separatorBefore: true,
       label: t("task.newShort"),
       icon: <SquarePen size={16} />,
       onSelect: () => dispatch({ type: "newGroupTask", groupId: group.id }),
-    } satisfies SidebarMenuItem]),
+    },
     ...(threads.length < 2 ? [] : [{
       key: "threads",
       label: t("task.switch"),

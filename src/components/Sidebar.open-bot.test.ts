@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppState, Bot } from "@/state/store";
 
 const fixture = vi.hoisted(() => ({
-  values: [] as unknown[], index: 0, effects: [] as EffectCallback[], showThreads: false,
+  values: [] as unknown[], index: 0, effects: [] as EffectCallback[],
   state: {} as AppState, dispatch: vi.fn(), api: vi.fn(),
 }));
 vi.mock("react", async (original) => ({
@@ -34,7 +34,6 @@ vi.mock("./DesktopCapabilities", async () => {
   const { initialDesktopCapabilities } = await import("@/lib/desktop");
   return { useDesktopCapabilities: () => ({ capabilities: initialDesktopCapabilities() }), windowFramed: () => false };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => true, setAdvancedMode: () => {} }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
@@ -66,7 +65,7 @@ function render(component: () => ReactNode) {
 }
 const label = (node: ReactElement<Props>) => Children.toArray(node.props.children).filter((child) => typeof child === "string").join("");
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
-const opened = (id: string) => fixture.showThreads ? { type: "select", id } : { type: "switchTask", botId: id, threadId: `${id}-main` };
+const opened = (id: string) => ({ type: "switchTask", botId: id, threadId: `${id}-main` });
 const actions = () => fixture.dispatch.mock.calls.map(([action]) => action).filter((action) => action.type !== "botPatched");
 
 beforeEach(() => {
@@ -79,13 +78,12 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
-describe.each([false, true])("with threads shown: %s", (shown) => {
-  beforeEach(() => { fixture.showThreads = shown; });
+describe("opening a bot", () => {
 
   it("opens another bot behind Edit profile as its row does, and keeps the bot on screen where it is", () => {
     fixture.state = { ...initialState, bots: [left("scout"), left("atlas")], selectedId: "scout", activeView: "chat" };
     const menu = (botId: string) => render(() => BotContextMenu({
-      menu: { botId, x: 0, y: 0 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(),
+      menu: { botId, x: 0, y: 0 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(), onMoveToSection: vi.fn(), 
     })).find((node) => node.props.role === "menuitem" && label(node) === "Edit Profile")!;
     menu("atlas").props.onClick!();
     expect(actions()).toEqual([opened("atlas"), { type: "toggleSettings", open: true }]);

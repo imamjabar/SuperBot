@@ -4,14 +4,12 @@ import { useState } from "react";
 import type { Automation } from "@/lib/automations";
 import { copyText } from "@/lib/copy-text";
 import type { RoutineRun } from "@/lib/routines";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { loadWebhookCredentials, removeWebhookCredential, saveWebhookCredential, webhookCredentialStore } from "@/lib/webhook-credentials";
 import type { WebhookCredential } from "@/lib/webhooks";
 import { api, openBotThread, useStore } from "@/state/store";
 
 export function useAutomationActions() {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   /** What the error is about, e.g. "toggle:<id>", so it shows beside the thing that was clicked. */
@@ -79,7 +77,7 @@ export function useAutomationActions() {
 
   const openRun = (automation: Automation, run: RoutineRun | undefined) => {
     const bot = state.bots.find((candidate) => candidate.id === automation.botId);
-    if (bot && run?.threadId) openBotThread(dispatch, bot, run.threadId, showThreads);
+    if (bot && run?.threadId) openBotThread(dispatch, bot, run.threadId);
   };
 
   return { busy, error, errorFor, setError, copied, toggle, runNow, remove, copyAddress, openRun };

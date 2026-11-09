@@ -20,7 +20,6 @@ vi.mock("react-dom", async (importOriginal) => {
   } };
 });
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({}) }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => true }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced }));
 vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
@@ -51,7 +50,7 @@ afterEach(() => vi.unstubAllGlobals());
 function render(x = 990, y = 795) {
   return renderToStaticMarkup(createElement(BotContextMenu, {
     menu: { botId: bot.id, x, y }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(),
-    onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(),
+    onMoveToSection: vi.fn(), 
   }));
 }
 /**
@@ -113,9 +112,11 @@ describe("bot actions menu viewport placement", () => {
   it("keeps Advanced's flat list of bot actions, drawn on the shared menu sheet", () => {
     fixture.advanced = true;
     const html = render();
-    for (const key of ["task.newShort", "folder.new", "task.deleteAll", "sidebar.bot.pin", "sidebar.bot.makeChief", "sidebar.bot.moveToSection", "sidebar.bot.markUnread", "sidebar.bot.editProfile", "sidebar.bot.duplicate", "sidebar.copyConversationId", "sidebar.bot.archive", "common.delete"] as const) {
+    for (const key of ["task.deleteAll", "sidebar.bot.pin", "sidebar.bot.makeChief", "sidebar.bot.moveToSection", "sidebar.bot.markUnread", "sidebar.bot.editProfile", "sidebar.bot.duplicate", "sidebar.copyConversationId", "sidebar.bot.archive", "common.delete"] as const) {
       expect(html, key).toContain(t(key));
     }
+    expect(html).not.toContain(t("task.newShort"));
+    expect(html).not.toContain(t("folder.new"));
     expect(html).not.toContain(t("sidebar.bot.more"));
     expect(html).toContain("rounded-[var(--radius-menu)]");
     expect(html).not.toContain("shadow-2xl");

@@ -40,7 +40,6 @@ import { CronScheduleFields, CronSchedulePreview } from "@/components/routines/C
 import { cronChoiceFor, cronDraftFor, cronEditorValue, isCronChoice, type CronChoice } from "@/components/routines/cron-editor";
 import { partlyDone, routineRunLabel, routineRunsOn, routineRunTime, routineScheduleState } from "@/lib/routine-display";
 import { useAdvancedMode } from "@/lib/interface-mode";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { t } from "@/lib/i18n";
 import { useModalDialog } from "@/hooks/use-modal-dialog";
 import type { CalendarCall, CalendarCallAttachment, CalendarCallInput } from "@/lib/calendar-calls";
@@ -1305,7 +1304,6 @@ export function EventDetails({
 }) {
   const { state, dispatch } = useStore();
   const advanced = useAdvancedMode();
-  const showThreads = useShowThreads();
   const [working, setWorking] = useState(false);
   const runNowPending = useRef(false);
   const [starting, setStarting] = useState(false);
@@ -1341,7 +1339,7 @@ export function EventDetails({
       dispatch({ type: "switchGroupTask", groupId: goalGroupId, threadId: executionThreadId });
       onOpenRoom(goalGroupId);
     } else if (primary) {
-      openBotThread(dispatch, primary, executionThreadId, showThreads);
+      openBotThread(dispatch, primary, executionThreadId);
     }
     onClose();
   };
@@ -1491,7 +1489,7 @@ export function EventDetails({
           {call && call.botIds.length > 1 && <button onClick={joinRoom} disabled={working} className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-caption font-semibold text-accent-ink hover:brightness-110 disabled:opacity-50"><ExternalLink size={13} />Join group</button>}
           {isRoomGoal && goalGroup && !executionThreadId && <button onClick={() => { onOpenRoom(goalGroup.id); onClose(); }} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-raised hover:text-ink"><ExternalLink size={13} />Open group</button>}
           {canOpenExecution && <button onClick={openRunTask} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-raised hover:text-ink"><ExternalLink size={13} />{isRoomGoal && goalGroupId ? "Open group thread" : "Open thread"}</button>}
-          {canOpenResults && openResultsId && <button type="button" onClick={() => { openThread(dispatch, { botId: botIds[0], threadId: openResultsId }, state, showThreads); onClose(); }} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-raised hover:text-ink"><ExternalLink size={13} />{t("routines.results.open")}</button>}
+          {canOpenResults && openResultsId && <button type="button" onClick={() => { openThread(dispatch, { botId: botIds[0], threadId: openResultsId }, state); onClose(); }} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-raised hover:text-ink"><ExternalLink size={13} />{t("routines.results.open")}</button>}
           {run && ["queued", "running", "waiting"].includes(run.status) && <button onClick={() => void invoke(`/api/routine-runs/${run.id}/cancel`)} disabled={working} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-caption text-ink-secondary hover:bg-raised hover:text-ink disabled:opacity-40"><X size={13} />Cancel run</button>}
           <div className="ml-auto flex items-center gap-1">
             {(routine || call) && <button onClick={onEdit} className="rounded-lg px-2.5 py-1.5 text-caption font-medium text-ink hover:bg-raised">{t("routines.edit")}</button>}

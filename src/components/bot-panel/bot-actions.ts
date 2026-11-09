@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { botUnreadThreadIds, markBotRead } from "@/lib/folder-read";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { api, useStore, type Bot } from "@/state/store";
 import { announceArchiveNotice, archiveBotWithNotice } from "../bot-archive";
 import { moveBotsToSection } from "../bot-sections";
@@ -11,7 +10,6 @@ import { currentArchivableBot, type BotConfirmKind } from "../Sidebar";
 
 export function useBotActions(bot: Bot) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const [confirm, setConfirm] = useState<BotConfirmKind | null>(null);
   const [reading, setReading] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
@@ -52,7 +50,6 @@ export function useBotActions(bot: Bot) {
       bots: state.bots,
       selectedId: state.selectedId,
       dispatch,
-      showThreads,
       notify: (notice) => {
         // With no sidebar on screen (the calendar), a failure still has to be said somewhere.
         if (!announceArchiveNotice(notice) && notice?.error) dispatch({ type: "error", message: notice.text });

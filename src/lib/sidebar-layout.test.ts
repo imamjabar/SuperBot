@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   activeBotsFirst,
-  BOT_CHATS_SECTION_ID,
   BOTS_SECTION_ID,
   CHANNELS_SECTION_ID,
   PINNED_SECTION_ID,
@@ -27,14 +26,13 @@ import {
 
 describe("sidebar virtual sections", () => {
   it("keeps reserved labels separate from identically named user sections", () => {
-    for (const name of ["Pinned", "pinned", "channels", "bots", "bot-chats", "Bot Chats"]) {
+    for (const name of ["Pinned", "pinned", "channels", "bots"]) {
       const id = userSectionId(name);
-      expect([PINNED_SECTION_ID, CHANNELS_SECTION_ID, BOT_CHATS_SECTION_ID, BOTS_SECTION_ID]).not.toContain(id);
+      expect([PINNED_SECTION_ID, CHANNELS_SECTION_ID, BOTS_SECTION_ID]).not.toContain(id);
       expect(userSectionName(id)).toBe(name);
       expect(sidebarSectionLabel(id)).toBe(name);
     }
     expect(sidebarSectionLabel(CHANNELS_SECTION_ID)).toBe("Group chats");
-    expect(sidebarSectionLabel(BOT_CHATS_SECTION_ID)).toBe("Bot threads");
   });
 
   it("round-trips every valid section name without URI encoding", () => {
@@ -79,7 +77,7 @@ describe("sidebar virtual sections", () => {
     expect(parts.unsectionedBots.map((bot) => bot.id)).toEqual(["xon", "cat"]);
   });
 
-  it("shows DMs in Bot Chats without rewriting their comms context", () => {
+  it("excludes DMs from rooms without rewriting their comms context", () => {
     const dm = { id: "dm", dm: true, section: "Work" };
     const namedBotChats = { id: "named", section: "Bot Chats" };
     const parts = partitionSidebarGroups([
@@ -88,7 +86,6 @@ describe("sidebar virtual sections", () => {
       namedBotChats,
       { id: "general" },
     ]);
-    expect(parts.botChats).toEqual([dm]);
     expect(parts.sectionedRooms.map((room) => room.id)).toEqual(["project", "named"]);
     expect(parts.unsectionedRooms.map((room) => room.id)).toEqual(["general"]);
     expect(dm.section).toBe("Work");
@@ -188,7 +185,6 @@ describe("sidebar section ordering", () => {
   const natural = [
     PINNED_SECTION_ID,
     CHANNELS_SECTION_ID,
-    BOT_CHATS_SECTION_ID,
     BOTS_SECTION_ID,
     userSectionId("Work"),
   ];
@@ -198,14 +194,13 @@ describe("sidebar section ordering", () => {
   });
 
   it("preserves a user move and inserts a newly visible bucket naturally", () => {
-    const withoutBotChats = natural.filter((id) => id !== BOT_CHATS_SECTION_ID);
-    const saved = [userSectionId("Work"), PINNED_SECTION_ID, CHANNELS_SECTION_ID, BOTS_SECTION_ID];
-    expect(orderedSidebarSections(withoutBotChats, saved)).toEqual(saved);
+    const withoutChannels = natural.filter((id) => id !== CHANNELS_SECTION_ID);
+    const saved = [userSectionId("Work"), PINNED_SECTION_ID, BOTS_SECTION_ID];
+    expect(orderedSidebarSections(withoutChannels, saved)).toEqual(saved);
     expect(orderedSidebarSections(natural, saved)).toEqual([
       userSectionId("Work"),
       PINNED_SECTION_ID,
       CHANNELS_SECTION_ID,
-      BOT_CHATS_SECTION_ID,
       BOTS_SECTION_ID,
     ]);
   });
@@ -214,7 +209,6 @@ describe("sidebar section ordering", () => {
     expect(moveSection(natural, CHANNELS_SECTION_ID, -1)).toEqual([
       CHANNELS_SECTION_ID,
       PINNED_SECTION_ID,
-      BOT_CHATS_SECTION_ID,
       BOTS_SECTION_ID,
       userSectionId("Work"),
     ]);
@@ -223,7 +217,6 @@ describe("sidebar section ordering", () => {
       BOTS_SECTION_ID,
       PINNED_SECTION_ID,
       CHANNELS_SECTION_ID,
-      BOT_CHATS_SECTION_ID,
       userSectionId("Work"),
     ]);
   });
@@ -257,9 +250,9 @@ describe("Simple-mode section order", () => {
   const work = userSectionId("Work");
   const home = userSectionId("Home");
 
-  it("puts Pinned, the bots, group chats and bot threads first, then the departments in their saved order", () => {
-    const natural = [PINNED_SECTION_ID, CHANNELS_SECTION_ID, BOT_CHATS_SECTION_ID, BOTS_SECTION_ID, work];
-    expect(simpleSidebarSections(natural)).toEqual([PINNED_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, BOT_CHATS_SECTION_ID, work]);
+  it("puts Pinned, the bots and group chats first, then the departments in their saved order", () => {
+    const natural = [PINNED_SECTION_ID, CHANNELS_SECTION_ID, BOTS_SECTION_ID, work];
+    expect(simpleSidebarSections(natural)).toEqual([PINNED_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, work]);
     expect(simpleSidebarSections([work, CHANNELS_SECTION_ID, BOTS_SECTION_ID])).toEqual([BOTS_SECTION_ID, CHANNELS_SECTION_ID, work]);
     const saved = orderedSidebarSections([CHANNELS_SECTION_ID, BOTS_SECTION_ID, work, home], [home, CHANNELS_SECTION_ID, BOTS_SECTION_ID, work]);
     expect(simpleSidebarSections(saved)).toEqual([BOTS_SECTION_ID, CHANNELS_SECTION_ID, home, work]);

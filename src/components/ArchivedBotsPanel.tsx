@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { Archive, Loader2, Trash2, X } from "lucide-react";
 
 import { t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { api, openBot, useStore, type Bot } from "@/state/store";
 
 import { BotAvatar } from "./Avatar";
@@ -114,7 +113,6 @@ export function ArchivedBotsPanel({
   onRestored: (message: string) => void;
 }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [restoringAll, setRestoringAll] = useState(false);
@@ -145,7 +143,7 @@ export function ArchivedBotsPanel({
         body: JSON.stringify({ hidden: false }),
       });
       dispatch({ type: "botPatched", bot: response.bot });
-      openBot(dispatch, response.bot, showThreads);
+      openBot(dispatch, response.bot);
       onRestored(t("sidebar.archived.restored", { name: bot.name }));
       if (bots.length === 1) onClose();
     } catch (cause) {
@@ -169,7 +167,7 @@ export function ArchivedBotsPanel({
       );
       for (const response of responses) dispatch({ type: "botPatched", bot: response.bot });
       const first = responses[0]?.bot;
-      if (first) openBot(dispatch, first, showThreads);
+      if (first) openBot(dispatch, first);
       onRestored(
         bots.length === 1
           ? t("sidebar.archived.restoredOne")

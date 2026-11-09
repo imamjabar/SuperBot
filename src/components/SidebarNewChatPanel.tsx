@@ -2,7 +2,6 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Plus, Users, X } from "lucide-react";
 import { openBot, useStore, type Bot } from "@/state/store";
 import { rankByName } from "@/lib/palette-rank";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -51,7 +50,6 @@ export function SidebarNewChatPanel({
   style?: CSSProperties;
 }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(onNewBot ? 2 : 1);
   const [place, setPlace] = useState(() => newChatPanelPlacement(null, typeof window === "undefined" ? 0 : window.innerWidth));
@@ -89,11 +87,10 @@ export function SidebarNewChatPanel({
   ];
   const count = actions.length + bots.length;
   const selected = cursor < actions.length ? cursor : bots.length ? Math.min(cursor, count - 1) : -1;
-  const rowLabel = showThreads ? t("sidebar.newChat.start") : t("sidebar.newChat.open");
+  const rowLabel = t("sidebar.newChat.open");
 
   const start = (bot: Bot) => {
-    if (showThreads) dispatch({ type: "newTask", botId: bot.id });
-    else openBot(dispatch, bot, false);
+    openBot(dispatch, bot);
     onClose();
   };
   const activate = (index: number) => {

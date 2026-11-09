@@ -39,6 +39,17 @@ export function sentRow(input: { sender: Who; recipient: Who; threadId: string; 
       : { threadRef: { botId: recipient.id, threadId, title: input.title ?? serverLine(language, "server.teammates.teammateWork") } }),
   };
 }
+export function receivedRow(input: { sender: Who; recipient: Who; threadId: string; title?: string; room?: AddressedRoom; via: SentVia; language?: string }): Omit<Message, "id" | "at"> {
+  const { sender, recipient, threadId, room, via, language } = input;
+  return {
+    role: "bot", kind: "activity",
+    from: { botId: sender.id, name: sender.name, color: sender.color },
+    tool: { name: serverLine(language, "server.teammates.received", { bot: sender.name }), ok: true },
+    ...(room && via === "room"
+      ? { comm: { groupId: room.id, threadId, withBotId: sender.id, withName: sender.name, withColor: sender.color } }
+      : { threadRef: { botId: recipient.id, threadId, title: input.title ?? serverLine(language, "server.teammates.teammateWork") } }),
+  };
+}
 
 /** The row a requester's conversation shows when a teammate's work comes back, in that conversation's language. */
 export function teammateResultRow(language: string | undefined, child: { status: string; result: string; groupId?: string }, botName: string | undefined,

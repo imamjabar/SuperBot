@@ -98,7 +98,7 @@ export function BotConversations({ bot }: { bot: Bot }) {
     if (phone) dispatch({ type: "toggleSettings", open: false });
   };
   const select = (task: { threadId: string }) => {
-    if (task.threadId !== bot.threadId) openBotThread(dispatch, bot, task.threadId, false);
+    if (task.threadId !== bot.threadId) openBotThread(dispatch, bot, task.threadId);
     closeOnPhone();
   };
   const startNew = () => {

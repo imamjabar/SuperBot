@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, Loader2, Menu } from "lucide-react";
 import { openBot, StoreProvider, useStore } from "@/state/store";
 import { nextShortcutBot, shortcutBots, shownBotIds } from "@/lib/sidebar-shortcut-order";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useWelcomeViewer, WelcomeGate } from "@/components/onboarding/WelcomeGate";
 import { MausBotWelcome } from "@/components/MausBotWelcome";
 import { spotlightsQuiet, type WelcomeViewer } from "@/lib/onboarding";
@@ -30,8 +29,7 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { AppNotices } from "@/components/AppNotices";
 import { LiveConnectionStrip } from "@/components/LiveConnectionStrip";
 import { HomeLine } from "@/components/HomeLine";
-import { inboxVersion, useInboxLoader, useInboxPanel, useInboxReady } from "@/state/inbox";
-import { InboxPanel } from "@/components/inbox/InboxPanel";
+import { inboxVersion, useInboxLoader } from "@/state/inbox";
 import { PlacesRail } from "@/components/PlacesRail";
 import { DesktopCapabilitiesProvider, useCaptionChrome, useDesktopCapabilities, WindowDragStrip, windowFramed } from "@/components/DesktopCapabilities";
 import { WindowCaptionButtons } from "@/components/WindowCaptionButtons";
@@ -56,16 +54,13 @@ import { useAiSwitchKeeper } from "@/lib/ai-switch";
 import { useChiefStepOpen } from "@/lib/default-bot";
 import { SESSION_ENDED_REASON, useSessionEnded } from "@/lib/session-ended";
 import { PairPage } from "./pair/PairPage";
-import { WebPanelPage } from "@/components/WebPanelPage";
+import { WebPanelPage } from "@/components/WebPanelPage"; import { BotChatSheet } from "@/components/BotChatSheet";
 
 function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const { state, dispatch } = useStore();
   useInboxLoader(inboxVersion(state.bots) ?? "");
-  const inboxReady = useInboxReady();
-  const inboxShown = useInboxPanel().open && inboxReady;
   // A Switch AI pick lands once its stopped turn's chat is idle, wherever the person is by then.
   useAiSwitchKeeper({ bots: state.bots, dispatch });
-  const showThreads = useShowThreads();
   const { capabilities } = useDesktopCapabilities();
   const captionChrome = useCaptionChrome();
   const unreadCount =
@@ -123,7 +118,7 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
   const notificationFeed = useNotificationFeed() && !remoteClient;
   const advanced = useAdvancedMode();
   const roomPanelOpen = useRoomPanelShown({ group, state, simple: !advanced && !remoteClient });
-  const sidePanelOpen = (Boolean(bot) && (state.settingsOpen || state.computerOpen || state.inspectorOpen || state.activityOpen)) || roomPanelOpen || (notificationFeed && state.notificationsOpen) || inboxShown;
+  const sidePanelOpen = (Boolean(bot) && (state.settingsOpen || state.computerOpen || state.inspectorOpen || state.activityOpen)) || roomPanelOpen || (notificationFeed && state.notificationsOpen);
   const collapseSidebar = sidePanelOpen && !sidebarAndPanelFit;
   const calendarFocus = state.activeView === "routines" && state.routinesFocus.view === "calendar";
 
@@ -152,19 +147,19 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
         const target = bots[Number(e.key) - 1];
         if (target) {
           e.preventDefault();
-          openBot(dispatch, target, showThreads);
+          openBot(dispatch, target);
         }
       } else if (step !== null) {
         const next = nextShortcutBot(bots, state.selectedId, step);
         if (next) {
           e.preventDefault();
-          openBot(dispatch, next, showThreads);
+          openBot(dispatch, next);
         }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state.bots, state.selectedId, state.shortcutsOpen, showThreads, dispatch]);
+  }, [state.bots, state.selectedId, state.shortcutsOpen, dispatch]);
 
   useReadShownChatOnFocus();
   useEffect(() => {
@@ -363,7 +358,6 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       )}
       {!remoteClient && state.inspectorOpen && bot && <InspectorPanel key={bot.threadId} bot={bot} />}
       {!remoteClient && state.activityOpen && bot && <ActivityPanel key={`activity:${bot.id}`} bot={bot} />}
-      {inboxShown && <InboxPanel />}
       {notificationFeed && !calendarFocus && state.notificationsOpen && <NotificationsPanel />}
       {notificationFeed && !calendarFocus && <NotificationRail />}
       </div>
@@ -409,7 +403,7 @@ function Application() {
         <MausBotWelcome viewer={viewer} />
         <GuidedTour />
         <LiveCallHost />
-        <FirstConversationTour quiet={spotlightsQuiet(viewer)} />
+        <FirstConversationTour quiet={spotlightsQuiet(viewer)} /><BotChatSheet />
       </StoreProvider>
     </DesktopCapabilitiesProvider>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, BellDot, Check, CheckCheck, ChevronRight, ClipboardCopy, Copy, Crown, FolderMinus, FolderOpen, FolderPlus, Loader2, MessagesSquare, MoreHorizontal, Pencil, Pin, PinOff, SquarePen, Star, Trash2 } from "lucide-react";
+import { Archive, BellDot, Check, CheckCheck, ChevronRight, ClipboardCopy, Copy, Crown, FolderMinus, FolderPlus, Loader2, MoreHorizontal, Pencil, Pin, PinOff, SquarePen, Trash2 } from "lucide-react";
 import { api, useStore, openBot, type Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { useHeldMenuMotion } from "./MenuMotion";
@@ -12,15 +12,11 @@ import { navigateThreadMenu } from "./BotProjects";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { botUnreadThreadIds, markBotRead } from "@/lib/folder-read";
 import { MENU_ITEM, MENU_ITEM_SEPARATOR, MENU_SHEET } from "./menu-recipe";
-import { useShowThreads } from "@/lib/thread-preferences";
-import { useOneMainChat } from "@/lib/one-main-chat";
 import { submenuPosition } from "./SidebarPopoverMenu";
 import { submenuIntent, type SubmenuIntent } from "@/lib/submenu-intent";
 import { useAdvancedMode } from "@/lib/interface-mode";
 import type { MenuState } from "./Sidebar";
 import { departmentNames, moveBotsToSection, useMayMoveBots } from "./bot-sections";
-import { openBotSettings } from "./bot-panel/panel-link";
-import { isArchived } from "./SidebarThreadRow";
 
 type Flyout = "more" | "move";
 
@@ -30,8 +26,6 @@ export function BotContextMenu({
   onArchive,
   onDelete,
   onMoveToSection,
-  onNewFolder,
-  onNewTaskFolder,
   onRename,
   onNewSection,
 }: {
@@ -40,8 +34,6 @@ export function BotContextMenu({
   onArchive: (bot: Bot) => void;
   onDelete: (bot: Bot) => void;
   onMoveToSection: (botId: string) => void;
-  onNewFolder: (botId: string) => void;
-  onNewTaskFolder: (botId: string) => void;
   onRename?: (botId: string) => void;
   /** Simple: "New department…" names a department in the sidebar, with this bot in it. */
   onNewSection?: (botId: string) => void;
@@ -65,8 +57,7 @@ export function BotContextMenu({
   const more = moreIntent.current;
   const shown = motion.value;
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
-  const oneChat = useOneMainChat();
+  // threads setting removed: single canonical chat per bot
   const admin = useOwnerOrAdmin();
   const member = admin === false;
   const mayMove = useMayMoveBots();
@@ -167,7 +158,7 @@ export function BotContextMenu({
   );
   const openForSettings = () => {
     if (state.selectedId === bot.id) dispatch({ type: "select", id: bot.id });
-    else openBot(dispatch, bot, showThreads);
+    else openBot(dispatch, bot);
   };
   const item = (
     icon: React.ReactNode,
@@ -258,19 +249,6 @@ export function BotContextMenu({
       member ? null : item(<Copy size={16} className="text-ink-secondary" />, t("sidebar.bot.duplicate"), () => dispatch({ type: "duplicateBot", botId: bot.id })),
       ...deleteAll,
     ];
-    // Simple view keeps one chat per bot: see every thread (the panel's Conversations) and choose the one it opens.
-    const newThread = simpleMenu || oneChat || bot.yourAccess === "view" ? null : item(<SquarePen size={16} className="text-ink-secondary" />, t("task.newShort"), () => dispatch({ type: "newTask", botId: bot.id }));
-    const viewThreads = item(<MessagesSquare size={16} className="text-ink-secondary" />, t("sidebar.bot.simple.viewThreads"), () => {
-      openForSettings();
-      openBotSettings(dispatch, "history", { botId: bot.id, anchor: "conversations" });
-    });
-    const openTask = state.selectedId === bot.id ? bot.tasks?.find((task) => task.threadId === bot.threadId) : undefined;
-    const setMain = remoteClient || admin !== true || !openTask || openTask.routineRunId || isArchived(openTask) ? null : item(
-      <Star size={16} className="text-ink-secondary" />, t("sidebar.bot.simple.setMainThread"),
-      () => dispatch({ type: "updateBot", botId: bot.id, patch: { mainThreadChoice: bot.threadId } }),
-      bot.mainThreadId === bot.threadId ? { disabled: true, hint: t("sidebar.bot.simple.isMainThread") } : undefined,
-    );
-    const threads = [divider("threads"), newThread, viewThreads, setMain];
     const moreRow = flyoutButton("more", moreRef, <MoreHorizontal size={16} className="text-ink-secondary" />, t("sidebar.bot.more"));
     const leave = bot.defaultBot ? [<HideDefaultBotItem key="hide" bot={bot} onDone={onClose} className={MENU_ITEM} />] : member ? [] : [
       item(<Archive size={16} className="text-ink-secondary" />, t("sidebar.bot.archive"), () => onArchive(bot), { disabled: archiveBlocked, hint: archiveHint }),
@@ -303,7 +281,7 @@ export function BotContextMenu({
         style={{ top: shown.y, left: shown.x }}
         className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[198px] max-w-[calc(100vw-16px)] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
       >
-        {remoteClient ? [moveToSection, ...threads, ...(rename ? [divider("rename"), rename] : []), divider("copy"), copyId, moreRow] : [
+        {remoteClient ? [moveToSection, ...(rename ? [divider("rename"), rename] : []), divider("copy"), copyId, moreRow] : [
           item(
             bot.pinned ? <PinOff size={16} className="text-ink-secondary" /> : <Pin size={16} className="text-ink-secondary" />,
             bot.pinned ? t("sidebar.bot.unpin") : t("sidebar.bot.pin"),
@@ -311,7 +289,6 @@ export function BotContextMenu({
           ),
           moveToSection,
           readState,
-          ...threads,
           ...(rename ? [divider("rename"), rename] : []),
           divider("copy"),
           copyId,
@@ -364,11 +341,6 @@ export function BotContextMenu({
       style={{ top: shown.y, left: shown.x }}
       className={cn("fixed z-40 max-h-[calc(100dvh-16px)] w-max min-w-[198px] max-w-[calc(100vw-16px)] overflow-y-auto overscroll-contain", MENU_SHEET, motion.className)} {...motion.exitProps}
     >
-      {showThreads && <>
-        {item(<SquarePen size={16} className="text-ink-secondary" />, t("task.newShort"), () => dispatch({ type: "newTask", botId: bot.id }))}
-        {admin && item(<FolderOpen size={16} className="shrink-0 text-ink-secondary" />, t("task.folder.new"), () => onNewTaskFolder(bot.id))}
-        {item(<FolderPlus size={16} className="text-ink-secondary" />, t("folder.new"), () => onNewFolder(bot.id))}
-      </>}
       {!member && item(<Trash2 size={16} />, t("task.deleteAll"), () => clearThreads.ask(bot.id), { danger: true })}
       {divider("threads")}
       {remoteClient ? [

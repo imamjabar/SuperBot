@@ -10,7 +10,7 @@ import { failedTurnTool } from "../../shared/failed-turn";
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("window", {});
   vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} });
-  return { showThreads: true, advanced: true, menus: [] as { ariaLabel: string; items: { key: string; disabled?: boolean; heading?: string; active?: boolean }[] }[], dispatch: vi.fn(), canWrite: null as boolean | null, showToolCalls: false, platform: "other", localReasonCode: "cua-driver-unavailable", localMessage: "", model: null as ComponentProps<typeof ModelPicker> | null,
+  return { advanced: true, menus: [] as { ariaLabel: string; items: { key: string; disabled?: boolean; heading?: string; active?: boolean }[] }[], dispatch: vi.fn(), canWrite: null as boolean | null, showToolCalls: false, platform: "other", localReasonCode: "cua-driver-unavailable", localMessage: "", model: null as ComponentProps<typeof ModelPicker> | null,
     approval: null as ComponentProps<typeof ApprovalModeSelector> | null };
 });
 vi.mock("@/state/store", async (importOriginal) => {
@@ -27,10 +27,6 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
   useDesktopCapabilities: () => ({ capabilities: { dictation: { available: false }, host: { packaged: true, platform: fixture.platform }, localComputer: { available: false, reasonCode: fixture.localReasonCode, message: fixture.localMessage } }, ready: true }),
 }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
-vi.mock("@/lib/thread-preferences", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/thread-preferences")>(),
-  useShowThreads: () => fixture.advanced && fixture.showThreads,
-}));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 // The trigger still renders, so the markup assertions in this file see the same header.
 vi.mock("./SidebarPopoverMenu", async (importOriginal) => ({
@@ -171,13 +167,11 @@ describe("the Simple header", () => {
     } finally {
       fixture.advanced = true;
     }
-    fixture.showThreads = false;
     const advanced = renderToStaticMarkup(createElement(ChatView, { bot: busyElsewhere }));
     expect(advanced).not.toContain("data-chathead-elsewhere");
     expect(advanced).toContain("data-background-activity");
     expect(advanced).toContain("data-chathead-back");
     expect(advanced).toContain("data-chathead-role");
-    fixture.showThreads = true;
   });
 
   it("opens the bot panel from the pill", () => {
@@ -688,24 +682,20 @@ describe("the way back to the bot's own conversation", () => {
       { threadId: "side", title: "Routine report", createdAt: 2, busy: false, activity: "idle" },
     ],
   };
-  const header = (shown: boolean, of: Bot) => {
-    fixture.showThreads = shown;
-    try { return renderToStaticMarkup(createElement(ChatView, { bot: of })); } finally { fixture.showThreads = true; }
-  };
+  const header = (of: Bot) => renderToStaticMarkup(createElement(ChatView, { bot: of }));
 
-  it("offers it with threads hidden while a side thread is open, and opens the main thread", () => {
-    expect(header(false, visiting)).toContain("data-chathead-back");
-    expect(header(false, visiting)).toContain("Back to your chat");
-    expect(awayFromMainThread(visiting, false)).toBe(true);
+  it("offers it while a side thread is open, and opens the main thread", () => {
+    expect(header(visiting)).toContain("data-chathead-back");
+    expect(header(visiting)).toContain("Back to your chat");
+    expect(awayFromMainThread(visiting)).toBe(true);
     fixture.dispatch.mockReset();
-    openBot(fixture.dispatch, visiting, false);
+    openBot(fixture.dispatch, visiting);
     expect(fixture.dispatch.mock.calls.map(([action]) => action)).toContainEqual(expect.objectContaining({ threadId: "main" }));
   });
 
-  it("never with threads shown, nor in the main thread itself", () => {
-    expect(header(true, visiting)).not.toContain("data-chathead-back");
-    expect(header(false, { ...visiting, threadId: "main" })).not.toContain("data-chathead-back");
-    expect(header(false, { ...visiting, mainThreadId: "unknown" })).not.toContain("data-chathead-back");
+  it("never in the main thread itself", () => {
+    expect(header({ ...visiting, threadId: "main" })).not.toContain("data-chathead-back");
+    expect(header({ ...visiting, mainThreadId: "unknown" })).not.toContain("data-chathead-back");
   });
 });
 

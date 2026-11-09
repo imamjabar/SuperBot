@@ -49,7 +49,7 @@ Use only mapped, tested commands:
 - [Gmail draft creation, send approval and revision](gmail-drafts.md)
 - [Chat UI, driven headlessly](chat-ui.md)
 - [Chat widgets](widgets.md)
-- [The Inbox on every plan](inbox.md)
+- [The Inbox](inbox.md)
 - [Reactions](reactions.md)
 - [Chat widgets: prompts to try with a real bot](widget-prompts.md)
 - [The organization library](org-library.md)
@@ -79,8 +79,8 @@ The [remote desktop viewer fixture](desktop-viewer.md) checks the bundled
 noVNC page, authenticated WebSocket proxy, desktop input, reconnect and logout
 against an isolated server, synthetic desktop and VPS SSH forward.
 
-The [independent threads fixture](threads.md) checks nested sidebar navigation,
-per-thread models, simultaneous direct conversations and thread-scoped Stop.
+The [independent threads fixture](threads.md) checks channel thread navigation,
+per-thread models, activity controls, and thread-scoped Stop.
 
 The [guarded external messages fixture](guarded-messages.md) checks atomic
 branch and approval preconditions, retry receipts, and refusal to queue or

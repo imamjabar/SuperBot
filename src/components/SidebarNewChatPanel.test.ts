@@ -4,7 +4,7 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), showThreads: true }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn() }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   useStore: () => ({
@@ -19,7 +19,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
     dispatch: fixture.dispatch,
   }),
 }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 vi.mock("./Avatar", () => ({ BotAvatar: () => null }));
 
 import { SidebarNewChatPanel, newChatPanelMaxHeight, newChatPanelPlacement, newChatSubtext } from "./SidebarNewChatPanel";
@@ -63,7 +62,6 @@ describe("SidebarNewChatPanel", () => {
     container?.remove();
     root = undefined;
     fixture.dispatch.mockReset();
-    fixture.showThreads = true;
   });
 
   function open(makesBots = true) {
@@ -99,13 +97,13 @@ describe("SidebarNewChatPanel", () => {
     expect(container!.textContent).not.toContain("Create new bot");
     expect(container!.textContent).toContain("Create group chat");
     key(input, "Enter");
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "scout" });
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "scout", threadId: "latest" });
   });
 
   it("starts a new thread with the first bot on Enter", () => {
     const { props, input } = open();
     key(input, "Enter");
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "scout" });
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "switchTask", botId: "scout", threadId: "latest" });
     expect(props.onClose).toHaveBeenCalled();
   });
 
@@ -114,7 +112,7 @@ describe("SidebarNewChatPanel", () => {
     type(input, "qu");
     expect(container!.textContent).not.toContain("Scout");
     key(input, "Enter");
-    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newTask", botId: "quill" });
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "select", id: "quill" });
   });
 
   it("does nothing on Enter when no bot matches", () => {
@@ -134,8 +132,7 @@ describe("SidebarNewChatPanel", () => {
     expect(props.onNewGroup).toHaveBeenCalledOnce();
   });
 
-  it("opens the bot's one conversation, its main thread, in simple mode", () => {
-    fixture.showThreads = false;
+  it("opens the bot's one conversation, its main thread", () => {
     const { input } = open();
     expect(container!.querySelector("[aria-label$='. Open']")).not.toBeNull();
     key(input, "Enter");

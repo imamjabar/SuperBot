@@ -8,8 +8,6 @@ import { SECTIONS, SETTINGS_GROUPS, SettingsModal } from "./SettingsModal";
 
 const fixture = vi.hoisted(() => ({
   section: "appearance" as AppSettingsSection,
-  showThreads: true,
-  setShowThreads: vi.fn(),
   showRunCard: true,
   setShowRunCard: vi.fn(),
   notificationSounds: true,
@@ -27,11 +25,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   api: fixture.api,
   useStore: () => ({ state: { appSettingsSection: fixture.section, instances: [], config: {} }, dispatch: fixture.dispatch }),
-}));
-vi.mock("@/lib/thread-preferences", () => ({
-  useShowThreads: () => fixture.showThreads,
-  useShowThreadsChoice: () => fixture.showThreads,
-  setShowThreads: fixture.setShowThreads,
 }));
 vi.mock("@/lib/run-card-preferences", () => ({
   useShowRunCard: () => fixture.showRunCard,
@@ -64,7 +57,6 @@ vi.mock("./SettingsPrimitives", async (importOriginal) => {
 beforeEach(() => {
   vi.clearAllMocks();
   fixture.section = "appearance";
-  fixture.showThreads = true;
   fixture.showRunCard = true;
   fixture.notificationSounds = true;
   // these pin the Advanced rail; Simple has its own suite (SettingsModal.simple.test.ts)

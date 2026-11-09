@@ -11,8 +11,7 @@ import { COMPACT_BUBBLE } from "@/lib/compact-chip";
 import { formatTaskTokens, headlineTokens, usageDetail } from "@/lib/usage";
 import { nextRename } from "@/lib/rename";
 import { FolderIcon, NewThreadButton } from "./BotProjects";
-import { useShowThreads } from "@/lib/thread-preferences";
-import { attentionJumpAction, attentionOwnerName, AttentionThreadRows, crossBotAttentionThreads, threadsWhenTreeHidden, type AttentionThread } from "./SidebarBotActivity";
+import { attentionOwnerName, AttentionThreadRows, threadsWhenTreeHidden, type AttentionThread } from "./SidebarBotActivity";
 import { formatUpdatedAt, orderedThreadList, threadByline, threadRecency, threadUpdatedLabel, useRelativeNow } from "./SidebarThreadRow";
 import { Select } from "./Select";
 
@@ -420,8 +419,6 @@ function ConversationTaskPicker({
 
 export function BotActivityPicker({ bot }: { bot: Bot }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
-  if (showThreads) return null;
   const activity = threadsWhenTreeHidden(bot, state.pendingQueued).filter((task) => task.threadId !== bot.threadId);
   if (!activity.length) return null;
   return (
@@ -441,27 +438,6 @@ export function BotActivityPicker({ bot }: { bot: Bot }) {
   );
 }
 
-export function TaskPicker({ bot }: { bot: Bot }) {
-  const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
-  if (!showThreads) return null;
-  return (
-    <ConversationTaskPicker
-      threadId={bot.threadId}
-      tasks={orderedThreadList((bot.tasks ?? []).filter((task) => !task.routineRunId))}
-      busy={false}
-      bot={bot}
-      attention={crossBotAttentionThreads(state.bots, state.pendingQueued, bot.id, state.groups)}
-      onNew={() => dispatch({ type: "newTask", botId: bot.id })}
-      onSwitch={(threadId) => dispatch({ type: "switchTask", botId: bot.id, threadId })}
-      onRename={(threadId, title) => dispatch({ type: "renameTask", botId: bot.id, threadId, title })}
-      onDelete={(threadId) => dispatch({ type: "deleteTask", botId: bot.id, threadId })}
-      onMove={(threadId, projectId) => dispatch({ type: "updateTask", botId: bot.id, threadId, patch: { projectId } })}
-      onPin={(threadId, pinned) => dispatch({ type: "updateTask", botId: bot.id, threadId, patch: { pinned } })}
-      onAttentionJump={(entry) => dispatch(attentionJumpAction(entry))}
-    />
-  );
-}
 
 export function GroupTaskPicker({ group }: { group: Group }) {
   const { dispatch } = useStore();

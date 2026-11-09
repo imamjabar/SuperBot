@@ -2,7 +2,6 @@ import { MentionText } from "./MentionText";
 import type { MentionPeer } from "@/lib/mentions";
 import { createContext, Fragment, useContext, useMemo, useRef, type ReactNode } from "react";
 import { botOpensTo, openBot, openThread, useStore, type Action, type AppState, type Bot, type Group, type ThreadTarget } from "@/state/store";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useStoreRef } from "@/state/store-ref";
 import { t } from "@/lib/i18n";
 import { parseBotRefUrl, parseThreadRefUrl, resolveThreadRefAddress, splitThreadRefsForDisplay, type ThreadRefCandidate } from "@/lib/thread-refs";
@@ -59,12 +58,11 @@ export interface ThreadLinkTarget extends ThreadTarget {
 
 export function ThreadLink({ target, ambiguous, children }: { target: ThreadLinkTarget; ambiguous: boolean; children?: ReactNode }) {
   const store = useStoreRef();
-  const showThreads = useShowThreads();
   return (
     <button
       type="button"
       data-thread-link={target.threadId}
-      onClick={() => openThread(store.dispatch, target, store.state(), showThreads)}
+      onClick={() => openThread(store.dispatch, target, store.state())}
       title={ambiguous ? t("chat.openThreadOn", { title: target.title, name: target.botName }) : t("chat.openThread", { title: target.title })}
       className="inline break-words text-start text-accent underline decoration-accent/40 hover:decoration-accent"
     >
@@ -74,12 +72,12 @@ export function ThreadLink({ target, ambiguous, children }: { target: ThreadLink
 }
 
 /** Security: a link from outside the app only navigates. */
-export function openChatLink(dispatch: (action: Action) => void, link: string, state: AppState, threadsShown: boolean): boolean {
+export function openChatLink(dispatch: (action: Action) => void, link: string, state: AppState): boolean {
   const openOwner = (id: string) => {
     const bot = state.bots.find((candidate) => candidate.id === id);
     if (bot) {
-      openBot(dispatch, bot, threadsShown);
-      return { name: bot.name, threadId: botOpensTo(bot, threadsShown) };
+      openBot(dispatch, bot);
+      return { name: bot.name, threadId: botOpensTo(bot) };
     }
     const room = state.groups.find((group) => group.id === id && !group.dm);
     if (room) dispatch({ type: "select", id: room.id });
@@ -97,7 +95,7 @@ export function openChatLink(dispatch: (action: Action) => void, link: string, s
   }
   const address = parseThreadRefUrl(link);
   const ref = address ? resolveThreadRefAddress(collectThreadRefs(state.bots, state.groups), address) : null;
-  if (ref) return openThread(dispatch, ref, state, threadsShown);
+  if (ref) return openThread(dispatch, ref, state);
   const owner = address?.botId ? openOwner(address.botId) : undefined;
   if (owner) {
     dispatch({ type: "notice", notice: { kind: "thread-gone", botName: owner.name } });

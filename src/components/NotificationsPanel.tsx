@@ -3,7 +3,6 @@ import { AlertTriangle, AtSign, Bell, CheckCircle2, CircleHelp, HandHelping, Inf
 import { api, useStore, openThread, type Action } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { useShowThreads } from "@/lib/thread-preferences";
 import type { LocaleKey } from "@/locales";
 import { BotAvatar, type BotAvatarProps } from "./Avatar";
 import { threadUpdatedLabel } from "./SidebarThreadRow";
@@ -107,7 +106,6 @@ export async function postNotificationRead(path: string, dispatch: (action: Acti
 
 export function NotificationsPanel() {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const [now, setNow] = useState(() => Date.now());
   const [botFilter, setBotFilter] = useState(ALL_BOTS);
   const bots = notificationBots(state.notifications);
@@ -124,7 +122,7 @@ export function NotificationsPanel() {
       dispatch({ type: "notificationRead", id: entry.id });
       void postNotificationRead(`/api/notifications/${entry.id}/read`, dispatch);
     }
-    openThread(dispatch, { botId: entry.botId, threadId: entry.threadId }, state, showThreads);
+    openThread(dispatch, { botId: entry.botId, threadId: entry.threadId }, state);
   };
 
   const markAllRead = () => {

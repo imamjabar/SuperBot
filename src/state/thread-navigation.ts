@@ -25,24 +25,23 @@ export function visibleNotificationThread(
   );
 }
 
-export function botOpensTo(bot: Pick<NotificationThreadOwner, "threadId" | "mainThreadId" | "tasks">, threadsShown: boolean): string {
-  return !threadsShown && bot.mainThreadId && bot.tasks?.some((task) => task.threadId === bot.mainThreadId)
+export function botOpensTo(bot: Pick<NotificationThreadOwner, "threadId" | "mainThreadId" | "tasks">): string {
+  return bot.mainThreadId && bot.tasks?.some((task) => task.threadId === bot.mainThreadId)
     ? bot.mainThreadId : bot.threadId;
 }
 
-export function awayFromMainThread(bot: Pick<NotificationThreadOwner, "threadId" | "mainThreadId" | "tasks">, threadsShown: boolean): boolean {
-  return !threadsShown && botOpensTo(bot, false) !== bot.threadId;
+export function awayFromMainThread(bot: Pick<NotificationThreadOwner, "threadId" | "mainThreadId" | "tasks">): boolean {
+  return botOpensTo(bot) !== bot.threadId;
 }
 
 /** Opens the bot to the thread it opens to (`botOpensTo`): its main conversation while threads are hidden. */
 export function openBot(
   dispatch: (action: Action) => void,
   bot: Pick<NotificationThreadOwner, "id" | "threadId" | "mainThreadId" | "tasks">,
-  threadsShown: boolean,
 ) {
-  const opened = botOpensTo(bot, threadsShown);
+  const opened = botOpensTo(bot);
   if (opened === bot.threadId) dispatch({ type: "select", id: bot.id });
-  else openBotThread(dispatch, bot, opened, threadsShown);
+  else openBotThread(dispatch, bot, opened);
 }
 
 const markRank = (task: RowThread): number | null => {
@@ -55,8 +54,8 @@ const markRank = (task: RowThread): number | null => {
 
 /** The thread a bot's row or tile is marked for: what waits on the person, then an unread reply, then work under way. The
  * thread the bot opens to wins a tie, then the newest. Null when the row has no mark. */
-export function markedThread(bot: Pick<NotificationThreadOwner, "threadId" | "mainThreadId" | "tasks">, threadsShown: boolean): string | null {
-  const home = botOpensTo(bot, threadsShown);
+export function markedThread(bot: Pick<NotificationThreadOwner, "threadId" | "mainThreadId" | "tasks">): string | null {
+  const home = botOpensTo(bot);
   const stamp = (task: RowThread) => task.updatedAt ?? task.createdAt ?? 0;
   const marked = (bot.tasks ?? []).flatMap((task) => { const rank = markRank(task); return rank === null ? [] : [{ task, rank }]; })
     .sort((a, b) => a.rank - b.rank || Number(b.task.threadId === home) - Number(a.task.threadId === home) || stamp(b.task) - stamp(a.task));
@@ -68,16 +67,8 @@ export function markedThread(bot: Pick<NotificationThreadOwner, "threadId" | "ma
 export function openBotRow(
   dispatch: (action: Action) => void,
   bot: Pick<NotificationThreadOwner, "id" | "threadId" | "mainThreadId" | "tasks">,
-  threadsShown: boolean,
-  onScreen: boolean,
 ) {
-  if (!threadsShown) {
-    openBot(dispatch, bot, false);
-    return;
-  }
-  const marked = markedThread(bot, threadsShown);
-  if (!marked || marked === botOpensTo(bot, threadsShown) || (onScreen && marked === bot.threadId)) openBot(dispatch, bot, threadsShown);
-  else openBotThread(dispatch, bot, marked, threadsShown);
+  openBot(dispatch, bot);
 }
 
 /** With threads hidden the switch alone selects the bot, so the thread left behind keeps its unread mark. */
@@ -85,9 +76,8 @@ export function openBotThread(
   dispatch: (action: Action) => void,
   bot: Pick<NotificationThreadOwner, "id" | "threadId">,
   threadId: string,
-  threadsShown: boolean,
 ) {
-  if (threadsShown || threadId === bot.threadId) dispatch({ type: "select", id: bot.id });
+  if (threadId === bot.threadId) dispatch({ type: "select", id: bot.id });
   dispatch({ type: "switchTask", botId: bot.id, threadId });
 }
 
@@ -113,7 +103,6 @@ export function openThread(
   dispatch: (action: Action) => void,
   target: ThreadTarget,
   state: ThreadOpeningState,
-  threadsShown: boolean,
 ): boolean {
   const owns = (owner: NotificationThreadOwner) =>
     owner.threadId === target.threadId || (owner.tasks ?? []).some((task) => task.threadId === target.threadId);
@@ -123,8 +112,8 @@ export function openThread(
   if (group) {
     dispatch({ type: "select", id: group.id });
     if (group.threadId !== target.threadId) dispatch({ type: "switchGroupTask", groupId: group.id, threadId: target.threadId });
-  } else if (owner) openBotThread(dispatch, owner, target.threadId, threadsShown);
-  else if (named) openBot(dispatch, named, threadsShown);
+  } else if (owner) openBotThread(dispatch, owner, target.threadId);
+  else if (named) openBot(dispatch, named);
   dispatch({ type: "revealThread", threadId: target.threadId });
   if (group || owner) return true;
   dispatch({ type: "notice", notice: { kind: "thread-gone", botName: named?.name ?? null } });

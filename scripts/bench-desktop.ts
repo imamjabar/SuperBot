@@ -372,7 +372,7 @@ const cpuDelta = (before: Record<string, number>, after: Record<string, number>)
   Object.fromEntries(Object.keys(after).map((type) => [type, Math.round((after[type]! - (before[type] ?? 0)) * 1000)]));
 
 const COMPONENT_GROUPS: Record<string, RegExp> = {
-  sidebar: /^(Sidebar|BotThreadList|BotListItem|GroupListItem|PinnedCircle|ThreadRow|PlacesRail)/,
+  sidebar: /^(Sidebar|BotListItem|GroupListItem|PinnedCircle|ThreadRow|PlacesRail)/,
   composer: /Composer|MentionTextarea/,
   transcript: /^(ChatView|ChatRows?|MessagesList|Bubble|MessageActions|ReactionChips|AttachmentGallery|ActivityChip|TurnPresence|CallRecordRow)/,
   markdown: /Markdown/,

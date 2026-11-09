@@ -32,7 +32,7 @@ beforeEach(() => {
 
 describe("landing on a search hit older than the loaded page", () => {
   it("loads earlier pages of the open bot thread until the hit is there, then focuses it", async () => {
-    await landOnSearchHit({ ...hit, botId: "scout", threadId: "t" }, state, dispatch, true);
+    await landOnSearchHit({ ...hit, botId: "scout", threadId: "t" }, state, dispatch);
     expect(fixture.api.mock.calls.map(([path]) => path)).toEqual([
       "/api/threads/t/messages?limit=200&before=m400",
       "/api/threads/t/messages?limit=200&before=m200",
@@ -42,19 +42,19 @@ describe("landing on a search hit older than the loaded page", () => {
   });
 
   it("does the same in the room's open thread", async () => {
-    await landOnSearchHit({ ...hit, groupId: "room", threadId: "rt" }, state, dispatch, true);
+    await landOnSearchHit({ ...hit, groupId: "room", threadId: "rt" }, state, dispatch);
     expect(actions[1]).toMatchObject({ type: "olderMessages", threadId: "rt", generation: 5, hasMore: false });
     expect(actions[2]).toMatchObject({ type: "focusMessage", threadId: "rt", messageId: "m50" });
   });
 
   it("stops at the page that holds the hit", async () => {
-    await landOnSearchHit({ ...hit, botId: "scout", threadId: "t", messageId: "m300" }, state, dispatch, true);
+    await landOnSearchHit({ ...hit, botId: "scout", threadId: "t", messageId: "m300" }, state, dispatch);
     expect(fixture.api).toHaveBeenCalledOnce();
     expect(actions[1]).toEqual({ type: "olderMessages", threadId: "t", generation: 3, messages: range(200, 400), hasMore: true });
   });
 
   it("asks for nothing when the hit is already loaded", async () => {
-    await landOnSearchHit({ ...hit, botId: "scout", threadId: "t", messageId: "m450" }, state, dispatch, true);
+    await landOnSearchHit({ ...hit, botId: "scout", threadId: "t", messageId: "m450" }, state, dispatch);
     expect(fixture.api).not.toHaveBeenCalled();
     expect(actions.map((action) => action.type)).toEqual(["select", "focusMessage"]);
   });
