@@ -106,6 +106,7 @@ To return to an earlier desktop image without the rest of the rollback, set
 `OMB_LOCAL_VM_IMAGE` in `docker-compose.computer.yml` back to one of these,
 remove `openmausbot-computer`, and run `$C up -d --no-build omb`:
 
+- `ghcr.io/imamjabar/superbot-computer@sha256:0fb64eef735b1299cb17d29e6a6bbbe6567e434c0014ddb5b6ce039e0ccf55d1` (layer 13)
 - `ghcr.io/imamjabar/superbot-computer@sha256:5ef8951515a5093cc7e8ab20322069b666512f1e2d15637860135fcad4af1640` (layer 10)
 - `ghcr.io/imamjabar/superbot-computer@sha256:fe305fe15159dc0defd168142b02c531f4758f488f3de2d01e2e03e132a710dc`
 - `ghcr.io/imamjabar/superbot-computer@sha256:d7894c2788e22312a6ab443a09ad7cce700748c8e9a57a7c53a9b6cc6d625b77`

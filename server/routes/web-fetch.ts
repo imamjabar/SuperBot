@@ -144,7 +144,7 @@ const BROWSER_NEXT: Record<BrowserNeed, string> = {
 
 function browserNext(need: BrowserNeed): string {
   if (need === "blocked") {
-    return `${BROWSER_NEXT.blocked} Try it once in the built-in browser (browser_navigate, then browser_snapshot); if that is blocked too, get the same facts from another source (search for them) and say which site could not be read. Do not call web_fetch on it again.`;
+    return `${BROWSER_NEXT.blocked} Try it once in the built-in browser (browser_navigate, then browser_snapshot). If that is blocked too and you have a Local VM desktop, open it in Chrome there, wait about 30 seconds and click the human check once; a check still there, or a login, goes to the person with request_sign_in. Otherwise get the same facts from another source (search for them) and say which site could not be read. Do not call web_fetch on it again.`;
   }
   return `${BROWSER_NEXT[need]} Open it in the built-in browser (browser_navigate, then browser_snapshot)${need === "sign-in" ? "; the person may need to sign in there" : ""}. Do not call web_fetch on it again. With no browser this turn, say that this page needs the browser; use a desktop only when no browser can open it.`;
 }

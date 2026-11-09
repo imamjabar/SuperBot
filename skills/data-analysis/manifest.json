@@ -1,0 +1,27 @@
+{
+  "id": "data-analysis",
+  "name": "Data Analysis",
+  "version": "1.0.0",
+  "description": "Analyze datasets, spreadsheets, statistics, and trends, clean data, and generate publication-ready charts.",
+  "defaultEnabled": true,
+  "triggerTerms": [
+    "analyze",
+    "analysis",
+    "analisis",
+    "analisa",
+    "dataset",
+    "csv",
+    "excel",
+    "xlsx",
+    "spreadsheet",
+    "pivot",
+    "statistik",
+    "statistics",
+    "regression",
+    "forecast",
+    "data cleaning"
+  ],
+  "requiredCapabilities": [
+    "worker"
+  ]
+}

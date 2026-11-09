@@ -578,7 +578,7 @@ import { createUpdateCheckRoutes, serverUpdateChecker } from "./routes/update-ch
 import { createBrowserSiteRoutes } from "./routes/browser-sites.ts";
 import { createInternalSignInRoutes } from "./routes/sign-in.ts";
 import { createInternalMcpRoutes } from "./routes/internal-mcp.ts";
-import { createInternalThreadRoutes } from "./routes/internal-threads.ts";
+import { createInternalThreadRoutes } from "./routes/internal-threads.ts"; import { createReadFileRoute } from "./routes/read-file.ts";
 import { createBrowserEvidenceRoutes } from "./routes/browser-evidence.ts";
 import { createSignInCardRoutes } from "./routes/sign-in-cards.ts";
 import { createInternalEscalateRoutes } from "./routes/internal-escalate.ts";
@@ -7738,7 +7738,7 @@ async function beginTurn(
         providerText,
         [
           ...(phoneOffered ? ["phoneMcp"] : []),
-          ...(skillAuthoring ? ["skillAuthoring"] : []),
+          ...(skillAuthoring ? ["skillAuthoring"] : []), ...(frontDeskTurn(cfg, botMainThread(bot.id), threadId) ? [] : ["worker"]),
         ],
         skills,
       );
@@ -12829,7 +12829,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         ownsThread: (botId, threadId) => Boolean(connectorThread(botId, threadId)),
         shown: (id) => !proactive.fence.confines(id) && !botApiThread(id),
         threadBusy, queuedThreadPosition, queuedReason: queuedStatus, readBody: readInternalBody, postProgress: (text) => jobProgress.post(internalSender.id, internalCapability.threadId, text), notes: (body) => jobNotes.handle(internalSender.id, internalCapability.threadId, body),
-      }), createToolTimingRoute(usageTrace, internalCapability.threadId)], { req, res, url, path, method, auth, json, readBody })) return;
+      }), createReadFileRoute({ botId: internalSender.id, threadId: internalCapability.threadId, ownsThread: (botId, threadId) => Boolean(connectorThread(botId, threadId)), roots: () => messageFileRootsForThread(internalSender.id, internalCapability.threadId), vmWorkspace: async () => (await attachmentVmForTurn(internalCapability))?.workspaceDir ?? null, readBody: readInternalBody }), createToolTimingRoute(usageTrace, internalCapability.threadId)], { req, res, url, path, method, auth, json, readBody })) return;
       if (method === "POST" && path === "/api/internal/attach-file") {
         const from = internalSender;
         const threadId = internalCapability.threadId;

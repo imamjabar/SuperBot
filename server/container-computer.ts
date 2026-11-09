@@ -8,7 +8,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 import { augmentedPath, resolveCliSpawn } from "./env-path.ts";
-import { workspacePreparationDockerfile } from "./container-workspace.ts";
+import { desktopWorkLayers } from "./desktop-work-layers.ts";
 import { DATA_DIR } from "./config.ts";
 import { PIDS_LIMIT, raisePidsLimit } from "./container-limits.ts";
 import { seatIdentity } from "./local-vm-seats.ts";
@@ -31,7 +31,7 @@ export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 // localhost/ is explicit: Podman prepends it to unqualified build tags and may then resolve the name on Docker Hub.
 // Image and container labels, not this mutable tag, decide compatibility.
 export const IMAGE_REPOSITORY = "localhost/openmausbot/cua-local-vm";
-export const IMAGE_LAYER_VERSION = "13";
+export const IMAGE_LAYER_VERSION = "14";
 export const IMAGE_LAYER_LABEL = "com.openmausbot.image-layer";
 const BUILT_IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
 const DIGEST_PINNED_IMAGE = /^[a-z0-9./_-]+(:[\w.-]+)?@sha256:[a-f0-9]{64}$/;
@@ -212,7 +212,7 @@ RUN set -eux; \\
       echo "Google Chrome stable is published for linux/amd64 only; build this image with --platform linux/amd64" >&2; \\
       exit 1; \\
     fi
-${workspacePreparationDockerfile(VM_WORKSPACE_GUEST)}
+${desktopWorkLayers(VM_WORKSPACE_GUEST)}
 # Driver: a 200 ms (not 800) watch for windows an action opens still sees browser popups; no cursor glide; plain logs.
 RUN printf '%s\\n' \\
       '#!/bin/sh' \\

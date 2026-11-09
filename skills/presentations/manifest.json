@@ -1,0 +1,22 @@
+{
+  "id": "presentations",
+  "name": "Presentations",
+  "version": "1.0.0",
+  "description": "Plan, generate, check, and edit PowerPoint (.pptx) slide decks with clean 16:9 layouts in the Private desktop.",
+  "defaultEnabled": true,
+  "triggerTerms": [
+    "powerpoint",
+    "pptx",
+    "slide",
+    "slides",
+    "deck",
+    "presentation",
+    "presentasi",
+    "buatkan ppt",
+    "buat slide",
+    "pitch deck"
+  ],
+  "requiredCapabilities": [
+    "worker"
+  ]
+}
