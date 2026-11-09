@@ -72,7 +72,7 @@ export function settingsTurnFields(cfg: AppConfig, dataDir: string, restrictsMcp
   };
 }
 
-export const JOB_TOOL_CALLS_DEFAULT = 30;
+export const JOB_TOOL_CALLS_DEFAULT = 80;
 export const DEEP_JOB_TOOL_CALLS = 200;
 
 /** `OMB_JOB_TOOL_CALLS` (1–200) overrides the default. */

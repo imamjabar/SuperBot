@@ -11,6 +11,7 @@ import { rebuiltSessionNotice } from "./resume-recovery.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 import { readHandoffs } from "./testing/handoff-rows.ts";
 import { openSse } from "./testing/sse.ts";
+import { JOB_TOOL_CALLS_DEFAULT } from "./turn-settings.ts";
 
 /** A fixture turn's launch instructions plus its own message, where changed parts arrive when the process was kept warm. */
 const told = (turn: any): string => {
@@ -1319,9 +1320,10 @@ it("continues a teammate's step cap in place and stops it once it makes no progr
     const leads = f.nodes().filter((node: any) => node.botId === f.lead.id);
     expect(leads).toHaveLength(1);
     const child = leads[0];
+    const steps = JOB_TOOL_CALLS_DEFAULT;
     expect(child).toMatchObject({ status: "failed", outcome: "stalled", executions: 2,
-      result: expect.stringMatching(/^Stopped after 64 steps without a final answer\./) });
-    expect(child.outcomeDetail).toMatch(/^Stopped after 2 continuations without progress: Stopped after 64 steps without a final answer\./);
+      result: expect.stringMatching(new RegExp(`^Stopped after ${steps} steps without a final answer\\.`)) });
+    expect(child.outcomeDetail).toMatch(new RegExp(`^Stopped after 2 continuations without progress: Stopped after ${steps} steps without a final answer\\.`));
     expect(child.result).not.toContain("assign what is left");
     expect(f.eventsOf(child.id).filter((kind: string) => kind === "continued")).toHaveLength(1);
     expect(f.eventsOf(child.id)).toContain("stalled");
@@ -1329,11 +1331,11 @@ it("continues a teammate's step cap in place and stops it once it makes no progr
     expect(resumed.prompt.message.content).toContain("Stopped after 2 continuations without progress");
     expect(resumed.prompt.message.content).not.toContain("assign what is left");
     const chip = (await f.messages(f.chief.activeTaskId)).find((message: any) => message.roomRequest?.phase === "result");
-    expect(chip.tool.name).toContain("Engineering lead — failed: Stopped after 64 steps without a final answer");
+    expect(chip.tool.name).toContain(`Engineering lead — failed: Stopped after ${steps} steps without a final answer`);
     expect((await f.messages(f.chief.activeTaskId)).filter((message: any) => message.roomRequest?.phase === "result")).toHaveLength(1);
     const lead = (await f.api("/api/bots")).bots.find((bot: any) => bot.id === f.lead.id);
     expect(lead.tasks.map((task: any) => task.title).filter((title: string) => title.startsWith("Continue:"))).toEqual([]);
-    expect(calls).toBe(128);
+    expect(calls).toBe(2 * steps);
   } finally { await close(); }
 }), 90_000);
 
