@@ -168,7 +168,8 @@ export function MessageActions({
       ref={rootRef}
       className={cn(
         "relative flex items-center gap-0.5 self-end pb-0.5 transition-opacity duration-150",
-        mirrored && "flex-row-reverse",
+        "max-sm:absolute max-sm:top-full max-sm:z-10 max-sm:-mt-1 max-sm:rounded-full max-sm:bg-menu max-sm:p-0.5 max-sm:shadow-lg",
+        mirrored ? "flex-row-reverse max-sm:end-0" : "max-sm:start-0",
         shown ? "opacity-100" : "pointer-events-none opacity-0",
         className,
       )}

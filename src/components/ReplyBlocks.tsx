@@ -33,7 +33,7 @@ export function ReplyBlocks({ blocks, join, citation, tray, render }: {
               {render(block.text)}
             </div>
           );
-        return index === 0 && tray ? <div key={index} className="flex w-full items-center gap-1.5">{body}{tray}</div> : body;
+        return index === 0 && tray ? <div key={index} className="relative flex w-full items-center gap-1.5">{body}{tray}</div> : body;
       })}
     </div>
   );

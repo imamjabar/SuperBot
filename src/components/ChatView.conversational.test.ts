@@ -75,7 +75,7 @@ describe("conversational replies", () => {
     const bubbles = [...document.querySelectorAll<HTMLElement>("[data-reply-segment]")];
     expect(bubbles).toHaveLength(3);
     expect(bubbles.every((el) => !el.classList.contains("reply-bubble-in"))).toBe(true);
-    for (const el of bubbles) expect([...el.classList]).toEqual(expect.arrayContaining(["bg-card", "rounded-[18px]", "px-3", "text-body", "leading-[22px]", "min-w-9"]));
+    for (const el of bubbles) expect([...el.classList]).toEqual(expect.arrayContaining(["bg-card", "rounded-[20px]", "px-3.5", "text-body", "leading-[22px]", "min-w-9"]));
     expect([...bubbles[0]!.classList]).toContain("rounded-es-[6px]");
     expect([...bubbles[1]!.classList]).toEqual(expect.arrayContaining(["rounded-ss-[6px]", "rounded-es-[6px]"]));
     expect([...bubbles[2]!.classList]).toContain("rounded-ss-[6px]");
@@ -113,17 +113,17 @@ describe("conversational replies", () => {
     expect(items.slice(0, 2)).toEqual(["Reply", "Copy message"]);
   });
 
-  it("puts a formatted reply in the bot's bubble in Simple mode, and on the open page in Advanced", async () => {
+  it("puts a formatted reply in the bot's bubble in Simple mode and in Advanced", async () => {
     const bubbleOf = () => document.querySelector("[data-mid='m2'] [data-chat-bubble]")!;
     await draw(profile({}));
     expect(bubbleOf().getAttribute("data-chat-bubble")).toBe("simple");
-    expect([...bubbleOf().classList]).toEqual(expect.arrayContaining(["bg-card", "rounded-[18px]"]));
+    expect([...bubbleOf().classList]).toEqual(expect.arrayContaining(["bg-card", "rounded-[20px]"]));
     setAdvancedMode(true);
     try {
       await draw(profile({}));
       expect(bubbleOf().getAttribute("data-chat-bubble")).toBe("");
-      expect(bubbleOf().classList).not.toContain("bg-card");
-      expect(bubbleOf().className).toContain("max-w-[min(var(--chat-prose-max),var(--chat-card-pct))]");
+      expect([...bubbleOf().classList]).toEqual(expect.arrayContaining(["bg-card", "rounded-[20px]"]));
+      expect(bubbleOf().className).toContain("max-w-[min(var(--chat-prose-max),var(--chat-bubble-pct))]");
     } finally {
       setAdvancedMode(false);
     }

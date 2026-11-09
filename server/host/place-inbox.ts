@@ -74,6 +74,8 @@ export interface PlaceInboxDeps {
   /** Conversations resting on the person for a card a running turn does not hold open: a password, a sign-in, an app to
    * connect, or an ask left open after its turn ended. */
   waiting?(): Array<PersonWait & { threadId: string }>;
+  /** The bot's main chat with the person, where its messages to them land. */
+  mainThread(botId: string): string | undefined;
   now?: () => number;
 }
 
@@ -188,7 +190,8 @@ export function createPlaceInbox(deps: PlaceInboxDeps) {
   const sent = new Map<string, number[]>();
   const recent = (threadId: string) => (sent.get(threadId) ?? []).filter((at) => now() - at < HOUR_MS);
 
-  /** message_person with no team: one line in the conversation that sent it, one row, and one notification. */
+  /** message_person with no team: one line in the bot's main chat with the person (a room's own conversation in a room;
+   * the guest's own conversation for a guest's work), one row, and one notification. */
   function message(botId: string, threadId: string, text: string): { status: number; text: string } {
     const bot = store.bot(botId);
     if (!bot) return { status: 403, text: "This conversation isn't one you speak in." };
@@ -198,17 +201,20 @@ export function createPlaceInbox(deps: PlaceInboxDeps) {
     sent.set(threadId, [...recent(threadId), now()]);
     const handed = workingFor(threadId);
     const guest = deps.guestOf(threadId);
+    const target = group || guest ? threadId : deps.mainThread(bot.id) ?? threadId;
     const wire: InboxItem = { kind: "message", from: { name: bot.name, botId: bot.id }, replies: true };
-    const posted = store.appendMessage(threadId, { role: "bot", kind: "text", text, inbox: wire, ...(group ? { from: { botId: bot.id, name: bot.name, color: bot.color } } : {}) });
-    addLine({ id: posted.id, botId: bot.id, threadId, ...(group ? { groupId: group.id } : {}), kind: "message", from: bot.name.slice(0, 200), ...(handed ? { workingFor: handed } : {}),
+    const posted = store.appendMessage(target, { role: "bot", kind: "text", text, inbox: wire, ...(group ? { from: { botId: bot.id, name: bot.name, color: bot.color } } : {}) });
+    addLine({ id: posted.id, botId: bot.id, threadId: target, ...(group ? { groupId: group.id } : {}), kind: "message", from: bot.name.slice(0, 200), ...(handed ? { workingFor: handed } : {}),
       ...(guest ? { guest } : {}), text: clip(text, NOTICE_TEXT_MAX), at: now() });
     if (group) store.patchGroup(group.id, { unread: true });
-    else store.patchTask(bot.id, threadId, { unread: true });
+    else store.patchTask(bot.id, target, { unread: true });
     if (!guest && bot.notifications !== false) {
-      deps.send({ kind: "mention", botId: bot.id, botName: bot.name, threadId, title: handed ? serverLine(conversationLanguage(threadId), "server.notify.workingFor", { who: bot.name, other: handed.name }) : serverLine(conversationLanguage(threadId), "server.notify.message", { who: bot.name }), body: oneLine(text, 200),
+      deps.send({ kind: "mention", botId: bot.id, botName: bot.name, threadId: target, title: handed ? serverLine(conversationLanguage(target), "server.notify.workingFor", { who: bot.name, other: handed.name }) : serverLine(conversationLanguage(target), "server.notify.message", { who: bot.name }), body: oneLine(text, 200),
         ...(group ? { groupId: group.id } : {}), ...(bot.avatarUrl ? { avatarUrl: bot.avatarUrl } : {}) });
     }
-    return { status: 200, text: "It is in their Inbox and they were notified. Their answer comes back here, and you carry on from it." };
+    return target === threadId
+      ? { status: 200, text: "Posted here and they were notified. Their answer comes back here, and you carry on from it." }
+      : { status: 200, text: "Posted in your own chat with the person, as you, and they were notified. Their answer comes to you in that chat, not here; finish this work as usual." };
   }
 
   /** A routine's report or a failure of work nobody is watching gets a line; the notification about it goes out as it is. */
