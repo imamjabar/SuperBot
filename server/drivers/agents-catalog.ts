@@ -315,7 +315,7 @@ const TOOL_DEFINITIONS = [
         folder: { type: "string", description: "Optional: one of your folders to file it under, only if the person named one." },
         job: { type: "string", description: "A running job's thread id: send message into that job instead of opening one." },
         report_back: { type: "boolean", description: "true: the result comes back here and resumes you. Leave out to keep it in its own thread." },
-        deep: { type: "boolean", description: "A long research job over dozens of pages or items (rankings; job, price or market surveys): 200 tool calls instead of 30 and a notes table; its table and a long report reach the chat as files. Only with report_back." },
+        deep: { type: "boolean", description: "A long research job over dozens of pages or items (rankings; job, price or market surveys), or a browser or computer driven through several sites: 200 tool calls instead of 80 and a notes table; its table and a long report reach the chat as files. Only with report_back." },
         model_selection: {
           type: "object",
           additionalProperties: false,
@@ -528,7 +528,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "request_sign_in",
     description:
-      "Ask the person to sign in to a website themselves, in the browser or on the computer you are using now. Use it when a page needs a login you do not have, or a CAPTCHA, passkey or other step only they can do, or a one-time code you cannot read. A code the site sends to the person's own email or messages for a sign-in they asked for is not one: read it there and type it in yourself. They get a card and a notification, sign in where you work, and press Done. Never ask for a password or code in chat. After calling it, end your turn; SuperBot resumes you when they finish or decline, and then check you are signed in.",
+      "Ask the person to sign in to a website themselves, in the browser or on the computer you are using now. Use it when a page needs a login you do not have, or a CAPTCHA, passkey or other step only they can do, or a one-time code you cannot read. A human check still there after one click on its checkbox is one: call this at once instead of retrying it. A code the site sends to the person's own email or messages for a sign-in they asked for is not one: read it there and type it in yourself. They get a card and a notification, sign in where you work, and press Done. Never ask for a password or code in chat. After calling it, end your turn; SuperBot resumes you when they finish or decline, and then check you are signed in.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
