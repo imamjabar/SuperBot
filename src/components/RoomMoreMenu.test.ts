@@ -7,7 +7,6 @@ import type { SidebarMenuItem } from "./SidebarPopoverMenu";
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("window", {});
   return {
-    threadsShown: false,
     findOpen: false,
     menus: [] as { ariaLabel: string; items: SidebarMenuItem[]; trigger: string }[],
     dispatch: vi.fn(),
@@ -24,7 +23,6 @@ vi.mock("@/state/store", async (importOriginal) => {
     useStore: () => ({ state: { ...original.initialState, config: { rooms: { turnTimeoutMinutes: 5 } } }, dispatch: fixture.dispatch }),
   };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.threadsShown }));
 vi.mock("@/lib/chat-find", () => ({ requestChatFind: fixture.find, useChatFindOpen: () => fixture.findOpen }));
 vi.mock("@/lib/export-transcript", () => ({
   copyTranscriptToClipboard: fixture.copy,
@@ -60,7 +58,6 @@ const menuOf = (group: Group) => {
 const item = (group: Group, key: string) => menuOf(group).items.find((entry) => entry.key === key)!;
 
 beforeEach(() => {
-  fixture.threadsShown = false;
   fixture.findOpen = false;
   fixture.dispatch.mockClear();
   fixture.find.mockClear();
@@ -111,10 +108,7 @@ describe("RoomMoreMenu, the Room panel's round ⋯", () => {
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "switchGroupTask", groupId: "desk", threadId: "main" });
   });
 
-  it("leaves the thread items to the sidebar when it shows threads, and All threads out with one thread", () => {
-    fixture.threadsShown = true;
-    expect(menuOf(room()).items.map((entry) => entry.key)).toEqual(["find", "copy", "download", "turn-limit"]);
-    fixture.threadsShown = false;
+  it("leaves All threads out with one thread", () => {
     expect(menuOf(room({ tasks: [task("launch", "Launch plan", 3)] })).items.map((entry) => entry.key)).not.toContain("threads");
   });
 

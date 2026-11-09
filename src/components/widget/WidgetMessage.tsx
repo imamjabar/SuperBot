@@ -3,7 +3,6 @@ import { CircleAlert, X } from "lucide-react";
 import { useStore, type Message } from "@/state/store";
 import { usePageOpener } from "@/lib/page-open";
 import { phonePairingSettingsAction } from "@/lib/phone-pairing";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { resolvedThreadTarget } from "@/lib/thread-target";
 import { openThread } from "@/state/thread-navigation";
 import { cn } from "@/lib/cn";
@@ -51,7 +50,6 @@ export function WidgetMessage({ botId, threadId, message }: { botId: string; thr
 function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; threadId?: string; messageId: string; payload: WidgetPayload }) {
   const root = payload.root;
   const { state, dispatch, flushBotPatches } = useStore();
-  const showThreads = useShowThreads();
   const openPage = usePageOpener();
   const [settledHere, setSettledHere] = useState<WidgetSettled>();
   /**
@@ -121,7 +119,7 @@ function WidgetCard({ botId, threadId, messageId, payload }: { botId: string; th
       const url = widgetActionUrl(entry);
       if (url) openPage(url);
       const target = resolvedThreadTarget(widgetThreadTarget(entry), state);
-      if (target) openThread(dispatch, target, state, showThreads);
+      if (target) openThread(dispatch, target, state);
       return;
     }
     if (settled) return;

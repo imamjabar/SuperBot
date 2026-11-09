@@ -5,7 +5,6 @@ import { initialState, type AppState, type Bot, type InstanceInfo } from "@/stat
 import type { SidebarDensity } from "@/lib/sidebar-preferences";
 
 const fixture = vi.hoisted(() => ({ state: {} as Partial<AppState>, advanced: true }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => false }));
 vi.mock("@/lib/interface-mode", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/interface-mode")>(),
   useAdvancedMode: () => fixture.advanced,

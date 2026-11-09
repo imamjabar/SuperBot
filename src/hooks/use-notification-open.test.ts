@@ -5,7 +5,6 @@ import { initialState, type Action, type AppState, type Bot, type ThreadTarget }
 const fixture = vi.hoisted(() => ({
   effects: [] as EffectCallback[],
   target: null as ThreadTarget | null,
-  showThreads: true,
 }));
 
 vi.mock("react", async (original) => ({
@@ -17,9 +16,6 @@ vi.mock("react", async (original) => ({
   useEffect: (effect: EffectCallback) => { fixture.effects.push(effect); },
 }));
 
-vi.mock("@/lib/thread-preferences", () => ({
-  useShowThreads: () => fixture.showThreads,
-}));
 
 import * as notify from "@/lib/notify";
 import { takeNotificationTargetFromLocation, useNotificationOpen } from "./use-notification-open";
@@ -44,7 +40,6 @@ afterEach(() => {
   setNotificationOpenHandler(null);
   fixture.effects = [];
   fixture.target = null;
-  fixture.showThreads = true;
 });
 
 describe("takeNotificationTargetFromLocation", () => {
@@ -84,7 +79,6 @@ describe("useNotificationOpen", () => {
 
     render(ready, dispatch);
     expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
-      { type: "select", id: "scout" },
       { type: "switchTask", botId: "scout", threadId: "scout-work" },
       { type: "revealThread", threadId: "scout-work" },
     ]);

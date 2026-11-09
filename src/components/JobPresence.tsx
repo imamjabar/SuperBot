@@ -3,7 +3,6 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { jobNowPhrases } from "@/lib/job-status";
 import type { LiveActivityPhrases } from "@/lib/live-activity";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { useStore, type Bot, type Task } from "@/state/store";
 import { openBotThread } from "@/state/thread-navigation";
 import { useTurnLive } from "@/state/turn-status";
@@ -34,10 +33,9 @@ export function JobPresence({ bot, className }: { bot: Bot; className?: string }
 
 function JobLine({ bot, job }: { bot: Bot; job: Task }) {
   const { dispatch } = useStore();
-  const showThreads = useShowThreads();
   const live = useTurnLive(job.threadId);
   const now: LiveActivityPhrases = live.turnId || job.turnStartedAt === undefined ? jobNowPhrases(live) : { phase: "job:unseen", phrases: [] };
-  const open = () => openBotThread(dispatch, bot, job.threadId, showThreads);
+  const open = () => openBotThread(dispatch, bot, job.threadId);
 
   return (
     <div className="flex min-w-0 items-center gap-1.5">

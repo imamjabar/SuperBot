@@ -12,10 +12,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   api: fixture.api,
   useStore: () => ({ state: fixture.state, dispatch: fixture.dispatch }),
 }));
-vi.mock("@/lib/thread-preferences", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/thread-preferences")>(),
-  useShowThreads: () => true,
-}));
 
 const { initialState } = await import("@/state/store");
 const { announceArchiveNotice, archivableChief, archiveBotWithNotice, onArchiveNotice } = await import("./bot-archive");
@@ -40,7 +36,7 @@ describe("archiving a bot", () => {
   it("hides it, opens the next bot when it was on screen, and offers Undo", async () => {
     fixture.api.mockResolvedValue({ bot: { ...scout, hidden: true } });
     const notify = vi.fn();
-    await archiveBotWithNotice(scout, { bots: [scout, nova], selectedId: "scout", dispatch: fixture.dispatch, showThreads: true, notify });
+    await archiveBotWithNotice(scout, { bots: [scout, nova], selectedId: "scout", dispatch: fixture.dispatch, notify });
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/scout", { method: "PATCH", body: JSON.stringify({ hidden: true }) });
     expect(fixture.dispatch.mock.calls).toEqual([
       [{ type: "botPatched", bot: { ...scout, hidden: true } }],
@@ -55,9 +51,9 @@ describe("archiving a bot", () => {
   it("stays on the open bot when another one is archived, and says why a failure failed", async () => {
     fixture.api.mockResolvedValueOnce({ bot: { ...nova, hidden: true } }).mockRejectedValueOnce(new Error("Server is offline"));
     const notify = vi.fn();
-    await archiveBotWithNotice(nova, { bots: [scout, nova], selectedId: "scout", dispatch: fixture.dispatch, showThreads: true, notify });
+    await archiveBotWithNotice(nova, { bots: [scout, nova], selectedId: "scout", dispatch: fixture.dispatch, notify });
     expect(fixture.dispatch.mock.calls.map(([action]) => action.type)).toEqual(["botPatched"]);
-    await archiveBotWithNotice(nova, { bots: [scout, nova], selectedId: "scout", dispatch: fixture.dispatch, showThreads: true, notify });
+    await archiveBotWithNotice(nova, { bots: [scout, nova], selectedId: "scout", dispatch: fixture.dispatch, notify });
     expect(notify).toHaveBeenLastCalledWith({ error: true, text: "Server is offline" });
   });
 
@@ -71,7 +67,7 @@ describe("archiving a bot", () => {
     expect(botConfirmCopy("delete", "Chief", true).body).toContain("Archive it instead to keep every conversation");
     expect(botConfirmCopy("delete", "Scout").body).not.toContain("Archive it instead");
     fixture.api.mockResolvedValue({ bot: { ...chief, hidden: true, chiefOfStaff: false } });
-    await archiveBotWithNotice(chief, { bots: [chief, scout], selectedId: "scout", dispatch: fixture.dispatch, showThreads: true, notify: vi.fn() });
+    await archiveBotWithNotice(chief, { bots: [chief, scout], selectedId: "scout", dispatch: fixture.dispatch, notify: vi.fn() });
     expect(fixture.api).toHaveBeenCalledWith("/api/bots/chief", { method: "PATCH", body: JSON.stringify({ hidden: true, chiefOfStaff: false }) });
   });
 

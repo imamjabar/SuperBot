@@ -17,7 +17,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   useStore: () => ({ state: fixture.state, dispatch: fixture.dispatch }),
   api: (...args: unknown[]) => fixture.api(...args),
 }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => false }));
 const copied = vi.hoisted(() => ({ texts: [] as string[] }));
 const credentials = vi.hoisted(() => {
   const items = new Map<string, string>();

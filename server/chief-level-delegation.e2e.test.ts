@@ -52,6 +52,8 @@ it("starts a thread a Chief opens with a teammate at the Chief's level, and a Ch
     expect(persistedTask(ada.id, adaTurn.threadId)).toMatchObject({ approvalMode: "auto", autoApprove: false });
     expect((await messages(adaTurn.threadId)).some(message => message.kind === "activity"
       && message.tool?.name === "Approve for me — handed on by Clive, a Chief of Staff on Approve for me")).toBe(true);
+    expect((await messages(ada.activeTaskId)).find(message => message.kind === "activity" && message.threadRef?.threadId === adaTurn.threadId))
+      .toMatchObject({ from: { botId: chief.id }, tool: { name: "Message from Clive" }, threadRef: { botId: ada.id } });
     expect((await api("GET", "/api/bots")).bots.find((bot: any) => bot.id === ada.id).approvalMode ?? "ask").toBe("ask");
 
     const askThread = (await api("POST", `/api/bots/${chief.id}/tasks`, { title: "Plain Ask work", approvalMode: "ask" }, 201)).task;

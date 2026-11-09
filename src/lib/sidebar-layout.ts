@@ -5,7 +5,6 @@ import { hiddenFromSidebar } from "./default-bot";
 
 export const PINNED_SECTION_ID = "builtin:pinned";
 export const CHANNELS_SECTION_ID = "builtin:channels";
-export const BOT_CHATS_SECTION_ID = "builtin:bot-chats";
 export const BOTS_SECTION_ID = "builtin:bots";
 export const ATTENTION_SECTION_ID = "builtin:attention";
 export const PINNED_THREADS_SECTION_ID = "builtin:pinned-threads";
@@ -58,7 +57,6 @@ export function userSectionName(id: SidebarSectionId): string | null {
 export function sidebarSectionLabel(id: SidebarSectionId): string {
   if (id === PINNED_SECTION_ID) return "Pinned";
   if (id === CHANNELS_SECTION_ID) return "Group chats";
-  if (id === BOT_CHATS_SECTION_ID) return "Bot threads";
   if (id === BOTS_SECTION_ID) return "Bots";
   return userSectionName(id) ?? id;
 }
@@ -147,11 +145,10 @@ export function activeBotsFirst<T>(parts: { pinnedBots: T[]; sectionedBots: T[];
 }
 
 export function partitionSidebarGroups<T extends SidebarGroup>(groups: T[]) {
-  const botChats = groups.filter((group) => Boolean(group.dm));
   const rooms = groups.filter((group) => !group.dm);
   const sectionedRooms = rooms.filter((group) => Boolean(group.section));
   const unsectionedRooms = rooms.filter((group) => !group.section);
-  return { botChats, sectionedRooms, unsectionedRooms };
+  return { sectionedRooms, unsectionedRooms };
 }
 
 export function orderedSidebarSections(
@@ -184,7 +181,7 @@ export function orderedSidebarSections(
   return result;
 }
 
-export const SIMPLE_FIRST_SECTION_IDS: readonly SidebarSectionId[] = [PINNED_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID, BOT_CHATS_SECTION_ID];
+export const SIMPLE_FIRST_SECTION_IDS: readonly SidebarSectionId[] = [PINNED_SECTION_ID, BOTS_SECTION_ID, CHANNELS_SECTION_ID];
 
 export function simpleSidebarSections(ids: SidebarSectionId[]): SidebarSectionId[] {
   return [

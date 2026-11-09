@@ -28,7 +28,7 @@ export function ChatHeadPill({ bot, avatar, onToggle }: {
   const elsewhere = sidebarBotActivityTasks(bot, state.pendingQueued).filter((task) => task.threadId !== bot.threadId).length;
   const title = bot.tasks?.find((task) => task.threadId === bot.threadId)?.title;
   // Simple mode calls an untitled conversation what it is, never a "thread".
-  const conversation = !awayFromMainThread(bot, false) ? null
+  const conversation = !awayFromMainThread(bot) ? null
     : !title || title === UNTITLED ? t("task.untitledConversation") : localizedTaskTitle(title);
   const label = t("chat.openProfileAria", { name: bot.name });
   return (

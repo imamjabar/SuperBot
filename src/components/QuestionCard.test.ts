@@ -17,7 +17,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/state/store")>()),
   useStore: () => ({ state: { bots: [] }, dispatch: fixture.dispatch }),
 }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => true }));
 
 const { QuestionCard, cardQuestions, isQuestionCard, settledQuestionLine } = await import("./QuestionCard");
 

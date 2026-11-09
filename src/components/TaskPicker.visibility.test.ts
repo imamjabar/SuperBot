@@ -4,14 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group } from "@/state/store";
 import { Select } from "./Select";
 
-const fixture = vi.hoisted(() => ({ showThreads: true, queued: {} as Record<string, unknown[]>, bots: [] as Bot[], dispatch: vi.fn() }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
+const fixture = vi.hoisted(() => ({ queued: {} as Record<string, unknown[]>, bots: [] as Bot[], dispatch: vi.fn() }));
 vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   useStore: () => ({ state: { bots: fixture.bots, pendingQueued: fixture.queued }, dispatch: fixture.dispatch }),
 }));
 
-const { TaskPicker, BotActivityPicker, GroupTaskPicker } = await import("./TaskPicker");
+const { BotActivityPicker, GroupTaskPicker } = await import("./TaskPicker");
 const bot: Bot = {
   id: "pepper", name: "Pepper", color: "green", threadId: "current", title: "", description: "",
   notifications: true, unread: false, busy: true, messages: [], modelSelection: { instanceId: "fake", model: "fake" },
@@ -24,17 +23,11 @@ const bot: Bot = {
     { threadId: "unread", title: "Finished reply", createdAt: 6, unread: true },
   ],
 };
-beforeEach(() => { fixture.showThreads = true; fixture.queued = {}; fixture.bots = []; fixture.dispatch.mockClear(); });
+beforeEach(() => { fixture.queued = {}; fixture.bots = []; fixture.dispatch.mockClear(); });
 
 describe("optional bot thread picker", () => {
-  it("keeps the usual picker when threads are shown", () => {
-    expect(renderToStaticMarkup(createElement(TaskPicker, { bot }))).toContain('aria-label="All threads"');
-  });
-
   it("hides quiet histories and creation but keeps sibling activity reachable", () => {
-    fixture.showThreads = false;
     fixture.queued = { queued: [{ queueId: "pending" }] };
-    expect(renderToStaticMarkup(createElement(TaskPicker, { bot }))).toBe("");
     const markup = renderToStaticMarkup(createElement(BotActivityPicker, { bot }));
     expect(markup).toContain('aria-label="Other activity (4)"');
     expect(markup).toContain('value="waiting">Approval needed · Waiting');
@@ -51,7 +44,6 @@ describe("optional bot thread picker", () => {
   });
 
   it("selects the exact sibling without creating or stopping work", () => {
-    fixture.showThreads = false;
     const picker = BotActivityPicker({ bot });
     const select = picker!.props.children[0];
     expect(select.type).toBe(Select);
@@ -60,13 +52,11 @@ describe("optional bot thread picker", () => {
   });
 
   it("renders nothing when only the selected conversation is working", () => {
-    fixture.showThreads = false;
     expect(renderToStaticMarkup(createElement(BotActivityPicker, { bot: { ...bot, tasks: bot.tasks!.slice(0, 2) } }))).toBe("");
     expect(fixture.dispatch).not.toHaveBeenCalled();
   });
 
   it("does not remove channel history controls", () => {
-    fixture.showThreads = false;
     const group: Group = { id: "team", name: "Team", threadId: "team-current", memberIds: [], defaultResponder: { kind: "everyone" }, bulletin: "", createdAt: 1, unread: false, messages: [],
       tasks: [{ threadId: "team-current", title: "Channel discussion", createdAt: 1 }] };
     expect(renderToStaticMarkup(createElement(GroupTaskPicker, { group }))).toContain('aria-label="All threads"');

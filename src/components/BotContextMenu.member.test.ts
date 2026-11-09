@@ -7,7 +7,6 @@ const fixture = vi.hoisted(() => ({ advanced: true, admin: false as boolean | nu
 vi.mock("react", async (importOriginal) => ({ ...await importOriginal<typeof import("react")>(), useLayoutEffect: () => {} }));
 vi.mock("react-dom", async (importOriginal) => ({ ...await importOriginal<typeof import("react-dom")>(), createPortal: (node: ReactNode) => node }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({}) }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => true }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
 vi.mock("@/state/store", async (importOriginal) => {
@@ -30,7 +29,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const render = (bot: Bot) => renderToStaticMarkup(createElement(BotContextMenu, {
   menu: { botId: bot.id, x: 10, y: 10 }, onClose: vi.fn(), onArchive: vi.fn(), onDelete: vi.fn(),
-  onMoveToSection: vi.fn(), onNewFolder: vi.fn(), onNewTaskFolder: vi.fn(),
+  onMoveToSection: vi.fn(), 
 }));
 
 describe("a team bot's actions for a session without the admin scope", () => {

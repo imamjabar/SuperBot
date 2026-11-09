@@ -1,6 +1,7 @@
 import { ChevronRight, MessagesSquare } from "lucide-react";
 import { openThread, useStore, type Message } from "@/state/store";
-import { useShowThreads } from "@/lib/thread-preferences";
+import { botChatTarget } from "@/lib/bot-chat";
+import { openBotChat } from "@/state/bot-chat-sheet";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { BotAvatar } from "./Avatar";
@@ -8,11 +9,12 @@ import { HandoffReply } from "./HandoffReply";
 
 export function ThreadChip({ message }: { message: Message }) {
   const { state, dispatch } = useStore();
-  const showThreads = useShowThreads();
   const ref = message.threadRef;
   const tool = message.tool;
   if (!ref || !tool) return null;
-  const bot = state.bots.find((candidate) => candidate.id === ref.botId);
+  const target = botChatTarget(message, state.selectedId ?? ref.botId, state.groups);
+  const avatarId = ref.botId === state.selectedId && message.from ? message.from.botId : ref.botId;
+  const bot = state.bots.find((candidate) => candidate.id === avatarId);
   const direct = message.sentDirectly;
   const label = !direct ? tool.name
     : direct.room ? t("chat.sentDirectlyNotInRoom", { name: direct.name, room: direct.room }) : t("chat.sentDirectly", { name: direct.name });
@@ -21,7 +23,7 @@ export function ThreadChip({ message }: { message: Message }) {
       <button
         type="button"
         data-thread-chip={ref.threadId}
-        onClick={() => openThread(dispatch, ref, state, showThreads)}
+        onClick={() => target ? openBotChat(target) : openThread(dispatch, ref, state)}
         title={t("chat.openThread", { title: ref.title })}
         className={cn("ui-pill", tool.ok === false && "text-danger")}
       >

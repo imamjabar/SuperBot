@@ -314,7 +314,6 @@ accessibility names, with no mouse coordinates.
 
 Not proven: the Electron shell (menus, preload bridge, screen capture,
 dictation), a real provider, Settings, sidebar drag-and-drop, the VM modal, the
-browser panel and updater UI, and anything `Show threads` gates (that toggle is
-renderer localStorage, outside `ui flag`). `AGENT_BROWSER_HEADLESS=1` is set
+browser panel and updater UI. `AGENT_BROWSER_HEADLESS=1` is set
 for consistency with the harness, but agent-browser 0.37.0 is headless by
 default and reads `AGENT_BROWSER_HEADED` to opt out.

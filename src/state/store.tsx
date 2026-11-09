@@ -62,7 +62,6 @@ import { readLastConversation, rememberConversation } from "@/lib/last-conversat
 import { readLastBotSection, rememberBotSection } from "@/lib/last-bot-section";
 import { showNotification } from "@/lib/notify";
 import { randomUuid } from "@/lib/random-uuid";
-import { useShowThreads } from "@/lib/thread-preferences";
 import { oneMainChat, oneMainChatEnabled, setOneMainChat } from "@/lib/one-main-chat";
 import { speechOwner, spokenReplyStream } from "@/lib/spoken-reply-stream";
 import { t } from "@/lib/i18n";
@@ -2047,9 +2046,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reducer, initialState, restoreBotSettingsSection);
   const stateRef = useRef(state), selectionRevision = useRef(0);
   stateRef.current = state;
-  const showThreads = useShowThreads();
-  const showThreadsRef = useRef(showThreads);
-  showThreadsRef.current = showThreads;
   const clearChatError = useCallback(() => {
     rawDispatch({ type: "error", message: null });
   }, []);
@@ -2870,8 +2866,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!state.hydrated || launched.current) return;
     launched.current = true;
     const bot = state.bots.find((candidate) => candidate.id === state.selectedId);
-    if (bot && state.activeView === "chat" && botOpensTo(bot, showThreads) !== bot.threadId) openBot(dispatch, bot, showThreads);
-  }, [state.hydrated, state.bots, state.selectedId, state.activeView, showThreads, dispatch]);
+    if (bot && state.activeView === "chat" && botOpensTo(bot) !== bot.threadId) openBot(dispatch, bot);
+  }, [state.hydrated, state.bots, state.selectedId, state.activeView, dispatch]);
 
   useEffect(() => {
     let alive = true;
@@ -3117,7 +3113,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           // The wrapped dispatch: only it PATCHes unread:false back to the server.
           showNotification(
             frame.notification,
-            (target) => openThread(dispatch, target, stateRef.current, showThreadsRef.current),
+            (target) => openThread(dispatch, target, stateRef.current),
             stateRef.current.bots.find((bot) => bot.id === frame.notification.botId)?.avatarUrl,
             visibleNotificationThread(stateRef.current),
           );

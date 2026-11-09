@@ -39,7 +39,6 @@ export async function archiveBotWithNotice(bot: Bot, context: {
   bots: readonly Bot[];
   selectedId: string | null;
   dispatch: (action: Action) => void;
-  showThreads: boolean;
   notify: (notice: ArchiveNotice | null) => void;
 }): Promise<void> {
   const { dispatch, notify } = context;
@@ -54,7 +53,7 @@ export async function archiveBotWithNotice(bot: Bot, context: {
     dispatch({ type: "botPatched", bot: response.bot });
     if (context.selectedId === bot.id) {
       const next = activeBots.find((candidate) => candidate.id !== bot.id);
-      if (next) openBot(dispatch, next, context.showThreads);
+      if (next) openBot(dispatch, next);
     }
     notify({
       error: false,

@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Message } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), showThreads: true }));
+const fixture = vi.hoisted(() => ({ dispatch: vi.fn() }));
 const scout: Bot = {
   id: "scout", threadId: "scout-main", name: "Scout", title: "", description: "", notifications: true,
   color: "green", unread: false, messages: [], modelSelection: { instanceId: "fake", model: "test" },
@@ -16,7 +16,6 @@ vi.mock("@/state/store", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/state/store")>();
   return { ...original, useStore: () => ({ state: { ...original.initialState, bots: [scout] }, dispatch: fixture.dispatch }) };
 });
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 import { ThreadChip } from "./ThreadChip";
 
 const receipt = (threadId = "qa-245"): Message => ({
@@ -35,7 +34,7 @@ function findElement(tree: ReactNode, attribute: string): ReactElement<ElementPr
   }
 }
 
-beforeEach(() => { fixture.dispatch.mockClear(); fixture.showThreads = true; });
+beforeEach(() => { fixture.dispatch.mockClear(); });
 
 describe("ThreadChip", () => {
   it("renders the receipt as a pill named for the thread it opens", () => {
@@ -59,20 +58,8 @@ describe("ThreadChip", () => {
     expect(renderToStaticMarkup(createElement(ThreadChip, { message: { ...receipt(), threadRef: undefined } }))).toBe("");
   });
 
-  it("clicking shows that thread: select the bot, switch the view, reveal the row", () => {
-    let tree: ReactNode;
-    function Capture() { tree = ThreadChip({ message: receipt() }); return tree; }
-    renderToStaticMarkup(createElement(Capture));
-    findElement(tree, "data-thread-chip")!.props.onClick!();
-    expect(fixture.dispatch.mock.calls.map(([action]) => action)).toEqual([
-      { type: "select", id: "scout" },
-      { type: "switchTask", botId: "scout", threadId: "qa-245" },
-      { type: "revealThread", threadId: "qa-245" },
-    ]);
-  });
 
-  it("with threads hidden, the switch alone shows it, so the thread the bot was on stays unread", () => {
-    fixture.showThreads = false;
+  it("clicking shows that thread by the switch alone, so the thread the bot was on stays unread", () => {
     let tree: ReactNode;
     function Capture() { tree = ThreadChip({ message: receipt() }); return tree; }
     renderToStaticMarkup(createElement(Capture));

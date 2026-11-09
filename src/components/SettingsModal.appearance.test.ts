@@ -10,8 +10,6 @@ import { SECTIONS, sectionMatches, SettingsModal } from "./SettingsModal";
 
 const fixture = vi.hoisted(() => ({
   section: "appearance" as AppSettingsSection,
-  showThreads: true,
-  setShowThreads: vi.fn(),
   showRunCard: true,
   setShowRunCard: vi.fn(),
   toolsLayout: "rows" as "rows" | "toolbar",
@@ -37,11 +35,6 @@ vi.mock("@/state/store", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/state/store")>(),
   api: fixture.api,
   useStore: () => ({ state: { appSettingsSection: fixture.section, instances: [] }, dispatch: fixture.dispatch }),
-}));
-vi.mock("@/lib/thread-preferences", () => ({
-  useShowThreads: () => fixture.showThreads,
-  useShowThreadsChoice: () => fixture.showThreads,
-  setShowThreads: fixture.setShowThreads,
 }));
 vi.mock("@/lib/run-card-preferences", () => ({
   useShowRunCard: () => fixture.showRunCard,
@@ -90,7 +83,6 @@ vi.mock("./SettingsPrimitives", async (importOriginal) => {
 beforeEach(() => {
   vi.clearAllMocks();
   fixture.section = "appearance";
-  fixture.showThreads = true;
   fixture.showRunCard = true;
   fixture.toolsLayout = "rows";
   fixture.notificationSounds = true;
@@ -153,20 +145,15 @@ describe("Settings → Appearance", () => {
   });
 
 
-  it("groups skins, thread visibility, and tool-call display with preservation copy", () => {
+  it("groups skins, pins, and tool-call display", () => {
     const html = render();
     expect(html).toContain('<option value="appearance" selected="">Appearance</option>');
     expect(html).toContain("Midnight");
-    expect(html).toContain('aria-label="Show threads"');
     expect(html).toContain('aria-label="Pinned bots as circles"');
     expect(html).toContain('aria-label="Universal pins"');
     expect(html).toContain("from every group");
     expect(html).toContain("like Grok Bot");
     expect(html).toContain('aria-label="Show tool calls in chat"');
-    expect(html).toContain("on this device only");
-    expect(html).toContain("all conversation history and running work");
-    expect(html).toContain("channels are unchanged");
-    expect(html).toContain("Turn this back on");
     expect(html).not.toContain("Stop after no progress for");
   });
 
@@ -176,23 +163,13 @@ describe("Settings → Appearance", () => {
     const html = render();
     const at = html.indexOf('aria-label="Show your computers"');
     expect(at).toBeGreaterThan(html.indexOf('aria-label="Choose tools layout"'));
-    expect(at).toBeLessThan(html.indexOf('aria-label="Show threads"'));
+    expect(at).toBeLessThan(html.indexOf('aria-label="Pinned bots as circles"'));
     const toggle = fixture.switches.find((props) => props["aria-label"] === "Show your computers")!;
     expect(toggle.checked).toBe(false);
     toggle.onClick!({} as never);
     expect(fixture.railHidden).toEqual([false]);
   });
 
-  it.each([true, false])("only updates the local preference when the switch is %s", (enabled) => {
-    fixture.showThreads = enabled;
-    render();
-    const toggle = fixture.switches.find((props) => props["aria-label"] === "Show threads")!;
-    expect(toggle.checked).toBe(enabled);
-    toggle.onClick!({} as never);
-    expect(fixture.setShowThreads).toHaveBeenCalledWith(!enabled);
-    expect(fixture.api).not.toHaveBeenCalled();
-    expect(fixture.dispatch).not.toHaveBeenCalled();
-  });
 
   it.each([true, false])("mutes notification sounds on this computer only when the switch is %s", (enabled) => {
     fixture.notificationSounds = enabled;
@@ -342,7 +319,6 @@ describe("Settings → Appearance", () => {
     expect(html).toContain("Automatic recovery");
     expect(html).toContain('aria-label="App language"');
     expect(html).toContain("Diagnostics");
-    expect(html).not.toContain('aria-label="Show threads"');
     expect(html).not.toContain('aria-label="Choose tools layout"');
     expect(html).not.toContain('aria-label="Show tool calls in chat"');
     expect(html).not.toContain("Midnight");
@@ -358,7 +334,6 @@ describe("Settings → Appearance", () => {
     expect(html).not.toContain('<option value="engines">');
     expect(html).not.toContain('<option value="backups">');
     expect(html).toContain("Midnight");
-    expect(html).toContain('aria-label="Show threads"');
     expect(html).toContain('aria-label="Notification sounds"');
     expect(html).toContain('aria-label="Choose tools layout"');
     expect(html).not.toContain('aria-label="Show tool calls in chat"');
@@ -377,8 +352,7 @@ describe("Settings → Appearance", () => {
     setLocale("ja");
     const html = render();
     for (const key of [
-      "settings.section.appearance", "settings.threadDisplay.show",
-      "settings.threadDisplay.subtitle", "settings.pinnedCircles.title",
+      "settings.section.appearance", "settings.pinnedCircles.title",
       "settings.pinnedCircles.subtitle", "settings.universalPins.title",
       "settings.universalPins.subtitle",
     ] as const) {
@@ -394,13 +368,10 @@ describe("Settings → Appearance", () => {
       setLocale("zz");
       const html = render();
       expect(html).toContain("Appearance");
-      expect(html).toContain('aria-label="Show threads"');
       expect(html).toContain('aria-label="Pinned bots as circles"');
       expect(html).toContain('aria-label="Universal pins"');
       expect(html).toContain("from every group");
       expect(html).toContain("like Grok Bot");
-      expect(html).toContain("all conversation history and running work");
-      expect(html).not.toContain("settings.threadDisplay");
     } finally {
       delete locales.zz;
       setLocale("en");

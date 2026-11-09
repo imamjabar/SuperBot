@@ -9,7 +9,6 @@ const fixture = vi.hoisted(() => ({
   effects: [] as EffectCallback[],
   dispatch: vi.fn(),
   selectedId: "pepper" as string | null,
-  showThreads: true,
   config: { tts: { configured: false, provider: "elevenlabs" } } as Record<string, unknown> | null,
   voiceSettings: [] as Array<{ bot: { id: string }; onPatch: (patch: Record<string, unknown>) => void }>,
 }));
@@ -18,7 +17,6 @@ vi.mock("react", async (original) => ({
   useEffect: (effect: EffectCallback) => { fixture.effects.push(effect); },
 }));
 vi.mock("react-dom", () => ({ createPortal: (children: ReactNode) => children }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 vi.mock("@/state/store", async (importOriginal) => {
   const store = await importOriginal<typeof import("@/state/store")>();
   return {
@@ -93,7 +91,6 @@ beforeEach(() => {
   fixture.effects = [];
   fixture.voiceSettings = [];
   fixture.selectedId = "pepper";
-  fixture.showThreads = true;
   fixture.config = { tts: { configured: false, provider: "elevenlabs" } };
   fixture.dispatch.mockClear();
   vi.stubGlobal("window", {});
@@ -149,7 +146,6 @@ describe("voice set-up pop-up", () => {
 
   it("opens a room member's chat as its row does with threads hidden: at its main thread", () => {
     fixture.selectedId = "room-1";
-    fixture.showThreads = false;
     const left = { ...pepper, mainThreadId: "main", tasks: [{ threadId: "t", title: "Report", createdAt: 1 }, { threadId: "main", title: "Chat", createdAt: 2 }] };
     click(byAttribute(render({ bot: left }), "data-voice-setup-all-settings"));
     expect(fixture.dispatch.mock.calls).toEqual([

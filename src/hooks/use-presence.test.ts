@@ -2,13 +2,12 @@ import type { EffectCallback } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialState, type Action, type AppState, type Bot } from "@/state/store";
 
-const fixture = vi.hoisted(() => ({ effects: [] as EffectCallback[], refs: [] as Array<{ current: unknown }>, refAt: 0, showThreads: true, api: vi.fn(), choice: null as string | null }));
+const fixture = vi.hoisted(() => ({ effects: [] as EffectCallback[], refs: [] as Array<{ current: unknown }>, refAt: 0, api: vi.fn(), choice: null as string | null }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useEffect: (effect: EffectCallback) => { fixture.effects.push(effect); },
   useRef: (initial: unknown) => { const at = fixture.refAt++; fixture.refs[at] ??= { current: initial }; return fixture.refs[at]; },
 }));
-vi.mock("@/lib/thread-preferences", () => ({ useShowThreads: () => fixture.showThreads }));
 vi.mock("@/lib/language-preference", async (original) => ({ ...await original<typeof import("@/lib/language-preference")>(), useLanguageChoice: () => fixture.choice }));
 vi.mock("@/state/store", async (original) => ({ ...await original<typeof import("@/state/store")>(), api: fixture.api }));
 

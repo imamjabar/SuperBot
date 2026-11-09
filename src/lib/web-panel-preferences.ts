@@ -4,7 +4,7 @@ import { parseWebPanels, type WebPanel } from "./web-panels";
 
 export const WEB_PANELS_KEY = "omb-web-panels";
 
-// Same shape as thread-preferences: a renderer preference that survives
+// A renderer preference that survives
 // blocked storage for this session and follows other windows' edits.
 let sessionPanels: WebPanel[] | undefined;
 let cachedRaw: string | null | undefined;
