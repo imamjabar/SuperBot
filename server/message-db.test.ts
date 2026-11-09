@@ -25,13 +25,13 @@ import { closeMessageDb,
   removeMemoryFile,
   readThread,
   readThreadTail,
-  rankRecall,
   recallMessages,
   searchMessages,
   setActiveLeaf,
   updateMessage, describeMissingFts5 } from "./message-db.ts";
 import type { NotificationLogEntry } from "../shared/notification.ts";
 import { withPeerProvenance } from "./peer-provenance.ts";
+import { rankRecall } from "./recall-rank.ts";
 import { Store, type Message } from "./store.ts";
 import type { ModelSelection } from "./contracts.ts";
 
