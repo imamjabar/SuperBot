@@ -69,6 +69,7 @@ class DeckBuilder:
         height=Inches(1.0),
     ):
         tb = slide.shapes.add_textbox(left, top, width, height)
+        tb.name = "Title"
         tf = tb.text_frame
         tf.word_wrap = True
         tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
@@ -143,6 +144,7 @@ class DeckBuilder:
         tb = slide.shapes.add_textbox(
             Inches(1.2), Inches(1.8), Inches(11.3), Inches(3.8)
         )
+        tb.name = "Title"
         tf = tb.text_frame
         tf.word_wrap = True
         tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0
@@ -204,6 +206,7 @@ class DeckBuilder:
         tb = slide.shapes.add_textbox(
             Inches(1.5), Inches(2.2), Inches(10.3), Inches(3.0)
         )
+        tb.name = "Title"
         tf = tb.text_frame
         tf.word_wrap = True
         tf.margin_left = tf.margin_top = tf.margin_right = tf.margin_bottom = 0

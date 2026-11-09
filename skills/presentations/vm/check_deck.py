@@ -28,16 +28,17 @@ def check_presentation(pptx_path: str) -> List[str]:
             has_title = True
         else:
             for s in slide.shapes:
-                if s.has_text_frame and s.text_frame.text.strip():
-                    if s.top < (slide_h * 0.35):
-                        for p in s.text_frame.paragraphs:
-                            for r in p.runs:
-                                if r.font.size and (r.font.size / 12700.0) >= 22.0:
-                                    has_title = True
-                                    break
-                            if has_title:
-                                break
-                    if has_title:
+                if not (s.has_text_frame and s.text_frame.text.strip()):
+                    continue
+                if s.name == "Title":
+                    has_title = True
+                    break
+                if s.top < (slide_h * 0.35):
+                    sizes = [p.font.size for p in s.text_frame.paragraphs] + [
+                        r.font.size for p in s.text_frame.paragraphs for r in p.runs
+                    ]
+                    if any(size and size.pt >= 22.0 for size in sizes):
+                        has_title = True
                         break
 
         if not has_title:
