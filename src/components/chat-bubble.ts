@@ -12,7 +12,7 @@ import { isPureLeakedSystemHarnessMessage } from "../../shared/system-message-gu
 /** Simple mode's message text: 15/22 on every screen, the size whose cap height matches the design. */
 export const SIMPLE_BUBBLE_TEXT = "text-body leading-[22px]";
 
-const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[18px] px-3 py-[7px] max-sm:px-3.5 max-sm:py-2 ${SIMPLE_BUBBLE_TEXT}`;
+const SIMPLE_BUBBLE_SHAPE = `min-w-9 rounded-[20px] px-3.5 py-2 max-sm:px-3.5 max-sm:py-2.5 ${SIMPLE_BUBBLE_TEXT}`;
 
 /** Simple mode's bot bubble: the one surface tone. */
 export const SIMPLE_BOT_BUBBLE = `${SIMPLE_BUBBLE_SHAPE} bg-card text-ink`;

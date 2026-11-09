@@ -25,7 +25,7 @@ it("starts a thread a Chief opens with a teammate at the Chief's level, and a Ch
   /** The Chief brings `teammate` in from `threadId` (coordinate_bots opens a
    * thread with them); resolves with the teammate's provider turn. */
   const bringIn = async (chief: any, threadId: string, teammate: any, requestKey: string) => {
-    plans[teammate.id] = { turns: [{ reply: `${teammate.name} checked the fixture report.` }] };
+    plans[teammate.id] = { turns: [{ steps: [{ tool: "message_person", arguments: { message: `Hi, ${teammate.name} here.` } }], reply: `${teammate.name} checked the fixture report.` }] };
     (plans[chief.id] ??= { turns: [] }).turns.push(
       { steps: [{ tool: "coordinate_bots", arguments: { bot_ids: [teammate.id], request_key: requestKey, message: "Check the fixture report and say what you found." } }],
         reply: `Asked ${teammate.name} to check the report.` },
@@ -54,6 +54,8 @@ it("starts a thread a Chief opens with a teammate at the Chief's level, and a Ch
       && message.tool?.name === "Approve for me — handed on by Clive, a Chief of Staff on Approve for me")).toBe(true);
     expect((await messages(ada.activeTaskId)).find(message => message.kind === "activity" && message.threadRef?.threadId === adaTurn.threadId))
       .toMatchObject({ from: { botId: chief.id }, tool: { name: "Message from Clive" }, threadRef: { botId: ada.id } });
+    expect((await messages(ada.activeTaskId)).some(message => message.role === "bot" && message.text === "Hi, Ada here.")).toBe(true);
+    expect((await messages(adaTurn.threadId)).some(message => message.text === "Hi, Ada here.")).toBe(false);
     expect((await api("GET", "/api/bots")).bots.find((bot: any) => bot.id === ada.id).approvalMode ?? "ask").toBe("ask");
 
     const askThread = (await api("POST", `/api/bots/${chief.id}/tasks`, { title: "Plain Ask work", approvalMode: "ask" }, 201)).task;

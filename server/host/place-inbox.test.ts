@@ -54,7 +54,7 @@ function setup(over: Partial<PlaceInboxDeps> = {}, dataDir = mkdtempSync(join(tm
     mayAnswer: (auth) => auth === OWNER,
     guestOf: (threadId) => guests.get(threadId) ?? null, guestName: () => "Sam",
     handedBy: (threadId) => handed.get(threadId) ?? null,
-    send: (one) => sent.push(one), now: () => clock, ...over,
+    send: (one) => sent.push(one), now: () => clock, mainThread: (botId) => bots[botId]?.threadId, ...over,
   });
   const ask = (threadId: string, requestId: string, card: Partial<OptionCardData> = {}, at = clock) => {
     const row = { threadId, id: `card-${requestId}`, at, fromBotId: null, card: JSON.stringify({ requestId, title: "Ask", subtitle: `Ask ${requestId}`, options: ["Yes", "No"], requestType: "question", ...card }) };
@@ -162,22 +162,23 @@ describe("the inbox of a place that is no team's", () => {
     expect(of("card-b").origin).toMatchObject({ threadId: "eli-launch", title: "Launch work" });
   });
 
-  it("gets a bot's message to the person once: one line, one row, one notification, and their words settle it", () => {
+  it("gets a bot's message to the person once, in the bot's main chat: one line, one row, one notification, and their words settle it", () => {
     const f = setup();
     const sent = f.inbox.message("eli", "eli-pricing", "The report is ready.");
-    expect(sent.status).toBe(200);
-    expect(f.sent.map((one) => [one.kind, one.threadId, one.body])).toEqual([["mention", "eli-pricing", "The report is ready."]]);
+    expect(sent).toMatchObject({ status: 200, text: expect.stringContaining("your own chat") });
+    expect(f.sent.map((one) => [one.kind, one.threadId, one.body])).toEqual([["mention", "eli-main", "The report is ready."]]);
     const [row] = f.inbox.view(OWNER).rows;
-    expect(row).toMatchObject({ kind: "message", tab: "info", unread: true, replies: true, from: { name: "Eli" }, origin: { threadId: "eli-pricing", messageId: row!.id } });
-    expect(f.said.get("eli-pricing")!.map((line) => line.id)).toEqual([row!.id]);
+    expect(row).toMatchObject({ kind: "message", tab: "info", unread: true, replies: true, from: { name: "Eli" }, origin: { threadId: "eli-main", messageId: row!.id } });
+    expect(f.said.get("eli-main")!.map((line) => line.id)).toEqual([row!.id]);
+    expect(f.said.get("eli-pricing")).toBeUndefined();
     expect(f.inbox.count(OWNER)).toBe(1);
 
     f.tick(10);
-    f.store.appendMessage("eli-pricing", { role: "user", relayed: true });
+    f.store.appendMessage("eli-main", { role: "user", relayed: true });
     expect(f.inbox.view(OWNER).rows[0]!.tab, "a line relayed from another app isn't the person's answer").toBe("info");
-    f.store.appendMessage("eli-pricing", { role: "user", via: "api" });
+    f.store.appendMessage("eli-main", { role: "user", via: "api" });
     expect(f.inbox.view(OWNER).rows[0]!.tab, "nor one through the API").toBe("info");
-    f.store.appendMessage("eli-pricing", { role: "user", text: "Thanks" });
+    f.store.appendMessage("eli-main", { role: "user", text: "Thanks" });
     expect(f.inbox.view(OWNER).rows[0]!.tab).toBe("done");
     expect(f.inbox.count(OWNER)).toBe(0);
   });

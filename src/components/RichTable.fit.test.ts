@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RichTable } from "./RichTable";
 import { ChatMarkdown } from "./ChatMarkdown";
 import { CHAR_PX, COLUMN_MAX_CHARS, COLUMN_MIN_CHARS, columnMinimums, fitsColumns } from "@/lib/table-fit";
-import { formattedReplyWidth } from "@/lib/formatted-reply";
+import { formattedReplySurface } from "@/lib/formatted-reply";
 
 // Simple mode draws its own plain table; this pins the Advanced table's fitting.
 vi.mock("@/lib/interface-mode", async (original) => ({ ...(await original<typeof import("@/lib/interface-mode")>()), useAdvancedMode: () => true, readAdvancedMode: () => true }));
@@ -118,10 +118,12 @@ describe("a table in a reply", () => {
     expect(columnMinimums(["Verdict"], [["Best open coding agent"]])).toEqual([Math.round(7 * CHAR_PX)]);
   });
 
-  it("gives a reply with a table the message's full width and keeps its prose at reading width", () => {
-    expect(formattedReplyWidth(markdown)).toContain("max-w-[var(--chat-card-pct)]");
-    expect(formattedReplyWidth(markdown)).toContain("chat-wide");
-    expect(formattedReplyWidth("- one\n- two")).toBe("w-full max-w-[min(var(--chat-prose-max),var(--chat-card-pct))]");
+  it("gives a reply with a table the message's full width, and one without a table the bot's bubble", () => {
+    expect(formattedReplySurface(markdown)).toContain("max-w-[var(--chat-card-pct)]");
+    expect(formattedReplySurface(markdown)).toContain("chat-wide");
+    expect(formattedReplySurface(markdown)).not.toContain("bg-card");
+    expect(formattedReplySurface("- one\n- two")).toContain("bg-card");
+    expect(formattedReplySurface("- one\n- two")).toContain("max-w-[min(var(--chat-prose-max),var(--chat-bubble-pct))]");
     const css = readFileSync(join(process.cwd(), "src/styles.css"), "utf8");
     expect(css).toMatch(/\.chat-wide \.chat-md > :not\(\.chat-table\) \{\s*max-width: var\(--chat-prose-max\);/);
   });

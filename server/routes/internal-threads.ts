@@ -32,6 +32,7 @@ export function createInternalThreadRoutes(deps: {
   readBody(): ReturnType<RouteContext["readBody"]>;
   postProgress(text: string): { status: number; body: Record<string, unknown> };
   notes(body: unknown): Promise<{ status: number; body: Record<string, unknown> }> | { status: number; body: Record<string, unknown> };
+  messagePerson(text: string): { status: number; text: string };
 }): RouteHandler {
   const { store, coordinator, from, fromThreadId } = deps;
   return async ({ res, path, method, json }) => {
@@ -94,6 +95,15 @@ export function createInternalThreadRoutes(deps: {
       const body = await deps.readBody();
       const outcome = await deps.notes(body);
       return json(res, outcome.status, outcome.body);
+    }
+    if (method === "POST" && path === "/api/internal/people/message") {
+      if (!deps.ownsThread(from.id, fromThreadId)) return json(res, 403, { error: "source conversation does not belong to sender" });
+      const body = await deps.readBody();
+      const raw = body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>).message : undefined;
+      const text = typeof raw === "string" ? raw.trim() : "";
+      if (!text) return json(res, 400, { error: "message_person needs message." });
+      const outcome = deps.messagePerson(text);
+      return json(res, outcome.status, outcome.status === 200 ? { text: outcome.text } : { error: outcome.text });
     }
     // close_thread folds a thread, never deletes it (a person's confirmed action), and never while it runs.
     const closeMatch = method === "POST" ? path.match(/^\/api\/internal\/threads\/([\w-]+)\/close$/) : null;

@@ -12,12 +12,12 @@ export function isFormattedReply(text: string): boolean {
   return BLOCK_MARKDOWN.some((pattern) => pattern.test(text));
 }
 
-/** A formatted reply reads at prose width; one with a table takes the message's full width so every column shows,
- * and its prose stays at reading width (`.chat-wide` in styles.css). */
-export function formattedReplyWidth(text: string): string {
+/** A formatted reply without a table sits in the bot's bubble at prose width; one with a table takes the message's full
+ * width on the open page so every column shows, and its prose stays at reading width (`.chat-wide` in styles.css). */
+export function formattedReplySurface(text: string): string {
   return TABLE_DIVIDER.test(text)
-    ? "chat-wide w-full sm:max-w-[var(--chat-card-pct)]"
-    : "w-full max-w-[min(var(--chat-prose-max),var(--chat-card-pct))]";
+    ? "chat-wide w-full sm:max-w-[var(--chat-card-pct)] px-1 text-ink"
+    : "w-fit max-w-[min(var(--chat-prose-max),var(--chat-bubble-pct))] rounded-[20px] bg-card px-4 py-3 text-ink";
 }
 
 export interface ReplyBlock {
