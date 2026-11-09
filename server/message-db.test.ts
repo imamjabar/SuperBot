@@ -25,6 +25,7 @@ import { closeMessageDb,
   removeMemoryFile,
   readThread,
   readThreadTail,
+  rankRecall,
   recallMessages,
   searchMessages,
   setActiveLeaf,
@@ -231,6 +232,21 @@ describe("message-db", () => {
     expect(recent[0]).toMatchObject({ threadId: "own-b", role: "user", snippet: "lunch plans, no audit" });
     expect(recentMessages(["own-a", "own-b"], { since: now - 2 * day }, 1).map((hit) => hit.messageId)).toEqual(["new"]);
     expect(recentMessages([], { since: 0 })).toEqual([]);
+  });
+
+  it("recall ranks a hit naming more of the asked words above a closer lexical match, a digest last", () => {
+    const row = (id: string, head: string, at: number, kind = "text") => ({ id, head, snippet: head, at, kind });
+    const lexicalOrder = [row("repeats-one", "audit audit audit audit", 3), row("names-every", "the audit of the pricing page found broken links", 1), row("digest", "audit pricing broken links", 4, "digest")];
+    expect(rankRecall(lexicalOrder, ["audit", "pricing", "broken", "links"], 12).map((hit) => hit.id)).toEqual(["names-every", "repeats-one", "digest"]);
+    expect(rankRecall(lexicalOrder, ["audit"], 12).map((hit) => hit.id)).toEqual(["repeats-one", "names-every", "digest"]);
+    expect(rankRecall(lexicalOrder, ["audit", "pricing", "broken", "links"], 1).map((hit) => hit.id)).toEqual(["names-every"]);
+
+    const day = 86_400_000;
+    const now = Date.UTC(2026, 8, 16, 12);
+    insertMessage("own-a", msg("one-word", "audit audit audit audit", { role: "bot", at: now }));
+    insertMessage("own-a", msg("every-word", "the audit of the pricing page found broken links", { role: "bot", at: now - 30 * day }));
+    insertMessage("own-a", { ...msg("digest", "audit pricing broken links summary", { at: now }), kind: "digest" });
+    expect(recallMessages("audit pricing broken links", ["own-a"], 12, undefined, "any").map((hit) => hit.messageId)).toEqual(["every-word", "one-word", "digest"]);
   });
 
   it("latestSaidByBot: one line per thread, the bot's own words only, inside the window", () => {

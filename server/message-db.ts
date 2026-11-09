@@ -821,6 +821,30 @@ function rangeClause(range: RecallRange | undefined, column: string): { sql: str
   return { sql: parts.map((part) => ` AND ${part}`).join(""), params };
 }
 
+const RECALL_POOL_FACTOR = 4;
+const RECALL_POOL_MAX = 80;
+const RRF_K = 20;
+const RECENCY_WEIGHT = 0.5;
+const COVERAGE_WEIGHT = 0.05;
+
+interface RecallCandidate { at: number; kind: string; head: string; snippet: string }
+
+/** Lexical rank and recency fused by reciprocal rank, plus a bonus for each query term the hit actually carries, so
+ * a hit naming every term outranks one repeating a single term, and of two equal matches the newer comes first. A
+ * digest still follows every message. `rows` arrive in bm25 order. */
+export function rankRecall<Row extends RecallCandidate>(rows: readonly Row[], terms: readonly string[], limit: number): Row[] {
+  const byRecency = [...rows].sort((a, b) => b.at - a.at);
+  const recencyRank = new Map(byRecency.map((row, index) => [row, index]));
+  const score = new Map(rows.map((row, index) => {
+    const text = `${row.head} ${row.snippet}`.toLowerCase();
+    const covered = terms.filter((term) => text.includes(term)).length;
+    return [row, 1 / (RRF_K + index) + RECENCY_WEIGHT / (RRF_K + recencyRank.get(row)!) + COVERAGE_WEIGHT * covered];
+  }));
+  return [...rows]
+    .sort((a, b) => Number(a.kind === "digest") - Number(b.kind === "digest") || score.get(b)! - score.get(a)! || b.at - a.at)
+    .slice(0, limit);
+}
+
 export function recallMessages(query: string, threadIds: readonly string[], limit = 12, range?: RecallRange, mode: SearchMode = "all"): RecallHit[] {
   const match = ftsQuery(query, mode);
   if (!match || !threadIds.length) return [];
@@ -833,9 +857,9 @@ export function recallMessages(query: string, threadIds: readonly string[], limi
         `snippet(messages_fts, 0, '[', ']', '…', ${SNIPPET_TOKENS}) AS snippet ` +
         "FROM messages_fts JOIN messages m ON m.rowid = messages_fts.rowid " +
         `WHERE messages_fts MATCH ? AND m.kind IN ('text', 'digest') AND m.thread_id IN (${placeholders})${window.sql} ` +
-        "ORDER BY (m.kind = 'digest'), bm25(messages_fts), m.at DESC LIMIT ?",
+        "ORDER BY bm25(messages_fts), m.at DESC LIMIT ?",
     )
-    .all(match, ...threadIds, ...window.params, limit) as Array<{
+    .all(match, ...threadIds, ...window.params, Math.max(limit, Math.min(RECALL_POOL_MAX, limit * RECALL_POOL_FACTOR))) as Array<{
     thread_id: string;
     id: string;
     at: number;
@@ -846,7 +870,7 @@ export function recallMessages(query: string, threadIds: readonly string[], limi
     head: string;
     snippet: string;
   }>;
-  return rows.map((row) => {
+  return rankRecall(rows, recallTerms(query), limit).map((row) => {
     const peer = peerAuthor(row.peer_name, row.head);
     return {
       threadId: row.thread_id,
