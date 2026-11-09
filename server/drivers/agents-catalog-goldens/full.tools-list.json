@@ -435,7 +435,7 @@
     },
     {
       "name": "vm_exec",
-      "description": "Run a shell command inside your own Local VM (as the desktop user, starting in /home/cua/workspace) and get its exit code, stdout and stderr back as text. Use this for all command-line work in the VM: pip install --user, running a script, generating or converting a file, checking that a file exists. Do not type commands into a terminal window and read screenshots: that is slow and unreliable. GUI programs you start appear on the VM desktop. For a long job raise timeout_seconds (default 60, at most 300). Only available while you have a Local VM desktop.",
+      "description": "Run a shell command inside your own Local VM (as the desktop user, starting in /home/cua/workspace) and get its exit code, stdout and stderr back as text. Use this for all command-line work in the VM: pip install --user, running a script, generating or converting a file, checking that a file exists, downloading files you will process here. Read web pages with web_fetch, not curl: both reach a site from the same server address, and web_fetch also reads page data, PDFs and long pages in one call. Do not type commands into a terminal window and read screenshots: that is slow and unreliable. GUI programs you start appear on the VM desktop. For a long job raise timeout_seconds (default 60, at most 300). Only available while you have a Local VM desktop.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
@@ -451,6 +451,36 @@
         },
         "required": [
           "command"
+        ]
+      }
+    },
+    {
+      "name": "read_file",
+      "description": "Read an uploaded or workspace file as text: pass the path from an <attached-file> tag or conversation file. Supports PDF, Word (.docx), PowerPoint (.pptx), text, Markdown, HTML, JSON and code files. Up to 12,000 characters per call; pass offset to read on, or find to search for words (' | ' for alternatives). For spreadsheets (.xlsx, .csv), use data_load to inspect cells and tables. Set to_computer: true to copy the file into your Local VM workspace (/home/cua/workspace/uploads/<name>) for Python or shell analysis. Attached images are seen directly in chat.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path from an <attached-file> tag or a file in your workspace roots."
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Character offset to continue from (the previous call's next offset)."
+          },
+          "find": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Words to search for; returns only the passages around them. Separate alternatives with ' | '."
+          },
+          "to_computer": {
+            "type": "boolean",
+            "description": "Also copy the file into your Local VM workspace (/home/cua/workspace/uploads/<name>) for Python or shell work."
+          }
+        },
+        "required": [
+          "path"
         ]
       }
     },

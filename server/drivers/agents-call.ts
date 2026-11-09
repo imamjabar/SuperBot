@@ -418,6 +418,23 @@ export async function callTool(called: string, input: Json, context: ToolCallCon
     if (r.error) return { text: String(r.error), isError: true };
     return { text: JSON.stringify(r) };
   }
+  if (name === "read_file") {
+    const path = typeof args.path === "string" ? args.path.trim() : "";
+    if (!path) return { text: "read_file needs path: the file path from an <attached-file> tag or workspace.", isError: true };
+    const r = await api("/api/internal/files/read", {
+      method: "POST",
+      body: JSON.stringify({
+        fromBotId: BOT_ID,
+        fromThreadId: THREAD_ID,
+        path,
+        ...(args.offset !== undefined ? { offset: args.offset } : {}),
+        ...(args.find !== undefined ? { find: args.find } : {}),
+        ...(args.to_computer !== undefined ? { to_computer: args.to_computer } : {}),
+      }),
+    });
+    if (r.error) return { text: String(r.error), isError: true };
+    return { text: typeof r.formatted === "string" ? r.formatted : typeof r.text === "string" ? r.text : JSON.stringify(r) };
+  }
   if (name === "close_thread") {
     const threadId = String(args.thread_id ?? "").trim();
     if (!threadId) return { text: "close_thread needs the thread_id from list_threads or start_thread.", isError: true };

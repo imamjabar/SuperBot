@@ -32,7 +32,7 @@ describe("built-in agent tool read policy", () => {
   it.each([
     "shared_computer", "ask_bot", "delegate_bot", "check_delegation", "wait_delegation", "start_thread", "close_thread", "post_to_room",
     // These post into the chat: never read-only.
-    "attach_file", "show_widget", "update_widget", "show_html", "update_html",
+    "attach_file", "read_file", "show_widget", "update_widget", "show_html", "update_html",
     "create_bot", "request_credential", "request_sign_in", "memory_update", "trigger", "delete_trigger", "create_trigger",
     "manage_trigger", "memory_log", "manage_room", "create_room", "wait_until", "cancel_wait", "propose_profile", "skill_manage",
     // Read through their action tools, never as read-only names of their own.

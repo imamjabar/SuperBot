@@ -885,7 +885,7 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain("6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2");
     expect(dockerfile).toContain("/usr/local/share/licenses/noto-cjk/OFL.txt");
     expect(dockerfile).toContain("fc-cache -f");
-    expect(IMAGE_LAYER_VERSION).toBe("13");
+    expect(IMAGE_LAYER_VERSION).toBe("14");
   });
 
   it("starts the driver's Chrome without its own sandbox inside the hardened container", () => {
