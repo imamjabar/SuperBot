@@ -3,7 +3,7 @@ import { chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, re
 import { join } from "node:path";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
 
-import { DATA_DIR } from "./config.ts";
+import { DATA_DIR } from "./config.ts"; import { rankRecall, recallPoolSize } from "./recall-rank.ts";
 import { peerProvenanceAuthor, type WorkOrigin } from "./peer-provenance.ts";
 import type { ResolvedSender, SteerQueueReason } from "../shared/wire.ts";
 import type { Message } from "./store.ts";
@@ -833,9 +833,9 @@ export function recallMessages(query: string, threadIds: readonly string[], limi
         `snippet(messages_fts, 0, '[', ']', '…', ${SNIPPET_TOKENS}) AS snippet ` +
         "FROM messages_fts JOIN messages m ON m.rowid = messages_fts.rowid " +
         `WHERE messages_fts MATCH ? AND m.kind IN ('text', 'digest') AND m.thread_id IN (${placeholders})${window.sql} ` +
-        "ORDER BY (m.kind = 'digest'), bm25(messages_fts), m.at DESC LIMIT ?",
+        "ORDER BY bm25(messages_fts), m.at DESC LIMIT ?",
     )
-    .all(match, ...threadIds, ...window.params, limit) as Array<{
+    .all(match, ...threadIds, ...window.params, recallPoolSize(limit)) as Array<{
     thread_id: string;
     id: string;
     at: number;
@@ -846,7 +846,7 @@ export function recallMessages(query: string, threadIds: readonly string[], limi
     head: string;
     snippet: string;
   }>;
-  return rows.map((row) => {
+  return rankRecall(rows, recallTerms(query), limit).map((row) => {
     const peer = peerAuthor(row.peer_name, row.head);
     return {
       threadId: row.thread_id,
