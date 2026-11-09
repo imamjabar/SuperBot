@@ -3,7 +3,7 @@ name: Web build
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'public/**', 'shared/**', 'server/**', 'scripts/bundle-server.mjs', 'scripts/server-locale-plugin.mjs', 'tsconfig*.json', '*.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', '.github/workflows/web.yml']
+    paths: ['src/**', 'public/**', 'shared/**', 'server/**', 'skills/**', 'scripts/bundle-server.mjs', 'scripts/server-locale-plugin.mjs', 'tsconfig*.json', '*.html', 'vite.config.*', 'package.json', 'pnpm-lock.yaml', '.github/workflows/web.yml']
   workflow_dispatch:
 concurrency: { group: web-build, cancel-in-progress: true }
 permissions: { contents: write }
@@ -31,6 +31,7 @@ jobs:
       - name: Publish dist-server to server-dist branch
         run: |
           test -f dist-server/index.js
+          cp -R skills dist-server/skills
           find dist-server \( -name '.env*' -o -name '*.env' -o -name '*.pem' -o -name '*.key' \) -delete
           printf '{"sha":"%s","ref":"%s","run":"%s"}\n' "$GITHUB_SHA" "$GITHUB_REF" "$GITHUB_RUN_ID" > dist-server/server-dist-manifest.json
           cd dist-server

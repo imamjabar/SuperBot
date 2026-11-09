@@ -93,7 +93,7 @@ git push origin main
 
 GitHub Actions is authoritative for published builds:
 
-- `.github/workflows/web.yml`: server/web changes publish `web-dist` and `server-dist` with source manifest.
+- `.github/workflows/web.yml`: server/web/skills changes publish `web-dist` and `server-dist` with source manifest. `server-dist` carries `skills/`, which the server reads through `OMB_SKILLS_DIR=/app/dist-server/skills` in the VPS `compose.override.yaml` (the server image's own `/app/skills` is from its last image build).
 - `.github/workflows/desktop-image.yml`: manually dispatch to generate the Dockerfile with `node scripts/write-desktop-dockerfile.ts` and build/push amd64 to GHCR using `GITHUB_TOKEN`. Pull by digest, pin `OMB_LOCAL_VM_IMAGE`, verify labels/hardening. Never Docker-build on the production runtime.
 - `.github/workflows/desktop-mac.yml`: signed Mac installer workflow. Required for Task 10; do not produce the release DMG on the Mac.
 
