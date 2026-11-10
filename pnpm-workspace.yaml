@@ -11,8 +11,12 @@ allowBuilds:
   electron-nightly: true # postinstall downloads the Electron dist
   esbuild: true # postinstall validates the platform binary
   electron-winstaller: false # unused — Windows builds ship NSIS
-# Transitive packages whose parents still allow a release with a published advisory: mermaid allows an older dompurify
-# and ajv an older fast-uri. Force the patched releases.
+# Transitive packages whose parents still allow a release with a published advisory: mermaid allows an older dompurify,
+# ajv an older fast-uri, rehype-katex and micromark-extension-math an older katex, electron-builder an older minimatch.
+# Force the patched releases.
 overrides:
   dompurify: 3.4.17
   fast-uri: 3.1.9
+  katex: 0.19.1
+  minimatch@10: 11.0.6
+  "@electron/universal>minimatch": 11.0.6
