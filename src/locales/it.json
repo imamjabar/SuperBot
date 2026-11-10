@@ -170,8 +170,6 @@
   "server.mcp.signIn.description": "{bot} ha aggiunto il server MCP di {label} ({host}). Accedi perché {bot} possa usarlo.",
   "server.mcp.signIn.onYourMac": "Apri questa chat sul tuo Mac per accedere a {label}.",
   "server.mcp.signIn.inSettings": "Completa questo accesso in App → Server MCP.",
-  "server.mcp.signIn.onlyPerson": "Solo {name} può accedere qui.",
-  "server.mcp.signIn.onlyOwner": "Solo la persona a cui appartiene questa chat può accedere qui.",
   "server.mcp.signIn.adminOnly": "Solo un amministratore di questa installazione può accedere a {label}.",
   "server.mcp.signIn.expired": "Il tempo per accedere è scaduto. Riprova.",
   "server.mcp.signIn.failed": "L'accesso non è stato completato. Riprova.",

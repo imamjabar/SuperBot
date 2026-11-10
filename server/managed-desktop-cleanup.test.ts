@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import ts from "typescript";
+import { transformSync } from "esbuild";
 import { expect, it } from "vitest";
 import { changedInstanceIds, engineLaunches } from "./config.ts";
 
@@ -17,16 +17,16 @@ function section(start: string, end: string) {
   if (from < 0 || to <= from) throw new Error(`Cleanup test section moved: ${start}`);
   return source.slice(from, to);
 }
-const code = ts.transpileModule([
+const code = transformSync([
   // noteTeammatesLeftRunning lives in host/person-stop.ts now and is stubbed below, so the two interrupts are one slice.
   section("async function interruptDirectThread(", "async function interruptAllDirectThreads("),
   section("function releaseTurnResources(", "async function bindTurnComputer("),
   section("async function stopCompanyInstances(", "async function persistProviderInstance("),
-].join("\n"), { compilerOptions: { target: ts.ScriptTarget.ESNext } }).outputText;
-const reloadProvidersCode = ts.transpileModule(
+].join("\n"), { loader: "ts", target: "esnext" }).code;
+const reloadProvidersCode = transformSync(
   section("/** The engine a bot's process in a conversation runs on", "// Config writes replace the engines they change."),
-  { compilerOptions: { target: ts.ScriptTarget.ESNext } },
-).outputText;
+  { loader: "ts", target: "esnext" },
+).code;
 
 function deferred() {
   let resolve!: () => void;
@@ -391,8 +391,8 @@ it("ends a room stopped by the harness with its cause, and one the person stoppe
       finishGroupGoalRun: (_groupId: string, _operation: unknown, status: string, detail: string) => calls.push(`goal:${status}|${detail}`),
       markCancelledProviderHandshake() {},
     });
-    vm.runInContext(ts.transpileModule(section("function cancelGroupTurnOperations(", "function groupProviderHandshakeStarted("),
-      { compilerOptions: { target: ts.ScriptTarget.ESNext } }).outputText, context);
+    vm.runInContext(transformSync(section("function cancelGroupTurnOperations(", "function groupProviderHandshakeStarted("),
+      { loader: "ts", target: "esnext" }).code, context);
     context.cancelGroupTurnOperations("g", "room", outcome);
     return calls;
   };

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import ts from "typescript";
+import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
 
 import type { RuntimeEvent } from "./contracts.ts";
@@ -211,8 +211,8 @@ describe("the stall handler", () => {
     const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
     const from = source.indexOf("\nconst TURN_STALL_MS"), to = source.indexOf("\nwatchdog.start();");
     if (from < 0 || to <= from) throw new Error("Stall handler section moved");
-    const code = ts.transpileModule(`${source.slice(from, to)}\nglobalThis.watchdog = watchdog;`,
-      { compilerOptions: { target: ts.ScriptTarget.ESNext } }).outputText;
+    const code = transformSync(`${source.slice(from, to)}\nglobalThis.watchdog = watchdog;`,
+      { loader: "ts", target: "esnext" }).code;
     const messages: Message[] = [
       { id: "a", role: "bot", kind: "activity", at: 1, turnId: "turn-1", tool: { name: "Bash", ok: true, itemId: "i1" } } as Message,
       { id: "b", role: "bot", kind: "text", at: 2, turnId: "turn-1", text: "Exporting the second half now." } as Message,
@@ -289,9 +289,9 @@ describe("a Stop that wins against a provider dispatch", () => {
       if (start < 0 || end <= start) throw new Error(`${from.trim()} moved`);
       return source.slice(start, end);
     };
-    const code = ts.transpileModule(section("\nfunction markCancelledProviderHandshake", "\nfunction clearCancelledProviderHandshake") +
+    const code = transformSync(section("\nfunction markCancelledProviderHandshake", "\nfunction clearCancelledProviderHandshake") +
       section("\nfunction cancelDirectTurnDispatch", "\nconst {") + "\nglobalThis.cancelDirectTurnDispatch = cancelDirectTurnDispatch;",
-    { compilerOptions: { target: ts.ScriptTarget.ESNext } }).outputText;
+    { loader: "ts", target: "esnext" }).code;
     const quarantined: string[] = [];
     const context = vm.createContext({
       watchdog,

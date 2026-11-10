@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import ts from "typescript";
+import { parseSync } from "oxc-parser";
 import { describe, expect, it, vi } from "vitest";
 import { createInternalSignInRoutes } from "./sign-in.ts";
 import { dispatchRoutes, PASS, type RouteContext } from "./table.ts";
@@ -82,21 +82,63 @@ describe("internal sign-in route", () => {
   });
 });
 
-function internalDispatch(factory: string): { call: ts.CallExpression; before: string; source: ts.SourceFile } {
+interface AstNode {
+  type: string;
+  start: number;
+  end: number;
+  callee?: AstNode;
+  arguments?: AstNode[];
+  test?: AstNode;
+  parent?: AstNode;
+  getText(source?: unknown): string;
+  getStart(source?: unknown): number;
+  [key: string]: unknown;
+}
+
+function internalDispatch(factory: string): { call: AstNode & { arguments: AstNode[] }; before: string; source: string } {
   const text = readFileSync(new URL("../index.ts", import.meta.url), "utf8");
-  const source = ts.createSourceFile("index.ts", text, ts.ScriptTarget.Latest, true);
-  const calls: ts.CallExpression[] = [];
-  function visit(node: ts.Node) {
-    if (ts.isCallExpression(node) && node.expression.getText(source) === factory) calls.push(node);
-    ts.forEachChild(node, visit);
+  const parsed = parseSync("index.ts", text, { lang: "ts" });
+  function walk(node: AstNode, parent?: AstNode) {
+    if (!node || typeof node !== "object") return;
+    node.parent = parent;
+    node.getText = () => text.slice(node.start, node.end);
+    node.getStart = () => node.start;
+    for (const key of Object.keys(node)) {
+      if (key === "parent" || key === "getText" || key === "getStart") continue;
+      const child = node[key];
+      if (Array.isArray(child)) {
+        for (const item of child) {
+          if (item && typeof item === "object" && typeof item.type === "string") walk(item as AstNode, node);
+        }
+      } else if (child && typeof child === "object" && typeof (child as AstNode).type === "string") {
+        walk(child as AstNode, node);
+      }
+    }
   }
-  visit(source);
+  const root = parsed.program as unknown as AstNode;
+  walk(root);
+  const calls: AstNode[] = [];
+  function visit(node: AstNode) {
+    if (node.type === "CallExpression" && node.callee?.getText() === factory) calls.push(node);
+    for (const key of Object.keys(node)) {
+      if (key === "parent" || key === "getText" || key === "getStart") continue;
+      const child = node[key];
+      if (Array.isArray(child)) {
+        for (const item of child) {
+          if (item && typeof item === "object" && typeof item.type === "string") visit(item as AstNode);
+        }
+      } else if (child && typeof child === "object" && typeof (child as AstNode).type === "string") {
+        visit(child as AstNode);
+      }
+    }
+  }
+  visit(root);
   expect(calls).toHaveLength(1);
   const call = calls[0]!;
-  let enclosing: ts.Node | undefined = call.parent;
-  while (enclosing && !(ts.isIfStatement(enclosing) && enclosing.expression.getText(source) === 'path.startsWith("/api/internal/")')) enclosing = enclosing.parent;
+  let enclosing: AstNode | undefined = call.parent;
+  while (enclosing && !(enclosing.type === "IfStatement" && enclosing.test?.getText() === 'path.startsWith("/api/internal/")')) enclosing = enclosing.parent;
   expect(enclosing, `${factory} must not move into the global route table`).toBeDefined();
-  return { call, before: text.slice(enclosing!.getStart(source), call.getStart(source)), source };
+  return { call: call as AstNode & { arguments: AstNode[] }, before: text.slice(enclosing!.start, call.start), source: text };
 }
 
 it.each(["createInternalSignInRoutes", "createInternalThreadRoutes", "createInternalMcpRoutes"])("keeps %s inside the internal capability gate", (factory) => {

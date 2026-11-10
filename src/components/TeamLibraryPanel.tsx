@@ -7,7 +7,8 @@ import { orgCardAction, orgPackagePreview, type OrgLibraryListing, type OrgLibra
 import type { PackageDocument } from "../../shared/package-format";
 import type { Routine } from "@/lib/routines";
 import { api, useStore, type Bot, type Group } from "@/state/store";
-import { ArrowLeft, Check, Compass, ExternalLink, FolderOpen, Github, Loader2, Search, Share2, UploadCloud, Users, X } from "lucide-react";
+import { ArrowLeft, Check, Compass, ExternalLink, FolderOpen, Loader2, Search, Share2, UploadCloud, Users, X } from "lucide-react";
+import { Github } from "./brand-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { catalogCopy, catalogMatches, type TeamCatalog, type TeamCatalogEntry } from "@/lib/team-catalog";

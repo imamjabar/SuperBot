@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpRight, CircleDot, GitCommitHorizontal, GitPullRequest, Github, Globe, Hash } from "lucide-react";
+import { ArrowUpRight, CircleDot, GitCommitHorizontal, GitPullRequest, Globe, Hash } from "lucide-react";
+import { Github } from "./brand-icons";
 import { t } from "@/lib/i18n";
 import { githubRefLabel, type GithubRef, type GithubRefKind } from "@/lib/github-refs";
 

@@ -156,7 +156,7 @@ const piMcpExtSrc = join(server, "drivers", "pi-mcp-extension.ts");
 const piMcpExtDest = join(root, "dist-server", "drivers", "pi-mcp-extension.ts");
 mkdirSync(dirname(piMcpExtDest), { recursive: true });
 await build({ entryPoints: [piMcpExtSrc], outfile: piMcpExtDest, bundle: true,
-  platform: "node", target: "node24", format: "esm", external: ["typebox"], });
+  platform: "node", target: "node26", format: "esm", external: ["typebox"], });
 
 // Desktop resources live outside app.asar, so its package.json cannot mark
 // these .js bundles as ESM. Do not inherit a user's CommonJS package scope.

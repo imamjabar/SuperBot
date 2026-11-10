@@ -11,7 +11,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import ts from "typescript";
+import { attachParents, isAstNode, makeLineAt, parseSource, walkChildren, type AstNode } from "./ast-walk.ts";
 import { describe, expect, it } from "vitest";
 
 import de from "./de.json";
@@ -36,18 +36,30 @@ const KEEPS_WORDS = new Set(["join", "trim", "trimEnd", "trimStart", "slice", "r
 /** `sink`: where the line is made, as "status row at server/x.ts:12". */
 export interface Finding { file: string; line: number; text: string; sink: string }
 
-type FunctionLike = ts.FunctionDeclaration | ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration;
 interface Source {
-  sf: ts.SourceFile;
-  decls: Map<string, ts.FunctionDeclaration | ts.VariableDeclaration>;
+  path: string;
+  program: AstNode;
+  decls: Map<string, AstNode>;
   imports: Map<string, { file: string; name: string }>;
-  calls?: Map<string, ts.CallExpression[]>;
+  lineAt: (pos: number) => number;
+  calls?: Map<string, AstNode[]>;
 }
 
-const nameOf = (node: ts.PropertyName | ts.Identifier) => node.getText().replace(/^["']|["']$/g, "");
-const isFunction = (node: ts.Node | undefined): node is FunctionLike => Boolean(node)
-  && (ts.isFunctionDeclaration(node!) || ts.isArrowFunction(node!) || ts.isFunctionExpression(node!) || ts.isMethodDeclaration(node!));
+const nameOf = (node: unknown): string => {
+  if (!isAstNode(node)) return "";
+  if (node.type === "Identifier" && typeof node.name === "string") return node.name;
+  if (node.type === "Literal" && (typeof node.value === "string" || typeof node.value === "number")) return String(node.value);
+  return "";
+};
 
+const isFunction = (node: unknown): node is AstNode =>
+  isAstNode(node) && (node.type === "FunctionDeclaration" || node.type === "ArrowFunctionExpression" || node.type === "FunctionExpression");
+
+const unwrapDecl = (statement: unknown): AstNode | null => {
+  if (!isAstNode(statement)) return null;
+  if (statement.type === "ExportNamedDeclaration" && isAstNode(statement.declaration)) return statement.declaration;
+  return statement;
+};
 /** The English lines that reach a person in `paths`. `read` gives a file's text, or null when there is none. */
 export function findServerLines(paths: readonly string[], read: (path: string) => string | null, root: string): Finding[] {
   const sources = new Map<string, Source | null>();
@@ -60,99 +72,139 @@ export function findServerLines(paths: readonly string[], read: (path: string) =
       sources.set(path, null);
       return null;
     }
-    const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-    // The file's own top-level names: what another file can import. Names inside a function are found from the use.
-    const decls = new Map<string, ts.FunctionDeclaration | ts.VariableDeclaration>();
-    for (const statement of sf.statements) {
-      if (ts.isFunctionDeclaration(statement) && statement.name) decls.set(statement.name.text, statement);
-      else if (ts.isVariableStatement(statement)) {
-        for (const one of statement.declarationList.declarations) if (ts.isIdentifier(one.name) && one.initializer) decls.set(one.name.text, one);
+    const program = parseSource(path, text);
+    attachParents(program, null);
+    const lineAt = makeLineAt(text);
+
+    const decls = new Map<string, AstNode>();
+    if (Array.isArray(program.body)) {
+      for (const rawStatement of program.body) {
+        const statement = unwrapDecl(rawStatement);
+        if (!statement) continue;
+        if (statement.type === "FunctionDeclaration" && isAstNode(statement.id) && typeof statement.id.name === "string") {
+          decls.set(statement.id.name, statement);
+        } else if (statement.type === "VariableDeclaration" && Array.isArray(statement.declarations)) {
+          for (const one of statement.declarations) {
+            if (isAstNode(one) && isAstNode(one.id) && one.id.type === "Identifier" && typeof one.id.name === "string" && Boolean(one.init)) {
+              decls.set(one.id.name, one);
+            }
+          }
+        }
       }
     }
+
     const imports = new Map<string, { file: string; name: string }>();
-    for (const statement of sf.statements) {
-      if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
-      const bindings = statement.importClause?.namedBindings, specifier = statement.moduleSpecifier.text;
-      if (!bindings || !ts.isNamedImports(bindings) || !specifier.startsWith(".") || !specifier.endsWith(".ts")) continue;
-      const file = resolve(dirname(path), specifier);
-      for (const element of bindings.elements) imports.set(element.name.text, { file, name: (element.propertyName ?? element.name).text });
+    if (Array.isArray(program.body)) {
+      for (const statement of program.body) {
+        if (!isAstNode(statement) || statement.type !== "ImportDeclaration" || !isAstNode(statement.source) || typeof statement.source.value !== "string" || !Array.isArray(statement.specifiers)) continue;
+        const specifier = statement.source.value;
+        if (!specifier.startsWith(".") || !specifier.endsWith(".ts")) continue;
+        const file = resolve(dirname(path), specifier);
+        for (const s of statement.specifiers) {
+          if (isAstNode(s) && s.type === "ImportSpecifier" && isAstNode(s.imported) && isAstNode(s.local) && typeof s.local.name === "string") {
+            const importedName = typeof s.imported.name === "string" ? s.imported.name : typeof s.imported.value === "string" ? s.imported.value : s.local.name;
+            imports.set(s.local.name, { file, name: importedName });
+          }
+        }
+      }
     }
-    const source = { sf, decls, imports };
+
+    const source: Source = { path, program, decls, imports, lineAt };
     sources.set(path, source);
     return source;
   }
 
-  function report(source: Source, node: ts.Node, text: string, sink: string): void {
-    const line = source.sf.getLineAndCharacterOfPosition(node.getStart(source.sf)).line + 1;
-    const file = relative(root, source.sf.fileName).split("\\").join("/");
+  function report(source: Source, node: AstNode, text: string, sink: string): void {
+    const line = source.lineAt(node.start);
+    const file = relative(root, source.path).split("\\").join("/");
     findings.set(`${file}:${line}:${text}`, { file, line, text, sink });
   }
 
-  function callsTo(source: Source, name: string): ts.CallExpression[] {
+  function callsTo(source: Source, name: string): AstNode[] {
     if (!source.calls) {
-      const calls = new Map<string, ts.CallExpression[]>();
-      const visit = (node: ts.Node) => {
-        if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) calls.set(node.expression.text, [...(calls.get(node.expression.text) ?? []), node]);
-        ts.forEachChild(node, visit);
+      const calls = new Map<string, AstNode[]>();
+      const visit = (node: AstNode) => {
+        if (node.type === "CallExpression" && isAstNode(node.callee) && node.callee.type === "Identifier" && typeof node.callee.name === "string") {
+          const callName = node.callee.name;
+          calls.set(callName, [...(calls.get(callName) ?? []), node]);
+        }
+        walkChildren(node, visit);
       };
-      visit(source.sf);
+      visit(source.program);
       source.calls = calls;
     }
     return source.calls.get(name) ?? [];
   }
 
   /** The function `name` is a parameter of, at the use, and its position. */
-  function parameterOf(node: ts.Node, name: string): { fn: FunctionLike; index: number } | null {
-    for (let at: ts.Node | undefined = node.parent; at; at = at.parent) {
-      if (!isFunction(at)) continue;
-      const index = at.parameters.findIndex((parameter) => ts.isIdentifier(parameter.name) && parameter.name.text === name);
+  function parameterOf(node: AstNode, name: string): { fn: AstNode; index: number } | null {
+    for (let at: unknown = node.parent; at; at = isAstNode(at) ? at.parent : undefined) {
+      if (!isFunction(at) || !Array.isArray(at.params)) continue;
+      const index = at.params.findIndex((p: unknown) => {
+        if (!isAstNode(p)) return false;
+        if (p.type === "Identifier") return p.name === name;
+        if (p.type === "AssignmentPattern" && isAstNode(p.left)) return p.left.name === name;
+        return false;
+      });
       if (index >= 0) return { fn: at, index };
     }
     return null;
   }
 
-  function functionName(fn: FunctionLike): string | null {
-    if (ts.isFunctionDeclaration(fn)) return fn.name?.text ?? null;
-    return ts.isVariableDeclaration(fn.parent) && ts.isIdentifier(fn.parent.name) ? fn.parent.name.text : null;
+  function functionName(fn: AstNode): string | null {
+    if (fn.type === "FunctionDeclaration" && isAstNode(fn.id) && typeof fn.id.name === "string") {
+      return fn.id.name;
+    }
+    const parent = fn.parent;
+    if (isAstNode(parent) && parent.type === "VariableDeclarator" && isAstNode(parent.id) && parent.id.type === "Identifier" && typeof parent.id.name === "string") {
+      return parent.id.name;
+    }
+    return null;
   }
 
   /** The calls to a named function within the block it is declared in. */
-  function callsOf(source: Source, fn: FunctionLike): ts.CallExpression[] {
+  function callsOf(source: Source, fn: AstNode): AstNode[] {
     const name = functionName(fn);
     if (!name) return [];
-    let scope: ts.Node | undefined = ts.isFunctionDeclaration(fn) ? fn.parent : fn.parent.parent;
-    while (scope && !ts.isBlock(scope) && !ts.isSourceFile(scope) && !ts.isModuleBlock(scope)) scope = scope.parent;
-    return callsTo(source, name).filter((call) => !scope || (call.pos >= scope.pos && call.end <= scope.end));
+    let scope: unknown = fn.type === "FunctionDeclaration" ? fn.parent : isAstNode(fn.parent) ? fn.parent.parent : undefined;
+    while (isAstNode(scope) && scope.type !== "BlockStatement" && scope.type !== "Program") scope = scope.parent;
+    const scopeNode = isAstNode(scope) ? scope : undefined;
+    return callsTo(source, name).filter((call) => !scopeNode || (call.start >= scopeNode.start && call.end <= scopeNode.end));
   }
 
-  function returnsOf(fn: FunctionLike): ts.Expression[] {
-    if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) return [fn.body];
-    const found: ts.Expression[] = [];
-    const visit = (node: ts.Node) => {
+  function returnsOf(fn: AstNode): AstNode[] {
+    if (fn.type === "ArrowFunctionExpression" && isAstNode(fn.body) && fn.body.type !== "BlockStatement") {
+      return [fn.body];
+    }
+    const found: AstNode[] = [];
+    const visit = (node: AstNode) => {
       if (node !== fn && isFunction(node)) return;
-      if (ts.isReturnStatement(node) && node.expression) found.push(node.expression);
-      ts.forEachChild(node, visit);
+      if (node.type === "ReturnStatement" && isAstNode(node.argument)) found.push(node.argument);
+      walkChildren(node, visit);
     };
-    if (fn.body) visit(fn.body);
+    if (isAstNode(fn.body)) visit(fn.body);
     return found;
   }
 
   /** The nearest declaration of `name` in scope at the use, else the file's. */
-  function declarationOf(source: Source, node: ts.Node, name: string): ts.FunctionDeclaration | ts.VariableDeclaration | null {
-    for (let at: ts.Node | undefined = node.parent; at; at = at.parent) {
-      if (!ts.isBlock(at) && !ts.isSourceFile(at) && !ts.isModuleBlock(at)) continue;
-      for (const statement of at.statements) {
-        if (ts.isFunctionDeclaration(statement) && statement.name?.text === name) return statement;
-        if (!ts.isVariableStatement(statement)) continue;
-        const found = statement.declarationList.declarations.find((one) => ts.isIdentifier(one.name) && one.name.text === name && one.initializer);
-        if (found) return found;
+  function declarationOf(source: Source, node: AstNode, name: string): AstNode | null {
+    for (let at: unknown = node.parent; at; at = isAstNode(at) ? at.parent : undefined) {
+      if (!isAstNode(at) || (at.type !== "BlockStatement" && at.type !== "Program") || !Array.isArray(at.body)) continue;
+      for (const rawStatement of at.body) {
+        const statement = unwrapDecl(rawStatement);
+        if (!statement) continue;
+        if (statement.type === "FunctionDeclaration" && isAstNode(statement.id) && statement.id.name === name) return statement;
+        if (statement.type !== "VariableDeclaration" || !Array.isArray(statement.declarations)) continue;
+        const found = statement.declarations.find((one: unknown) =>
+          isAstNode(one) && isAstNode(one.id) && one.id.type === "Identifier" && one.id.name === name && Boolean(one.init));
+        if (found && isAstNode(found)) return found;
       }
     }
     return source.decls.get(name) ?? null;
   }
 
   /** What `name` names at `node`: a declaration here, else the one it is imported from. */
-  function resolveName(source: Source, node: ts.Node, name: string): { source: Source; decl: ts.FunctionDeclaration | ts.VariableDeclaration } | null {
+  function resolveName(source: Source, node: AstNode, name: string): { source: Source; decl: AstNode } | null {
     const local = declarationOf(source, node, name);
     if (local) return { source, decl: local };
     const imported = source.imports.get(name);
@@ -161,155 +213,173 @@ export function findServerLines(paths: readonly string[], read: (path: string) =
     return target && decl ? { source: target, decl } : null;
   }
 
-  const functionOf = (decl: ts.FunctionDeclaration | ts.VariableDeclaration): FunctionLike | null =>
-    ts.isFunctionDeclaration(decl) ? decl : isFunction(decl.initializer) ? decl.initializer : null;
+  const functionOf = (decl: AstNode): AstNode | null => {
+    if (decl.type === "FunctionDeclaration") return decl;
+    if (isFunction(decl.init)) return decl.init;
+    return null;
+  };
 
-  function trace(source: Source, expr: ts.Node | undefined, sink: string, seen: Set<string>, depth = 0): void {
-    if (!expr || depth > 14) return;
-    const key = `${source.sf.fileName}:${expr.pos}:${expr.end}`;
+  function trace(source: Source, expr: unknown, sink: string, seen: Set<string>, depth = 0): void {
+    if (!isAstNode(expr) || depth > 14) return;
+    const key = `${source.path}:${expr.start}:${expr.end}`;
     if (seen.has(key)) return;
     seen.add(key);
-    const next = (node: ts.Node | undefined, from: Source = source) => trace(from, node, sink, seen, depth + 1);
-    if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) {
-      if (english(expr.text)) report(source, expr, expr.text, sink);
-    } else if (ts.isTemplateExpression(expr)) {
-      const words = [expr.head.text, ...expr.templateSpans.map((span) => span.literal.text)].join(" … ");
+    const next = (node: unknown, from: Source = source) => trace(from, node, sink, seen, depth + 1);
+
+    if (expr.type === "Literal" && typeof expr.value === "string") {
+      if (english(expr.value)) report(source, expr, expr.value, sink);
+    } else if (expr.type === "TemplateLiteral" && Array.isArray(expr.quasis)) {
+      const words = expr.quasis
+        .map((q: unknown) => {
+          if (!isAstNode(q) || typeof q.value !== "object" || q.value === null) return "";
+          const quasi = q.value as { cooked?: unknown; raw?: unknown };
+          return typeof quasi.cooked === "string" ? quasi.cooked : typeof quasi.raw === "string" ? quasi.raw : "";
+        })
+        .join(" … ");
       if (english(words)) report(source, expr, words, sink);
-      for (const span of expr.templateSpans) next(span.expression);
-    } else if (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isNonNullExpression(expr) || ts.isSatisfiesExpression(expr)
-      || ts.isTypeAssertionExpression(expr) || ts.isAwaitExpression(expr)) {
-      next(expr.expression);
-    } else if (ts.isConditionalExpression(expr)) {
-      next(expr.whenTrue);
-      next(expr.whenFalse);
-    } else if (ts.isBinaryExpression(expr)) {
-      const kind = expr.operatorToken.kind;
-      if (kind === ts.SyntaxKind.PlusToken || kind === ts.SyntaxKind.BarBarToken || kind === ts.SyntaxKind.QuestionQuestionToken
-        || kind === ts.SyntaxKind.AmpersandAmpersandToken) {
-        next(expr.left);
-        next(expr.right);
+      if (Array.isArray(expr.expressions)) {
+        for (const span of expr.expressions) next(span);
       }
-    } else if (ts.isArrayLiteralExpression(expr)) {
-      for (const element of expr.elements) next(element);
-    } else if (ts.isSpreadElement(expr)) {
+    } else if (expr.type === "ParenthesizedExpression" || expr.type === "TSAsExpression" || expr.type === "TSNonNullExpression" || expr.type === "TSSatisfiesExpression" || expr.type === "TSTypeAssertion") {
       next(expr.expression);
-    } else if (ts.isIdentifier(expr)) {
-      const parameter = parameterOf(expr, expr.text);
+    } else if (expr.type === "AwaitExpression") {
+      next(expr.argument);
+    } else if (expr.type === "ConditionalExpression") {
+      next(expr.consequent);
+      next(expr.alternate);
+    } else if ((expr.type === "BinaryExpression" && expr.operator === "+") ||
+               (expr.type === "LogicalExpression" && (expr.operator === "||" || expr.operator === "??" || expr.operator === "&&"))) {
+      next(expr.left);
+      next(expr.right);
+    } else if (expr.type === "ArrayExpression" && Array.isArray(expr.elements)) {
+      for (const element of expr.elements) next(element);
+    } else if (expr.type === "SpreadElement") {
+      next(expr.argument);
+    } else if (expr.type === "Identifier" && typeof expr.name === "string") {
+      const parameter = parameterOf(expr, expr.name);
       if (parameter) {
-        for (const call of callsOf(source, parameter.fn)) next(call.arguments[parameter.index]);
+        for (const call of callsOf(source, parameter.fn)) {
+          if (Array.isArray(call.arguments)) next(call.arguments[parameter.index]);
+        }
         return;
       }
-      const named = resolveName(source, expr, expr.text);
-      if (named && ts.isVariableDeclaration(named.decl) && !isFunction(named.decl.initializer)) next(named.decl.initializer, named.source);
-    } else if (ts.isCallExpression(expr)) {
-      const callee = expr.expression;
-      if (ts.isPropertyAccessExpression(callee) && KEEPS_WORDS.has(callee.name.text)) {
-        next(callee.expression);
-      } else if (ts.isPropertyAccessExpression(callee) && callee.name.text === "map") {
+      const named = resolveName(source, expr, expr.name);
+      if (named && named.decl.type === "VariableDeclarator" && !isFunction(named.decl.init)) next(named.decl.init, named.source);
+    } else if (expr.type === "CallExpression") {
+      const callee = expr.callee;
+      if (isAstNode(callee) && callee.type === "MemberExpression" && !callee.computed && isAstNode(callee.property) && typeof callee.property.name === "string" && KEEPS_WORDS.has(callee.property.name)) {
+        next(callee.object);
+      } else if (isAstNode(callee) && callee.type === "MemberExpression" && !callee.computed && isAstNode(callee.property) && callee.property.name === "map" && Array.isArray(expr.arguments)) {
         const mapper = expr.arguments[0];
         if (isFunction(mapper)) for (const result of returnsOf(mapper)) next(result);
-      } else if (ts.isIdentifier(callee) && callee.text === "serverLine") {
-        // The words the line's {names} are filled with.
+      } else if (isAstNode(callee) && callee.type === "Identifier" && callee.name === "serverLine" && Array.isArray(expr.arguments)) {
         const params = expr.arguments[2];
-        if (params && ts.isObjectLiteralExpression(params)) {
+        if (isAstNode(params) && params.type === "ObjectExpression" && Array.isArray(params.properties)) {
           for (const one of params.properties) {
-            if (ts.isPropertyAssignment(one)) next(one.initializer);
-            else if (ts.isShorthandPropertyAssignment(one)) next(one.name);
-            else if (ts.isSpreadAssignment(one)) next(one.expression);
+            if (isAstNode(one) && one.type === "Property") next(one.value);
+            else if (isAstNode(one) && one.type === "SpreadElement") next(one.argument);
           }
         } else next(params);
-      } else if (ts.isIdentifier(callee) && PASS_THROUGH.has(callee.text)) {
+      } else if (isAstNode(callee) && callee.type === "Identifier" && typeof callee.name === "string" && PASS_THROUGH.has(callee.name) && Array.isArray(expr.arguments)) {
         next(expr.arguments[0]);
-      } else if (ts.isIdentifier(callee)) {
-        const named = resolveName(source, expr, callee.text);
+      } else if (isAstNode(callee) && callee.type === "Identifier" && typeof callee.name === "string") {
+        const named = resolveName(source, expr, callee.name);
         const fn = named ? functionOf(named.decl) : null;
         if (named && fn) for (const result of returnsOf(fn)) next(result, named.source);
       }
-    } else if (ts.isObjectLiteralExpression(expr)) {
-      for (const property of expr.properties) {
-        if (ts.isPropertyAssignment(property) && SHOWN.has(nameOf(property.name))) next(property.initializer);
-        else if (ts.isShorthandPropertyAssignment(property) && SHOWN.has(property.name.text)) next(property.name);
-        else if (ts.isSpreadAssignment(property)) next(property.expression);
+    } else if (expr.type === "ObjectExpression" && Array.isArray(expr.properties)) {
+      for (const prop of expr.properties) {
+        if (isAstNode(prop) && prop.type === "Property" && SHOWN.has(nameOf(prop.key))) next(prop.value);
+        else if (isAstNode(prop) && prop.type === "SpreadElement") next(prop.argument);
       }
-    } else if (ts.isPropertyAccessExpression(expr)) {
-      for (const object of objectsOf(source, expr.expression, new Set(), 0)) {
-        const property = object.node.properties.find((one) => (ts.isPropertyAssignment(one) || ts.isShorthandPropertyAssignment(one))
-          && nameOf(one.name) === expr.name.text);
-        if (property) next(ts.isPropertyAssignment(property) ? property.initializer : property.name, object.source);
+    } else if (expr.type === "MemberExpression" && !expr.computed && isAstNode(expr.property) && typeof expr.property.name === "string") {
+      const propName = expr.property.name;
+      for (const object of objectsOf(source, expr.object, new Set(), 0)) {
+        if (!Array.isArray(object.node.properties)) continue;
+        const prop = object.node.properties.find((one) => isAstNode(one) && one.type === "Property" && nameOf(one.key) === propName);
+        if (prop && isAstNode(prop)) next(prop.value, object.source);
       }
     }
   }
 
   /** The object literals an expression can be. */
-  function objectsOf(source: Source, expr: ts.Node | undefined, seen: Set<string>, depth: number): Array<{ source: Source; node: ts.ObjectLiteralExpression }> {
-    if (!expr || depth > 10) return [];
-    const key = `${source.sf.fileName}:${expr.pos}:${expr.end}`;
+  function objectsOf(source: Source, expr: unknown, seen: Set<string>, depth: number): Array<{ source: Source; node: AstNode }> {
+    if (!isAstNode(expr) || depth > 10) return [];
+    const key = `${source.path}:${expr.start}:${expr.end}`;
     if (seen.has(key)) return [];
     seen.add(key);
-    const next = (node: ts.Node | undefined, from: Source = source) => objectsOf(from, node, seen, depth + 1);
-    if (ts.isObjectLiteralExpression(expr)) return [{ source, node: expr }];
-    if (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isNonNullExpression(expr) || ts.isSatisfiesExpression(expr)
-      || ts.isAwaitExpression(expr)) return next(expr.expression);
-    if (ts.isConditionalExpression(expr)) return [...next(expr.whenTrue), ...next(expr.whenFalse)];
-    if (ts.isBinaryExpression(expr)) return [...next(expr.left), ...next(expr.right)];
-    if (ts.isIdentifier(expr)) {
-      const parameter = parameterOf(expr, expr.text);
-      if (parameter) return callsOf(source, parameter.fn).flatMap((call) => next(call.arguments[parameter.index]));
-      const named = resolveName(source, expr, expr.text);
-      return named && ts.isVariableDeclaration(named.decl) ? next(named.decl.initializer, named.source) : [];
+    const next = (node: unknown, from: Source = source) => objectsOf(from, node, seen, depth + 1);
+    if (expr.type === "ObjectExpression") return [{ source, node: expr }];
+    if (expr.type === "ParenthesizedExpression" || expr.type === "TSAsExpression" || expr.type === "TSNonNullExpression" || expr.type === "TSSatisfiesExpression" || expr.type === "TSTypeAssertion") return next(expr.expression);
+    if (expr.type === "AwaitExpression") return next(expr.argument);
+    if (expr.type === "ConditionalExpression") return [...next(expr.consequent), ...next(expr.alternate)];
+    if ((expr.type === "BinaryExpression" && expr.operator === "+") ||
+        (expr.type === "LogicalExpression" && (expr.operator === "||" || expr.operator === "??" || expr.operator === "&&"))) return [...next(expr.left), ...next(expr.right)];
+    if (expr.type === "Identifier" && typeof expr.name === "string") {
+      const parameter = parameterOf(expr, expr.name);
+      if (parameter) {
+        return callsOf(source, parameter.fn).flatMap((call) =>
+          Array.isArray(call.arguments) ? next(call.arguments[parameter.index]) : []);
+      }
+      const named = resolveName(source, expr, expr.name);
+      return named && named.decl.type === "VariableDeclarator" ? next(named.decl.init, named.source) : [];
     }
-    if (ts.isCallExpression(expr) && ts.isIdentifier(expr.expression)) {
-      const named = resolveName(source, expr, expr.expression.text);
+    if (expr.type === "CallExpression" && isAstNode(expr.callee) && expr.callee.type === "Identifier" && typeof expr.callee.name === "string") {
+      const named = resolveName(source, expr, expr.callee.name);
       const fn = named ? functionOf(named.decl) : null;
       return named && fn ? returnsOf(fn).flatMap((result) => next(result, named.source)) : [];
     }
     return [];
   }
 
-  const property = (object: ts.ObjectLiteralExpression, name: string) => object.properties.find((one): one is ts.PropertyAssignment | ts.ShorthandPropertyAssignment =>
-    (ts.isPropertyAssignment(one) || ts.isShorthandPropertyAssignment(one)) && nameOf(one.name) === name);
-  const valueOf = (one: ts.PropertyAssignment | ts.ShorthandPropertyAssignment) => (ts.isPropertyAssignment(one) ? one.initializer : one.name);
+  const property = (object: AstNode, name: string): AstNode | undefined => {
+    if (!Array.isArray(object.properties)) return undefined;
+    for (const one of object.properties) {
+      if (isAstNode(one) && one.type === "Property" && nameOf(one.key) === name) return one;
+    }
+    return undefined;
+  };
 
   for (const path of paths) {
     const source = load(path);
     if (!source) continue;
-    const at = (node: ts.Node, what: string) =>
-      `${what} at ${relative(root, source.sf.fileName).split("\\").join("/")}:${source.sf.getLineAndCharacterOfPosition(node.getStart(source.sf)).line + 1}`;
-    const visit = (node: ts.Node) => {
-      if (ts.isObjectLiteralExpression(node)) {
+    const at = (node: AstNode, what: string) =>
+      `${what} at ${relative(root, source.path).split("\\").join("/")}:${source.lineAt(node.start)}`;
+    const visit = (node: AstNode) => {
+      if (node.type === "ObjectExpression" && Array.isArray(node.properties)) {
         const role = property(node, "role");
-        if (role && ts.isPropertyAssignment(role) && ts.isStringLiteral(role.initializer) && role.initializer.text === "bot") {
+        if (role && isAstNode(role.value) && role.value.type === "Literal" && role.value.value === "bot") {
           for (const one of node.properties) {
-            if (!ts.isPropertyAssignment(one) && !ts.isShorthandPropertyAssignment(one)) continue;
-            const name = nameOf(one.name);
-            if (name === "text") trace(source, valueOf(one), at(node, "line"), new Set());
-            else if (CARDS.has(name)) trace(source, valueOf(one), at(node, `card ${name}`), new Set());
+            if (!isAstNode(one) || one.type !== "Property") continue;
+            const name = nameOf(one.key);
+            if (name === "text") trace(source, one.value, at(node, "line"), new Set());
+            else if (CARDS.has(name)) trace(source, one.value, at(node, `card ${name}`), new Set());
             else if (name === "tool") {
-              for (const tool of objectsOf(source, valueOf(one), new Set(), 0)) {
+              for (const tool of objectsOf(source, one.value, new Set(), 0)) {
                 const toolName = property(tool.node, "name");
-                if (toolName) trace(tool.source, valueOf(toolName), at(node, "status row"), new Set());
+                if (toolName && isAstNode(toolName)) trace(tool.source, toolName.value, at(node, "status row"), new Set());
               }
             }
           }
         }
         const title = property(node, "title"), body = property(node, "body");
         if (property(node, "botId") && title && body) {
-          trace(source, valueOf(title), at(node, "notification"), new Set());
-          trace(source, valueOf(body), at(node, "notification"), new Set());
+          trace(source, title.value, at(node, "notification"), new Set());
+          trace(source, body.value, at(node, "notification"), new Set());
         }
-      } else if (ts.isCallExpression(node)) {
-        const callee = node.expression;
-        const called = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : "";
-        if (called === "patchMessage" && node.arguments[2] && ts.isObjectLiteralExpression(node.arguments[2])) {
+      } else if (node.type === "CallExpression") {
+        const callee = node.callee;
+        const called = isAstNode(callee) ? (callee.type === "Identifier" && typeof callee.name === "string" ? callee.name : (callee.type === "MemberExpression" && !callee.computed && isAstNode(callee.property) && typeof callee.property.name === "string" ? callee.property.name : "")) : "";
+        if (called === "patchMessage" && Array.isArray(node.arguments) && isAstNode(node.arguments[2]) && node.arguments[2].type === "ObjectExpression") {
           const text = property(node.arguments[2], "text");
-          if (text) trace(source, valueOf(text), at(node, "line"), new Set());
-        } else if (called === "notice") {
+          if (text) trace(source, text.value, at(node, "line"), new Set());
+        } else if (called === "notice" && Array.isArray(node.arguments)) {
           for (const argument of node.arguments) trace(source, argument, at(node, "notice"), new Set());
         }
       }
-      ts.forEachChild(node, visit);
+      walkChildren(node, visit);
     };
-    visit(source.sf);
+    visit(source.program);
   }
   return [...findings.values()].sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
 }

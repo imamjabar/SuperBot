@@ -14,7 +14,7 @@ step() {
 }
 
 node_version="v$(tr -d '[:space:]' < .node-version)"
-node_dir="$HOME/.local/node24"
+node_dir="$HOME/.local/node26"
 
 install_node() {
   if [[ "$("$node_dir/bin/node" --version 2>/dev/null)" == "$node_version" ]]; then
@@ -32,9 +32,9 @@ install_node() {
   rm -rf "$tmp"
 }
 
-# Amp and supervised services start in login shells, so Node 24 must come first on their PATH.
+# Amp and supervised services start in login shells, so Node 26 must come first on their PATH.
 persist_node_path() {
-  local marker="# superbot Node 24"
+  local marker="# superbot Node 26"
   if grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
     return
   fi
@@ -57,6 +57,6 @@ export PATH="$node_dir/bin:$PATH"
 # pnpm switches itself to the version in package.json's packageManager field.
 step "pnpm install" pnpm install --frozen-lockfile
 
-# Electron 43 no longer downloads its binary in postinstall; it fetches it on first use.
+# Electron nightly downloads its binary on first use, not in postinstall.
 # install.js exits immediately when the binary is already present.
 step "electron binary" node node_modules/electron/install.js

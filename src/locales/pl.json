@@ -171,8 +171,6 @@
   "server.mcp.signIn.description": "{bot} dodał(a) serwer MCP {label} ({host}). Zaloguj się, aby {bot} mógł z niego korzystać.",
   "server.mcp.signIn.onYourMac": "Otwórz ten czat na swoim Macu, aby zalogować się do {label}.",
   "server.mcp.signIn.inSettings": "Dokończ to logowanie w Aplikacje → Serwery MCP.",
-  "server.mcp.signIn.onlyPerson": "Zalogować się tutaj może tylko {name}.",
-  "server.mcp.signIn.onlyOwner": "Zalogować się tutaj może tylko osoba, do której należy ten czat.",
   "server.mcp.signIn.adminOnly": "Zalogować się do {label} może tylko administrator tej instalacji.",
   "server.mcp.signIn.expired": "Czas na zalogowanie minął. Spróbuj ponownie.",
   "server.mcp.signIn.failed": "Logowanie nie zostało dokończone. Spróbuj ponownie.",

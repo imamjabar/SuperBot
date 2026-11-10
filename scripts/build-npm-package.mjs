@@ -1,6 +1,6 @@
 // Assemble the `openmausbot` npm package: the self-contained server bundle,
 // the built UI, the bundled skills and the CLI, with a package.json of its
-// own. `npx openmausbot serve` then needs Node 24+ and nothing else.
+// own. `npx openmausbot serve` then needs Node 26+ and nothing else.
 //
 //   pnpm build:server && pnpm exec vite build && node scripts/build-npm-package.mjs
 //   cd release/npm && npm pack        # or npm publish --access public
@@ -59,7 +59,7 @@ writeFileSync(
         "@resvg/resvg-js": app.dependencies["@resvg/resvg-js"],
       },
       files: ["cli.js", "dist-server", "dist", "skills", "enterprise", "LICENSE", "README.md"],
-      engines: { node: ">=24" },
+      engines: { node: ">=26" },
       repository: { type: "git", url: "https://github.com/milind-soni/OpenMausBot.git" },
       homepage: "https://github.com/milind-soni/OpenMausBot#readme",
       keywords: ["openmausbot", "agents", "self-hosted", "server"],
@@ -73,7 +73,7 @@ writeFileSync(
   join(out, "README.md"),
   `# openmausbot
 
-Your own team of AI bots, with guided terminal setup. Requires Node 24+.
+Your own team of AI bots, with guided terminal setup. Requires Node 26+.
 
 \`\`\`sh
 npm install -g openmausbot

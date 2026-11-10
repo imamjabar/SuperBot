@@ -91,5 +91,5 @@ fleet   many client workspaces on one Linux server, each its own account,
 ${HEADLESS_USAGE}
 
 Install once with \`npm install -g openmausbot\`, then type \`openmausbot\`.
-Or run without a global install: \`npx openmausbot\`. Node 24+ is required.
+Or run without a global install: \`npx openmausbot\`. Node 26+ is required.
 `;
