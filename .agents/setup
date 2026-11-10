@@ -13,7 +13,7 @@ step() {
   echo "<== $label ($((SECONDS - start))s)"
 }
 
-node_version=v24.22.2
+node_version="v$(tr -d '[:space:]' < .node-version)"
 node_dir="$HOME/.local/node24"
 
 install_node() {

@@ -35,7 +35,7 @@ jobs:
       - if: steps.release.outputs.exists != 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: pnpm
       - if: steps.release.outputs.exists != 'true'
         run: pnpm install --frozen-lockfile
