@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeftRight } from "lucide-react";
 import { BotAvatar } from "./Avatar";
@@ -29,6 +29,12 @@ function resolveBot(id: string, bots?: readonly Bot[]): { id: string; name: stri
 
 export function BotChatTranscript({ target, clusters, bots = [], onClose, loading = false, error = false }: BotChatTranscriptProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const scroller = scrollRef.current;
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  }, [clusters]);
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -70,7 +76,7 @@ export function BotChatTranscript({ target, clusters, bots = [], onClose, loadin
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto flex flex-col min-h-full">
           {loading && (
             <div className="flex flex-1 items-center justify-center py-12 text-caption text-ink-secondary">
@@ -167,12 +173,15 @@ export function BotChatSheet() {
     };
   }, [threadId]);
 
+  const ownerBotId = target?.ownerBotId;
+  const clusters = useMemo(() => botChatBubbles(loadState.messages, ownerBotId), [loadState.messages, ownerBotId]);
+
   if (!target) return null;
 
   return createPortal(
     <BotChatTranscript
       target={target}
-      clusters={botChatBubbles(loadState.messages, target.ownerBotId)}
+      clusters={clusters}
       bots={state.bots}
       onClose={closeBotChat}
       loading={loadState.status === "loading"}
