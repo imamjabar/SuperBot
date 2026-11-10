@@ -229,7 +229,7 @@ const LOCAL_FIXTURE = { id: "l1", kind: "local", name: "Work", dataDir: "/Users/
 
 function runForget(state) {
   const start = MAIN_SOURCE.indexOf("async function forgetEnvironment(");
-  const end = MAIN_SOURCE.indexOf("function showContextMenu(", start);
+  const end = MAIN_SOURCE.indexOf("async function showContextMenu(", start);
   assert.ok(start > 0 && end > start, "the forget helper exists");
   const calls = { dialogs: [], shares: [], persisted: [], navigated: [], rm: [] };
   const rmOptions = [];

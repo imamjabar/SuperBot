@@ -318,13 +318,23 @@ async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_M
   } catch {
   }
   let timer;
+  let forceTimer;
+  if (proc.pid) {
+    forceTimer = setTimeout(() => {
+      try { process.kill(proc.pid, "SIGKILL"); } catch {}
+    }, 2_000);
+    forceTimer.unref?.();
+  }
   return Promise.race([
     exited.then(() => true),
     new Promise((resolve) => {
       timer = setTimeout(() => resolve(false), timeoutMs);
       timer.unref?.();
     }),
-  ]).finally(() => clearTimeout(timer));
+  ]).finally(() => {
+    clearTimeout(timer);
+    clearTimeout(forceTimer);
+  });
 }
 let phoneSecretIdentity = null;
 let desktopRemoteAccess = null;

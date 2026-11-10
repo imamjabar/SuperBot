@@ -31,11 +31,13 @@ export function appPermissionAllowed(permission, requestingUrlOrOrigin, renderer
   const allowed = webOrigin(rendererOrigin);
   if (!requesting || !allowed || requesting !== allowed) return false;
 
-  // Electron 43 routes getDisplayMedia through "media" with mediaTypes: [] before selecting display media.
+  // Electron 47: screen capture routes through "display-capture" before setDisplayMediaRequestHandler selects display media.
+  if (permission === "display-capture") return true;
+
   if (permission === "media") {
     if (details?.mediaType !== undefined && details.mediaType !== "audio") return false;
     if (details?.mediaTypes !== undefined) {
-      return Array.isArray(details.mediaTypes) && details.mediaTypes.every((type) => type === "audio");
+      return Array.isArray(details.mediaTypes) && details.mediaTypes.length > 0 && details.mediaTypes.every((type) => type === "audio");
     }
     return details?.mediaType === "audio";
   }

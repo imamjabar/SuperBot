@@ -22,9 +22,9 @@ test("allows media for audio (microphone) and guarded display-capture, denies vi
   assert.equal(appPermissionAllowed("media", LOCAL_PAGE, LOCAL_ORIGIN, { mediaTypes: ["audio"] }), true);
   assert.equal(appPermissionAllowed("media", LOCAL_PAGE, LOCAL_ORIGIN, { mediaType: "audio" }), true);
 
-  // Electron 43 routes getDisplayMedia through permission="media" with an empty mediaTypes array.
-  assert.equal(appPermissionAllowed("media", LOCAL_PAGE, LOCAL_ORIGIN, { mediaTypes: [] }), true);
-
+  // Electron 47: screen capture requests report as display-capture.
+  assert.equal(appPermissionAllowed("display-capture", LOCAL_PAGE, LOCAL_ORIGIN), true);
+  assert.equal(appPermissionAllowed("media", LOCAL_PAGE, LOCAL_ORIGIN, { mediaTypes: [] }), false);
   assert.equal(appPermissionAllowed("media", LOCAL_PAGE, LOCAL_ORIGIN, { mediaTypes: ["video"] }), false);
   assert.equal(appPermissionAllowed("media", LOCAL_PAGE, LOCAL_ORIGIN, { mediaTypes: ["audio", "video"] }), false);
   assert.equal(appPermissionAllowed("media", LOCAL_PAGE, LOCAL_ORIGIN, { mediaType: "video" }), false);
@@ -44,8 +44,8 @@ test("refuses permissions to any other origin", () => {
 test("keeps every privileged capability off even for the local renderer page", () => {
   const privileged = [
     "geolocation", "camera", "usb", "hid", "serial", "midi", "midiSysex",
-    "display-capture", "fileSystem", "openExternal", "idle-detection", "speaker-selection",
-    "window-management", "storage-access", "top-level-storage-access", "pointerLock",
+    "fileSystem", "openExternal", "idle-detection", "speaker-selection",
+    "window-management", "storage-access", "pointerLock",
     "keyboardLock", "mediaKeySystem", "unknown",
   ];
   for (const permission of privileged) {
