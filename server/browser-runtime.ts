@@ -6,6 +6,7 @@ import { PageSizes, type PageSize } from "./browser-page-size.ts";
 import { SECRET_ON_PAGE, SecretHolds, type SecretHold } from "./browser-secret-hold.ts";
 import type { BrowserSteps, StepCall, StepContext } from "./browser-steps.ts";
 import { HARNESS_CALL_BUDGET_MS } from "./harness-budget.ts";
+import { toolNameOf } from "./browser/steps.ts";
 import { launchSettingsKey } from "./browser-launch-key.ts";
 
 export interface BrowserSpawnSpec {
@@ -968,11 +969,6 @@ function stillBusyToolError(call: string): { isError: true; content: Array<{ typ
 
 function recoveredResult(call: string, url: string): { content: Array<{ type: "text"; text: string }> } {
   return { content: [{ type: "text", text: `The browser answers again: the earlier ${call} call that did not answer has ended, and it may have taken effect. This call did not run. The current page is ${url || "unknown"}. Check the page before you repeat the earlier action, then call again what you need.` }] };
-}
-
-function toolNameOf(params: unknown): string | undefined {
-  const name = (params as { name?: unknown } | null)?.name;
-  return typeof name === "string" ? name : undefined;
 }
 
 function firstText(result: unknown): string {

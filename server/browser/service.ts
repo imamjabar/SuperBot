@@ -28,6 +28,7 @@ import type { HoldLimits } from "./hold.ts";
 import { errorResult, shapeResult, textResult, withParts, type ToolResult } from "./shape.ts";
 import { TabRegistry, type Tab } from "./tabs.ts";
 import { parseToolCall, RESTART_TOOL, TOOL_LIST } from "./tools.ts";
+import { toolNameOf } from "./steps.ts";
 import { ViewerHub, type Viewer, type ViewerOptions, type ViewerOutput } from "./viewers/core.ts";
 
 /** One profile's browser as the server names it: the session (bot-<id>, a profile's partition, guest-…) and its key. */
@@ -109,11 +110,6 @@ export class ProfileState {
     const page = this.run?.browser.activePage;
     return (page && this.tabs.byPage(page)) ?? this.tabs.list().at(-1) ?? null;
   }
-}
-
-function toolNameOf(params: unknown): string | undefined {
-  const name = (params as { name?: unknown } | null)?.name;
-  return typeof name === "string" ? name : undefined;
 }
 
 function lostCallResult(call: string): ToolResult {

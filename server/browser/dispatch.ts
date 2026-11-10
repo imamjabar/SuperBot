@@ -4,7 +4,7 @@
 // navigate, status) and apps/server/src/mcp/PreviewAutomationBroker.ts, MIT License, Copyright (c) 2026 T3 Tools Inc.
 // (full text in third_party/t3-code/LICENSE); modified: one in-process host instead of a broker, tabs that belong to
 // the profile, the CDP driver instead of Playwright, and SuperBot's page-change and page-health lines.
-import { describePageChange, sanitizeUrl, type PageState } from "../browser-tool-shape.ts";
+import { describePageChange, REFS_GONE, sanitizeUrl, type PageState } from "../browser-tool-shape.ts";
 import type { CdpBrowser } from "./cdp/browser.ts";
 import type { Download } from "./cdp/downloads.ts";
 import { DriverError, isUnanswered } from "./cdp/errors.ts";
@@ -266,7 +266,7 @@ export async function executeTool(context: ToolContext, call: ToolCall): Promise
           ? await tab.page.navigate(agentUrl(url), options)
           : action === "back" ? await tab.page.back(options) : action === "forward" ? await tab.page.forward(options) : await tab.page.reload(options);
         if (result.signInPrompt) return textResult(signInWait(tab, result.url, result.signInPrompt));
-        return textResult(`${tab.id} is now at ${sanitizeUrl(result.url) || result.url}${result.status && result.status >= 400 ? ` (HTTP ${result.status})` : ""}. Refs from earlier snapshots do not apply to it; take a snapshot before acting on refs.`);
+        return textResult(`${tab.id} is now at ${sanitizeUrl(result.url) || result.url}${result.status && result.status >= 400 ? ` (HTTP ${result.status})` : ""}. ${REFS_GONE}`);
       });
     }
     case "agent_browser_snapshot": {
