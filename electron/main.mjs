@@ -1364,7 +1364,7 @@ function sharingController() {
 }
 
 const cleanWorkspace = createCleanWorkspace({ dataDir: desktopDataDir, running: () => runningDataDir, swap: dir => switchLocalEnvironmentTo(dir, LOCAL_ID, true), allowed: () => app.isPackaged && !desktopRemoteAccess, log: slog });
-const loginItem = createOpenAtLogin({ app, file: path.join(app.getPath("userData"), "open-at-login.json"), home: os.homedir() });
+const loginItem = createOpenAtLogin({ app, home: os.homedir() });
 installOpenAtLogin({ ipcMain, guard: localOrHome, loginItem, changed: refreshApplicationMenu });
 let hiddenStart = false;
 
@@ -2592,7 +2592,7 @@ app.whenReady().then(async () => {
       slog(`system tray unavailable: ${error?.message ?? error}`);
     }
   }
-  hiddenStart = loginItem.startedHidden() || reopenedOutOfSight();
+  hiddenStart = reopenedOutOfSight();
   startupScreen = hiddenStart ? null : createStartupScreen({
     BrowserWindow, iconPath: APP_ICON, isQuitting: () => desktopShutdownStarted,
     onQuit: () => app.quit(),
