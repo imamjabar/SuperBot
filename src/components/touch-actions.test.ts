@@ -101,7 +101,7 @@ describe("hover-only actions on touch screens", () => {
     // One media query holding both conditions: a comma in the shorthand variant would be read as a selector list.
     expect(css).toMatch(/@media \(hover: none\), \(pointer: coarse\) \{\s*\.touch\\:opacity-100 \{\s*opacity: 100%;/);
     expect(css).not.toMatch(/\.touch\\:opacity-\d+ \(pointer/);
-    expect(css).toMatch(/@media \(hover: hover\) \{\s*\.group-hover\\:opacity-100:is\(:where\(\.group\):hover \*\)/);
+    expect(css).toMatch(/@media \(hover: hover\) \{\s*[^{}]*\.group-hover\\:opacity-100[^{}]*\{\s*opacity: 100%;/);
   });
 
   it("finds the hover-revealed controls it guards", () => {

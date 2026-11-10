@@ -106,7 +106,7 @@
     "ajv-formats": "3.0.1",
     "clsx": "^2.1.1",
     "codemirror": "6.0.2",
-    "croner": "11.0.0",
+    "croner": "10.0.1",
     "imapflow": "2.11.0",
     "jmespath": "0.16.0",
     "jose": "6.2.16",
