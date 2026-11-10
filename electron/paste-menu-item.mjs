@@ -1,11 +1,16 @@
-export function pasteMenuItem(params, clipboard, webContents) {
+// Finder may supply file URLs, not bitmap bytes; Chromium decodes, and nothing here reads files or sends clipboard data.
+// Electron 47 names a platform's raw clipboard format as `electron application/osclipboard;format="…"`.
+const ATTACHMENT_TYPES = [
+  "image/png",
+  "text/uri-list",
+  ...["public.file-url", "NSFilenamesPboardType"].map((format) => `electron application/osclipboard;format="${format}"`),
+];
+
+export async function pasteMenuItem(params, clipboard, webContents) {
   let attachment = false;
   if (params.isEditable && !params.editFlags.canPaste) {
     try {
-      // Finder may supply file URLs, not bitmap bytes; Chromium decodes, and nothing here reads files or sends clipboard data.
-      attachment = clipboard.availableFormats().some((format) =>
-        ["public.file-url", "NSFilenamesPboardType", "text/uri-list"].includes(format)
-      ) || !clipboard.readImage().isEmpty();
+      attachment = (await Promise.all(ATTACHMENT_TYPES.map((type) => clipboard.has(type)))).some(Boolean);
     } catch {}
   }
   return {

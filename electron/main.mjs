@@ -1633,7 +1633,7 @@ function openWorkspaceSettings(computerId) {
 
 async function addServerFromClipboard() {
   try {
-    return await connectHostedWorkspace(clipboard.readText());
+    return await connectHostedWorkspace(await clipboard.readText());
   } catch (error) {
     await dialog.showMessageBox({ type: "info", message: "Could not connect to the server", detail: `${error.message}\nYou can also choose Connect to a server to enter an address in Settings.` });
     return false;
@@ -1750,7 +1750,7 @@ async function forgetEnvironment(id, purge = false, confirmed = false) {
   return { ok: true };
 }
 
-function showContextMenu(win, params) {
+async function showContextMenu(win, params) {
   if (!params.isEditable && !params.linkURL && !params.misspelledWord && !params.selectionText) return;
   const menuItems = [];
   if (params.misspelledWord) {
@@ -1764,7 +1764,7 @@ function showContextMenu(win, params) {
   }
   if (params.linkURL) {
     menuItems.push(
-      { label: "Copy Link", click: () => clipboard.writeText(params.linkURL) },
+      { label: "Copy Link", click: () => void writeClipboardText(clipboard, params.linkURL) },
       { type: "separator" },
     );
   }
@@ -1774,7 +1774,7 @@ function showContextMenu(win, params) {
     { type: "separator" },
     { label: "Cut", role: "cut", enabled: params.editFlags.canCut },
     { label: "Copy", role: "copy", enabled: params.editFlags.canCopy },
-    pasteMenuItem(params, clipboard, win.webContents),
+    await pasteMenuItem(params, clipboard, win.webContents),
     { label: "Paste and Match Style", role: "pasteAndMatchStyle", enabled: params.editFlags.canPaste },
     { type: "separator" },
     { label: "Select All", role: "selectAll", enabled: params.editFlags.canSelectAll },
@@ -1898,7 +1898,7 @@ function createWindow({ deferNavigation = false } = {}) {
 
   // Electron has no default context menu.
   win.webContents.on("context-menu", (_event, params) => {
-    showContextMenu(win, params);
+    void showContextMenu(win, params);
   });
 
   if (process.env.OMB_SMOKE_TEST === "1") {
@@ -2035,7 +2035,7 @@ ipcMain.handle("screen:frame", localOnly("screen:frame", async () => {
 // Renderer-controlled text must never become a process argument: the user reviews and pastes it.
 ipcMain.handle("engine:open-terminal", localOnly("engine:open-terminal", async (_event, command) => {
   if (typeof command !== "string" || !command.trim()) return false;
-  clipboard.writeText(command);
+  await clipboard.writeText(command);
   return openBlankTerminal();
 }));
 

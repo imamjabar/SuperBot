@@ -4,23 +4,23 @@ import { CLIPBOARD_TEXT_MAX_CHARS, writeClipboardText } from "./clipboard-write.
 
 const fake = (fail = false) => {
   const written = [];
-  return { written, writeText: (text) => { if (fail) throw new Error("no clipboard"); written.push(text); } };
+  return { written, writeText: async (text) => { if (fail) throw new Error("no clipboard"); written.push(text); } };
 };
 
-test("writes plain text and reports success", () => {
+test("writes plain text and reports success", async () => {
   const clipboard = fake();
-  assert.equal(writeClipboardText(clipboard, "hello"), true);
+  assert.equal(await writeClipboardText(clipboard, "hello"), true);
   assert.deepEqual(clipboard.written, ["hello"]);
 });
 
-test("rejects non-strings, blank text and oversized text without writing", () => {
+test("rejects non-strings, blank text and oversized text without writing", async () => {
   const clipboard = fake();
   for (const bad of [undefined, null, 42, {}, ["a"], "", "  \n", "x".repeat(CLIPBOARD_TEXT_MAX_CHARS + 1)]) {
-    assert.equal(writeClipboardText(clipboard, bad), false);
+    assert.equal(await writeClipboardText(clipboard, bad), false);
   }
   assert.deepEqual(clipboard.written, []);
 });
 
-test("reports failure when the native clipboard throws", () => {
-  assert.equal(writeClipboardText(fake(true), "hello"), false);
+test("reports failure when the native clipboard throws", async () => {
+  assert.equal(await writeClipboardText(fake(true), "hello"), false);
 });
