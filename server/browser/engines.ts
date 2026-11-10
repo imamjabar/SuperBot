@@ -18,6 +18,7 @@ import { browserLanguage, browserTimeZone, languageList } from "./chrome/wrapper
 import { displayScreen } from "./display.ts";
 import type { Download } from "./cdp/downloads.ts";
 import { BrowserService, type BrowserTarget } from "./service.ts";
+import { NewElementMarks, runSteps, STEPS_TOOL, STEPS_TOOL_SPEC, toolNameOf } from "./steps.ts";
 import { LiveV1 } from "./viewers/live-v1.ts";
 import { StreamV2, type StreamRequest } from "./viewers/stream-v2.ts";
 
@@ -192,6 +193,12 @@ export interface RuntimeRouterOptions {
   afterCall?(session: string, spec: BrowserSpawnSpec, result: unknown): unknown;
 }
 
+function withStepsTool(list: unknown): unknown {
+  const tools = (list as { tools?: unknown } | null)?.tools;
+  if (!Array.isArray(tools)) return list;
+  return { ...list as object, tools: [...tools.filter((entry) => toolNameOf(entry) !== STEPS_TOOL), STEPS_TOOL_SPEC] };
+}
+
 /** afterClaim's refusal, thrown out of the engine's dispatch and answered as the call's result. */
 class ClaimRefused extends Error {}
 
@@ -203,6 +210,7 @@ export class RuntimeRouter {
   readonly #afterClaim: RuntimeRouterOptions["afterClaim"];
   readonly #annotate: RuntimeRouterOptions["annotate"];
   readonly #afterCall: RuntimeRouterOptions["afterCall"];
+  readonly #marks = new NewElementMarks();
 
   constructor(old: BrowserRuntime, chrome: ChromeEngine, options: RuntimeRouterOptions = {}) {
     this.#old = old;
@@ -214,6 +222,10 @@ export class RuntimeRouter {
   }
 
   async agentRpc(session: string, spec: BrowserSpawnSpec, method: "tools/list" | "tools/call", params: unknown, beforeDispatch?: () => void, ctx?: StepContext): Promise<unknown> {
+    const tool = method === "tools/call" ? toolNameOf(params) : undefined;
+    if (tool === STEPS_TOOL) {
+      return runSteps(params, (name, args) => this.agentRpc(session, spec, "tools/call", { name, arguments: args }, beforeDispatch, ctx));
+    }
     const refusal = method === "tools/call" ? this.#refusal?.(session, spec, params) : null;
     if (refusal) return { isError: true, content: [{ type: "text", text: refusal }] };
     const afterClaim = method === "tools/call" ? this.#afterClaim : undefined;
@@ -230,9 +242,9 @@ export class RuntimeRouter {
       if (error instanceof ClaimRefused) return { isError: true, content: [{ type: "text", text: error.message }] };
       throw error;
     }
-    if (method !== "tools/call") return result;
+    if (method !== "tools/call") return withStepsTool(result);
     const annotated = this.#annotate ? this.#annotate(spec, result) : result;
-    return this.#afterCall ? this.#afterCall(session, spec, annotated) : annotated;
+    return this.#marks.after(session, tool, this.#afterCall ? this.#afterCall(session, spec, annotated) : annotated);
   }
 
   previewFrame<T>(session: string, capture: () => Promise<T>, spec: { command: string; args?: readonly string[] }): Promise<T | { png: string; format: "jpeg" }> {

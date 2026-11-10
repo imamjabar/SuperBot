@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BUILT_IN_BROWSER_SYSTEM_PROMPT } from "./browser-engine.ts";
 import { BROWSER_HOVER_TOOL, BROWSER_UPLOAD_TOOL } from "./browser-runtime.ts";
+import { STEPS_TOOL } from "./browser/steps.ts";
 import { DEFAULT_BROWSER_RESULT_BUDGET, describePageChange, HARNESS_OWNED_BROWSER_PARAMS, parsePageState, readsAroundBrowser, sanitizeUrl, scrubBrowserResult, shapeBrowserToolResult, slimBrowserToolList, stripHarnessOwnedArguments, withoutLifecycle } from "./browser-tool-shape.ts";
 
 const snapshotTool = {
@@ -93,7 +94,7 @@ describe("browser tool shaping", () => {
       "agent_browser_wait_for_text", "agent_browser_wait_for_load", "agent_browser_screenshot", "agent_browser_get_text",
       "agent_browser_get_url", "agent_browser_get_title", "agent_browser_eval", "agent_browser_close", "agent_browser_back",
       "agent_browser_forward", "agent_browser_reload", "agent_browser_tab_new", "agent_browser_tab_list", "agent_browser_tab_switch",
-      "agent_browser_tab_close", BROWSER_UPLOAD_TOOL, BROWSER_HOVER_TOOL,
+      "agent_browser_tab_close", BROWSER_UPLOAD_TOOL, BROWSER_HOVER_TOOL, STEPS_TOOL,
     ]);
     const hint = (shapeBrowserToolResult({ content: [{ type: "text", text: "x\n".repeat(40_000) }] }, { toolName: "agent_browser_snapshot" }) as { content: Array<{ text: string }> }).content[0].text;
     for (const text of [BUILT_IN_BROWSER_SYSTEM_PROMPT, hint]) {

@@ -129,9 +129,11 @@ export function sanitizeUrl(href: string): string {
   return text.length > 500 ? `${text.slice(0, 499)}…` : text;
 }
 
+export const REFS_GONE = "Refs from earlier snapshots do not apply to it; take a snapshot before acting on refs.";
+
 export function describePageChange(before: PageState, after: PageState): string {
   if (after.url !== before.url) {
-    return `The page is now ${sanitizeUrl(after.url) || "a new address"}${after.title ? ` (${JSON.stringify(after.title)})` : ""}. Refs from earlier snapshots do not apply to it; take a snapshot before acting on refs.`;
+    return `The page is now ${sanitizeUrl(after.url) || "a new address"}${after.title ? ` (${JSON.stringify(after.title)})` : ""}. ${REFS_GONE}`;
   }
   const previous = visibleLines(before.text);
   const next = visibleLines(after.text);

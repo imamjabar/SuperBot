@@ -19,7 +19,7 @@ const CHROME = { command: CHROME_ENGINE, args: ["bot:a"], env: {} };
 
 function engines(options: RuntimeRouterOptions = {}) {
   const old = {
-    agentRpc: vi.fn(async (_session: string, _spec: unknown, _method: string, _params: unknown, beforeDispatch?: () => void) => { beforeDispatch?.(); return "agent-browser"; }),
+    agentRpc: vi.fn(async (_session: string, _spec: unknown, _method: string, _params: unknown, beforeDispatch?: () => void): Promise<unknown> => { beforeDispatch?.(); return "agent-browser"; }),
     previewFrame: vi.fn(async (_session: string, capture: () => Promise<unknown>) => capture()),
     withSecretInput: vi.fn(async (_session: string, _spec: unknown, fn: () => Promise<unknown>) => fn()),
     heldBy: vi.fn(() => "person"),
@@ -180,6 +180,21 @@ describe("the runtime router", () => {
     expect(runtime.heldBy("s")).toBe("viewer-1");
     expect(runtime.interrupted("s")).toBe(true);
     expect(runtime.interruptedCount()).toBe(3);
+  });
+
+  it("runs a step list as separate calls, each refused or claimed like a call of its own, and advertises the list on either engine", async () => {
+    const refusal = vi.fn((_session: string, _spec: unknown, params: unknown) => ((params as { name?: string }).name === "agent_browser_press" ? "No keys here." : null));
+    const { old, runtime } = engines({ refusal });
+    old.agentRpc.mockImplementation(async (_session, _spec, method, _params, beforeDispatch) => {
+      beforeDispatch?.();
+      return method === "tools/list" ? { tools: [{ name: "agent_browser_click" }] } : { content: [{ type: "text", text: "ok." }] };
+    });
+    const result = await runtime.agentRpc("s", AGENT_BROWSER, "tools/call", { name: "agent_browser_steps", arguments: { steps: [{ tool: "click", arguments: { ref: "e1" } }, { tool: "press", arguments: { key: "Enter" } }, { tool: "click", arguments: { ref: "e2" } }] } });
+    expect(old.agentRpc.mock.calls.map((call) => (call[3] as { name: string }).name)).toEqual(["agent_browser_click"]);
+    expect(refusal.mock.calls.map((call) => (call[2] as { name: string }).name)).toEqual(["agent_browser_click", "agent_browser_press"]);
+    expect(result).toMatchObject({ isError: true, content: [{ text: expect.stringContaining("2. press: No keys here.") }] });
+    const list = await runtime.agentRpc("s", AGENT_BROWSER, "tools/list", {}) as { tools: Array<{ name: string }> };
+    expect(list.tools.map((tool) => tool.name)).toEqual(["agent_browser_click", "agent_browser_steps"]);
   });
 });
 
