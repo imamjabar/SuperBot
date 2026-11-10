@@ -25,7 +25,7 @@
 # host's own; only the Data engine's native tree below follows the image's CPU.
 FROM --platform=$BUILDPLATFORM node:26.13.0-bookworm-slim AS build
 WORKDIR /src
-# pinned to package.json#packageManager; corepack is being removed from Node
+# pinned to package.json#packageManager; Node 26 ships without corepack
 RUN npm install -g pnpm@12.18.0
 # The image never runs Electron, so skip its ~100MB postinstall download.
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1

@@ -6,11 +6,11 @@ Read [`docs/DIRECTION.md`](docs/DIRECTION.md) (scope and priority) and [`docs/HA
 
 ## Local commands
 
-Use Node 24 and pnpm 10.33.0 in the existing checkout:
+Use Node 26 and pnpm 12.18.0 in the existing checkout:
 
 ```sh
 pnpm install --frozen-lockfile
-corepack pnpm vitest run <focused-test-files> scripts/testing/file-size-ratchet.test.ts
+pnpm vitest run <focused-test-files> scripts/testing/file-size-ratchet.test.ts
 ```
 
 Run focused checks for changed files; broaden when warranted. Commit/push normally and let git hooks run. Never use `--no-verify`. CI is `.github/workflows/web.yml` (build + publish on `main`), `check.yml` (manual: lint, typecheck, focused tests), `desktop-image.yml`, and `desktop-mac.yml`.

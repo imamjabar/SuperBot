@@ -8,7 +8,7 @@ in `.github/workflows/desktop-image.yml` for `linux/amd64`. A VPS runs that buil
 
 - Base: Debian 13 (trixie), pinned by the multi-architecture index digest.
 - Runtime: tini (PID 1) starts supervisord. Python 3.13 comes from Debian, with a venv for
-  the SHA-256-checked Cua Driver wheel. Node 24 comes from the official tarball, checked
+  the SHA-256-checked Cua Driver wheel. Node 26 comes from the official tarball, checked
   by SHA-256. The image also has git, gh, PulseAudio and picom.
 - Browser: Google Chrome stable from Google's apt repository. The repository key is
   checked by SHA-256. Chrome is installed on amd64 only. On any other architecture the

@@ -330,7 +330,7 @@ pnpm dev           # app → http://127.0.0.1:5199
 pnpm dev:desktop   # Electron shell; keep the two commands above running
 ```
 
-Requirements: **macOS, Windows, or Ubuntu 24.04 x64**, **Node 24+**, **pnpm**, and at least one agent CLI — [`claude`](https://claude.com/claude-code),
+Requirements: **macOS, Windows, or Ubuntu 24.04 x64**, **Node 26+**, **pnpm**, and at least one agent CLI — [`claude`](https://claude.com/claude-code),
 [`codex`](https://github.com/openai/codex), or [`grok`](https://x.ai/cli) — installed and logged in. They appear
 in the model picker automatically.
 
@@ -446,7 +446,7 @@ names, addresses or conversations. Turn them off in Settings → General → Usa
 
 ## Run from a terminal or on a server
 
-With Node 24 or newer, install once and run:
+With Node 26 or newer, install once and run:
 
 ```sh
 npm install -g openmausbot

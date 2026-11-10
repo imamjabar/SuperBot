@@ -56,11 +56,11 @@ Repository path (note the space):
 cd "/Users/imamjabar/Machine Learning/MyBot"
 ```
 
-Use **Node 24** (`engines.node >=24`) and pnpm 10.33.0. Install dependencies normally so `prepare` installs the repository git hooks:
+Use **Node 26** (`engines.node >=26`) and pnpm 12.18.0. Install dependencies normally so `prepare` installs the repository git hooks:
 
 ```sh
-node --version                 # v24.x
-corepack enable
+node --version                 # v26.x
+npm install -g pnpm@12.18.0
 pnpm install --frozen-lockfile
 git status --short --branch
 ```

@@ -121,9 +121,9 @@ const LINUX_WHEELS = {
 } as const;
 
 const NODE_RUNTIME = {
-  version: "24.22.2",
-  x64: "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75",
-  arm64: "eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8",
+  version: "26.13.0",
+  x64: "d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997",
+  arm64: "406fe3fbde1c054adff8b297c16fdb5af6659db327c1ac8acd46b56ef1af9a92",
 } as const;
 
 const GOOGLE_LINUX_SIGNING_KEY = {
