@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+repo_root="$PWD"
+
+step() {
+  local label="$1"
+  shift
+  echo "==> $label"
+  local start=$SECONDS
+  "$@"
+  echo "<== $label ($((SECONDS - start))s)"
+}
+
+node_version=v24.22.2
+node_dir="$HOME/.local/node24"
+
+install_node() {
+  if [[ "$("$node_dir/bin/node" --version 2>/dev/null)" == "$node_version" ]]; then
+    return
+  fi
+  local tarball="node-$node_version-linux-x64.tar.xz"
+  local tmp
+  tmp="$(mktemp -d)"
+  curl -fsSLo "$tmp/$tarball" "https://nodejs.org/dist/$node_version/$tarball"
+  curl -fsSLo "$tmp/SHASUMS256.txt" "https://nodejs.org/dist/$node_version/SHASUMS256.txt"
+  (cd "$tmp" && grep " $tarball\$" SHASUMS256.txt | sha256sum -c -)
+  rm -rf "$node_dir"
+  mkdir -p "$node_dir"
+  tar -xJf "$tmp/$tarball" -C "$node_dir" --strip-components=1
+  rm -rf "$tmp"
+}
+
+# Amp and supervised services start in login shells, so Node 24 must come first on their PATH.
+persist_node_path() {
+  local marker="# superbot Node 24"
+  if grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
+    return
+  fi
+  cat >> "$HOME/.bash_profile" <<EOF
+
+$marker
+if [[ "\$PWD" == "$repo_root" || "\$PWD" == "$repo_root"/* ]]; then
+  case ":\$PATH:" in
+    *":$node_dir/bin:"*) ;;
+    *) export PATH="$node_dir/bin:\$PATH" ;;
+  esac
+fi
+EOF
+}
+
+step "node $node_version" install_node
+step "login shell PATH" persist_node_path
+export PATH="$node_dir/bin:$PATH"
+
+# pnpm switches itself to the version in package.json's packageManager field.
+step "pnpm install" pnpm install --frozen-lockfile
+
+# Electron 43 no longer downloads its binary in postinstall; it fetches it on first use.
+# install.js exits immediately when the binary is already present.
+step "electron binary" node node_modules/electron/install.js

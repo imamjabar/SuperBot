@@ -37,3 +37,4 @@ deploy/podman/.env
 deploy/podman/.env.*
 !deploy/podman/.env.example
 /.env
+.amp/portals/*
