@@ -22,6 +22,10 @@ directories:
   buildResources: build
   output: release
 
+# Electron nightlies are published to electron/nightlies, not electron/electron.
+electronDownload:
+  mirror: https://github.com/electron/nightlies/releases/download/
+
 # electron-builder makes copied directories group-writable by default. The
 # Linux CUA trust boundary requires root-owned package ancestors to be 0755.
 afterPack: ./scripts/after-pack.mjs

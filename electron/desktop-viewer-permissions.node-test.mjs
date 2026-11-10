@@ -29,7 +29,7 @@ test("keeps every privileged capability off even for the viewer page", () => {
   const privileged = [
     "media", "mediaKeySystem", "notifications", "geolocation", "usb", "hid", "serial", "midi", "midiSysex",
     "display-capture", "fileSystem", "openExternal", "idle-detection", "speaker-selection", "window-management",
-    "storage-access", "top-level-storage-access", "deprecated-sync-clipboard-read", "unknown",
+    "storage-access", "deprecated-sync-clipboard-read", "unknown",
   ];
   for (const permission of privileged) {
     assert.equal(desktopViewerPermissionAllowed(permission, VIEWER_PAGE, VIEWER), false, permission);

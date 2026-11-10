@@ -318,13 +318,23 @@ async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_M
   } catch {
   }
   let timer;
+  let forceTimer;
+  if (proc.pid) {
+    forceTimer = setTimeout(() => {
+      try { process.kill(proc.pid, "SIGKILL"); } catch {}
+    }, 2_000);
+    forceTimer.unref?.();
+  }
   return Promise.race([
     exited.then(() => true),
     new Promise((resolve) => {
       timer = setTimeout(() => resolve(false), timeoutMs);
       timer.unref?.();
     }),
-  ]).finally(() => clearTimeout(timer));
+  ]).finally(() => {
+    clearTimeout(timer);
+    clearTimeout(forceTimer);
+  });
 }
 let phoneSecretIdentity = null;
 let desktopRemoteAccess = null;
@@ -1354,7 +1364,7 @@ function sharingController() {
 }
 
 const cleanWorkspace = createCleanWorkspace({ dataDir: desktopDataDir, running: () => runningDataDir, swap: dir => switchLocalEnvironmentTo(dir, LOCAL_ID, true), allowed: () => app.isPackaged && !desktopRemoteAccess, log: slog });
-const loginItem = createOpenAtLogin({ app, file: path.join(app.getPath("userData"), "open-at-login.json"), home: os.homedir() });
+const loginItem = createOpenAtLogin({ app, home: os.homedir() });
 installOpenAtLogin({ ipcMain, guard: localOrHome, loginItem, changed: refreshApplicationMenu });
 let hiddenStart = false;
 
@@ -1633,7 +1643,7 @@ function openWorkspaceSettings(computerId) {
 
 async function addServerFromClipboard() {
   try {
-    return await connectHostedWorkspace(clipboard.readText());
+    return await connectHostedWorkspace(await clipboard.readText());
   } catch (error) {
     await dialog.showMessageBox({ type: "info", message: "Could not connect to the server", detail: `${error.message}\nYou can also choose Connect to a server to enter an address in Settings.` });
     return false;
@@ -1750,7 +1760,7 @@ async function forgetEnvironment(id, purge = false, confirmed = false) {
   return { ok: true };
 }
 
-function showContextMenu(win, params) {
+async function showContextMenu(win, params) {
   if (!params.isEditable && !params.linkURL && !params.misspelledWord && !params.selectionText) return;
   const menuItems = [];
   if (params.misspelledWord) {
@@ -1764,7 +1774,7 @@ function showContextMenu(win, params) {
   }
   if (params.linkURL) {
     menuItems.push(
-      { label: "Copy Link", click: () => clipboard.writeText(params.linkURL) },
+      { label: "Copy Link", click: () => void writeClipboardText(clipboard, params.linkURL) },
       { type: "separator" },
     );
   }
@@ -1774,7 +1784,7 @@ function showContextMenu(win, params) {
     { type: "separator" },
     { label: "Cut", role: "cut", enabled: params.editFlags.canCut },
     { label: "Copy", role: "copy", enabled: params.editFlags.canCopy },
-    pasteMenuItem(params, clipboard, win.webContents),
+    await pasteMenuItem(params, clipboard, win.webContents),
     { label: "Paste and Match Style", role: "pasteAndMatchStyle", enabled: params.editFlags.canPaste },
     { type: "separator" },
     { label: "Select All", role: "selectAll", enabled: params.editFlags.canSelectAll },
@@ -1898,7 +1908,7 @@ function createWindow({ deferNavigation = false } = {}) {
 
   // Electron has no default context menu.
   win.webContents.on("context-menu", (_event, params) => {
-    showContextMenu(win, params);
+    void showContextMenu(win, params);
   });
 
   if (process.env.OMB_SMOKE_TEST === "1") {
@@ -2035,7 +2045,7 @@ ipcMain.handle("screen:frame", localOnly("screen:frame", async () => {
 // Renderer-controlled text must never become a process argument: the user reviews and pastes it.
 ipcMain.handle("engine:open-terminal", localOnly("engine:open-terminal", async (_event, command) => {
   if (typeof command !== "string" || !command.trim()) return false;
-  clipboard.writeText(command);
+  await clipboard.writeText(command);
   return openBlankTerminal();
 }));
 
@@ -2582,7 +2592,7 @@ app.whenReady().then(async () => {
       slog(`system tray unavailable: ${error?.message ?? error}`);
     }
   }
-  hiddenStart = loginItem.startedHidden() || reopenedOutOfSight();
+  hiddenStart = reopenedOutOfSight();
   startupScreen = hiddenStart ? null : createStartupScreen({
     BrowserWindow, iconPath: APP_ICON, isQuitting: () => desktopShutdownStarted,
     onQuit: () => app.quit(),

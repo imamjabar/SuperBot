@@ -23,10 +23,10 @@
 # Chrome needs shared memory (docs/browser-packaging.md, "Process hygiene").
 # The JavaScript build is the same for every CPU, so it runs once on the build
 # host's own; only the Data engine's native tree below follows the image's CPU.
-FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS build
+FROM --platform=$BUILDPLATFORM node:26.13.0-bookworm-slim AS build
 WORKDIR /src
-# pinned to package.json#packageManager; corepack is being removed from Node
-RUN npm install -g pnpm@10.33.0
+# pinned to package.json#packageManager; Node 26 ships without corepack
+RUN npm install -g pnpm@12.18.0
 # The image never runs Electron, so skip its ~100MB postinstall download.
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -49,7 +49,7 @@ RUN arch=x64 && if [ "$TARGETARCH" = arm64 ]; then arch=arm64; fi \
   && OMB_DUCKDB_ARCH=$arch node scripts/prepare-duckdb.mjs \
   && mv "dist-native/duckdb/linux-$arch" dist-native/duckdb/target && chmod -R go-w dist-native/duckdb
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:26.13.0-bookworm-slim AS runtime
 # Install Chrome's Bookworm libraries directly: agent-browser --with-deps
 # invokes sudo even as root, and this image deliberately does not ship sudo.
 # git + curl: agent CLIs shell out to git; curl backs the healthcheck

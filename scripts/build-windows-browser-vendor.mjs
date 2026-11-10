@@ -63,7 +63,7 @@ function command(file, args, cwd, { input, capture = false } = {}) {
 export async function buildWindowsBrowserVendor(output) {
   assert.equal(process.platform, "linux", "Build this dependency on the reviewed Linux GNU cross-compiler runner");
   assert.equal(process.arch, "x64", "The reviewed build runner is Linux x64");
-  assert(Number(process.versions.node.split(".")[0]) >= 24, "Node 24 or later is required");
+  assert(Number(process.versions.node.split(".")[0]) >= 26, "Node 26 or later is required");
   assert(isAbsolute(output) && !existsSync(output), "Output must be a new absolute directory; existing artifacts are never overwritten");
   const patch = readFileSync(patchPath);
   verifyVendorPatch(patch);

@@ -47,10 +47,10 @@ Needs the desktop app instead: dictation and controlling the server's own deskto
 ## Before you start
 
 1. **A server.** Any Linux VPS: Ubuntu 22.04 or 24.04, 2 CPUs and 4 GB of RAM is plenty. You need `sudo` or root. Hetzner, DigitalOcean, Lightsail, a Mac mini in a cupboard: all fine.
-2. **Node 24 or newer** for paths A and C (`node --version`). On Ubuntu:
+2. **Node 26 or newer** for paths A and C (`node --version`). On Ubuntu:
 
    ```sh
-   curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash - && sudo apt-get install -y nodejs
+   curl -fsSL https://deb.nodesource.com/setup_26.x | sudo -E bash - && sudo apt-get install -y nodejs
    ```
 
    Path B uses Docker instead and needs no Node on the host.
@@ -266,7 +266,7 @@ journalctl -u openmausbot -f            # the server's log, including "tunnel: l
 
 Use `--tailscale` instead of `--tunnel` for path C. `--no-pair` skips printing a code at every restart; mint one with `npx openmausbot pair` when you need it. Docker (path B) restarts on its own (`restart: unless-stopped`).
 
-Adjust the account, home, and PATH if yours differ; Node 24 must be available on
+Adjust the account, home, and PATH if yours differ; Node 26 must be available on
 that PATH. The service runs the installed CLI directly, so a restart uses the
 same release without an npm install prompt or an implicit upgrade.
 

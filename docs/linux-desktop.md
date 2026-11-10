@@ -44,13 +44,13 @@ Versioned packages and previous releases remain available on the
 Requirements for building from source:
 
 - Ubuntu 24.04 LTS x86_64
-- Node.js 24 or newer
-- pnpm 10.33.0 (Corepack can install the version declared by the project)
+- Node.js 26 or newer
+- pnpm 12.18.0 (`npm install -g pnpm@12.18.0`)
 
 ```sh
 git clone https://github.com/milind-soni/OpenMausBot.git
 cd SuperBot
-corepack enable
+npm install -g pnpm@12.18.0
 pnpm install --frozen-lockfile
 pnpm package:linux
 ```

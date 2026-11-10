@@ -1,6 +1,6 @@
 # Terminal setup
 
-Install [Node.js](https://nodejs.org/) 24 or newer, then choose either way to run SuperBot:
+Install [Node.js](https://nodejs.org/) 26 or newer, then choose either way to run SuperBot:
 
 ```sh
 # Install once, then use the short command:

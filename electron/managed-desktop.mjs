@@ -79,7 +79,7 @@ export function managedPortalOrigin(value) {
   return url.origin;
 }
 
-/** Electron 43's safeStorage.decryptStringAsync resolves to { shouldReEncrypt, result }; test fakes resolve to the string. */
+/** Electron 47: safeStorage.decryptStringAsync resolves to { shouldReEncrypt, result }; test fakes resolve to the string. */
 export function decryptedText(decrypted) {
   return typeof decrypted === "string" ? decrypted : decrypted?.result;
 }

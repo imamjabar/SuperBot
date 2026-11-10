@@ -33,23 +33,24 @@ async function main() {
     writeFileSync(terminal, `#!/bin/sh\necho "$@" > ${JSON.stringify(receipt)}\n`);
     chmodSync(terminal, 0o755);
 
-    clipboard.writeText("something else entirely");
+    await clipboard.writeText("something else entirely");
     process.env.PATH = workspace;
     const result = await handOff([staged]);
 
-    if (clipboard.readText() === expected) say("clipboard-holds-the-install-command");
-    else say(`clipboard-mismatch:${JSON.stringify(clipboard.readText())}`);
+    const copied = await clipboard.readText();
+    if (copied === expected) say("clipboard-holds-the-install-command");
+    else say(`clipboard-mismatch:${JSON.stringify(copied)}`);
 
     if (existsSync(receipt)) say("terminal-really-launched");
     if (result.terminalOpened === true) say("hand-off-reported-the-terminal");
     if (result.command === expected) say("hand-off-returned-the-command");
 
     const empty = mkdtempSync(join(tmpdir(), "omb-handoff-empty-"));
-    clipboard.writeText("something else entirely");
+    await clipboard.writeText("something else entirely");
     process.env.PATH = empty;
     const withoutTerminal = await handOff([staged]);
     if (withoutTerminal.terminalOpened === false) say("no-terminal-is-reported-honestly");
-    if (clipboard.readText() === expected) say("clipboard-written-even-without-a-terminal");
+    if (await clipboard.readText() === expected) say("clipboard-written-even-without-a-terminal");
     rmSync(empty, { recursive: true, force: true });
 
     process.env.PATH = realPath;

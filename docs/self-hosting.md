@@ -46,7 +46,7 @@ Desktop-only for now (needs the Mac/Linux app):
 
 ## Quickest: one command with Node
 
-On any machine with Node 24 or newer (a VPS, a Mac mini, a Raspberry Pi):
+On any machine with Node 26 or newer (a VPS, a Mac mini, a Raspberry Pi):
 
 ```sh
 npx openmausbot start
@@ -266,7 +266,7 @@ docker compose build --build-arg CHROME_CACHE_TAG=$(date +%F) omb && docker comp
 
 ## From source
 
-Requirements: Node 24+, pnpm, and at least one agent CLI installed and
+Requirements: Node 26+, pnpm, and at least one agent CLI installed and
 signed in on the server.
 
 ```sh

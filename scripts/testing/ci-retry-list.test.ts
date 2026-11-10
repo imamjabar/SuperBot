@@ -105,21 +105,23 @@ describe("the runner", () => {
   async function vitest(directory: string, env: Record<string, string | undefined>) {
     const childEnv: Record<string, string | undefined> = { ...process.env, OMB_VITEST_RETRY_LIST: join(directory, "list.json"), OMB_VITEST_RETRY_LOG: join(directory, "retries.jsonl"), ...env };
     for (const [key, value] of Object.entries(childEnv)) if (value === undefined) delete childEnv[key];
-    return new Promise<{ code: number; output: string }>((resolve) => {
-      execFile(process.execPath, [VITEST, "run", "--config", join(directory, "vitest.config.mjs"), "--reporter=json"], { cwd: directory, env: childEnv as NodeJS.ProcessEnv, encoding: "utf8", timeout: 60_000 },
+    const reportFile = join(directory, "report.json");
+    const { code, output } = await new Promise<{ code: number; output: string }>((resolve) => {
+      execFile(process.execPath, [VITEST, "run", "--config", join(directory, "vitest.config.mjs"), "--reporter=json", `--outputFile=${reportFile}`], { cwd: directory, env: childEnv as NodeJS.ProcessEnv, encoding: "utf8", timeout: 60_000 },
         (error, stdout, stderr) => resolve({ code: error ? Number(error.code ?? 1) : 0, output: `${stdout}\n${stderr}` }));
     });
+    return { code, output, report: readFileSync(reportFile, "utf8") };
   }
 
-  const results = (output: string) => {
-    const report = JSON.parse(output.slice(output.indexOf("{"), output.lastIndexOf("}") + 1));
+  const results = (json: string) => {
+    const report = JSON.parse(json);
     return Object.fromEntries(report.testResults[0].assertionResults.map((test: { title: string; status: string }) => [test.title, test.status]));
   };
 
   it("retries a listed test in CI, records it, and leaves other tests alone", async () => {
     const directory = project();
-    const { output } = await vitest(directory, { CI: "true" });
-    expect(results(output)).toEqual({ "fails once": "passed", "fails always": "failed" });
+    const { report } = await vitest(directory, { CI: "true" });
+    expect(results(report)).toEqual({ "fails once": "passed", "fails always": "failed" });
     const lines = readFileSync(join(directory, "retries.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
     expect(lines).toEqual([{ file: "flaky.test.mjs", test: "group > fails once", retries: 1, state: "pass", platform: process.platform }]);
   }, 60_000);
@@ -138,8 +140,8 @@ describe("the runner", () => {
     ].join("\n"));
     writeFileSync(join(directory, "vitest.config.mjs"), `export default { test: { globals: true, include: ["broken.test.mjs"], runner: ${JSON.stringify(RUNNER)} } };\n`);
     writeFileSync(join(directory, "list.json"), JSON.stringify({ tests: ["first", "second"].map((test) => ({ file: "broken.test.mjs", test, owner: "o", reason: "r", since: "2026-10-08" })) }));
-    const { output } = await vitest(directory, { CI: "true" });
-    expect(results(output)).toEqual({ first: "failed", second: "failed" });
+    const { report } = await vitest(directory, { CI: "true" });
+    expect(results(report)).toEqual({ first: "failed", second: "failed" });
     expect(readFileSync(join(directory, "attempts"), "utf8").trim().split("\n")).toEqual(["first", "first", "first", "second"]);
   }, 60_000);
 
@@ -150,9 +152,9 @@ describe("the runner", () => {
     scratch.push(directory);
     writeFileSync(join(directory, "dom.test.mjs"), 'it("runs in a DOM", () => { expect(typeof document).toBe("object"); });\n');
     writeFileSync(join(directory, "vitest.config.mjs"), `export default { test: { globals: true, environment: "happy-dom", include: ["dom.test.mjs"], runner: ${JSON.stringify(RUNNER)} } };\n`);
-    const { code, output } = await vitest(directory, { CI: "true", OMB_VITEST_RETRY_LIST: undefined });
+    const { code, output, report } = await vitest(directory, { CI: "true", OMB_VITEST_RETRY_LIST: undefined });
     expect(output).not.toContain("Unhandled");
-    expect(results(output)).toEqual({ "runs in a DOM": "passed" });
+    expect(results(report)).toEqual({ "runs in a DOM": "passed" });
     expect(code).toBe(0);
     // the list really loaded: the runner records nothing when it can read it
     expect(existsSync(join(directory, "retries.jsonl"))).toBe(false);
@@ -160,17 +162,17 @@ describe("the runner", () => {
 
   it("runs every test without retries when the list cannot be read", async () => {
     const directory = project();
-    const { output } = await vitest(directory, { CI: "true", OMB_VITEST_RETRY_LIST: join(directory, "missing.json") });
+    const { output, report } = await vitest(directory, { CI: "true", OMB_VITEST_RETRY_LIST: join(directory, "missing.json") });
     expect(output).not.toContain("Unhandled");
-    expect(results(output)).toEqual({ "fails once": "failed", "fails always": "failed" });
+    expect(results(report)).toEqual({ "fails once": "failed", "fails always": "failed" });
     const logged = readFileSync(join(directory, "retries.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
     expect(logged).toEqual([{ listError: expect.stringContaining("the flaky-test list could not be read") }]);
   }, 60_000);
 
   it("never retries outside CI", async () => {
     const directory = project();
-    const { output } = await vitest(directory, { CI: undefined });
-    expect(results(output)).toEqual({ "fails once": "failed", "fails always": "failed" });
+    const { report } = await vitest(directory, { CI: undefined });
+    expect(results(report)).toEqual({ "fails once": "failed", "fails always": "failed" });
     expect(existsSync(join(directory, "retries.jsonl"))).toBe(false);
   }, 60_000);
 });

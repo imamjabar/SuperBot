@@ -10,7 +10,7 @@ import { inSecretFolder, SECRET_FILE_REFUSAL } from "./secret-folder.ts";
 
 const MAX_FILES = 10;
 const readChunk = promisify(read), writeChunk = promisify(write);
-// Node 24 omits Darwin's O_NOFOLLOW_ANY, which rejects symlinks in every path component.
+// Node 24 and 26 omit Darwin's O_NOFOLLOW_ANY, which rejects symlinks in every path component.
 const O_NOFOLLOW_ANY = 0x20000000;
 const NAMED_COPY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

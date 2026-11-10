@@ -56,11 +56,11 @@ Repository path (note the space):
 cd "/Users/imamjabar/Machine Learning/MyBot"
 ```
 
-Use **Node 24** (`engines.node >=24`) and pnpm 10.33.0. Install dependencies normally so `prepare` installs the repository git hooks:
+Use **Node 26** (`engines.node >=26`) and pnpm 12.18.0. Install dependencies normally so `prepare` installs the repository git hooks:
 
 ```sh
-node --version                 # v24.x
-corepack enable
+node --version                 # v26.x
+npm install -g pnpm@12.18.0
 pnpm install --frozen-lockfile
 git status --short --branch
 ```
@@ -182,6 +182,8 @@ Scorecard to run manually and fix: #1 Reply UX, #3 Choice card, #8 Routine, #11 
 **Recall ranking (2026-11-10).** `recallMessages` (behind `session_search` and the automatic recall before a turn) takes up to 4× the asked hits in bm25 order, then `rankRecall` in `server/recall-rank.ts` ranks them: reciprocal-rank fusion of the bm25 order and recency, plus a bonus for each query term the hit carries; a digest still comes last. From the review of vectorize-io/hindsight and nightly-labs/openbot `2bfce4ac5`: background memory review (`server/memory-upkeep.ts`: capture, dream, tidy, contradictions) and capped tool results with a `tool_result_read` continuation (`server/drivers/agents-result.ts`, 16K-character preview over 24K) already existed.
 
 **Browser step lists and new-element marks (2026-11-10).** From browser-use's ultrafast mode. `agent_browser_steps` (`server/browser/steps.ts`) runs up to 8 page actions in one tool call and answers with a snapshot. `RuntimeRouter.agentRpc` expands it into separate calls, so egress refusal, the turn claim, lanes, evidence and scrubbing apply per step, on both engines. The list stops at the first failed step, and before a ref step once a step reports `REFS_GONE` (moved page). `NewElementMarks` appends `[new]` to snapshot lines whose role and name were not in the session's previous snapshot of the same page (at least half the old elements still present); open sets the baseline, and navigation or tab calls clear it.
+
+**Stack upgrade (2026-11-11).** Node 26.13 LTS everywhere (`.node-version`, Docker, the bot computer's `NODE_RUNTIME`, `engines >=26`); Electron `electron-nightly@47.0.0-nightly.20261109` (Node 26.13), aliased as `electron` and downloaded from `electron/nightlies` (`electron-builder.yml` `electronDownload`); TypeScript 7 (typecheck 94 s/3.3 GB to about 2 s/0.7 GB on a CI runner); Vite 8 (web build 26 s to 3 s); Vitest 5; pnpm 12, which refuses releases younger than a day and unlisted install scripts (`allowBuilds` in `pnpm-workspace.yaml`). TypeScript 7 has no compiler API: tests that walked the AST use `oxc-parser` (`src/locales/ast-walk.ts`) and `esbuild.transformSync`. croner stays on 10 because 11 changes when routines run around DST. Electron 47's clipboard is async-only (`clipboard.has/readText/writeText`). `check.yml` fails on a moderate or worse advisory (`pnpm audit`); actions are pinned by commit SHA. `server-image.yml` builds our own Node 26 server image for the VPS base (`OMB_BASE_IMAGE`).
 
 **Main chat and jobs (branch `ux/main-chat-progress`, 2026-11-07, CI-only proof).** With threads hidden a bot row always opens the main chat; Simple mode has no "New thread"; the main chat is never a report-back job (`mainThreadTasks`). A job thread opens read-only (no composer, edit, retry or regenerate; `src/lib/job-threads.ts`). In simple mode the main chat drops the bot's own job rows ("Chief → Chief · 3", sent/back-with-results, still-working notes) unless one failed; the job line under the bubble (`JobPresence`, `src/lib/job-status.ts`) names the live step from runtime frames ("Reading kompas.com", "Waiting for web_fetch", "Reviewing kompas.com", "Writing the answer") and has open and stop controls. An answer quotes its request only when it arrives after a newer message, once. Speed: front-desk turns no longer claim a computer or VM seat, and front-desk turns hold no job slot (with `features.frontDesk`); the runtime's dispatch gate now passes the thread like `startTurn`, so a main chat's resume never waits behind jobs. Earlier news/prices are snapshots (front-desk and recent-work prompts). The server logs `[omb-timing] ack|job-start|tool|job-done|delivered ms=…` lines (`server/timing-marks.ts`). The resume turn that relays a job's result is kept: removing it would change the runtime's report/wake model.
 

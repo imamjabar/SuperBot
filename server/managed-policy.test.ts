@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import ts from "typescript";
+import { transformSync } from "esbuild";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { computerKindForResource, ManagedDesktopPolicy, mcpEntryMatches, parseManagedPolicy, type ManagedPolicy } from "./managed-policy.ts";
 
@@ -139,7 +139,7 @@ describe("claim-time computer refusal in bindTurnComputer", () => {
   const guard = source.slice(start + 1, guardEnd) + "  return \"claimed\";\n}";
   const refusalStart = source.indexOf("\nfunction computerPlaceRefusal(");
   const refusal = source.slice(refusalStart + 1, source.indexOf("\n}\n", refusalStart) + 3);
-  const code = ts.transpileModule(refusal + guard, { compilerOptions: { target: ts.ScriptTarget.ESNext } }).outputText;
+  const code = transformSync(refusal + guard, { loader: "ts", target: "esnext" }).code;
   const bind = (managedPolicy: ManagedDesktopPolicy) =>
     new Function("managedPolicy", "computerKindForResource", `${code}; return bindTurnComputer;`)(
       managedPolicy, computerKindForResource,

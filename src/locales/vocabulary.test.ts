@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import ts from "typescript";
+import { makeLineAt, parseSource, walkChildren, type AstNode } from "./ast-walk.ts";
 import { describe, expect, it } from "vitest";
 
 import en from "./en.json";
@@ -71,16 +71,23 @@ function* sources(dir: string): Generator<string> {
 }
 
 function literals(path: string): Array<{ line: number; text: string }> {
-  const kind = path.endsWith(".tsx") ? ts.ScriptKind.TSX : /\.(?:mjs|cjs|js)$/.test(path) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
-  const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, false, kind);
+  const text = readFileSync(path, "utf8");
+  const program = parseSource(path, text);
+  const lineAt = makeLineAt(text);
   const found: Array<{ line: number; text: string }> = [];
-  const visit = (node: ts.Node) => {
-    if (ts.isStringLiteralLike(node) || ts.isJsxText(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
-      found.push({ line: file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1, text: node.text });
+  const visit = (node: AstNode) => {
+    if (node.type === "Literal" && typeof node.value === "string") {
+      found.push({ line: lineAt(node.start), text: node.value });
+    } else if (node.type === "TemplateElement" && typeof node.value === "object" && node.value !== null) {
+      const quasi = node.value as { cooked?: unknown; raw?: unknown };
+      const val = typeof quasi.cooked === "string" ? quasi.cooked : typeof quasi.raw === "string" ? quasi.raw : "";
+      found.push({ line: lineAt(node.start), text: val });
+    } else if (node.type === "JSXText" && typeof node.value === "string") {
+      found.push({ line: lineAt(node.start), text: node.value });
     }
-    ts.forEachChild(node, visit);
+    walkChildren(node, visit);
   };
-  visit(file);
+  visit(program);
   return found;
 }
 

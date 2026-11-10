@@ -12,10 +12,11 @@ import {
   Mic,
   Network,
   ShieldCheck,
-  Slack,
   Sparkles,
   User,
 } from "lucide-react";
+
+import { Slack } from "@/components/brand-icons";
 
 import type { BotSettingsSection } from "@/state/store";
 import type { LocaleKey } from "@/locales";

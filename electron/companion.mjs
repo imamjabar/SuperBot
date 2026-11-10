@@ -132,6 +132,22 @@ export function stopCompanion() {
   return serialize(() => stop());
 }
 
+// Electron 47: utilityProcess child.kill() only sends SIGTERM; earlier versions sent SIGKILL 2 s later.
+function forceKill(child) {
+  try {
+    child?.kill();
+  } catch {}
+  const pid = child?.pid;
+  if (!pid) return;
+  let exited = false;
+  child.once?.("exit", () => { exited = true; });
+  setTimeout(() => {
+    if (!exited) {
+      try { process.kill(pid, "SIGKILL"); } catch {}
+    }
+  }, 2_000).unref?.();
+}
+
 async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = null, secretPublicKey = null, log }) {
   if (proc) return companionState();
   lastError = null;
@@ -193,7 +209,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
       child.postMessage({ type: "openmausbot:companion-mutation-token", token: mutationToken, controlToken });
     } catch {
       log?.("companion authorization could not be initialized");
-      child.kill();
+      forceKill(child);
     }
   });
   child.stdout?.on("data", (d) => log?.(`[companion] ${String(d).trimEnd()}`));
@@ -225,10 +241,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
       const state = await control("GET", "/state");
       // A hand-started or leftover sidecar answers the port the same way: match the pid.
       if (state?.pid !== undefined && child.pid !== undefined && state.pid !== child.pid) {
-        try {
-          child.kill();
-        } catch {
-        }
+        forceKill(child);
         lastError = `port ${CONTROL_PORT} is already serving another companion — stop it and try again`;
         return companionState();
       }
@@ -245,10 +258,7 @@ async function start({ resourcesPath, harnessPort, mutationToken, hostedUrl = nu
       await new Promise((r) => setTimeout(r, 150));
     }
   }
-  try {
-    child.kill();
-  } catch {
-  }
+  forceKill(child);
   lastError = "the companion did not come up in time";
   return companionState();
 }
@@ -266,7 +276,7 @@ async function stop() {
     child.kill();
   } catch {
   }
-  // kill() only asks: wait, bounded, for the exit so the next start does not race the port.
+  // kill() only asks (Electron 47): wait, bounded, for the exit, sending SIGKILL after 2 s so the next start does not race the port.
   await new Promise((resolve) => {
     let done = false;
     const finish = () => {
@@ -275,7 +285,14 @@ async function stop() {
       resolve();
     };
     child.once("exit", finish);
-    setTimeout(finish, 5_000).unref?.();
+    const forceTimer = setTimeout(() => {
+      if (!done && child.pid) {
+        try { process.kill(child.pid, "SIGKILL"); } catch {}
+      }
+    }, 2_000);
+    forceTimer.unref?.();
+    const timeoutTimer = setTimeout(finish, 5_000);
+    timeoutTimer.unref?.();
   });
   return companionState();
 }

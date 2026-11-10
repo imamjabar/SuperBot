@@ -405,7 +405,7 @@ afterAll(async () => {
   await new Promise<void>((resolve) => api.close(() => resolve()));
 });
 
-describe.sequential("Composio Sessions", () => {
+describe("Composio Sessions", () => {
   // Fixtures change the project's auth configs from test to test; production reads them at most once a minute.
   beforeEach(() => forgetProjectAuthConfigs());
 

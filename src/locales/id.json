@@ -256,8 +256,6 @@
   "server.mcp.signIn.description": "{bot} menambahkan server MCP {label} ({host}). Masuk agar {bot} dapat menggunakannya.",
   "server.mcp.signIn.onYourMac": "Buka chat ini di Mac kamu untuk masuk ke {label}.",
   "server.mcp.signIn.inSettings": "Selesaikan proses masuk ini di Aplikasi → Server MCP.",
-  "server.mcp.signIn.onlyPerson": "Hanya {name} yang dapat masuk ke sini.",
-  "server.mcp.signIn.onlyOwner": "Hanya orang yang dituju oleh chat ini yang dapat masuk ke sini.",
   "server.mcp.signIn.adminOnly": "Hanya admin dari instalasi ini yang dapat masuk ke {label}.",
   "server.mcp.signIn.expired": "Jendela proses masuk telah ditutup. Coba lagi.",
   "server.mcp.signIn.failed": "Proses masuk tidak selesai. Coba lagi.",
