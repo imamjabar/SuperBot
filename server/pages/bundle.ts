@@ -6,6 +6,7 @@ import { PAGE_FILE_EXTENSIONS, PAGE_MAX_BYTES, PAGE_MAX_FILES } from "../../shar
 import { guestWorkspaceToHost } from "../bot-attachment.ts";
 import { VM_WORKSPACE_GUEST } from "../container-computer.ts";
 import { inSecretFolder, SECRET_FILE_REFUSAL } from "../secret-folder.ts";
+import { PAGE_SEGMENT as SEGMENT } from "./paths.ts";
 
 export interface PageFile {
   path: string;
@@ -28,12 +29,11 @@ export interface PageBundle {
   bytes: number;
   /** Files left out because a page can't serve them. */
   skipped: string[];
-  /** Only when asked for, by path in the folder: the pages Worker refuses video, so a published page leaves it out. */
+  /** Only when asked for, by path in the folder: a published page never holds video, so it leaves it out. */
   videos?: Record<string, PageVideo>;
 }
 
 const SKIPPED_FOLDERS = new Set(["node_modules", "__pycache__"]);
-const SEGMENT = /^[A-Za-z0-9_][A-Za-z0-9._ ()+@-]{0,99}$/;
 
 export class PageBundleError extends Error {
   readonly status: number;

@@ -5,23 +5,32 @@ import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isPublishedPageUrl, pagePanelBot, requestPanelPage, usePanelPage, withPageOpen, type PageOpenFacts, type PanelPage } from "./page-open";
 
-const PAGE = "https://abcdefghijklmnopqrstuvwxyz.mausbot.page/";
+const PAGES = "https://pages.example.test";
+const PAGE = `${PAGES}/p/abcdefghijklmnopqrstuvwxyz/`;
+const CONFIG = { features: { browser: true }, browserEngine: { kind: "engine" as const }, pagesUrl: PAGES };
 const facts = (over: Partial<PageOpenFacts> = {}): PageOpenFacts => ({
   selectedId: "pepper", bots: [{ id: "pepper" }], groups: [{ id: "room" }],
-  config: { features: { browser: true }, browserEngine: { kind: "engine" } }, desktop: {}, ...over,
+  config: CONFIG, desktop: {}, ...over,
 });
 
 describe("a published page's link", () => {
-  it("is only https://<page id>.mausbot.page, never an app, chat or look-alike link", () => {
-    expect(isPublishedPageUrl(PAGE)).toBe(true);
-    expect(isPublishedPageUrl(`${PAGE}charts/index.html?region=EU#top`)).toBe(true);
+  it("is only <pages url>/p/<page id>/…, never an app, chat or look-alike link", () => {
+    expect(isPublishedPageUrl(PAGE, PAGES)).toBe(true);
+    expect(isPublishedPageUrl(`${PAGE}charts/index.html?region=EU#top`, PAGES)).toBe(true);
+    expect(isPublishedPageUrl(PAGE, "http://127.0.0.1:8801")).toBe(false);
+    expect(isPublishedPageUrl("http://127.0.0.1:8801/p/abcdefghijklmnopqrstuvwxyz/", "http://127.0.0.1:8801")).toBe(true);
     for (const other of [
-      "openmausbot://thread/t1?bot=pepper", "openmausbot://bot/pepper", "http://abcdefghijklmnopqrstuvwxyz.mausbot.page/",
-      "https://mausbot.page/", "https://www.mausbot.page/", "https://upload.mausbot.page/", "https://a.b.abcdefghijklmnopqrstuvwxyz.mausbot.page/",
-      "https://abcdefghijklmnopqrstuvwxyz.mausbot.page.evil.test/", "https://abcdefghijklmnopqrstuvwxyz.mausbot.pages/",
-      "https://user:pw@abcdefghijklmnopqrstuvwxyz.mausbot.page/", "https://abcdefghijklmnopqrstuvwxyz.mausbot.page:8443/",
+      "openmausbot://thread/t1?bot=pepper", "openmausbot://bot/pepper", "http://pages.example.test/p/abcdefghijklmnopqrstuvwxyz/",
+      "https://pages.example.test/", "https://pages.example.test/p/", "https://pages.example.test/p/abc/", "https://pages.example.test/p/abcdefghijklmnopqrstuvwxyz",
+      "https://pages.example.test/p/ABCDEFGHIJKLMNOPQRSTUVWXYZ/", "https://pages.example.test/health", "https://pages.example.test/other/abcdefghijklmnopqrstuvwxyz/",
+      "https://www.pages.example.test/p/abcdefghijklmnopqrstuvwxyz/", "https://pages.example.test.evil.test/p/abcdefghijklmnopqrstuvwxyz/",
+      "https://pages.example.test:8443/p/abcdefghijklmnopqrstuvwxyz/", "https://user:pw@pages.example.test/p/abcdefghijklmnopqrstuvwxyz/",
       "javascript:alert(1)", "not a url", "", undefined, null,
-    ]) expect(isPublishedPageUrl(other), String(other)).toBe(false);
+    ]) expect(isPublishedPageUrl(other, PAGES), String(other)).toBe(false);
+  });
+
+  it("is no page link at all until the server says where its pages are", () => {
+    expect(isPublishedPageUrl(PAGE, undefined)).toBe(false);
   });
 });
 
@@ -37,16 +46,17 @@ describe("where a published page opens", () => {
       ["room", { selectedId: "room" }],
       ["no bot", { selectedId: "gone" }],
       ["bot's browser off", { bots: [{ id: "pepper", browser: false }] }],
-      ["browser feature off", { config: { features: { browser: false }, browserEngine: { kind: "engine" } } }],
-      ["not installed", { config: { features: { browser: true }, browserEngine: { kind: "unavailable", installable: true } } }],
-      ["installing", { config: { features: { browser: true }, browserEngine: { kind: "engine", installing: true } } }],
-      ["install failed", { config: { features: { browser: true }, browserEngine: { kind: "engine", installError: "disk full" } } }],
+      ["browser feature off", { config: { ...CONFIG, features: { browser: false } } }],
+      ["not installed", { config: { ...CONFIG, browserEngine: { kind: "unavailable", installable: true } } }],
+      ["installing", { config: { ...CONFIG, browserEngine: { kind: "engine", installing: true } } }],
+      ["install failed", { config: { ...CONFIG, browserEngine: { kind: "engine", installError: "disk full" } } }],
+      ["no pages address", { config: { features: { browser: true }, browserEngine: { kind: "engine" } } }],
     ];
     for (const [name, over] of cases) expect(pagePanelBot(PAGE, facts(over)), name).toBeNull();
   });
 
   it("never sends any other link to the panel", () => {
-    for (const link of ["https://example.com/", "openmausbot://thread/t1?bot=pepper", "https://mausbot.page/"]) expect(pagePanelBot(link, facts())).toBeNull();
+    for (const link of ["https://example.com/", "openmausbot://thread/t1?bot=pepper", `${PAGES}/`]) expect(pagePanelBot(link, facts())).toBeNull();
   });
 });
 
@@ -84,7 +94,7 @@ describe("a page link's click", () => {
   it("opens the page like its card's Open, after the link's own handler", () => {
     const open = vi.fn(), own = vi.fn();
     const event = click();
-    withPageOpen(PAGE, open, { onClick: own }).onClick!(event as never);
+    withPageOpen(PAGE, open, { onClick: own }, PAGES).onClick!(event as never);
     expect(own).toHaveBeenCalledOnce();
     expect(event.defaultPrevented).toBe(true);
     expect(open).toHaveBeenCalledWith(PAGE);
@@ -92,9 +102,9 @@ describe("a page link's click", () => {
 
   it("stays taken when the link's own handler took it (a long press), and leaves other links alone", () => {
     const open = vi.fn();
-    withPageOpen(PAGE, open, { onClick: (event) => event.preventDefault() }).onClick!(click() as never);
+    withPageOpen(PAGE, open, { onClick: (event) => event.preventDefault() }, PAGES).onClick!(click() as never);
     expect(open).not.toHaveBeenCalled();
     const anchor = { onClick: vi.fn() };
-    expect(withPageOpen("https://example.com/", open, anchor)).toBe(anchor);
+    expect(withPageOpen("https://example.com/", open, anchor, PAGES)).toBe(anchor);
   });
 });

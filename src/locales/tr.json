@@ -4457,7 +4457,6 @@
   "chat.page.unpublish": "Yayından kaldır",
   "chat.page.unpublished": "Yayından kaldırıldı. Bağlantı artık açılmıyor.",
   "chat.page.unpublishFailed": "Bu sayfa yayından kaldırılamadı. Birazdan tekrar deneyin.",
-  "chat.page.freeLimit": "{limit} ücretsiz sayfanızı kullandınız. MausBot Cloud size daha fazlasını verir, üstelik rozetsiz sayfalar.",
   "chat.preview.older": "Önceki sürüm",
   "chat.preview.newer": "Sonraki sürüm",
   "chat.preview.version": "v{n}",

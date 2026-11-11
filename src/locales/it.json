@@ -5542,7 +5542,6 @@
   "chat.page.unpublish": "Annulla pubblicazione",
   "chat.page.unpublished": "Pubblicazione annullata. Il link non si apre più.",
   "chat.page.unpublishFailed": "Impossibile annullare la pubblicazione di questa pagina. Riprova tra un momento.",
-  "chat.page.freeLimit": "Hai usato le tue {limit} pagine gratuite. MausBot Cloud te ne dà altre, e pagine senza il contrassegno.",
   "chat.preview.older": "Versione precedente",
   "chat.preview.newer": "Versione successiva",
   "chat.preview.versionOf": "v{n} di {count}",

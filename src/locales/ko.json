@@ -6189,7 +6189,6 @@
   "chat.page.unpublish": "게시 취소",
   "chat.page.unpublished": "게시를 취소했어요. 이제 링크가 열리지 않아요.",
   "chat.page.unpublishFailed": "이 페이지의 게시를 취소하지 못했어요. 잠시 후 다시 시도하세요.",
-  "chat.page.freeLimit": "무료 페이지 {limit}개를 모두 썼어요. MausBot Cloud에서는 더 많은 페이지를, 배지 없이 쓸 수 있어요.",
   "chat.preview.older": "이전 버전",
   "chat.preview.newer": "이후 버전",
   "chat.preview.version": "v{n}",

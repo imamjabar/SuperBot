@@ -531,9 +531,9 @@ describe("pressing", () => {
   });
 
   it("opens a published page's open_url in the bot's browser panel in the desktop app, and posts nothing", async () => {
-    const PAGE = "https://abcdefghijklmnopqrstuvwxyz.mausbot.page/";
+    const PAGE = "https://pages.example.test/p/abcdefghijklmnopqrstuvwxyz/";
     const dispatch = vi.fn();
-    const withBrowser = { ...store, dispatch, state: { selectedId: "scout", bots: [{ id: "scout" }], groups: [], config: { features: { browser: true }, browserEngine: { kind: "engine" } } } } as unknown as ReturnType<typeof useStore>;
+    const withBrowser = { ...store, dispatch, state: { selectedId: "scout", bots: [{ id: "scout" }], groups: [], config: { features: { browser: true }, browserEngine: { kind: "engine" }, pagesUrl: "https://pages.example.test" } } } as unknown as ReturnType<typeof useStore>;
     const parsed = parseWidgetInput({ type: "Card", children: [{ type: "Button", label: "Open page", onClickAction: { type: "open_url", payload: { url: PAGE } } }] });
     if (!parsed.ok) throw new Error(parsed.error);
     act(() => root.render(createElement(BotEditorStore, { value: withBrowser, children: createElement(WidgetMessage, { botId: "scout", threadId: "t1", message: row(parsed.value) }) })));

@@ -1,5 +1,5 @@
-// The agents catalog's page tools and the internal route behind each. Shown to every bot: a server signed in to no
-// MausBot account answers with the sentence asking the person to sign in.
+// The agents catalog's page tools and the internal route behind each. Shown to every bot: a server with no public address
+// for pages answers with the sentence naming the setting its owner needs.
 import type { ToolCallContext, ToolCallResult } from "./agents-call.ts";
 import type { Json } from "./agents-client.ts";
 
@@ -17,7 +17,7 @@ export const PAGE_TOOL_DEFINITIONS = [
   {
     name: "publish_page",
     description:
-      "Publish a page you made to a public link, only when the person asks to share or publish it: an .html file, or a folder with an index.html (static files, csv and parquet data too, up to 5 MB). Publishing the same path again, or passing page_id, updates the same link. Never publish secrets or personal details the person didn't ask to share. For a data dashboard, follow the data-dashboards skill.",
+      "Publish a page you made to a public link on this server, only when the person asks to share or publish it: an .html file, or a folder with an index.html (static files, csv and parquet data too, up to 5 MB). Publishing the same path again, or passing page_id, updates the same link. Never publish secrets or personal details the person didn't ask to share. For a data dashboard, follow the data-dashboards skill.",
     inputSchema: {
       type: "object",
       additionalProperties: false,

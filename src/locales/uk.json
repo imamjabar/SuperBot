@@ -2512,7 +2512,6 @@
   "chat.page.unpublish": "Зняти з публікації",
   "chat.page.unpublished": "Знято з публікації. Посилання більше не відкривається.",
   "chat.page.unpublishFailed": "Не вдалося зняти сторінку з публікації. Спробуйте ще раз за мить.",
-  "chat.page.freeLimit": "Ви використали свої {limit} безкоштовних сторінок. MausBot Cloud дає більше, і сторінки без значка.",
   "chat.preview.older": "Попередня версія",
   "chat.preview.newer": "Наступна версія",
   "chat.preview.version": "v{n}",

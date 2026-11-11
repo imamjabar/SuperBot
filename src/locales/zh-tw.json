@@ -3862,7 +3862,6 @@
   "chat.page.unpublish": "取消發佈",
   "chat.page.unpublished": "已取消發佈。這個連結已無法開啟。",
   "chat.page.unpublishFailed": "無法取消發佈這個頁面。請稍後再試。",
-  "chat.page.freeLimit": "你已用完 {limit} 個免費頁面。MausBot Cloud 能給你更多頁面，而且頁面不帶標記。",
   "chat.preview.older": "上一個版本",
   "chat.preview.newer": "下一個版本",
   "chat.preview.version": "v{n}",

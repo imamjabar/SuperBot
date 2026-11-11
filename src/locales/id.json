@@ -6500,7 +6500,6 @@
   "chat.page.unpublish": "Batalkan publikasi",
   "chat.page.unpublished": "Publikasi dibatalkan. Tautan tidak dapat dibuka lagi.",
   "chat.page.unpublishFailed": "Tidak dapat membatalkan publikasi halaman ini. Coba lagi sebentar lagi.",
-  "chat.page.freeLimit": "Kamu telah menggunakan {limit} halaman gratis kamu. MausBot Cloud memberi kamu lebih banyak, serta halaman tanpa lencana.",
   "chat.preview.older": "Versi lebih lama",
   "chat.preview.newer": "Versi lebih baru",
   "chat.preview.version": "v{n}",

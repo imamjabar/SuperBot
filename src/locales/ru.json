@@ -5733,7 +5733,6 @@
   "chat.page.unpublish": "Отменить публикацию",
   "chat.page.unpublished": "Публикация отменена. Ссылка больше не открывается.",
   "chat.page.unpublishFailed": "Не удалось отменить публикацию страницы. Попробуйте чуть позже.",
-  "chat.page.freeLimit": "Вы использовали свои {limit} бесплатных страниц. MausBot Cloud даёт больше — и страницы без значка.",
   "chat.preview.older": "Ранняя версия",
   "chat.preview.newer": "Поздняя версия",
   "chat.preview.version": "v{n}",

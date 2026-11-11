@@ -4457,7 +4457,6 @@
   "chat.page.unpublish": "Gỡ xuống",
   "chat.page.unpublished": "Đã gỡ xuống. Liên kết không còn mở được.",
   "chat.page.unpublishFailed": "Không gỡ được trang này. Hãy thử lại sau giây lát.",
-  "chat.page.freeLimit": "Bạn đã dùng hết {limit} trang miễn phí. MausBot Cloud cho bạn thêm trang, và trang không có huy hiệu.",
   "chat.preview.older": "Phiên bản trước",
   "chat.preview.newer": "Phiên bản sau",
   "chat.preview.version": "v{n}",

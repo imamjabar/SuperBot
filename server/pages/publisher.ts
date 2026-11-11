@@ -1,7 +1,7 @@
 import { PAGE_ID, type PublishedPageCard } from "../../shared/published-page.ts";
 import { redactSecretsInText } from "../../shared/redact.ts";
 import { PageBundleError, pageSource, readPageBundle, type PageBundle } from "./bundle.ts";
-import type { PagesCall, PagesClient, PagesFailure, PageUsage } from "./client.ts";
+import type { PagesCall, PagesFailure, PagesHost, PageUsage } from "./host.ts";
 import type { PublishedPagesStore } from "./store.ts";
 
 /** What a publish or unpublish comes to: the sentence for the bot (or the person's card), and whether it failed. */
@@ -19,7 +19,7 @@ export interface PublishInput {
   /** Puts a card in the conversation the tool was called from; its message id, or null when the turn has ended. A live
    * card comes with the files published, so it can show the page itself. */
   post: (text: string, card: PublishedPageCard, bundle?: PageBundle) => string | null;
-  /** The bot's tool call: nothing is sent to the pages service once its turn has ended or its request is gone. */
+  /** The bot's tool call: nothing is written once its turn has ended or its request is gone. */
   call?: PagesCall;
 }
 
@@ -30,20 +30,20 @@ const usageWords = (usage: PageUsage) => `${usage.pages} of ${usage.limit} pages
 
 /** The message text every client shows, the card's own words for one that doesn't draw it. */
 export function cardText(card: PublishedPageCard): string {
-  if (card.state === "limit") return card.message ?? "This account's pages are used up.";
+  if (card.state === "limit") return card.message ?? "This server has no room for more pages.";
   if (card.state === "unpublished") return `Unpublished “${card.title}”. Its link no longer opens.`;
   return `Published “${card.title}”: ${card.url}${card.usage ? ` (${usageWords(card.usage)})` : ""}`;
 }
 
-const failureStatus: Record<PagesFailure["reason"], number> = { sign_in: 403, limit: 402, rate_limited: 429, gone: 410, refused: 400, unavailable: 503 };
+const failureStatus: Record<PagesFailure["reason"], number> = { limit: 402, gone: 410, refused: 400, unavailable: 503 };
 
 export function createPagePublisher(deps: {
-  client: PagesClient;
+  host: PagesHost;
   store: PublishedPagesStore;
   /** Re-draws a card already in a conversation (an unpublished page's). */
   patch: (threadId: string, messageId: string, text: string, card: PublishedPageCard) => void;
 }) {
-  const { client, store } = deps;
+  const { host, store } = deps;
 
   // One publish at a time per bot and source, so two at once can't both find no page and each create one.
   const queues = new Map<string, Promise<unknown>>();
@@ -97,16 +97,15 @@ export function createPagePublisher(deps: {
     if (!title) return TITLE_REQUIRED;
     const remembered = input.pageId ? store.get(input.pageId) : store.fromSource(input.botId, bundle.source);
     const target = input.pageId ?? remembered?.pageId;
-    let result = await client.publish({ title, files: bundle.files, ...(target ? { pageId: target } : {}) }, input.call);
+    let result = await host.publish(bundle.files, target, input.call);
     // The page this folder was published to before is gone (unpublished, or taken down): it gets a new link.
     if (!result.ok && result.reason === "gone" && !input.pageId && target) {
       store.forget(target);
-      result = await client.publish({ title, files: bundle.files }, input.call);
+      result = await host.publish(bundle.files, undefined, input.call);
     }
     if (!result.ok) {
       if (result.reason === "limit") {
-        const card: PublishedPageCard = { state: "limit", title, message: result.message, ...(result.usage ? { usage: result.usage } : {}), ...(result.upgrade ? { upgrade: true } : {}),
-          ...(result.plan ? { plan: result.plan } : {}) };
+        const card: PublishedPageCard = { state: "limit", title, message: result.message, ...(result.usage ? { usage: result.usage } : {}) };
         input.post(cardText(card), card);
         return { status: 402, text: `${result.message} Tell the person this in your reply.`, card };
       }
@@ -119,9 +118,8 @@ export function createPagePublisher(deps: {
     const updated = Boolean(target) && result.pageId === target;
     const lines = [
       updated ? `Updated “${title}” at the same link: ${result.url}` : `Published “${title}” at ${result.url}`,
-      `Page id ${result.pageId}. This account now has ${usageWords(result.usage)}.`,
+      `Page id ${result.pageId}. This server has ${usageWords(result.usage)}.`,
       "A card with the link, Copy link and Unpublish is in the chat. Publishing the same file or folder again updates this same link.",
-      ...(result.badge ? ["Free pages carry a small “Made with MausBot” badge."] : []),
       ...(bundle.skipped.length ? [`Left out ${bundle.skipped.length} file${bundle.skipped.length === 1 ? "" : "s"} a page can't serve: ${bundle.skipped.slice(0, 5).join(", ")}${bundle.skipped.length > 5 ? ", …" : ""}.`] : []),
     ];
     return { status: 200, text: lines.join("\n"), card };
@@ -144,7 +142,7 @@ export function createPagePublisher(deps: {
       }
       if (!pageId) return { status: 400, text: "Pass the page_id of the page to unpublish, or the path it was published from." };
       const title = store.get(pageId)?.title;
-      const result = await client.unpublish(pageId, input.call);
+      const result = await host.unpublish(pageId, input.call);
       if (!result.ok && result.reason !== "gone") return { status: failureStatus[result.reason], text: result.message };
       const card = markUnpublished(pageId, result.ok ? result.usage : null)
         ?? { state: "unpublished" as const, title: title ?? pageId, pageId, ...(result.ok && result.usage ? { usage: result.usage } : {}) };

@@ -235,8 +235,11 @@ export function verificationServerEnvironment(parentEnv: NodeJS.ProcessEnv, data
   if (parentEnv.OMB_TEST_DESKTOP_OWNER_TOKEN) {
     childEnv.OMB_TEST_DESKTOP_OWNER_TOKEN = parentEnv.OMB_TEST_DESKTOP_OWNER_TOKEN;
     childEnv.OMB_DESKTOP_PARENT = "1";
-    if (parentEnv.OMB_TEST_DESKTOP_PAGES_ACCESS) childEnv.OMB_TEST_DESKTOP_PAGES_ACCESS = parentEnv.OMB_TEST_DESKTOP_PAGES_ACCESS;
   }
+  // The pages listener on a port the test picked, and its public address on loopback only: never a real address.
+  if (/^\d{1,5}$/.test(parentEnv.OMB_PAGES_PORT ?? "")) childEnv.OMB_PAGES_PORT = parentEnv.OMB_PAGES_PORT;
+  const pagesUrl = parentEnv.OMB_PAGES_PUBLIC_URL?.trim() ?? "";
+  if (/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(pagesUrl)) childEnv.OMB_PAGES_PUBLIC_URL = pagesUrl;
   // The driver record the app hands its own server: without it, no server may use this computer.
   if (parentEnv.OMB_TEST_DESKTOP_CUA_CONNECTION) childEnv.OMB_TEST_DESKTOP_CUA_CONNECTION = parentEnv.OMB_TEST_DESKTOP_CUA_CONNECTION;
   return childEnv;

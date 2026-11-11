@@ -2046,7 +2046,6 @@
   "chat.page.unpublish": "पेज हटाएं",
   "chat.page.unpublished": "पेज हटा दिया गया। अब यह लिंक नहीं खुलता।",
   "chat.page.unpublishFailed": "यह पेज हटाया नहीं जा सका। थोड़ी देर में फिर कोशिश करें।",
-  "chat.page.freeLimit": "आपने अपने {limit} मुफ़्त पेज इस्तेमाल कर लिए हैं। MausBot Cloud में और पेज मिलते हैं, और बिना बैज वाले पेज भी।",
   "chat.preview.older": "पिछला वर्शन",
   "chat.preview.newer": "अगला वर्शन",
   "chat.preview.version": "v{n}",

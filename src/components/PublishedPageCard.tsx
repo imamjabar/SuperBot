@@ -10,13 +10,7 @@ import { ASK_CHIP, ASK_CHIP_IDLE } from "./AskCard";
 
 const usageLine = (card: Card) => card.usage ? t("chat.page.usage", { pages: card.usage.pages, limit: card.usage.limit }) : null;
 
-function limitLine(card: Card): string {
-  const limit = card.usage?.limit;
-  if (limit === undefined) return card.message ?? "";
-  return card.message ?? t("chat.page.freeLimit", { limit });
-}
-
-/** A page a bot published: its link, Copy link, Open and Unpublish; or, at the plan's limit, why not and where to get more.
+/** A page a bot published: its link, Copy link, Open and Unpublish; or, at the server's page limit, why not.
  * The link and Open both open the page (usePageOpener): never a message, a turn or a chat. */
 export function PublishedPageCard({ message }: { message: Message }) {
   const card = message.publishedPage;
@@ -59,7 +53,7 @@ export function PublishedPageCard({ message }: { message: Message }) {
         {failed && <p role="alert" className="mt-1.5 text-caption text-danger">{t("chat.page.unpublishFailed")}</p>}
       </>}
       {card.state === "unpublished" && <p className="mt-1 text-small text-ink-secondary">{t("chat.page.unpublished")}</p>}
-      {card.state === "limit" && <p dir="auto" className="mt-1 text-small leading-snug text-ink-secondary">{limitLine(card)}</p>}
+      {card.state === "limit" && <p dir="auto" className="mt-1 text-small leading-snug text-ink-secondary">{card.message}</p>}
     </div>
   );
 }

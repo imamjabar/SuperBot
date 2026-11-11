@@ -5,16 +5,17 @@ import { useOptionalStoreRef } from "@/state/store-ref";
 import { openExternalLink } from "./app-links";
 import { browserAvailable, builtInBrowserEnabled, type FeatureFlagConfig } from "./feature-flags";
 
-export const PAGES_DOMAIN = "mausbot.page";
-
-/** A link to a page a bot published: https://<page id>.mausbot.page/… Never an app, chat or prompt link. */
-export function isPublishedPageUrl(value: string | null | undefined): value is string {
-  if (typeof value !== "string") return false;
-  let url: URL;
-  try { url = new URL(value); } catch { return false; }
-  if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
-  const host = url.hostname.toLowerCase(), suffix = `.${PAGES_DOMAIN}`;
-  return host.endsWith(suffix) && PAGE_ID.test(host.slice(0, -suffix.length));
+/** A link to a page this server published: `<pagesUrl>/p/<page id>/…`, on the pages origin exactly. Never an app, chat or prompt link. */
+export function isPublishedPageUrl(value: string | null | undefined, pagesUrl: string | undefined): value is string {
+  if (typeof value !== "string" || !pagesUrl) return false;
+  let url: URL, origin: string;
+  try {
+    url = new URL(value);
+    origin = new URL(pagesUrl).origin;
+  } catch { return false; }
+  if (url.username || url.password || url.origin !== origin) return false;
+  const id = /^\/p\/([^/]+)\//.exec(url.pathname)?.[1];
+  return id !== undefined && PAGE_ID.test(id);
 }
 
 export interface PageOpenFacts {
@@ -32,7 +33,7 @@ export interface PageOpenFacts {
  * bot chat whose browser is on and installed; never a room, and never the remote client, which has no such panel.
  */
 export function pagePanelBot(url: string, facts: PageOpenFacts): string | null {
-  if (!facts.desktop || facts.desktop.remoteClient?.active || !isPublishedPageUrl(url)) return null;
+  if (!facts.desktop || facts.desktop.remoteClient?.active || !isPublishedPageUrl(url, facts.config?.pagesUrl)) return null;
   if (facts.groups.some((group) => group.id === facts.selectedId)) return null;
   const bot = facts.bots.find((candidate) => candidate.id === facts.selectedId);
   const engine = facts.config?.browserEngine;
@@ -84,9 +85,14 @@ export function usePageOpener(): (url: string) => void {
   }, []);
 }
 
+/** Where this server's pages are served, read when the link is drawn; undefined outside the app's store or before its owner sets one. */
+export function usePagesUrl(): string | undefined {
+  return useOptionalStoreRef()?.state().config?.pagesUrl;
+}
+
 /** A page link's click opens it like the card's Open; a click its hover card already took stays taken. */
-export function withPageOpen<T extends { onClick?: (event: MouseEvent<HTMLElement>) => void }>(href: string | undefined, open: (url: string) => void, anchor: T): T {
-  if (!isPublishedPageUrl(href)) return anchor;
+export function withPageOpen<T extends { onClick?: (event: MouseEvent<HTMLElement>) => void }>(href: string | undefined, open: (url: string) => void, anchor: T, pagesUrl: string | undefined): T {
+  if (!isPublishedPageUrl(href, pagesUrl)) return anchor;
   return { ...anchor, onClick: (event: MouseEvent<HTMLElement>) => {
     anchor.onClick?.(event);
     if (event.defaultPrevented) return;

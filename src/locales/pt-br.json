@@ -5583,7 +5583,6 @@
   "chat.page.unpublish": "Tirar do ar",
   "chat.page.unpublished": "Tirada do ar. O link não abre mais.",
   "chat.page.unpublishFailed": "Não deu para tirar esta página do ar. Tente de novo daqui a pouco.",
-  "chat.page.freeLimit": "Você já usou suas {limit} páginas grátis. O MausBot Cloud dá mais, e páginas sem o selo.",
   "chat.preview.older": "Versão anterior",
   "chat.preview.newer": "Versão seguinte",
   "chat.preview.version": "v{n}",

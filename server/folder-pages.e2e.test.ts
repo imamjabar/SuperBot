@@ -1,50 +1,28 @@
 // End-to-end on the fakes: a scripted bot shows a dashboard folder (index.html, a script and a Parquet file) inline,
 // its frame's files load through the token route with no sign-in, another bot can't show that folder, and publishing the
-// folder gives the same card its link. One loopback stub stands in for the pages service; no model is called.
+// folder gives the same card its link, served by the server's own pages listener on a loopback port; no model is called.
 import { randomBytes } from "node:crypto";
-import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
-import { FAKE_DESKTOP_TOKEN, fakePagesService } from "./testing/fake-pages.ts";
+import { freePortBlock } from "./testing/ports.ts";
 
 const owner = randomBytes(32).toString("base64url");
 const realFetch = globalThis.fetch;
-let stub: { server: Server; url: string; service: ReturnType<typeof fakePagesService> };
+let pagesUrl: string;
 let fixture: Awaited<ReturnType<typeof launchVerificationServer>>;
 const PARQUET = Buffer.concat([Buffer.from("PAR1"), randomBytes(2_048), Buffer.from("PAR1")]);
 
-async function serveStub() {
-  let service!: ReturnType<typeof fakePagesService>;
-  const server = createServer((req, res) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
-    req.on("end", async () => {
-      const body = Buffer.concat(chunks);
-      const answer = await service.fetch(new Request(`${url}${req.url}`, { method: req.method, headers: req.headers as Record<string, string>,
-        ...(body.length ? { body } : {}) })).catch(() => new Response("{}", { status: 404 }));
-      res.writeHead(answer.status, { "content-type": "application/json" });
-      res.end(Buffer.from(await answer.arrayBuffer()));
-    });
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  if (!address || typeof address === "string") throw new Error("no stub port");
-  const url = `http://127.0.0.1:${address.port}`;
-  service = fakePagesService({ admin: url, upload: url });
-  return { server, url, service };
-}
-
 beforeAll(async () => {
-  stub = await serveStub();
+  const pagesPort = await freePortBlock([0]);
+  pagesUrl = `http://127.0.0.1:${pagesPort}`;
   globalThis.fetch = (input, init = {}) => realFetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), "x-superbot-desktop-owner": owner } });
-  fixture = await launchVerificationServer({ ...process.env, OMB_TEST_DESKTOP_OWNER_TOKEN: owner,
-    OMB_TEST_DESKTOP_PAGES_ACCESS: JSON.stringify({ url: `${stub.url}/api/cloud/pages/token`, token: FAKE_DESKTOP_TOKEN }) }, undefined, undefined, undefined, undefined, { scripted: true });
+  fixture = await launchVerificationServer({ ...process.env, OMB_TEST_DESKTOP_OWNER_TOKEN: owner, OMB_PAGES_PORT: String(pagesPort), OMB_PAGES_PUBLIC_URL: pagesUrl },
+    undefined, undefined, undefined, undefined, { scripted: true });
 }, 90_000);
 afterAll(async () => {
   globalThis.fetch = realFetch;
-  stub?.server.close();
   await fixture?.close();
 });
 
@@ -98,12 +76,15 @@ it("shows a dashboard folder inline, serves its Parquet to the frame by token on
   expect(evidence(other.id).at(-1).evidence.find((entry: any) => entry.step).response.result.content[0].text).toMatch(/^path: Only files in your working folder/);
 
   const [published] = await turn(analyst, [{ tool: "publish_page", arguments: { path: "dash", title: "Sales dashboard" } }]);
-  const [pageId] = [...stub.service.pages.keys()];
-  expect(published).toContain(`Published “Sales dashboard” at https://${pageId}.mausbot.page/`);
-  expect(Buffer.from(stub.service.pages.get(pageId!)!.files.get("data.parquet")!, "latin1").byteLength).toBeGreaterThan(0);
+  const pagesDir = join(fixture.info.dataDir, "published-pages");
+  const [pageId] = readdirSync(pagesDir).filter((name) => /^[a-z0-9]{26}$/.test(name));
+  expect(published).toContain(`Published “Sales dashboard” at ${pagesUrl}/p/${pageId}/`);
+  const servedParquet = await realFetch(`${pagesUrl}/p/${pageId}/data.parquet`);
+  expect(servedParquet.status).toBe(200);
+  expect(Buffer.from(await servedParquet.arrayBuffer()).equals(PARQUET)).toBe(true);
   const rows = (await api(`/api/threads/${analyst.activeTaskId}/messages?limit=50`)).body.messages as any[];
   expect(rows.filter((message) => message.kind === "app").map((message) => [message.id, message.publishedPage?.state, message.publishedPage?.url]))
-    .toEqual([[appId, "live", `https://${pageId}.mausbot.page/`]]);
+    .toEqual([[appId, "live", `${pagesUrl}/p/${pageId}/`]]);
   expect(rows.filter((message) => message.publishedPage && message.kind !== "app")).toEqual([]);
 }, 120_000);
 
@@ -136,7 +117,9 @@ it("streams a folder's video to the card by byte range, leaves it out of a publi
 
   const published = await turn(bot, { tool: "publish_page", arguments: { path: "film", title: "Film" } });
   expect(published).toContain("Left out 1 file a page can't serve: clip.webm");
-  expect([...[...stub.service.pages.values()].at(-1)!.files.keys()]).not.toContain("clip.webm");
+  const filmPage = /\/p\/([a-z0-9]{26})\//.exec(published)![1]!;
+  expect(existsSync(join(fixture.info.dataDir, "published-pages", filmPage, "clip.webm"))).toBe(false);
+  expect((await realFetch(`${pagesUrl}/p/${filmPage}/clip.webm`)).status).toBe(404);
   const kept = await realFetch(`${await base()}clip.webm`, { headers: { range: "bytes=0-9" } });
   expect(kept.status).toBe(206);
   expect(Buffer.from(await kept.arrayBuffer()).equals(movie.subarray(0, 10))).toBe(true);

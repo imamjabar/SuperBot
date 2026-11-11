@@ -5670,7 +5670,6 @@
   "chat.page.unpublish": "Anuluj publikację",
   "chat.page.unpublished": "Publikacja anulowana. Link nie otwiera się już.",
   "chat.page.unpublishFailed": "Nie udało się anulować publikacji tej strony. Spróbuj ponownie za chwilę.",
-  "chat.page.freeLimit": "Wykorzystano bezpłatne strony: {limit}. MausBot Cloud oferuje ich więcej oraz strony bez plakietki.",
   "chat.preview.older": "Wcześniejsza wersja",
   "chat.preview.newer": "Późniejsza wersja",
   "chat.preview.version": "v{n}",
