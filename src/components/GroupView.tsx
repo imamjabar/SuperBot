@@ -182,7 +182,7 @@ function RoomTextMessage({
   const blocks = useMemo(() => simple && !user && !viewRaw && botText.trim() ? splitReplyBlocks(botText) : null, [simple, user, viewRaw, botText]);
   const tabled = Boolean(blocks?.some((block) => block.kind === "table"));
   const botActions = !user && (
-    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={botMenu}>
+    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={botMenu} press={{ onReply: () => onReply(m), copy: botText }}>
       <ReplyAction onReply={() => onReply(m)} />
       {m.from && <ReactAction threadId={group.threadId} message={m} />}
       {botText && <CopyButton text={botText} className={messageActionClass} />}
@@ -195,7 +195,7 @@ function RoomTextMessage({
       {speaker && <div className="mb-0.5 px-1 text-caption font-medium text-ink-secondary">{speaker}</div>}
       <div className={cn("relative flex w-full items-end gap-1.5", user ? "justify-end" : "justify-start")}>
         {user && (
-          <MessageActions side="user" menu={userMessageMenu({ messageId: m.id, pin })}>
+          <MessageActions side="user" menu={userMessageMenu({ messageId: m.id, pin })} press={{ onReply: () => onReply(m), copy: display }}>
             <ReplyAction onReply={() => onReply(m)} />
             {Boolean(display.trim()) && <CopyButton text={display} className={messageActionClass} />}
           </MessageActions>

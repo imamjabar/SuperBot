@@ -1,8 +1,8 @@
 import { createContext, use, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Check, Copy, Ellipsis, Reply, X } from "lucide-react";
+import { Check, Copy, Ellipsis, Reply, TextCursor, X } from "lucide-react";
 import { popoverClosesOnKey, usePopoverDismiss } from "@/hooks/use-popover-dismiss";
 import { cn } from "@/lib/cn";
-import { useCopyFeedback } from "@/lib/copy-text";
+import { copyText, useCopyFeedback } from "@/lib/copy-text";
 import { t } from "@/lib/i18n";
 import { MENU_ITEM, MENU_SHEET } from "./menu-recipe";
 
@@ -29,7 +29,41 @@ export const ChatBusyContext = createContext(false);
 export const MESSAGE_ROW = "data-message-row";
 
 const INTERACTIVE = "a, button, input, textarea, select, summary, label, [role=button], [contenteditable=true]";
+const OWN_LONG_PRESS = `${INTERACTIVE}, img, video, audio, canvas, pre, [data-reply-table]`;
 const LONG_PRESS_MS = 450;
+/** On a row carrying it, a touch long-press opens the message menu: styles.css stops the browser's word selection there. */
+export const PRESS_MENU = "data-press-menu";
+/** Set while "Select text" has the row's bubbles selected; styles.css lets the text be selected again. */
+const SELECTING = "data-selecting";
+
+/** The long-press menu of a message: Reply, Copy and Select text first, then the rest of its "…" menu. */
+export type MessagePress = { onReply: () => void; copy: string };
+
+function selectBubbles(row: HTMLElement): (() => void) | null {
+  const bubbles = row.querySelectorAll("[data-chat-bubble]");
+  const selection = window.getSelection();
+  if (!bubbles.length || !selection) return null;
+  row.setAttribute(SELECTING, "");
+  const range = document.createRange();
+  range.setStartBefore(bubbles[0]!);
+  range.setEndAfter(bubbles[bubbles.length - 1]!);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  const stop = () => {
+    row.removeAttribute(SELECTING);
+    document.removeEventListener("selectionchange", ended);
+    window.removeEventListener("pointerdown", away, true);
+  };
+  const ended = () => { if (selection.isCollapsed) stop(); };
+  const away = (event: PointerEvent) => {
+    if (event.target instanceof Node && row.contains(event.target)) return;
+    selection.removeAllRanges();
+    stop();
+  };
+  document.addEventListener("selectionchange", ended);
+  window.addEventListener("pointerdown", away, true);
+  return stop;
+}
 
 function focusVisible(target: EventTarget | null): boolean {
   try {
@@ -44,12 +78,14 @@ export function MessageActions({
   forceOpen = false,
   className,
   menu: items = [],
+  press: pressActions,
   children,
 }: {
   side: "user" | "bot";
   forceOpen?: boolean;
   className?: string;
   menu?: MessageMenuItem[];
+  press?: MessagePress;
   children?: ReactNode;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -57,10 +93,23 @@ export function MessageActions({
   const moreRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState<false | "more" | "press">(false);
+  const stopSelecting = useRef<(() => void) | null>(null);
+  const pressItems = (): MessageMenuItem[] => !pressActions ? items : [
+    { key: "reply", icon: <Reply {...ACTION_ICON} />, label: t("chat.reply"), onSelect: pressActions.onReply },
+    ...(pressActions.copy.trim() ? [{ key: "copy", icon: <Copy {...ACTION_ICON} />, label: t("chat.copyMessage"), onSelect: () => { void copyText(pressActions.copy); } }] : []),
+    { key: "select", icon: <TextCursor {...ACTION_ICON} />, label: t("chat.selectText"), onSelect: () => {
+      stopSelecting.current?.();
+      setTapped(false);
+      stopSelecting.current = rowRef.current ? selectBubbles(rowRef.current) : null;
+    } },
+    ...items.filter((item) => item.key !== "reply" && item.key !== "copy"),
+  ];
+  const offered = menuOpen === "press" ? pressItems() : items;
+  const pressMenu = Boolean(pressActions);
   // use() may run conditionally: a closed menu has no reason to follow the turn.
-  const busy = menuOpen && items.some((item) => item.idleOnly) ? use(ChatBusyContext) : false;
-  const menu = busy ? items.filter((item) => !item.idleOnly) : items;
+  const busy = menuOpen && offered.some((item) => item.idleOnly) ? use(ChatBusyContext) : false;
+  const menu = busy ? offered.filter((item) => !item.idleOnly) : offered;
   const [hovered, setHovered] = useState(false);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
   const [tapped, setTapped] = useState(false);
@@ -73,7 +122,9 @@ export function MessageActions({
     const row = rootRef.current?.closest<HTMLElement>(`[${MESSAGE_ROW}]`) ?? rootRef.current;
     rowRef.current = row;
     if (!row) return;
+    if (pressMenu) row.setAttribute(PRESS_MENU, "");
     let press: { x: number; y: number; at: number; timer: ReturnType<typeof setTimeout> } | null = null;
+    let menuFromPress = false;
     const enter = (event: PointerEvent) => { if (event.pointerType !== "touch") setHovered(true); };
     const leave = (event: PointerEvent) => { if (event.pointerType !== "touch") setHovered(false); };
     const focusIn = (event: FocusEvent) => setKeyboardFocus(focusVisible(event.target));
@@ -85,7 +136,25 @@ export function MessageActions({
     const down = (event: PointerEvent) => {
       if (event.pointerType !== "touch" || inside(event.target)) return;
       if (press) clearTimeout(press.timer);
-      press = { x: event.clientX, y: event.clientY, at: Date.now(), timer: setTimeout(() => setTapped(true), LONG_PRESS_MS) };
+      const ownPress = event.target instanceof Element && event.target.closest(OWN_LONG_PRESS);
+      const held = () => {
+        setTapped(true);
+        if (pressMenu && !ownPress && !row.hasAttribute(SELECTING)) {
+          menuFromPress = true;
+          setMenuOpen("press");
+        }
+      };
+      press = { x: event.clientX, y: event.clientY, at: Date.now(), timer: setTimeout(held, LONG_PRESS_MS) };
+    };
+    const lift = (event: TouchEvent) => {
+      if (!menuFromPress) return;
+      menuFromPress = false;
+      // The click a browser makes from this touch would land on the menu that just opened under the finger.
+      event.preventDefault();
+    };
+    const nativeMenu = (event: Event) => {
+      if (pressMenu && !row.hasAttribute(SELECTING) && !(event.target instanceof Element && event.target.closest(OWN_LONG_PRESS))
+        && (event as PointerEvent).pointerType === "touch") event.preventDefault();
     };
     const move = (event: PointerEvent) => {
       if (!press || event.pointerType !== "touch") return;
@@ -97,6 +166,7 @@ export function MessageActions({
     const cancel = () => {
       if (press) clearTimeout(press.timer);
       press = null;
+      menuFromPress = false;
     };
     const up = (event: PointerEvent) => {
       if (!press || event.pointerType !== "touch") return;
@@ -115,8 +185,14 @@ export function MessageActions({
     row.addEventListener("pointermove", move);
     row.addEventListener("pointerup", up);
     row.addEventListener("pointercancel", cancel);
+    row.addEventListener("contextmenu", nativeMenu);
+    row.addEventListener("touchend", lift, { passive: false });
     return () => {
       if (press) clearTimeout(press.timer);
+      stopSelecting.current?.();
+      row.removeAttribute(PRESS_MENU);
+      row.removeEventListener("contextmenu", nativeMenu);
+      row.removeEventListener("touchend", lift);
       row.removeEventListener("pointerenter", enter);
       row.removeEventListener("pointerleave", leave);
       row.removeEventListener("focusin", focusIn);
@@ -126,10 +202,10 @@ export function MessageActions({
       row.removeEventListener("pointerup", up);
       row.removeEventListener("pointercancel", cancel);
     };
-  }, []);
+  }, [pressMenu]);
 
   usePopoverDismiss(tapped && !menuOpen, rowRef, () => setTapped(false));
-  usePopoverDismiss(menuOpen, rootRef, () => {
+  usePopoverDismiss(menuOpen !== false, rootRef, () => {
     setMenuOpen(false);
     if (rootRef.current?.contains(document.activeElement)) moreRef.current?.focus();
   });
@@ -137,7 +213,7 @@ export function MessageActions({
   useLayoutEffect(() => {
     if (!menuOpen) return;
     const menuBox = menuRef.current?.getBoundingClientRect();
-    const more = moreRef.current?.getBoundingClientRect();
+    const more = (moreRef.current ?? rootRef.current)?.getBoundingClientRect();
     if (menuBox && more) setMenuAbove(more.bottom + 4 + menuBox.height > window.innerHeight - 8 && more.top - 4 - menuBox.height > 8);
     const rowBox = rootRef.current?.getBoundingClientRect();
     if (menuBox && rowBox) {
@@ -186,13 +262,13 @@ export function MessageActions({
         <button
           ref={moreRef}
           type="button"
-          onClick={() => setMenuOpen((value) => !value)}
+          onClick={() => setMenuOpen((value) => value ? false : "more")}
           aria-label={t("chat.messageActions")}
           title={t("chat.messageActions")}
           aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          aria-controls={menuOpen ? menuId : undefined}
-          className={cn(messageActionClass, menuOpen && "bg-ink/10 text-ink")}
+          aria-expanded={menuOpen === "more"}
+          aria-controls={menuOpen === "more" ? menuId : undefined}
+          className={cn(messageActionClass, menuOpen === "more" && "bg-ink/10 text-ink")}
         >
           <Ellipsis {...ACTION_ICON} aria-hidden="true" />
         </button>
@@ -218,9 +294,10 @@ export function MessageActions({
               disabled={item.disabled}
               title={item.title}
               onClick={() => {
-                item.onSelect();
+                const from = menuOpen;
                 setMenuOpen(false);
-                moreRef.current?.focus();
+                item.onSelect();
+                if (from === "more") moreRef.current?.focus();
               }}
               className={cn(MENU_ITEM, "text-start text-ink hover:bg-menu-hover focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60")}
             >

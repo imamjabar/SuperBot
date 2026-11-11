@@ -1709,6 +1709,7 @@
   "chat.copyMessageId": "Salin ID pesan",
   "chat.copyMessageDone": "Tersalin",
   "chat.copyMessageFailed": "Gagal menyalin",
+  "chat.selectText": "Pilih teks",
   "chat.showRawMarkdown": "Tampilkan markdown mentah",
   "chat.showRenderedMarkdown": "Tampilkan markdown yang dirender",
   "chat.retry": "Coba lagi",

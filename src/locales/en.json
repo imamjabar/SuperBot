@@ -1709,6 +1709,7 @@
   "chat.copyMessageId": "Copy message ID",
   "chat.copyMessageDone": "Copied",
   "chat.copyMessageFailed": "Copy failed",
+  "chat.selectText": "Select text",
   "chat.showRawMarkdown": "Show raw markdown",
   "chat.showRenderedMarkdown": "Show rendered markdown",
   "chat.retry": "Retry",
