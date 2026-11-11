@@ -1,0 +1,1 @@
+var e=/^(local\/(?:shared(?:-seat-[23])?|bot-[a-f0-9]{64}|pool-\d+)|vps\/[\w-]+)$/,t=e=>`local/${e.key.replace(`:`,`-`)}${e.seat&&e.seat>1?`-seat-${e.seat}`:``}`;export{t as n,e as t};

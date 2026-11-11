@@ -1,0 +1,1 @@
+function e(e,t){if(!t||!e.startsWith(t))return e;let n=e.slice(t.length);return n===``||n.startsWith(`/`)||n.startsWith(`\\`)?`~${n}`:e}export{e as t};

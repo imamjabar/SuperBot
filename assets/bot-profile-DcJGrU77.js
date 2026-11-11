@@ -1,0 +1,1 @@
+var e={name:100,title:200,description:4e3,voice:200,soul:24e3};function t(e){for(let t=0;t<e.length;t+=1){let n=e.charCodeAt(t);if(n<32||n>=127&&n<=159||n===8232||n===8233)return!1}return!0}export{t as n,e as t};

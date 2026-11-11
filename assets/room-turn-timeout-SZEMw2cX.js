@@ -1,0 +1,1 @@
+var e=1440,t=`Enter a whole number from 1 to 1,440.`;function n(e){let n=e.trim();if(!/^\d+$/.test(n))return{ok:!1,error:t};let r=Number(n);return r<1||r>1440?{ok:!1,error:t}:{ok:!0,minutes:r}}export{n,e as t};

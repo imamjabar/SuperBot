@@ -1,0 +1,1 @@
+import{i as e}from"./rolldown-runtime-COiEfhsA.js";import{h as t}from"./jsx-runtime-BszPJ1ey.js";var n=e(t(),1),r=null,i=new Set;function a(e){r=e;for(let e of Array.from(i))e()}function o(e){let[t,a]=(0,n.useState)(null);return(0,n.useEffect)(()=>{let t=()=>{r?.botId===e&&(a(r),r=null)};return i.add(t),t(),()=>{i.delete(t)}},[e]),t}export{o as n,a as t};
