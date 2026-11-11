@@ -4907,7 +4907,6 @@
   "chat.page.unpublish": "Dejar de publicar",
   "chat.page.unpublished": "Ya no está publicada. El enlace ya no se abre.",
   "chat.page.unpublishFailed": "No se pudo dejar de publicar esta página. Inténtalo de nuevo en un momento.",
-  "chat.page.freeLimit": "Ya usaste tus {limit} páginas gratis. MausBot Cloud te da más, y páginas sin la insignia.",
   "chat.preview.older": "Versión anterior",
   "chat.preview.newer": "Versión posterior",
   "chat.preview.version": "v{n}",

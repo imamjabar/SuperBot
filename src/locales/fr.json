@@ -2046,7 +2046,6 @@
   "chat.page.unpublish": "Retirer",
   "chat.page.unpublished": "Page retirée. Le lien ne s’ouvre plus.",
   "chat.page.unpublishFailed": "Impossible de retirer cette page. Réessayez dans un instant.",
-  "chat.page.freeLimit": "Vous avez utilisé vos {limit} pages gratuites. MausBot Cloud vous en donne plus, et des pages sans le badge.",
   "chat.preview.older": "Version précédente",
   "chat.preview.newer": "Version suivante",
   "chat.preview.version": "v{n}",

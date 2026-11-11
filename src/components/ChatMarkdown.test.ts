@@ -680,7 +680,7 @@ describe("application and rejected Markdown links", () => {
 });
 
 describe("a bot's link to a page it published", () => {
-  const PAGE = "https://abcdefghijklmnopqrstuvwxyz.mausbot.page/";
+  const PAGE = "https://pages.example.test/p/abcdefghijklmnopqrstuvwxyz/";
   const text = `Here is your dashboard: [Sales dashboard](${PAGE})`;
   async function clickPage(store?: Parameters<typeof BotEditorStore>[0]["value"]) {
     const host = document.createElement("div");
@@ -705,7 +705,7 @@ describe("a bot's link to a page it published", () => {
     window.ogb = { platform: "darwin", openExternal } as unknown as typeof window.ogb;
     const dispatch = vi.fn();
     try {
-      const state = { ...initialState, selectedId: "pepper", bots: [{ id: "pepper" }], config: { features: { browser: true }, browserEngine: { kind: "engine" } } };
+      const state = { ...initialState, selectedId: "pepper", bots: [{ id: "pepper" }], config: { features: { browser: true }, browserEngine: { kind: "engine" }, pagesUrl: "https://pages.example.test" } };
       const click = await clickPage({ state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} } as never);
       expect(click.defaultPrevented).toBe(true);
       expect(dispatch.mock.calls).toEqual([[{ type: "toggleComputer", open: true }]]);
@@ -718,7 +718,8 @@ describe("a bot's link to a page it published", () => {
   it("elsewhere, opens it outside the chat, as any web link", async () => {
     const opened = vi.spyOn(window, "open").mockReturnValue(null);
     try {
-      const click = await clickPage();
+      const state = { ...initialState, config: { pagesUrl: "https://pages.example.test" } };
+      const click = await clickPage({ state, dispatch: vi.fn(), flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} } as never);
       expect(click.defaultPrevented).toBe(true);
       expect(opened).toHaveBeenCalledWith(PAGE, "_blank", "noopener,noreferrer");
     } finally {

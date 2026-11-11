@@ -129,6 +129,8 @@ export interface ConfigStatus {
   managedPolicy?: ManagedPolicySummary | null;
   /** This server belongs to one person, who keeps one chat per bot. Absent where each person has their own chats. */
   oneMainChat?: boolean;
+  /** Where this server's published pages are served (`<pagesUrl>/p/<id>/`); absent until its owner sets a public address for pages. */
+  pagesUrl?: string;
 }
 
 export interface ManagedPolicySummary {
@@ -177,7 +179,7 @@ export interface BrowserProfile {
 // A section left out here is wiped from state.config whenever a config frame lands.
 export type ConfigStatusFrame = Pick<
   ConfigStatus,
-  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "treg" | "postiz" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "fleet" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "edition" | "budgets" | "billing" | "managedPolicy" | "workspaceBanner" | "oneMainChat"
+  "xai" | "mistral" | "cerebras" | "groq" | "greenference" | "meta" | "deepseek" | "treg" | "postiz" | "anthropic" | "openai" | "openrouter" | "openaiCompat" | "fleet" | "composio" | "box" | "vps" | "rooms" | "mcp" | "threads" | "automaticRecovery" | "cacheKeepWarm" | "localVm" | "opencodeGo" | "tts" | "decider" | "helpers" | "imageGen" | "live" | "savedKeys" | "profile" | "language" | "features" | "onboarding" | "browserEngine" | "browserProfiles" | "edition" | "budgets" | "billing" | "managedPolicy" | "workspaceBanner" | "oneMainChat" | "pagesUrl"
 >;
 
 export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
@@ -216,6 +218,6 @@ export function configStatusFromFrame(frame: ConfigStatusFrame): ConfigStatus {
     budgets: frame.budgets,
     billing: frame.billing,
     managedPolicy: frame.managedPolicy,
-    ...(frame.workspaceBanner ? { workspaceBanner: frame.workspaceBanner } : {}), ...(frame.oneMainChat ? { oneMainChat: true } : {}),
+    ...(frame.workspaceBanner ? { workspaceBanner: frame.workspaceBanner } : {}), ...(frame.oneMainChat ? { oneMainChat: true } : {}), ...(frame.pagesUrl ? { pagesUrl: frame.pagesUrl } : {}),
   };
 }

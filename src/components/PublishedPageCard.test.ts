@@ -17,13 +17,13 @@ import { StoreContext } from "@/state/store";
 import { usePanelPage, type PanelPage } from "@/lib/page-open";
 import { PublishedPageCard } from "./PublishedPageCard";
 
-const URL = "https://abcdefghijklmnopqrstuvwxyz.mausbot.page/";
+const URL = "https://pages.example.test/p/abcdefghijklmnopqrstuvwxyz/";
 const page = (card: Message["publishedPage"]): Message => ({ id: "m1", at: 1, role: "bot", kind: "text", text: "fallback", publishedPage: card });
 const live = page({ state: "live", title: "Bake sale", pageId: "abcdefghijklmnopqrstuvwxyz", url: URL, usage: { pages: 3, limit: 5 } });
 /** The app's state with Pepper's chat open; Pepper's browser is on and installed. */
 const app = (over: Record<string, unknown> = {}) => ({
   selectedId: "pepper", bots: [{ id: "pepper" }], groups: [{ id: "room" }],
-  config: { features: { browser: true }, browserEngine: { kind: "engine" } }, ...over,
+  config: { features: { browser: true }, browserEngine: { kind: "engine" }, pagesUrl: "https://pages.example.test" }, ...over,
 });
 
 function render(message: Message, state = app()) {
@@ -75,7 +75,7 @@ describe("a published page's card", () => {
     for (const [state, bridge] of [
       [app({ selectedId: "room" }), {}],
       [app({ bots: [{ id: "pepper", browser: false }] }), {}],
-      [app({ config: { features: { browser: true }, browserEngine: { kind: "unavailable", installable: true } } }), {}],
+      [app({ config: { features: { browser: true }, browserEngine: { kind: "unavailable", installable: true }, pagesUrl: "https://pages.example.test" } }), {}],
       [app(), { remoteClient: { active: true } }],
     ] as const) {
       desktop(bridge);

@@ -2491,7 +2491,6 @@
   "chat.page.unpublish": "Offline nehmen",
   "chat.page.unpublished": "Offline genommen. Der Link öffnet sich nicht mehr.",
   "chat.page.unpublishFailed": "Die Seite konnte nicht offline genommen werden. Versuche es gleich noch einmal.",
-  "chat.page.freeLimit": "Du hast deine {limit} kostenlosen Seiten aufgebraucht. MausBot Cloud gibt dir mehr, und Seiten ohne das Badge.",
   "chat.preview.older": "Frühere Version",
   "chat.preview.newer": "Spätere Version",
   "chat.preview.version": "v{n}",

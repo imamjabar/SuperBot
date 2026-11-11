@@ -782,6 +782,37 @@ folder holds 512 MB. A team fills that sooner: set
 `OMB_ATTACHMENTS_MAX_BYTES` in the server's environment and restart, for
 example `OMB_ATTACHMENTS_MAX_BYTES=4294967296` for 4 GB.
 
+## Publishing pages
+
+A bot can publish a page it made (`publish_page`, or the Share button on a page in chat) to a public link on this server. The
+server keeps the page's files in the `published-pages` folder of the data directory and serves them from a second, separate
+listener: the **pages port** (`OMB_PAGES_PORT`, default the app port + 2, `8801`, bound to `127.0.0.1`). That port serves
+published pages and nothing else: no app routes, no sign-in, no cookies. Your SuperBot stays private; only the pages
+port is ever exposed.
+
+Set `OMB_PAGES_PUBLIC_URL` to the public address of the pages port, as an origin only: `https://pages.example.com` (https, or
+`http` on a loopback host for development; no path, query or credentials). Links are `<address>/p/<page id>/`. With it unset,
+`publish_page` tells the bot publishing needs this setting, and pages already published can still be unpublished. A server
+holds up to 500 published pages; unpublish some to make room.
+
+Every page is served with `Content-Security-Policy: sandbox` (scripts, forms and popups allowed, but no
+`allow-same-origin`), so each page runs in its own opaque origin and cannot read another page's storage or set cookies on
+the shared address. Do not put anything else behind the pages address.
+
+With Docker Compose the pages port is published as `${OMB_PAGES_HTTP_PORT:-8081}` (Caddy site `:81` in
+[`deploy/local/Caddyfile`](../deploy/local/Caddyfile)) and `OMB_PAGES_PUBLIC_URL` is passed through from `.env`.
+
+### With Tailscale Funnel
+
+Funnel puts only that port on the internet while the app stays on your tailnet. With Compose running:
+
+```sh
+sudo tailscale funnel --bg --https=8443 http://127.0.0.1:8081
+```
+
+Then set `OMB_PAGES_PUBLIC_URL=https://<machine>.<tailnet>.ts.net:8443` and restart the server. Funnel must be allowed for
+the node in your tailnet policy (the `funnel` node attribute); `tailscale funnel status` shows what is exposed.
+
 ## Putting a proxy in front
 
 Any reverse proxy works, given three things:

@@ -372,12 +372,12 @@ describe("X research tools", () => {
 describe("page tools", () => {
   it("send the tool's arguments to their internal routes and hand back the sentence, or the refusal as an error", async () => {
     const calls: Array<{ path: string; body: unknown }> = [];
-    const answers = [{ ok: true, status: 200, body: { ok: true, text: "Published “Bake sale” at https://abcdefghijklmnopqrstuvwxyz.mausbot.page/" } },
-      { ok: false, status: 402, body: { error: "You’ve used your 5 free pages. MausBot Cloud gives you more, and pages without the badge." } }];
+    const answers = [{ ok: true, status: 200, body: { ok: true, text: "Published “Bake sale” at https://pages.example.test/p/abcdefghijklmnopqrstuvwxyz/" } },
+      { ok: false, status: 402, body: { error: "This server already has 500 published pages. Unpublish some, then try again." } }];
     const client = { api: async () => ({}), apiResponse: async (path: string, init?: RequestInit) => { calls.push({ path, body: JSON.parse(String(init?.body)) }); return answers.shift()!; } };
-    expect(await callTool("publish_page", { path: "site", title: "Bake sale" }, context({ client }))).toEqual({ text: "Published “Bake sale” at https://abcdefghijklmnopqrstuvwxyz.mausbot.page/" });
+    expect(await callTool("publish_page", { path: "site", title: "Bake sale" }, context({ client }))).toEqual({ text: "Published “Bake sale” at https://pages.example.test/p/abcdefghijklmnopqrstuvwxyz/" });
     expect(await callTool("unpublish_page", { page_id: "abcdefghijklmnopqrstuvwxyz" }, context({ client })))
-      .toEqual({ text: "You’ve used your 5 free pages. MausBot Cloud gives you more, and pages without the badge.", isError: true });
+      .toEqual({ text: "This server already has 500 published pages. Unpublish some, then try again.", isError: true });
     expect(calls).toEqual([{ path: "/api/internal/pages/publish", body: { path: "site", title: "Bake sale" } },
       { path: "/api/internal/pages/unpublish", body: { page_id: "abcdefghijklmnopqrstuvwxyz" } }]);
   });

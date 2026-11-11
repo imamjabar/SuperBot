@@ -5764,7 +5764,6 @@
   "chat.page.unpublish": "公開を停止",
   "chat.page.unpublished": "公開を停止しました。リンクはもう開けません。",
   "chat.page.unpublishFailed": "このページの公開を停止できませんでした。少し待ってからもう一度お試しください。",
-  "chat.page.freeLimit": "無料の{limit}ページを使い切りました。MausBot Cloudならもっと作れて、バッジも付きません。",
   "chat.preview.older": "前のバージョン",
   "chat.preview.newer": "次のバージョン",
   "chat.preview.version": "v{n}",

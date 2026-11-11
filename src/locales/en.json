@@ -6500,7 +6500,6 @@
   "chat.page.unpublish": "Unpublish",
   "chat.page.unpublished": "Unpublished. The link no longer opens.",
   "chat.page.unpublishFailed": "Couldn’t unpublish this page. Try again in a moment.",
-  "chat.page.freeLimit": "You’ve used your {limit} free pages. MausBot Cloud gives you more, and pages without the badge.",
   "chat.preview.older": "Earlier version",
   "chat.preview.newer": "Later version",
   "chat.preview.version": "v{n}",
