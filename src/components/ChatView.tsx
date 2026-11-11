@@ -412,7 +412,8 @@ const Bubble = memo(function Bubble({
   const togglePin = () =>
     dispatch({ type: "updateTask", botId, threadId, patch: { pinnedMessageId: pinned ? "" : message.id } });
   const botActions = !user && (
-    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={simple ? [...replyAndCopy(() => onReply(message), text), ...botMenu] : botMenu}>
+    <MessageActions side="bot" forceOpen={viewRaw || speaking} menu={simple ? [...replyAndCopy(() => onReply(message), text), ...botMenu] : botMenu}
+      press={{ onReply: () => onReply(message), copy: text }}>
       {!simple && <ReplyAction onReply={() => onReply(message)} />}
       {!peer && <ReactAction threadId={threadId} message={message} />}
       {!simple && text && <CopyButton text={text} className={messageActionClass} />}
@@ -429,6 +430,7 @@ const Bubble = memo(function Bubble({
         {user && (
           <MessageActions
             side="user"
+            press={{ onReply: () => onReply(message), copy: visibleText }}
             menu={[
               ...(simple ? replyAndCopy(() => onReply(message), visibleText) : []),
               ...userMessageMenu({
