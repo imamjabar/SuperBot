@@ -1,0 +1,23 @@
+{
+  "id": "motion-video",
+  "name": "Motion Video",
+  "version": "1.0.0",
+  "description": "Create short motion graphics, explainers, reels, and kinetic typography videos using HyperFrames in the Private desktop.",
+  "defaultEnabled": true,
+  "triggerTerms": [
+    "video",
+    "motion",
+    "animation",
+    "animasi",
+    "explainer",
+    "promo video",
+    "reel",
+    "title card",
+    "kinetic",
+    "caption video",
+    "mp4"
+  ],
+  "requiredCapabilities": [
+    "worker"
+  ]
+}

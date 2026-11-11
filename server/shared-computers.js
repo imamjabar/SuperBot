@@ -1,0 +1,377 @@
+import { randomUUID, timingSafeEqual } from "node:crypto";
+import { z } from "zod";
+import { awayNotice, deviceWord, lendScreenSteps, LENT_PLATFORMS } from "./lent-computers.js";
+export { LentComputers } from "./lent-computers.js";
+const folder = z.object({ id: z.string().uuid(), name: z.string().min(1).max(120), write: z.boolean() }).strict();
+export const sharedComputerRegistration = z.object({
+    id: z.string().uuid(), name: z.string().min(1).max(120), environmentId: z.string().uuid(),
+    folders: z.array(folder).max(20), terminal: z.boolean(), computer: z.boolean(),
+    /** Sent only to a server that advertises lendingDetails; older servers refuse unknown fields. */
+    platform: z.enum(LENT_PLATFORMS).optional(),
+    /** Its internet connection, for the bots' browsers; sent only to a server that advertises deviceLink. */
+    internet: z.boolean().optional(),
+    /** Its real Chrome, for the bots' browser; sent only to a server that advertises myChromeLink. */
+    chrome: z.boolean().optional(),
+    /** It takes and honours run_command's timeout_seconds; sent only to a server that advertises commandTimeouts. Older
+     * desktops refuse a job with a field they do not know, and stop every command at 30 seconds. */
+    commandTimeouts: z.literal(true).optional(),
+    /** It runs a command for up to 900 seconds, not 240; sent only to a server that advertises longCommands. */
+    longCommands: z.literal(true).optional(),
+    /** It takes edit_file, append_file and delete_file; sent only to a server that advertises fileEdits. */
+    fileEdits: z.literal(true).optional(),
+}).strict();
+export const sharedComputerOperation = z.object({
+    computer_id: z.string().uuid(),
+    action: z.enum(["list_files", "read_file", "write_file", "edit_file", "append_file", "delete_file", "run_command", "computer_tools", "computer_call"]),
+    folder_id: z.string().uuid().optional(), path: z.string().max(2048).optional(),
+    content: z.string().max(350_000).optional(), encoding: z.enum(["utf8", "base64"]).optional(),
+    old_text: z.string().min(1).max(350_000).optional(), new_text: z.string().max(350_000).optional(),
+    expected_sha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    command: z.string().max(8000).optional(), timeout_seconds: z.number().int().min(1).max(900).optional(), tool_name: z.string().max(100).optional(),
+    arguments: z.record(z.string(), z.unknown()).optional(),
+}).strict();
+const COMMAND_SECONDS = 120;
+const OLD_MAX_COMMAND_SECONDS = 240;
+/** A command's deadline is its own limit on the desktop plus time for the result to come back. */
+const jobDeadlineMs = (registration, operation) => operation.action === "run_command" && registration.commandTimeouts ? (operation.timeout_seconds ?? COMMAND_SECONDS) * 1000 + 15_000 : 45_000;
+const failure = (message, status = 409) => Object.assign(new Error(message), { status });
+const TOTAL = 100;
+const RETAIN_MS = 14 * 24 * 60 * 60_000;
+/** The desktop leases a job before it runs it, so a job not leased by then went to a poll whose answer never arrived. */
+const DELIVERY_MS = 10_000;
+/** How long a request waits for a computer seen this recently to finish reconnecting. */
+const RECONNECTING_MS = 60_000;
+const RECONNECT_WAIT_MS = 15_000;
+const OFFLINE = "This shared computer is offline. Keep its desktop app open; do not substitute files on the server.";
+const RESTARTING = "This server is restarting. Lending resumes by itself once it is back.";
+const lentButOffline = (name, seen, device = "computer") => `${name} is lent but has been offline for ${Math.max(1, Math.round((Date.now() - seen) / 60_000))} min: SuperBot on it is closed, the ${device} is asleep or locked, or its desktop app is signed out of MausBot Cloud. Tell the person in one sentence to open SuperBot on that ${device}; do not substitute files on the server.`;
+/** Aborts when the client of a long poll goes away before it is answered. */
+export function responseGone(res) {
+    const gone = new AbortController();
+    res.once("close", () => { if (!res.writableEnded)
+        gone.abort(); });
+    return gone.signal;
+}
+/** The desktop's grant is the authority and checks every operation again; the server just never queues work outside what it lends. */
+export function sharedComputerScopeRefusal(registration, operation, askTool = null) {
+    switch (operation.action) {
+        case "run_command":
+            if (!registration.terminal && askTool)
+                return `${registration.name} doesn't let this Cloud run commands right now. Call ${askTool} with need "terminal" and why: it asks them with a one-tap Turn on, and you carry on once it's on. Never run the command another way or anywhere else.`;
+            return registration.terminal ? null : `${registration.name} does not lend its terminal, so commands cannot run there. Do not try to run the command another way or anywhere else; use its folders, or tell the person in one sentence what to run themselves, or, when it is their own Cloud, that they can turn on "Let Clouds run commands on this ${deviceWord(registration.platform)}" from the SuperBot icon in its menu bar or taskbar.`;
+        case "computer_tools":
+        case "computer_call":
+            if (!registration.computer && askTool)
+                return `Apps and screen are not lent to this Cloud right now. ${askHint(askTool, "screen")}`;
+            return registration.computer ? null : `Apps and screen are not lent to this server. ${lendScreenSteps(deviceWord(registration.platform))}`;
+        case "list_files":
+        case "read_file":
+        case "write_file":
+        case "edit_file":
+        case "append_file":
+        case "delete_file": {
+            const lent = registration.folders.find(entry => entry.id === operation.folder_id);
+            if (!lent)
+                return "This folder has not been shared with this server.";
+            if (operation.action === "list_files" || operation.action === "read_file")
+                return null;
+            if (!lent.write)
+                return "This folder is read-only.";
+            return operation.action === "write_file" || registration.fileEdits ? null
+                : `${registration.name} runs an older SuperBot that only writes whole files: read the file and write it whole with write_file, and tell the person that updating SuperBot there lets you change files by a passage.`;
+        }
+    }
+}
+/** What a bot does on the person's own Cloud when their computer can't give what it needs: ask, never explain the fix. */
+const askHint = (askTool, need) => `Call ${askTool} with need "${need}" and what you want to do: it asks them with a one-tap Turn on, and you carry on once it's on. Don't explain the fix in chat, and don't use your own cloud computer instead unless they ask.`;
+/** The person behind a request proven for this exact turn generation, not stopped, from a person's message; anything else is nobody. */
+export function provenRequestPerson(request, generation, personOf) {
+    if (!request?.messageId || request.stopped || !request.generations.has(generation))
+        return null;
+    return personOf(request.messageId) ?? null;
+}
+/** In-memory rendezvous: authority stays on the desktop, and restart/disconnect never replays an operation with an unknown outcome.
+ * Keyed by registering session and desktop id, so no other session takes over an id and a turn sees only its person's computers. */
+export class SharedComputers {
+    computers = new Map();
+    closed = false;
+    sessionLive;
+    lent;
+    changed = () => { };
+    /** On the person's own Cloud, the bots' tool that asks them to turn on what their computer doesn't give now. */
+    askTool = null;
+    constructor(sessionLive, lent) {
+        this.sessionLive = sessionLive;
+        this.lent = lent;
+    }
+    static key(session, id) { return `${session}\n${id}`; }
+    register(registration, owner, secret) {
+        if (this.closed)
+            throw failure(RESTARTING, 503);
+        if (!/^[a-f0-9]{64}$/.test(secret))
+            throw failure("Invalid computer credential", 400);
+        const key = SharedComputers.key(owner.session, registration.id);
+        const old = this.computers.get(key);
+        if (old) {
+            this.authorize(registration.id, owner.session, secret);
+            old.registration = registration;
+            old.seen = Date.now();
+            this.remember(registration, old.owner.person);
+            this.changed();
+            return;
+        }
+        this.reap();
+        // A new id from the same session replaces its entry; no other session can reach, replace or squat this key.
+        for (const [stale, entry] of this.computers) {
+            if (entry.owner.session !== owner.session)
+                continue;
+            this.computers.delete(stale);
+            entry.wake?.();
+            for (const job of entry.jobs.values())
+                this.finish(entry, job, failure("This computer's access changed. An in-flight action may have completed; inspect before retrying."));
+        }
+        if (this.computers.size >= TOTAL)
+            throw failure("Too many shared computers");
+        this.computers.set(key, { registration, owner: { ...owner }, secret, seen: Date.now(), jobs: new Map(), polls: 0 });
+        this.remember(registration, owner.person);
+        this.changed();
+    }
+    remember(registration, person) {
+        this.lent?.connected(person, { id: registration.id, name: registration.name, platform: registration.platform,
+            folders: registration.folders.length, terminal: registration.terminal, screen: registration.computer, internet: registration.internet === true, chrome: registration.chrome === true });
+    }
+    reap() {
+        for (const [key, entry] of this.computers) {
+            if (entry.jobs.size === 0 && (!this.sessionLive(entry.owner.session) || Date.now() - entry.seen > RETAIN_MS))
+                this.computers.delete(key);
+        }
+    }
+    online(entry) { return this.sessionLive(entry.owner.session) && Date.now() - entry.seen < 40_000; }
+    /** The desktop takes a 401 or 403 for a lost sign-in and signs in again, so a stopping server answers 503. */
+    authorize(id, session, secret) {
+        if (this.closed)
+            throw failure(RESTARTING, 503);
+        const entry = this.computers.get(SharedComputers.key(session, id));
+        if (!entry || !this.sessionLive(session) || !/^[a-f0-9]{64}$/.test(secret) || !timingSafeEqual(Buffer.from(secret), Buffer.from(entry.secret)))
+            throw failure("Shared computer is disconnected or not authorized", 403);
+        return entry;
+    }
+    list(principal) {
+        if (!principal)
+            return [];
+        return [...this.computers.values()].filter(entry => entry.owner.person === principal && this.online(entry)).map(({ registration: { platform, ...rest } }) => ({ ...rest, ...(platform ? { device: deviceWord(platform) } : {}) }));
+    }
+    /** What each of this person's online computers lends: its apps and screen, its terminal. */
+    lendingNow(principal) {
+        if (!principal)
+            return [];
+        return [...this.computers.values()].filter(entry => entry.owner.person === principal && this.online(entry))
+            .map(({ registration: { id, name, platform, computer, terminal } }) => ({ id, name, ...(platform ? { platform } : {}), computer, terminal }));
+    }
+    /** Every computer this person lent, now or before, newest first: online, offline since, or no longer lent. */
+    known(principal) {
+        if (!principal)
+            return [];
+        const live = [...this.computers.values()].filter(entry => entry.owner.person === principal);
+        return (this.lent?.list(principal) ?? []).map(record => {
+            const entry = live.find(candidate => candidate.registration.id === record.id);
+            return { id: record.id, name: record.name, platform: record.platform, online: entry ? this.online(entry) : false, busy: (entry?.jobs.size ?? 0) > 0,
+                lent: record.stoppedAt === null, lastSeenAt: entry ? Math.max(entry.seen, record.lastSeenAt) : record.lastSeenAt, lastUsedAt: record.lastUsedAt,
+                scopes: { folders: record.folders, terminal: record.terminal, screen: record.screen, internet: record.internet === true, chrome: record.chrome === true } };
+        });
+    }
+    /** For a bot: which known computer is offline and since when, and the sentence to say; nothing while one is online. */
+    away(principal) {
+        if (!principal)
+            return {};
+        const online = this.list(principal);
+        return awayNotice(this.lent?.list(principal) ?? [], new Set(online.map(registration => registration.id)), this.askTool);
+    }
+    /** For a bot: how the person lends apps and screen, when an online computer of theirs lends neither. */
+    screenNotLent(principal) {
+        if (!principal)
+            return {};
+        const entry = [...this.computers.values()].find(candidate => candidate.owner.person === principal && this.online(candidate) && !candidate.registration.computer);
+        if (!entry)
+            return {};
+        if (this.askTool)
+            return { screen: `${entry.registration.name} doesn't lend its apps and screen right now. To use them, ${askHint(this.askTool, "screen").replace(/^Call/, "call")}` };
+        return { screen: `${entry.registration.name} does not lend its apps and screen. ${lendScreenSteps(deviceWord(entry.registration.platform))}` };
+    }
+    /** A computer that lends its internet connection but is away: the bots' browsers here use My Cloud's own connection
+     * meanwhile, and say so once. Nothing while one is online, or when none lends it. */
+    internetAway(principal) {
+        const online = new Set(this.list(principal).map(registration => registration.id));
+        const lending = (this.lent?.list(principal) ?? []).filter(record => record.internet === true && record.stoppedAt === null);
+        if (!lending.length || lending.some(record => online.has(record.id)))
+            return null;
+        return { away: deviceWord(lending[0].platform) };
+    }
+    /** The newest computer lending its Chrome, and whether it is online now; null when none lends it. */
+    chromeLender(principal) {
+        const record = (this.lent?.list(principal) ?? []).find(candidate => candidate.chrome === true && candidate.stoppedAt === null);
+        if (!record)
+            return null;
+        return { name: record.name, device: deviceWord(record.platform), online: this.list(principal).some(registration => registration.id === record.id) };
+    }
+    status(principal) {
+        if (!principal)
+            return [];
+        this.reap();
+        return [...this.computers.values()].filter(entry => entry.owner.person === principal).map(entry => ({
+            id: entry.registration.id, name: entry.registration.name, online: this.online(entry), busy: entry.jobs.size > 0, lastSeenAt: entry.seen,
+            scopes: {
+                folders: entry.registration.folders.map(({ id, name, write }) => ({ id, name, write })),
+                terminal: entry.registration.terminal, screen: entry.registration.computer, internet: entry.registration.internet === true, chrome: entry.registration.chrome === true,
+            },
+        }));
+    }
+    /** The newest poll wins: one whose client dropped never takes the next job, and the reconnecting desktop is not refused. */
+    async poll(id, session, secret, gone) {
+        const entry = this.authorize(id, session, secret);
+        const mine = ++entry.polls;
+        entry.wake?.();
+        entry.seen = Date.now();
+        this.lent?.seen(entry.owner.person, id);
+        const next = () => {
+            if (entry.polls !== mine || gone?.aborted)
+                return null;
+            for (const job of entry.jobs.values()) {
+                if (!job.active()) {
+                    this.finish(entry, job, failure("The requesting turn ended"));
+                    continue;
+                }
+                if (!job.sent) {
+                    this.send(entry, job);
+                    return { id: job.id, operation: job.operation };
+                }
+            }
+            return null;
+        };
+        const queued = next();
+        if (queued)
+            return queued;
+        await new Promise(resolve => {
+            const wake = () => { clearTimeout(timer); gone?.removeEventListener("abort", wake); if (entry.wake === wake)
+                entry.wake = undefined; resolve(); };
+            const timer = setTimeout(wake, 20_000);
+            gone?.addEventListener("abort", wake, { once: true });
+            entry.wake = wake;
+        });
+        this.authorize(id, session, secret);
+        entry.seen = Date.now();
+        this.lent?.seen(entry.owner.person, id);
+        return next();
+    }
+    send(entry, job) {
+        job.sent = true;
+        job.delivery = setTimeout(() => {
+            if (job.leased || entry.jobs.get(job.id) !== job)
+                return;
+            entry.jobs.delete(job.id);
+            job.id = randomUUID();
+            job.sent = false;
+            entry.jobs.set(job.id, job);
+            entry.wake?.();
+        }, DELIVERY_MS);
+    }
+    liveJob(id, session, secret, jobId) {
+        const entry = this.authorize(id, session, secret);
+        entry.seen = Date.now();
+        const job = entry.jobs.get(jobId);
+        if (job?.sent !== true)
+            return false;
+        job.leased = true;
+        clearTimeout(job.delivery);
+        return job.active();
+    }
+    complete(id, session, secret, jobId, result) {
+        const entry = this.authorize(id, session, secret);
+        const job = entry.jobs.get(jobId);
+        if (!job || !job.sent)
+            throw failure("This computer operation expired; it will not be replayed");
+        this.lent?.used(entry.owner.person, id);
+        this.finish(entry, job, job.active() ? null : failure("The requesting turn ended"), result);
+    }
+    /** `paused`: the desktop still lends and comes back by itself (waiting for its Cloud sign-in), so it reads as offline,
+     * not as no longer lent. Older desktops never send it. */
+    disconnect(id, session, secret, paused = false) {
+        const entry = this.authorize(id, session, secret);
+        if (paused)
+            this.lent?.seen(entry.owner.person, id);
+        else
+            this.lent?.stopped(entry.owner.person, id);
+        this.computers.delete(SharedComputers.key(session, id));
+        entry.wake?.();
+        for (const job of entry.jobs.values())
+            this.finish(entry, job, failure("Computer disconnected. An in-flight action may have completed; inspect before retrying."));
+        this.changed();
+    }
+    /** Another person's computer answers exactly like one that does not exist. */
+    async request(operation, principal, active) {
+        if (!principal)
+            throw failure("This conversation cannot use a shared computer: only a conversation started by the person who shared it can.", 403);
+        const lent = () => [...this.computers.values()].find(candidate => candidate.registration.id === operation.computer_id && candidate.owner.person === principal);
+        for (const deadline = Date.now() + RECONNECT_WAIT_MS;;) {
+            const known = lent();
+            if (known && this.online(known))
+                break;
+            if (!known || Date.now() - known.seen > RECONNECTING_MS || Date.now() >= deadline || !active()) {
+                const why = known && this.sessionLive(known.owner.session)
+                    ? lentButOffline(known.registration.name, known.seen, deviceWord(known.registration.platform))
+                    : this.offline(principal, operation.computer_id);
+                throw failure(this.askTool ? `${why} ${askHint(this.askTool, operation.action === "run_command" ? "terminal" : operation.action.startsWith("computer_") ? "screen" : "folders")}` : why);
+            }
+            await new Promise(resolve => setTimeout(resolve, 250));
+        }
+        const entry = lent();
+        const refusal = sharedComputerScopeRefusal(entry.registration, operation, this.askTool);
+        if (refusal)
+            throw failure(refusal, 403);
+        if (operation.action === "run_command" && entry.registration.commandTimeouts && !entry.registration.longCommands && (operation.timeout_seconds ?? 0) > OLD_MAX_COMMAND_SECONDS) {
+            throw failure(`${entry.registration.name} runs an older SuperBot that stops a command after at most ${OLD_MAX_COMMAND_SECONDS} seconds. Give timeout_seconds of ${OLD_MAX_COMMAND_SECONDS} or less, or run longer jobs in the background with output to a file.`, 400);
+        }
+        if (entry.jobs.size >= 1)
+            throw failure("This shared computer is busy. Wait for its current action to finish.");
+        if (!active())
+            throw failure("The requesting turn ended", 401);
+        const { timeout_seconds: _timeout, ...withoutTimeout } = operation;
+        const timed = entry.registration.commandTimeouts ? operation : withoutTimeout;
+        const { old_text: _old, new_text: _new, ...withoutEdits } = timed;
+        const forDesktop = entry.registration.fileEdits ? timed : withoutEdits;
+        return new Promise((resolve, reject) => {
+            const id = randomUUID();
+            const job = { id, operation: forDesktop, active, sent: false, leased: false, resolve, reject, timer: setTimeout(() => this.finish(entry, job, failure("Computer action timed out. Its outcome is unknown; inspect before retrying.")), jobDeadlineMs(entry.registration, operation)) };
+            entry.jobs.set(id, job);
+            entry.wake?.();
+        });
+    }
+    /** Names the computer and its kind when it is known, so a bot says "your PC" to a Windows user, never "your Mac". */
+    offline(principal, id) {
+        const known = this.lent?.list(principal).find(computer => computer.id === id);
+        if (!known)
+            return OFFLINE;
+        const device = deviceWord(known.platform);
+        return known.stoppedAt === null
+            ? `${known.name} is offline: SuperBot on that ${device} is closed, or the ${device} is asleep or off. Ask them to open it; it reconnects by itself. Do not substitute files on the server.`
+            : `${known.name} is no longer lent: lending was turned off on that ${device}. Do not substitute files on the server.`;
+    }
+    close() {
+        this.closed = true;
+        for (const entry of this.computers.values()) {
+            entry.wake?.();
+            for (const job of entry.jobs.values())
+                this.finish(entry, job, failure("Workspace stopped. Inspect any in-flight action before retrying."));
+        }
+        this.computers.clear();
+    }
+    finish(entry, job, error, result) {
+        clearTimeout(job.timer);
+        clearTimeout(job.delivery);
+        entry.jobs.delete(job.id);
+        if (error)
+            job.reject(error);
+        else
+            job.resolve(result);
+    }
+}

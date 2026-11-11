@@ -1,0 +1,164 @@
+import { spawn } from "node:child_process";
+import { Duplex } from "node:stream";
+import { setTimeout as delay } from "node:timers/promises";
+import { SHARED_LOCAL_VM_TARGET, sh } from "./container-computer.js";
+import { augmentedPath, resolveCliSpawn } from "./env-path.js";
+import { seatIdentity } from "./local-vm-seats.js";
+/** Copies bytes between stdio and the seat's websockify on the container's loopback; websockify ships python3. */
+const VIEWER_RELAY = [
+    "import os, socket, sys, threading",
+    "s = socket.create_connection(('127.0.0.1', int(sys.argv[1])))",
+    "def up():",
+    "    while True:",
+    "        d = os.read(0, 65536)",
+    "        if not d:",
+    "            s.shutdown(socket.SHUT_WR)",
+    "            return",
+    "        s.sendall(d)",
+    "threading.Thread(target=up, daemon=True).start()",
+    "while True:",
+    "    d = s.recv(65536)",
+    "    if not d:",
+    "        break",
+    "    os.write(1, d)",
+].join("\n");
+/** Seats other than 1 publish no host port, so their viewer is reached through `exec -i` instead of a new listener. */
+export function seatViewerTunnelArgs(seat, container = SHARED_LOCAL_VM_TARGET.containerName) {
+    const { viewerPort } = seatIdentity(seat);
+    return ["exec", "-i", "-u", "cua", container, "python3", "-c", VIEWER_RELAY, String(viewerPort)];
+}
+export function openSeatViewerTunnel(runtime, seat, container = SHARED_LOCAL_VM_TARGET.containerName) {
+    const resolved = resolveCliSpawn(runtime, seatViewerTunnelArgs(seat, container));
+    const child = spawn(resolved.command, resolved.args, { stdio: ["pipe", "pipe", "ignore"], env: { ...process.env, PATH: augmentedPath() } });
+    const { stdin, stdout } = child;
+    const stream = new Duplex({
+        read() { stdout.resume(); },
+        write(chunk, _encoding, done) { stdin.write(chunk, done); },
+        final(done) { stdin.end(done); },
+        destroy(error, done) {
+            stdout.destroy();
+            stdin.destroy();
+            if (child.exitCode === null && child.signalCode === null)
+                child.kill("SIGTERM");
+            done(error);
+        },
+    });
+    stdout.on("data", (chunk) => { if (!stream.push(chunk))
+        stdout.pause(); });
+    stdout.once("end", () => stream.push(null));
+    stdout.once("error", (error) => stream.destroy(error));
+    stdin.once("error", (error) => stream.destroy(error));
+    child.once("error", (error) => stream.destroy(error));
+    child.once("close", () => stream.destroy());
+    return stream;
+}
+const SUPERVISOR_CONF = "/etc/supervisor/supervisord.conf";
+const SOCKET_READY = "openmausbot-seat-socket-ready";
+/** Program names written by the image's `openmausbot-seat-conf`. */
+export function seatPrograms(seat) {
+    const suffix = seatIdentity(seat).seat === 1 ? "" : `-${seat}`;
+    return ["xvfb", "xfce", "vncserver", "novnc", "openmausbot-cua-driver"].map((name) => `${name}${suffix}`);
+}
+function rootExec(container, args) {
+    return ["exec", "-u", "root", container, ...args];
+}
+export function containerStartSeatArgs(seat, container = SHARED_LOCAL_VM_TARGET.containerName) {
+    return rootExec(container, ["/usr/local/bin/openmausbot-start-seat", String(seatIdentity(seat).seat)]);
+}
+const CHROME_QUIT_SECONDS = 10;
+/** Chrome writes its profile on SIGTERM, so only Chrome processes whose environment names this seat's display get
+ * one, with a bounded wait, before supervisor stops the seat's programs. */
+const STOP_SEAT_SCRIPT = [
+    'pids=""',
+    "for dir in /proc/[0-9]*; do",
+    '  case "$(cat "$dir/comm" 2>/dev/null)" in chrome|chromium) ;; *) continue ;; esac',
+    '  tr "\\0" "\\n" < "$dir/environ" 2>/dev/null | grep -qx "DISPLAY=:$1" && pids="$pids ${dir#/proc/}"',
+    "done",
+    '[ -z "$pids" ] || kill -TERM $pids 2>/dev/null || true',
+    `waited=0`,
+    `while [ -n "$pids" ] && [ "$waited" -lt ${CHROME_QUIT_SECONDS} ]; do`,
+    '  alive=""',
+    '  for pid in $pids; do kill -0 "$pid" 2>/dev/null && alive="$alive $pid"; done',
+    '  pids=$alive',
+    '  [ -z "$pids" ] || { sleep 1; waited=$((waited + 1)); }',
+    "done",
+    `rm -f "/etc/supervisor/conf.d/seat-$1.conf" && exec supervisorctl -c ${SUPERVISOR_CONF} update`,
+].join("\n");
+export function containerStopSeatArgs(seat, container = SHARED_LOCAL_VM_TARGET.containerName) {
+    if (seatIdentity(seat).seat === 1)
+        throw new Error("Seat 1 is the shared desktop and cannot be stopped on its own");
+    return rootExec(container, ["sh", "-c", STOP_SEAT_SCRIPT, "sh", String(seat)]);
+}
+export function containerSeatStatusArgs(seat, container = SHARED_LOCAL_VM_TARGET.containerName) {
+    return rootExec(container, ["sh", "-c", `supervisorctl -c ${SUPERVISOR_CONF} status "$@" || true`, "sh", ...seatPrograms(seat)]);
+}
+/** The container drops root's DAC override, so root cannot stat inside cua's 0700 runtime dir: the driver's
+ * socket is checked as cua, the user that owns it and that every client connects as. */
+export function containerSeatSocketArgs(seat, container = SHARED_LOCAL_VM_TARGET.containerName) {
+    return ["exec", "-u", "cua", container, "sh", "-c", `if test -S "$1"; then echo ${SOCKET_READY}; fi`, "sh", seatIdentity(seat).cuaSocket];
+}
+export function parseSeatStatus(seat, stdout) {
+    const names = seatPrograms(seat);
+    const programs = Object.fromEntries(names.map((name) => [name, "MISSING"]));
+    let socketReady = false;
+    for (const line of stdout.split("\n")) {
+        const [name, state] = line.trim().split(/\s+/);
+        if (name === SOCKET_READY)
+            socketReady = true;
+        else if (name && state && names.includes(name))
+            programs[name] = state;
+    }
+    return {
+        seat: seatIdentity(seat),
+        programs,
+        socketReady,
+        running: socketReady && names.every((name) => programs[name] === "RUNNING"),
+        viewerUrl: null,
+    };
+}
+/** Supervisor applies only changed config, so starting a running seat is a no-op. VNC_PW reaches the seat's
+ * x11vnc through supervisord's own environment and is never part of these arguments. */
+export async function containerStartSeat(seat, options) {
+    const { runtime, target = SHARED_LOCAL_VM_TARGET, runner = sh } = options;
+    await runner(runtime, containerStartSeatArgs(seat, target.containerName), 30_000);
+}
+export async function containerStopSeat(seat, options) {
+    const { runtime, target = SHARED_LOCAL_VM_TARGET, runner = sh } = options;
+    await runner(runtime, containerStopSeatArgs(seat, target.containerName), 30_000);
+}
+export async function containerSeatStatus(seat, options) {
+    const { runtime, target = SHARED_LOCAL_VM_TARGET, runner = sh } = options;
+    const [programs, socket] = await Promise.all([
+        runner(runtime, containerSeatStatusArgs(seat, target.containerName), 15_000),
+        runner(runtime, containerSeatSocketArgs(seat, target.containerName), 15_000),
+    ]);
+    return parseSeatStatus(seat, `${programs.stdout}\n${socket.stdout}`);
+}
+const SEAT_START_SECONDS = 45;
+/** Starts the target's seat when it is not fully up and waits until its programs run and its socket exists.
+ * Seat 1 is the container's own desktop and is never touched here. */
+export async function ensureContainerSeat(target, options) {
+    const { seat } = target;
+    if (seat === undefined || seat === 1)
+        return;
+    const { runtime, runner = sh, sleep = (ms) => delay(ms) } = options;
+    const seatOptions = { runtime, target, runner };
+    if ((await containerSeatStatus(seat, seatOptions)).running)
+        return;
+    await containerStartSeat(seat, seatOptions);
+    for (let attempt = 0; attempt < SEAT_START_SECONDS; attempt++) {
+        await sleep(1_000);
+        if ((await containerSeatStatus(seat, seatOptions)).running)
+            return;
+    }
+    throw new Error(`Local VM seat ${seat} did not start within ${SEAT_START_SECONDS} seconds`);
+}
+/** The one way a turn's seat becomes usable: it waits out an idle stop in flight, starts the seat, and only after
+ * the seat is seen running lists it in the idle registry that the viewer and the inventory read. */
+export async function startSeatLifecycle(target, idle, options) {
+    if (target.seat === undefined)
+        return;
+    await idle.settled(target.seat);
+    await ensureContainerSeat(target, options);
+    idle.touch(target.seat);
+}
